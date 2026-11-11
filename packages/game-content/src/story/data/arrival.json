@@ -122,7 +122,8 @@
       "prompt": "将备好的4份翠芽草一起入炉，完成炼丹后查看药性与用法。",
       "href": "/game/sect/alchemy?workspace=craft&guide=alchemy-first-furnace",
       "mode": "all",
-      "grant": "first-furnace-lesson"
+      "grant": "first-furnace-lesson",
+      "classroom": "alchemy"
     },
     {
       "id": "empty-hand",
@@ -150,7 +151,8 @@
       "prompt": "选好图纸和青石，核对消耗，再开炉铸出第一件兵器。",
       "href": "/game/sect/refinery?workspace=craft&guide=forge-first-weapon",
       "mode": "all",
-      "grant": "first-weapon"
+      "grant": "first-weapon",
+      "classroom": "refinery"
     },
     {
       "id": "equip",
@@ -248,7 +250,8 @@
       ],
       "scene": "wild",
       "prompt": "到青溪坡寻觅，留意遭遇的生灵；战斗、捕捉或退开后回来复命。",
-      "href": "/game/wild?nodeId=SAT_TN_08"
+      "href": "/game/wild?nodeId=SAT_TN_08&guide=battle-basics",
+      "lesson": "battle-basics"
     },
     {
       "id": "remain",

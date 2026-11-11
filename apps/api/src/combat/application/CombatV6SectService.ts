@@ -24,6 +24,7 @@ import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import { and, eq } from 'drizzle-orm';
 import { assertInventoryIdle, InventoryError } from '@server/inventory/operations.js';
 import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
+import { StoryService } from '@server/story/application/StoryService.js';
 import { getSectCombatView } from '@server/combat/application/CombatV6BuildService.js';
 
 export async function readSectV6(owner: string): Promise<SectV6View> {
@@ -173,6 +174,10 @@ export async function mutateSectV6(owner: string, action: SectV6Action) {
               })),
             );
         }
+        const story =
+          action.action === 'train' || action.action === 'unlock'
+            ? await StoryService.noteFact(owner, 'sect_trained', tx)
+            : null;
         const state = await new ResourceEventCommitter().commit(tx, {
           actor: { userId: character.userId, cultivatorId: owner },
           source: 'combat-v6-sect',
@@ -197,6 +202,7 @@ export async function mutateSectV6(owner: string, action: SectV6Action) {
                   },
                 ]
               : []),
+            ...(story?.changes ?? []),
           ],
         });
         lease.assertHeld();

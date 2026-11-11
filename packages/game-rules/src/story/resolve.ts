@@ -1,5 +1,8 @@
 import {
+  baseMark,
+  chapterUnlocks,
   flagMark,
+  readBaseMark,
   standingReaches,
   storyFlags,
   STORY_MARK_FACT_IDS,
@@ -79,11 +82,37 @@ function satisfied(
       ? ready.every(Boolean)
       : ready.some(Boolean);
   }
-  if (beat.kind === 'wait') return conditionMet(beat.until, progress, facts);
+  if (beat.kind === 'wait') {
+    return conditionMet(beat.id, beat.until, progress, facts);
+  }
+  if (beat.kind === 'objective') {
+    return beat.goals.every((goal) =>
+      conditionMet(beat.id, goal.need, progress, facts),
+    );
+  }
   return false;
 }
 
+function conditionsOf(beat: StoryBeat): StoryCondition[] {
+  if (beat.kind === 'wait') return [beat.until];
+  if (beat.kind === 'objective') return beat.goals.map((goal) => goal.need);
+  return [];
+}
+
+// 进了这一幕之后新做了几次。没记过起点就当还没开始。
+function countedSince(
+  beatId: string,
+  condition: Extract<StoryCondition, { type: 'count' }>,
+  progress: StoryProgress,
+  facts: StoryFacts,
+): number {
+  const now = facts.counts?.[condition.count] ?? 0;
+  const base = readBaseMark(progress.marks, beatId, condition.count) ?? now;
+  return Math.max(0, now - base);
+}
+
 function conditionMet(
+  beatId: string,
   condition: StoryCondition,
   progress: StoryProgress,
   facts: StoryFacts,
@@ -94,7 +123,27 @@ function conditionMet(
   if (condition.type === 'flag') {
     return progress.marks.includes(flagMark(condition.flag));
   }
+  if (condition.type === 'count') {
+    return countedSince(beatId, condition, progress, facts) >= condition.atLeast;
+  }
   return standingReaches(facts.standing, condition.realm, condition.stage);
+}
+
+// 站到一幕上，先把它要数的东西记个起点。
+function withBaselines(
+  beat: StoryBeat,
+  progress: StoryProgress,
+  facts: StoryFacts,
+): StoryProgress {
+  const marks = conditionsOf(beat).flatMap((condition) =>
+    condition.type === 'count' &&
+    readBaseMark(progress.marks, beat.id, condition.count) === null
+      ? [baseMark(beat.id, condition.count, facts.counts?.[condition.count] ?? 0)]
+      : [],
+  );
+  return marks.length > 0
+    ? { ...progress, marks: [...progress.marks, ...new Set(marks)] }
+    : progress;
 }
 
 function normalizeArrivalProgress(
@@ -160,18 +209,23 @@ export function resolveStory(
   while (!seen.has(beatId)) {
     seen.add(beatId);
     const beat = beatAt(chapter, beatId);
+    progress = withBaselines(beat, progress, facts);
     if (chapter.id === 'arrival' && beat.kind === 'practice') {
       issuePayout(grants, issued, beat.grant);
     }
     if (!satisfied(beat, progress, facts)) break;
-    if (beat.kind === 'practice') issuePayout(grants, issued, beat.reward);
+    if (beat.kind === 'practice' || beat.kind === 'objective') {
+      issuePayout(grants, issued, beat.reward);
+    }
     const index = chapter.beats.findIndex((entry) => entry.id === beatId);
     const next = chapter.beats[index + 1];
     if (!next) {
       finished = true;
       break;
     }
-    if (next.kind === 'practice') issuePayout(grants, issued, next.grant);
+    if (next.kind === 'practice' || next.kind === 'objective') {
+      issuePayout(grants, issued, next.grant);
+    }
     beatId = next.id;
   }
 
@@ -308,6 +362,8 @@ export function presentStory(
   facts: StoryFacts,
   /** 别的章节里记下的标记。 */
   carried: readonly string[] = [],
+  /** 演完的章节里开放过的入口。 */
+  opened: readonly string[] = [],
 ): StoryView {
   progress = normalizeArrivalProgress(chapter, progress, facts);
   const beat = beatAt(chapter, progress.beatId);
@@ -328,7 +384,26 @@ export function presentStory(
     href: shifted.href,
     scriptId: beat.kind === 'performance' ? beat.script : null,
     guideLesson: pendingGuide(beat, progress),
+    classroom: beat.kind === 'practice' ? (beat.classroom ?? null) : null,
+    unlocked: chapter.gated
+      ? [...new Set([...opened, ...chapterUnlocks(chapter, beat.id)])]
+      : null,
     flags: [...new Set([...carried, ...storyFlags(progress.marks)])],
+    goals:
+      beat.kind === 'objective'
+        ? beat.goals.map((goal) => ({
+            label: goal.label,
+            done: conditionMet(beat.id, goal.need, progress, facts),
+            current:
+              goal.need.type === 'count'
+                ? Math.min(
+                    goal.need.atLeast,
+                    countedSince(beat.id, goal.need, progress, facts),
+                  )
+                : null,
+            target: goal.need.type === 'count' ? goal.need.atLeast : null,
+          }))
+        : [],
   };
 }
 

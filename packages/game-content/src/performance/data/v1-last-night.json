@@ -1,0 +1,37 @@
+{
+  "id": "v1-last-night",
+  "title": "最后一夜",
+  "requires": [],
+  "cast": {},
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "一盏灯，一张桌子。窗外是黑的。"
+    },
+    {
+      "type": "title",
+      "kicker": "人间",
+      "text": "最后一夜"
+    },
+    {
+      "type": "narration",
+      "text": "夜已经很深了。"
+    },
+    {
+      "type": "narration",
+      "text": "灯还亮着。你不记得这是第几次说「再过一会儿就睡」。"
+    },
+    {
+      "type": "narration",
+      "text": "很累。说不上是哪里累。"
+    },
+    {
+      "type": "narration",
+      "text": "合上眼之前，你想了一件事。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

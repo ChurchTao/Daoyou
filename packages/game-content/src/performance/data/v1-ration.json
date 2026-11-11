@@ -1,0 +1,87 @@
+{
+  "id": "v1-ration",
+  "title": "份例",
+  "requires": [
+    "name"
+  ],
+  "cast": {
+    "he": {
+      "name": "贺钧",
+      "portrait": "icon:portrait-noble-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "库房门口，一张条案，后面坐着一个面带笑意的人。"
+    },
+    {
+      "type": "title",
+      "kicker": "宗门 · 库房",
+      "text": "份例"
+    },
+    {
+      "type": "narration",
+      "text": "领用具的地方排着队。"
+    },
+    {
+      "type": "narration",
+      "text": "管事的师兄姓贺，说话很客气，对谁都笑。"
+    },
+    {
+      "type": "line",
+      "speaker": "he",
+      "text": "{name}师弟是吧。衣裳两套，蒲团一个，兵器一件。"
+    },
+    {
+      "type": "narration",
+      "text": "兵器是一把刀。刃上三处崩口，刀柄缠着发黑的旧布。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "这把刀崩口了。",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "he",
+              "text": "记名弟子的份例就是这些。规矩如此，师弟多担待。"
+            }
+          ]
+        },
+        {
+          "label": "（收下）",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "he",
+              "text": "师弟是明白人。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "narration",
+      "text": "排在你后面的人，领到的是一把新的。"
+    },
+    {
+      "type": "narration",
+      "text": "他走的时候，往条案上放了一只小布袋。"
+    },
+    {
+      "type": "line",
+      "speaker": "he",
+      "text": "对了，事务堂今日的差事还没人领。师弟初来，正好认认路。"
+    },
+    {
+      "type": "narration",
+      "text": "一块差事牌已经放在你手里了。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

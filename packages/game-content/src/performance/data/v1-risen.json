@@ -1,0 +1,101 @@
+{
+  "id": "v1-risen",
+  "title": "筑基",
+  "requires": [],
+  "cast": {
+    "chen": {
+      "name": "陈放",
+      "portrait": "icon:portrait-disciple-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "静室，一只蒲团，一线天光。"
+    },
+    {
+      "type": "title",
+      "kicker": "静室",
+      "text": "筑基"
+    },
+    {
+      "type": "narration",
+      "text": "成了。"
+    },
+    {
+      "type": "narration",
+      "text": "丹田里像点起了一盏灯。"
+    },
+    {
+      "type": "narration",
+      "text": "四下很静，静得能听见自己的血在流。"
+    },
+    {
+      "type": "narration",
+      "text": "心里一直压着的那点东西，也轻了。想家的时候，不那么疼了。"
+    },
+    {
+      "type": "narration",
+      "text": "你觉得这样很好。"
+    },
+    {
+      "type": "narration",
+      "text": "门外有声音。不是说话，是有人撞在墙上。"
+    },
+    {
+      "type": "narration",
+      "text": "你推开门。"
+    },
+    {
+      "type": "narration",
+      "text": "陈放靠着门柱坐在地上，半边袖子是红的。"
+    },
+    {
+      "type": "narration",
+      "text": "他看见你，咧嘴笑了一下。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "成了？"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "谁干的？"
+        },
+        {
+          "label": "你别动。"
+        }
+      ]
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "姓贺的。带了两个人，说要进去「探望」你。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "我说不行。他说让开。我说不让。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "然后就这样了。他没进去。"
+    },
+    {
+      "type": "narration",
+      "text": "他的声音越来越小。"
+    },
+    {
+      "type": "narration",
+      "text": "林晚已经跑去叫人了。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "id": "v1-errand",
+  "title": "头一趟差事",
+  "requires": [
+    "instructor",
+    "name"
+  ],
+  "cast": {
+    "chen": {
+      "name": "陈放",
+      "portrait": "icon:portrait-disciple-m"
+    },
+    "instructor": {
+      "name": "{instructor}"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "演武场，地上还有没干的水洼。"
+    },
+    {
+      "type": "title",
+      "kicker": "宗门 · 雨后",
+      "text": "头一趟差事"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "雨停了。青溪坡要去个人，看看路塌没塌，溪边的兽安不安分。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "我去！"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "你留下抄名册。上回让你去数灵草，你数回来一只兔子。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "{name}，你去。带上你那只小的。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "遇上兽怎么办？",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "instructor",
+              "text": "打得过就打，打不过就退。能捉的可以试着捉。回来照实说。"
+            }
+          ]
+        },
+        {
+          "label": "我这就去。"
+        }
+      ]
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

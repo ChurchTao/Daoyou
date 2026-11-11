@@ -1,0 +1,83 @@
+{
+  "id": "v1-call",
+  "title": "开山的日子",
+  "requires": [],
+  "cast": {
+    "elder": {
+      "name": "许伯",
+      "portrait": "icon:portrait-elder-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "洞府门口，许伯把一包东西放在石阶上。"
+    },
+    {
+      "type": "title",
+      "kicker": "洞府 · 几日后",
+      "text": "开山的日子"
+    },
+    {
+      "type": "narration",
+      "text": "这几天，你把洞府里外都走熟了。"
+    },
+    {
+      "type": "narration",
+      "text": "许伯来过两回。每回都留下点吃的，坐一会儿就走。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "后天诸宗开山收徒。你去。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "我什么都不会。",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "elder",
+              "text": "去了才有人教。"
+            }
+          ]
+        },
+        {
+          "label": "一定要去吗？",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "elder",
+              "text": "这山里，没师门的生面孔活不长。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "带上那块腰牌。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "有人问你从前的事，就说记不得了。落过水的人，糊涂几天不稀奇。"
+    },
+    {
+      "type": "narration",
+      "text": "他说得很平常，像在交代明天要下雨。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "你洞里石案上有张舆图。先把路认了。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

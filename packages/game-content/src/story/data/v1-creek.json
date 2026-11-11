@@ -1,0 +1,113 @@
+{
+  "id": "v1-creek",
+  "track": "main",
+  "title": "溪边",
+  "next": "v1-gate",
+  "gated": true,
+  "beats": [
+    {
+      "id": "wake",
+      "kind": "performance",
+      "script": "v1-wake",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "你在一条溪边醒了过来。",
+      "href": "/game/story",
+      "unlocks": [
+        "settings",
+        "feedback",
+        "community",
+        "download",
+        "redeem"
+      ]
+    },
+    {
+      "id": "ambush",
+      "kind": "performance",
+      "script": "v1-ambush",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "跟着采药的老人下山。",
+      "href": "/game/story"
+    },
+    {
+      "id": "fight",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "battle-basics"
+        },
+        {
+          "type": "fact",
+          "fact": "qingxi_met"
+        }
+      ],
+      "scene": "wild",
+      "prompt": "有东西冲过来了。打、捉、退都行，先应付过去。",
+      "href": "/game/wild?nodeId=SAT_TN_08&guide=battle-basics",
+      "mode": "all"
+    },
+    {
+      "id": "cubs",
+      "kind": "performance",
+      "script": "v1-cubs",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "动静过去了，老人在等你。",
+      "href": "/game/story"
+    },
+    {
+      "id": "cub",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "beast-pouch"
+        },
+        {
+          "type": "fact",
+          "fact": "starter_beast"
+        }
+      ],
+      "scene": "beasts",
+      "prompt": "选一只幼兽带走。",
+      "href": "/game/beasts?guide=beast-pouch",
+      "mode": "all",
+      "unlocks": [
+        "beasts"
+      ]
+    },
+    {
+      "id": "soup",
+      "kind": "performance",
+      "script": "v1-soup",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "跟许伯回山弯里歇一歇。",
+      "href": "/game/story"
+    },
+    {
+      "id": "home",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "cave-layout"
+        }
+      ],
+      "scene": "cave",
+      "prompt": "去洞府看看：认一认泉眼和出门的路。",
+      "href": "/game?guide=cave-layout"
+    },
+    {
+      "id": "night",
+      "kind": "performance",
+      "script": "v1-night",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "天黑了，在洞府住下。",
+      "href": "/game/story"
+    }
+  ]
+}

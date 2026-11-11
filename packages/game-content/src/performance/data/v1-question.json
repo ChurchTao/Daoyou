@@ -1,0 +1,78 @@
+{
+  "id": "v1-question",
+  "title": "一道题",
+  "requires": [
+    "instructor"
+  ],
+  "cast": {
+    "chen": {
+      "name": "陈放",
+      "portrait": "icon:portrait-disciple-m"
+    },
+    "instructor": {
+      "name": "{instructor}"
+    },
+    "lin": {
+      "name": "林晚",
+      "portrait": "icon:portrait-disciple-f"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "大殿前的石阶，下面站了四十多个记名弟子。"
+    },
+    {
+      "type": "title",
+      "kicker": "宗门 · 月末",
+      "text": "一道题"
+    },
+    {
+      "type": "narration",
+      "text": "考校那天来了四十多个人。"
+    },
+    {
+      "type": "narration",
+      "text": "{instructor}站在台阶上，手里只有一张纸。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "今年不比试。出一道题。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "落日森林边上有座废药园。近一个月，园里的药成片枯死，林子里的兽也躁了。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "去查。查清缘由，回来说给我听。说得对的，过。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "查案？我以为是打架。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "各走各的，不许结伴。问人，看东西，动脑子。别光想着动手。"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "园里有人吗？"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "有。有的说实话，有的不说。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

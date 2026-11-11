@@ -1,0 +1,63 @@
+{
+  "id": "v1-queue",
+  "title": "排队的人",
+  "requires": [],
+  "cast": {
+    "usher": {
+      "name": "山门接引人"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "山门前的石阶上排着长队。"
+    },
+    {
+      "type": "title",
+      "kicker": "诸宗山门",
+      "text": "排队的人"
+    },
+    {
+      "type": "narration",
+      "text": "山门前排着长队。"
+    },
+    {
+      "type": "narration",
+      "text": "有人带着家仆，有人背着干粮。还有人和你一样，两手空空。"
+    },
+    {
+      "type": "line",
+      "speaker": "usher",
+      "text": "拜师的？名册在那头。各家教什么、收什么人都写着。自己看，别问我哪家好。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "哪家最好？",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "usher",
+              "text": "刚说了别问。……看你想学什么吧。"
+            }
+          ]
+        },
+        {
+          "label": "选错了怎么办？",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "usher",
+              "text": "能转，就是麻烦。还没进门，倒先想着出门？"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

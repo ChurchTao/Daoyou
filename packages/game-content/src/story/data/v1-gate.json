@@ -1,0 +1,112 @@
+{
+  "id": "v1-gate",
+  "track": "main",
+  "title": "山门",
+  "next": "v1-registered",
+  "gated": true,
+  "beats": [
+    {
+      "id": "call",
+      "kind": "performance",
+      "script": "v1-call",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "许伯上山来了，有话要说。",
+      "href": "/game/story"
+    },
+    {
+      "id": "map",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "map-qingxi"
+        }
+      ],
+      "scene": "map",
+      "prompt": "打开舆图，找到太岳山和诸宗山门。",
+      "href": "/game/map-v2?guide=map-qingxi",
+      "unlocks": [
+        "map"
+      ]
+    },
+    {
+      "id": "queue",
+      "kind": "performance",
+      "script": "v1-queue",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "诸宗开山收徒，山门前排着长队。",
+      "href": "/game/story"
+    },
+    {
+      "id": "join",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "fact",
+          "fact": "sect_joined"
+        }
+      ],
+      "scene": "sect",
+      "prompt": "看看各宗，选一处拜入。",
+      "href": "/game/sect?guide=sect-door",
+      "lesson": "sect-door",
+      "unlocks": [
+        "sect"
+      ]
+    },
+    {
+      "id": "bones",
+      "kind": "performance",
+      "script": "v1-bones",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "轮到你验根骨了。",
+      "href": "/game/story"
+    },
+    {
+      "id": "path",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "sect-first-path"
+        },
+        {
+          "type": "fact",
+          "fact": "sect_ready"
+        }
+      ],
+      "scene": "sect-enlightenment-cliff",
+      "prompt": "在宗门悟道处选一个流派。",
+      "href": "/game/sect/enlightenment-cliff?workspace=paths&guide=sect-first-path",
+      "mode": "all",
+      "unlocks": [
+        "sect-methods"
+      ]
+    },
+    {
+      "id": "points",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "first-attributes"
+        }
+      ],
+      "scene": "cultivator",
+      "prompt": "看看根基怎么分配。拿不准可以先留着。",
+      "href": "/game/cultivator?allocate=1&guide=first-attributes"
+    },
+    {
+      "id": "spar",
+      "kind": "performance",
+      "script": "v1-spar",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "教习还有几句话交代。",
+      "href": "/game/story"
+    }
+  ]
+}

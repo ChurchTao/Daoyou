@@ -1,0 +1,53 @@
+{
+  "id": "v1-foundation",
+  "track": "main",
+  "title": "筑基",
+  "next": "v1-kin",
+  "gated": true,
+  "beats": [
+    {
+      "id": "ripen",
+      "kind": "wait",
+      "until": {
+        "type": "realm",
+        "realm": "炼气",
+        "stage": "圆满"
+      },
+      "scene": "retreat",
+      "prompt": "修至炼气圆满。",
+      "href": "/game/retreat",
+      "unlocks": [
+        "tasks"
+      ]
+    },
+    {
+      "id": "guard",
+      "kind": "performance",
+      "script": "v1-guard",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "陈放在静室门口等你。",
+      "href": "/game/story"
+    },
+    {
+      "id": "rise",
+      "kind": "wait",
+      "until": {
+        "type": "realm",
+        "realm": "筑基"
+      },
+      "scene": "tasks",
+      "prompt": "去任务中心查看破境卷宗：备丹、过试炼，再回静室冲关。",
+      "href": "/game/tasks"
+    },
+    {
+      "id": "risen",
+      "kind": "performance",
+      "script": "v1-risen",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "冲关已成。",
+      "href": "/game/story"
+    }
+  ]
+}

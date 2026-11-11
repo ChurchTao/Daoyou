@@ -1,0 +1,75 @@
+{
+  "id": "v1-cubs",
+  "title": "石缝里",
+  "requires": [],
+  "cast": {
+    "elder": {
+      "name": "许伯",
+      "portrait": "icon:portrait-elder-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "溪边的乱石滩，石缝里有东西在动。"
+    },
+    {
+      "type": "narration",
+      "text": "动静过去了。"
+    },
+    {
+      "type": "narration",
+      "text": "你低头看自己的手。还在抖。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "手脚倒快。学过？"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "没有。"
+        },
+        {
+          "label": "不知道。"
+        },
+        {
+          "label": "（摇头）"
+        }
+      ]
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "嗯。"
+    },
+    {
+      "type": "narration",
+      "text": "他没有再问，弯腰去捡散了一地的草药。"
+    },
+    {
+      "type": "narration",
+      "text": "溪边的石缝里有动静。"
+    },
+    {
+      "type": "narration",
+      "text": "三只小东西挤在一起，浑身湿透，都在发抖。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "昨夜山上闹了一宿，兽都往下跑，把窝踩散了。大的没回来。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "三张嘴你喂不起。挑一只吧，那两只我抱回去。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "id": "v1-wake",
+  "title": "溪边",
+  "requires": [],
+  "cast": {
+    "elder": {
+      "name": "许伯",
+      "portrait": "icon:portrait-elder-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "一条浅溪，满滩卵石。天刚亮。"
+    },
+    {
+      "type": "title",
+      "kicker": "太岳山 · 青溪坡",
+      "text": "溪边"
+    },
+    {
+      "type": "narration",
+      "text": "冷。"
+    },
+    {
+      "type": "narration",
+      "text": "你是被冻醒的。耳边有水声，身下是硌人的卵石。"
+    },
+    {
+      "type": "narration",
+      "text": "身上的衣服不是你的。"
+    },
+    {
+      "type": "narration",
+      "text": "你抬起手。手也不是你的。"
+    },
+    {
+      "type": "narration",
+      "text": "有人在旁边蹲下，放了件什么东西，一股草叶的气味。一只粗糙的手探到你鼻子底下。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "这个时节水凉，怎么又有人躺在这儿。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "还喘气。能走不？能走就跟我回去，灌口热的。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "这是哪儿？",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "elder",
+              "text": "太岳山，青溪坡。"
+            }
+          ]
+        },
+        {
+          "label": "你是谁？",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "elder",
+              "text": "姓许。在山弯里采药。"
+            }
+          ]
+        },
+        {
+          "label": "（试着站起来）",
+          "then": [
+            {
+              "type": "narration",
+              "text": "腿是软的。他伸手扶了你一把，没有说话。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "narration",
+      "text": "他没有问你的名字，也没有问你打哪来。"
+    },
+    {
+      "type": "narration",
+      "text": "他背起药篓就走。走出几步，停下来等你。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

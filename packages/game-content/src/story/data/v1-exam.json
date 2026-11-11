@@ -1,0 +1,51 @@
+{
+  "id": "v1-exam",
+  "track": "main",
+  "title": "考校",
+  "next": "v1-market",
+  "gated": true,
+  "beats": [
+    {
+      "id": "question",
+      "kind": "performance",
+      "script": "v1-question",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "入门考校开始了。",
+      "href": "/game/story"
+    },
+    {
+      "id": "garden",
+      "kind": "wait",
+      "until": {
+        "type": "fact",
+        "fact": "dungeon_settled"
+      },
+      "scene": "dungeon",
+      "prompt": "去落日森林·废弃药园，查清药草枯萎的缘由。",
+      "href": "/game/dungeon",
+      "unlocks": [
+        "dungeon",
+        "dungeon-history"
+      ]
+    },
+    {
+      "id": "blocked",
+      "kind": "performance",
+      "script": "v1-blocked",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "查完了，该出园了。",
+      "href": "/game/story"
+    },
+    {
+      "id": "posted",
+      "kind": "performance",
+      "script": "v1-posted",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "三天后放榜。",
+      "href": "/game/story"
+    }
+  ]
+}

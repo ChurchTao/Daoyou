@@ -1,0 +1,76 @@
+{
+  "id": "v1-posted",
+  "title": "放榜",
+  "requires": [
+    "instructor"
+  ],
+  "cast": {
+    "chen": {
+      "name": "陈放",
+      "portrait": "icon:portrait-disciple-m"
+    },
+    "instructor": {
+      "name": "{instructor}"
+    },
+    "lin": {
+      "name": "林晚",
+      "portrait": "icon:portrait-disciple-f"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "事务堂门口，一张榜。"
+    },
+    {
+      "type": "title",
+      "kicker": "宗门 · 三日后",
+      "text": "放榜"
+    },
+    {
+      "type": "narration",
+      "text": "榜贴在事务堂门口。一共十七个名字。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "有我！有我！……第十七。"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "第三。"
+    },
+    {
+      "type": "narration",
+      "text": "你的名字也在上面。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "腰牌。拿好，丢了不补。"
+    },
+    {
+      "type": "narration",
+      "text": "人群外面，贺钧远远地站着。"
+    },
+    {
+      "type": "narration",
+      "text": "看见你望过去，他笑了笑，拱了拱手。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "他还笑得出来。"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "他一直笑得出来。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

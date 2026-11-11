@@ -1,0 +1,75 @@
+{
+  "id": "v1-forge",
+  "title": "这也叫兵器",
+  "requires": [
+    "forge_teacher"
+  ],
+  "cast": {
+    "forge_teacher": {
+      "name": "{forge_teacher}"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "器坊的门敞着，炉火映红了半面墙。"
+    },
+    {
+      "type": "title",
+      "kicker": "宗门 · 器坊",
+      "text": "这也叫兵器"
+    },
+    {
+      "type": "narration",
+      "text": "交了差，你路过器坊。门开着，里面很热。"
+    },
+    {
+      "type": "line",
+      "speaker": "forge_teacher",
+      "text": "站住。你腰上挂的那是什么？"
+    },
+    {
+      "type": "narration",
+      "text": "你把刀递过去。"
+    },
+    {
+      "type": "narration",
+      "text": "他用指甲弹了一下刃口。声音是哑的。"
+    },
+    {
+      "type": "line",
+      "speaker": "forge_teacher",
+      "text": "这也叫兵器。贺钧发的？"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "是。"
+        },
+        {
+          "label": "（不说话）"
+        }
+      ]
+    },
+    {
+      "type": "line",
+      "speaker": "forge_teacher",
+      "text": "哼。"
+    },
+    {
+      "type": "line",
+      "speaker": "forge_teacher",
+      "text": "那边的炉子空着。图纸和石料我借你一份，自己打一把。打坏了算我的。"
+    },
+    {
+      "type": "line",
+      "speaker": "forge_teacher",
+      "text": "按规矩，记名弟子不能进这道门。就这一回，别往外说。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

@@ -495,13 +495,19 @@ export function getCoreDockItems(): GameDockLink[] {
   });
 }
 
-export function getExpandedDockGroups(): GameDockGroupLinks[] {
+/** unlocked 是主线眼下开放的场景；为空表示不设限。 */
+export function getExpandedDockGroups(
+  unlocked?: readonly string[] | null,
+): GameDockGroupLinks[] {
   return gameDockGroups
     .map((group) => ({
       key: group.key,
       title: group.title,
       actions: group.scenes.flatMap((scene) => {
         if (!scene.href || !scene.expandedDockLabel) {
+          return [];
+        }
+        if (unlocked && !unlocked.includes(scene.id)) {
           return [];
         }
 
@@ -517,8 +523,10 @@ export function getExpandedDockGroups(): GameDockGroupLinks[] {
     .filter((group) => group.actions.length > 0);
 }
 
-export function getExpandedDockColumns(): GameDockGroupLinks[][] {
-  const groups = getExpandedDockGroups();
+export function getExpandedDockColumns(
+  unlocked?: readonly string[] | null,
+): GameDockGroupLinks[][] {
+  const groups = getExpandedDockGroups(unlocked);
   const byKey = new Map(groups.map((group) => [group.key, group]));
   const used = new Set<GameSceneGroup>();
   const columns = expandedMenuColumns.map((keys) =>

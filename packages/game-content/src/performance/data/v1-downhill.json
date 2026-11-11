@@ -1,0 +1,78 @@
+{
+  "id": "v1-downhill",
+  "title": "花个精光",
+  "requires": [
+    "instructor"
+  ],
+  "cast": {
+    "chen": {
+      "name": "陈放",
+      "portrait": "icon:portrait-disciple-m"
+    },
+    "lin": {
+      "name": "林晚",
+      "portrait": "icon:portrait-disciple-f"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "山门外的下山路，三个人。"
+    },
+    {
+      "type": "title",
+      "kicker": "下山",
+      "text": "花个精光"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "有腰牌了！下山！我要把赏钱花个精光。"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "灵石。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "花个精光。"
+    },
+    {
+      "type": "narration",
+      "text": "{instructor}说过，筑基之前要先备一枚筑基丹。丹方上的材料，宗门里凑不齐。"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "百草集有。顺路。"
+    },
+    {
+      "type": "scene",
+      "alt": "一条望不到头的长街，两边全是摊子。"
+    },
+    {
+      "type": "narration",
+      "text": "百草集比你想的大。叫卖声混成一片。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "这不就是……"
+    },
+    {
+      "type": "narration",
+      "text": "他说到一半停住了，挠了挠头。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "没什么。跟我老家的集市挺像。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

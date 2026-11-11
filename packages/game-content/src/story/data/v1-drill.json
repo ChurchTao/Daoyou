@@ -1,0 +1,74 @@
+{
+  "id": "v1-drill",
+  "track": "main",
+  "title": "攒本事",
+  "next": "v1-exam",
+  "gated": true,
+  "beats": [
+    {
+      "id": "notice",
+      "kind": "performance",
+      "script": "v1-notice",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "事务堂门口贴了新告示。",
+      "href": "/game/story",
+      "unlocks": [
+        "divination"
+      ]
+    },
+    {
+      "id": "work",
+      "kind": "objective",
+      "goals": [
+        {
+          "label": "完成 3 次宗门日常",
+          "need": {
+            "type": "count",
+            "count": "sect_dailies",
+            "atLeast": 3
+          }
+        },
+        {
+          "label": "闭关 1 次",
+          "need": {
+            "type": "count",
+            "count": "retreats",
+            "atLeast": 1
+          }
+        },
+        {
+          "label": "修习心法或打通 1 处经脉",
+          "need": {
+            "type": "fact",
+            "fact": "sect_trained"
+          }
+        }
+      ],
+      "scene": "sect-affairs",
+      "prompt": "为入门考校做准备。",
+      "href": "/game/sect/affairs"
+    },
+    {
+      "id": "odd",
+      "kind": "performance",
+      "script": "v1-drill",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "这些日子的事，值得记一笔。",
+      "href": "/game/story"
+    },
+    {
+      "id": "grow",
+      "kind": "wait",
+      "until": {
+        "type": "realm",
+        "realm": "炼气",
+        "stage": "后期"
+      },
+      "scene": "retreat",
+      "prompt": "修至炼气后期，考校就开始了。",
+      "href": "/game/retreat"
+    }
+  ]
+}

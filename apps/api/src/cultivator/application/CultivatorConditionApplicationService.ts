@@ -23,6 +23,7 @@ import { RESOURCE_DATA_SCHEMAS } from '@server/lib/resources/schemas.js';
 import { recordJournalChange } from '@server/player/application/JournalSettlement.js';
 import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
 import { and, eq, sql } from 'drizzle-orm';
+import { StoryService } from '@server/story/application/StoryService.js';
 
 type Actor = { userId: string; cultivatorId: string };
 
@@ -175,6 +176,11 @@ export function consumeCultivatorConsumable(args: {
             args.consumableId,
             tx,
           );
+          const story = await StoryService.noteFact(
+            args.actor.cultivatorId,
+            'consumable_used',
+            tx,
+          );
           return {
             result: {
               message: result.message,
@@ -189,7 +195,7 @@ export function consumeCultivatorConsumable(args: {
                 realmStage: state.realmStage as RealmStage,
                 spiritualRoots: result.profilePatch?.spiritual_roots,
               },
-            }),
+            }).concat(story?.changes ?? []),
           };
         },
       }),

@@ -18,7 +18,7 @@ function readScript(scriptId: string) {
 
 function watchContext(
   requires: string[],
-  cultivator: { name: string; background?: string | null },
+  cultivator: Parameters<typeof storyPerformanceContext>[0],
   sectId?: string | null,
 ): PerformanceContext {
   const context = storyPerformanceContext(cultivator, sectId);

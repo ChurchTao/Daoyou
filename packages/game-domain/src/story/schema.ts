@@ -18,6 +18,9 @@ export const STORY_FACT_IDS = [
   'sect_joined',
   'sect_ready',
   'breakthrough_available',
+  'consumable_used',
+  'market_bought',
+  'sect_trained',
 ] as const;
 
 export type StoryFactId = (typeof STORY_FACT_IDS)[number];
@@ -28,6 +31,12 @@ export const STORY_MARK_FACT_IDS = [
   'qingxi_sought',
   'qingxi_met',
   'weapon_forged',
+  // 用过一次随身的丹药等消耗品。
+  'consumable_used',
+  // 在坊市买过一样东西。
+  'market_bought',
+  // 修习过一次心法，或打通过一处经脉。
+  'sect_trained',
 ] as const satisfies readonly StoryFactId[];
 
 export const STORY_TRACKS = ['main', 'encounter'] as const;
@@ -42,6 +51,12 @@ export type StoryStatus = (typeof STORY_STATUSES)[number];
 
 const factSchema = z.enum(STORY_FACT_IDS);
 
+// 走到这一幕就开放的场景入口，写场景编号。
+const unlocksSchema = z
+  .array(z.string().trim().min(1).max(40))
+  .max(12)
+  .optional();
+
 const performanceBeatSchema = z
   .object({
     id: z.string().trim().min(1).max(40),
@@ -51,6 +66,7 @@ const performanceBeatSchema = z
     scene: z.string().trim().min(1).max(40),
     prompt: z.string().max(80),
     href: z.string().trim().min(1).max(120),
+    unlocks: unlocksSchema,
   })
   .strict();
 
@@ -61,6 +77,8 @@ const lessonIdSchema = z
   .max(80)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 
+export const STORY_CLASSROOMS = ['alchemy', 'refinery'] as const;
+
 const flagSchema = z
   .string()
   .trim()
@@ -68,8 +86,20 @@ const flagSchema = z
   .max(60)
   .regex(/^[a-z0-9]+(?:[-.:][a-z0-9]+)*$/);
 
-// 等待幕的门槛：做到了，故事才往下走。
+// 只增不减的累计数。进了一幕先记下当时的数，往后只算新做的。
+export const STORY_COUNT_IDS = ['sect_dailies', 'retreats'] as const;
+
+export type StoryCountId = (typeof STORY_COUNT_IDS)[number];
+
+// 等待幕与目标幕的门槛：做到了，故事才往下走。
 export const StoryConditionSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('count'),
+      count: z.enum(STORY_COUNT_IDS),
+      atLeast: z.number().int().min(1).max(99),
+    })
+    .strict(),
   z.object({ type: z.literal('fact'), fact: factSchema }).strict(),
   z.object({ type: z.literal('flag'), flag: flagSchema }).strict(),
   z
@@ -107,7 +137,10 @@ const practiceBeatSchema = z
     scene: z.string().trim().min(1).max(40),
     prompt: z.string().trim().min(1).max(80),
     href: z.string().trim().min(1).max(120),
+    unlocks: unlocksSchema,
     lesson: lessonIdSchema.optional(),
+    // 破例一课：这一幕期间，身份不够的弟子也能进这间屋开一炉。
+    classroom: z.enum(STORY_CLASSROOMS).optional(),
     grant: z.string().trim().min(1).max(40).optional(),
     reward: z.string().trim().min(1).max(40).optional(),
   })
@@ -120,6 +153,7 @@ const lifeBeatSchema = z
     scene: z.string().trim().min(1).max(40),
     prompt: z.string().max(80),
     href: z.string().trim().min(1).max(120),
+    unlocks: unlocksSchema,
     when: z
       .object({
         fact: factSchema,
@@ -140,12 +174,39 @@ const waitBeatSchema = z
     scene: z.string().trim().min(1).max(40),
     prompt: z.string().trim().min(1).max(80),
     href: z.string().trim().min(1).max(120),
+    unlocks: unlocksSchema,
+  })
+  .strict();
+
+// 目标：几件事都做到才往下走，不分先后，界面逐条显示。
+const objectiveBeatSchema = z
+  .object({
+    id: z.string().trim().min(1).max(40),
+    kind: z.literal('objective'),
+    goals: z
+      .array(
+        z
+          .object({
+            label: z.string().trim().min(1).max(40),
+            need: StoryConditionSchema,
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(4),
+    scene: z.string().trim().min(1).max(40),
+    prompt: z.string().trim().min(1).max(80),
+    href: z.string().trim().min(1).max(120),
+    unlocks: unlocksSchema,
+    grant: z.string().trim().min(1).max(40).optional(),
+    reward: z.string().trim().min(1).max(40).optional(),
   })
   .strict();
 
 export const StoryBeatSchema = z.discriminatedUnion('kind', [
   performanceBeatSchema,
   practiceBeatSchema,
+  objectiveBeatSchema,
   waitBeatSchema,
   lifeBeatSchema,
 ]);
@@ -164,6 +225,8 @@ export function createStoryChapterSchema({
       title: z.string().trim().min(1).max(40),
       // 这一章演完之后接哪一章。不写就停在最后一幕。
       next: z.string().trim().min(1).max(80).optional(),
+      // 这一章期间只显示已开放的入口。不写就全部开放。
+      gated: z.boolean().optional(),
       beats: z.array(StoryBeatSchema).min(1).max(40),
     })
     .strict()
@@ -184,6 +247,18 @@ export function createStoryChapterSchema({
           });
         }
         ids.add(beat.id);
+        if (beat.kind === 'objective') {
+          for (const payout of [beat.grant, beat.reward]) {
+            if (!payout) continue;
+            if (!hasStoryReward(payout) || payouts.has(payout)) {
+              context.addIssue({
+                code: 'custom',
+                message: `奖励不存在或重复：${payout}`,
+              });
+            }
+            payouts.add(payout);
+          }
+        }
         if (beat.kind !== 'practice') continue;
         const guides = [
           ...beat.accept.filter((entry) => entry.type === 'guide'),
@@ -256,6 +331,7 @@ export const StoryProgressSchema = z
             (STORY_MARK_FACT_IDS as readonly string[]).includes(value) ||
             (progressMarkIds as readonly string[]).includes(value) ||
             /^flag:[a-z0-9]+(?:[-.:][a-z0-9]+)*$/.test(value) ||
+            /^base:[a-z0-9-]+:[a-z_]+=\d+$/.test(value) ||
             /^guide:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value),
           '剧情标记无法识别',
         ),
@@ -269,14 +345,29 @@ export const StoryViewSchema = z
     chapterId: z.string(),
     chapterTitle: z.string(),
     beatId: z.string(),
-    kind: z.enum(['performance', 'practice', 'wait', 'life']),
+    kind: z.enum(['performance', 'practice', 'objective', 'wait', 'life']),
     scene: z.string(),
     prompt: z.string(),
     href: z.string(),
     scriptId: z.string().nullable(),
     guideLesson: z.string().nullable(),
+    classroom: z.enum(STORY_CLASSROOMS).nullable(),
+    // 眼下开放的场景入口。为空表示不设限。
+    unlocked: z.array(z.string()).nullable(),
     // 演出里选下并记住的标记，跨章节都认。
     flags: z.array(z.string()),
+    // 目标幕的各条目标。别的幕是空的。
+    goals: z.array(
+      z
+        .object({
+          label: z.string(),
+          done: z.boolean(),
+          // 计数目标的进度；不是计数就为空。
+          current: z.number().int().nullable(),
+          target: z.number().int().nullable(),
+        })
+        .strict(),
+    ),
   })
   .strict();
 
@@ -298,7 +389,34 @@ export interface StoryStanding {
 export type StoryFacts = Record<StoryFactId, boolean> & {
   /** 眼下的境界。没给就当门槛没到。 */
   standing?: StoryStanding;
+  /** 各项累计数眼下的值。 */
+  counts?: Partial<Record<StoryCountId, number>>;
 };
+
+/** 一章里走到某一幕为止，沿途开放过的入口。不给幕就算整章。 */
+export function chapterUnlocks(chapter: StoryChapter, uptoBeatId?: string) {
+  const end = uptoBeatId
+    ? chapter.beats.findIndex((beat) => beat.id === uptoBeatId)
+    : chapter.beats.length - 1;
+  return chapter.beats
+    .slice(0, end + 1)
+    .flatMap((beat) => beat.unlocks ?? []);
+}
+
+export function baseMark(beatId: string, count: StoryCountId, value: number) {
+  return `base:${beatId}:${count}=${value}`;
+}
+
+/** 进这一幕时记下的累计数。没记过就是空。 */
+export function readBaseMark(
+  marks: readonly string[],
+  beatId: string,
+  count: StoryCountId,
+): number | null {
+  const prefix = `base:${beatId}:${count}=`;
+  const mark = marks.find((entry) => entry.startsWith(prefix));
+  return mark ? Number(mark.slice(prefix.length)) : null;
+}
 
 const FLAG_MARK = 'flag:';
 
@@ -339,5 +457,8 @@ export function emptyStoryFacts(): StoryFacts {
     sect_joined: false,
     sect_ready: false,
     breakthrough_available: false,
+    consumable_used: false,
+    market_bought: false,
+    sect_trained: false,
   };
 }

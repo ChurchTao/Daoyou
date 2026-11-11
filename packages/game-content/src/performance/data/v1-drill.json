@@ -1,0 +1,128 @@
+{
+  "id": "v1-drill",
+  "title": "一届比一届怪",
+  "requires": [
+    "instructor"
+  ],
+  "cast": {
+    "chen": {
+      "name": "陈放",
+      "portrait": "icon:portrait-disciple-m"
+    },
+    "instructor": {
+      "name": "{instructor}"
+    },
+    "lin": {
+      "name": "林晚",
+      "portrait": "icon:portrait-disciple-f"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "事务堂的差事架，牌子挂了三排。"
+    },
+    {
+      "type": "narration",
+      "text": "这些日子，贺钧派给你的总是最累的那几样。"
+    },
+    {
+      "type": "narration",
+      "text": "有一回你从矿道里出来，天已经黑了。林晚在门口等你，手里拿着账本。"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "今日洒扫只去了两个人。我看过册子。"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "人不够。他是挑累的给你。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "你为什么帮我查？",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "lin",
+              "text": "账对不上，我睡不着。"
+            }
+          ]
+        },
+        {
+          "label": "能去告他吗？",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "lin",
+              "text": "他没坏规矩。差事本来就归他派。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "那就这么算了？"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "不算。考过了，他就派不着我们了。"
+    },
+    {
+      "type": "scene",
+      "alt": "演武场，三个人各练各的。"
+    },
+    {
+      "type": "title",
+      "kicker": "宗门 · 演武场",
+      "text": "一届比一届怪"
+    },
+    {
+      "type": "narration",
+      "text": "{instructor}背着手，看你们三个练功。"
+    },
+    {
+      "type": "narration",
+      "text": "陈放把一套起手式打得像在赶蚊子。"
+    },
+    {
+      "type": "narration",
+      "text": "林晚每一招都对，只是慢，像在照着图描。"
+    },
+    {
+      "type": "narration",
+      "text": "你的路子最顺。有几下，连你自己也不知道是怎么使出来的。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "一个乱来，一个照抄，一个不知道跟谁学的。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "这几年的新人，一届比一届怪。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "教习，这是夸我们吗？"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "再打一百遍。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

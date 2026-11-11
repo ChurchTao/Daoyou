@@ -21,6 +21,7 @@ import {
   type DbTransaction,
 } from '@server/lib/drizzle/db.js';
 import * as schema from '@server/lib/drizzle/schema.js';
+import { OPENING_STORY_CHAPTER } from '@daoyou/game-content/story/catalog';
 import { openingStoryProgress } from '@daoyou/game-rules/story';
 import { insertCultivatorStory } from '@server/lib/repositories/storyRepository.js';
 import { ConditionService } from '@server/cultivator/application/ConditionService.js';
@@ -164,7 +165,11 @@ export async function createCultivator(
 
     const cultivatorRecord = cultivatorResult[0];
     const cultivatorId = cultivatorRecord.id;
-    await insertCultivatorStory(cultivatorId, openingStoryProgress(), tx);
+    await insertCultivatorStory(
+      cultivatorId,
+      openingStoryProgress(OPENING_STORY_CHAPTER),
+      tx,
+    );
 
     // 2. 创建灵根
     if (cultivator.spiritual_roots.length > 0) {

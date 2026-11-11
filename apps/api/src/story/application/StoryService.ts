@@ -3,8 +3,10 @@ import {
   cultivatorBeasts,
   cultivatorEquipmentSlots,
   cultivators,
+  retreatRecords,
   sectCombatStates,
   sectMemberships,
+  sectTaskRecords,
 } from '@server/lib/drizzle/schema.js';
 import {
   insertCultivatorStory,
@@ -31,6 +33,7 @@ import {
 import { getStoryChapter } from '@daoyou/game-content/story/catalog';
 import {
   emptyStoryFacts,
+  chapterUnlocks,
   storyFlags,
   STORY_MARK_FACT_IDS,
   type StoryChapter,
@@ -39,7 +42,7 @@ import {
   type StoryProgress,
   type StoryView,
 } from '@daoyou/game-domain/story';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, count, eq, sql } from 'drizzle-orm';
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import { grantInventory } from '@server/inventory/operations.js';
 
@@ -106,7 +109,7 @@ async function readStoryFacts(
   tx: DbTransaction,
 ): Promise<StoryFacts> {
   const facts = emptyStoryFacts();
-  const [beasts, memberships, rows, weapons] = await runDbTasks(tx, [
+  const [beasts, memberships, rows, weapons, dailies, retreats] = await runDbTasks(tx, [
     () =>
       tx
         .select({ id: cultivatorBeasts.id })
@@ -145,7 +148,32 @@ async function readStoryFacts(
           ),
         )
         .limit(1),
+    // 历来做完的宗门日常，换过宗门的也算。
+    () =>
+      tx
+        .select({ value: count() })
+        .from(sectTaskRecords)
+        .innerJoin(
+          sectMemberships,
+          eq(sectMemberships.id, sectTaskRecords.membershipId),
+        )
+        .where(
+          and(
+            eq(sectMemberships.cultivatorId, cultivatorId),
+            eq(sectTaskRecords.kind, 'daily'),
+            eq(sectTaskRecords.status, 'completed'),
+          ),
+        ),
+    () =>
+      tx
+        .select({ value: count() })
+        .from(retreatRecords)
+        .where(eq(retreatRecords.cultivatorId, cultivatorId)),
   ]);
+  facts.counts = {
+    sect_dailies: Number(dailies[0]?.value ?? 0),
+    retreats: Number(retreats[0]?.value ?? 0),
+  };
   facts.starter_beast = beasts.length > 0;
   facts.sect_joined = memberships.length > 0;
   facts.sect_ready = Boolean(memberships[0]?.pathId);
@@ -190,12 +218,12 @@ async function applyRewards(
 async function currentStory(cultivatorId: string, tx: DbTransaction) {
   const rows = await listCultivatorStories(cultivatorId, 'main', tx);
   const stored = rows.find((row) => row.status === 'active') ?? rows[0] ?? null;
+  const past = rows.filter((row) => row !== stored);
   return {
     rows,
     stored,
-    carried: rows
-      .filter((row) => row !== stored)
-      .flatMap((row) => storyFlags(row.marks)),
+    carried: past.flatMap((row) => storyFlags(row.marks)),
+    opened: past.flatMap((row) => chapterUnlocks(getStoryChapter(row.storyId))),
   };
 }
 
@@ -213,7 +241,10 @@ async function settle(
   rewardIds: string[];
   effect: { items: boolean; spiritStones: boolean };
 }> {
-  const { rows, stored, carried } = await currentStory(cultivatorId, tx);
+  const { rows, stored, carried, opened } = await currentStory(
+    cultivatorId,
+    tx,
+  );
   const base = stored ?? restingStoryProgress();
   let chapter = getStoryChapter(base.storyId);
   const facts = await readStoryFacts(cultivatorId, tx);
@@ -228,9 +259,11 @@ async function settle(
 
   // 一章演完就接下一章；下一章开头若已满足，也一并走过去。
   const flags = [...carried];
+  const unlocks = [...opened];
   const visited = new Set([chapter.id]);
   while (resolved.finished && chapter.next && !visited.has(chapter.next)) {
     flags.push(...storyFlags(resolved.progress.marks));
+    unlocks.push(...chapterUnlocks(chapter));
     chapter = getStoryChapter(chapter.next);
     visited.add(chapter.id);
     const resumed = rows.find((row) => row.storyId === chapter.id);
@@ -252,7 +285,7 @@ async function settle(
       ? await applyRewards(cultivatorId, rewardIds, tx)
       : { items: false, spiritStones: false };
   return {
-    view: presentStory(chapter, resolved.progress, facts, flags),
+    view: presentStory(chapter, resolved.progress, facts, flags, unlocks),
     dirty,
     rewardIds,
     effect,
@@ -261,12 +294,12 @@ async function settle(
 
 export const StoryService = {
   async read(cultivatorId: string, tx: DbTransaction): Promise<StoryView> {
-    const { stored, carried } = await currentStory(cultivatorId, tx);
+    const { stored, carried, opened } = await currentStory(cultivatorId, tx);
     const base = stored ?? restingStoryProgress();
     const chapter = getStoryChapter(base.storyId);
     const facts = await readStoryFacts(cultivatorId, tx);
     const progress = rewindToUnwatchedPerformance(chapter, base, facts);
-    return presentStory(chapter, progress, facts, carried);
+    return presentStory(chapter, progress, facts, carried, opened);
   },
 
   async completePerformance(
@@ -316,6 +349,9 @@ export const StoryService = {
   } | null> {
     if (!isStoryMarkFact(fact)) return null;
     await lockCultivatorForStateMutation(tx, cultivatorId);
+    // 这件事已经记过就不必再算一遍；买东西、用丹这类事会反复发生。
+    const { stored } = await currentStory(cultivatorId, tx);
+    if (stored?.marks.includes(fact)) return null;
     const settled = await settle(cultivatorId, tx, (chapter, progress, facts) =>
       noteStoryFact(chapter, progress, facts, fact),
     );

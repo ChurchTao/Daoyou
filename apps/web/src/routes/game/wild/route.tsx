@@ -18,7 +18,6 @@ import {
   useSectCombatState,
 } from '@app/lib/resources/player';
 import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
-import { useStory } from '@app/lib/story/useStory';
 import { REALM_ORDER } from '@daoyou/constants/realms';
 import type {
   WildRegionView,
@@ -73,7 +72,6 @@ function WildRegion({ nodeId }: { nodeId: string }) {
   const build = useSectCombatState();
   const identity = useCultivatorIdentity();
   const player = usePlayerSession();
-  const story = useStory(nodeId === 'SAT_TN_08');
   const qi = useQiState({
     cultivatorId: player.data?.activeCultivator?.id ?? '',
   });
@@ -345,11 +343,6 @@ function WildRegion({ nodeId }: { nodeId: string }) {
         <CombatV6Battle
           key={session.sessionId}
           title={region?.name ?? '野外探索'}
-          tutorial={
-            nodeId === 'SAT_TN_08' &&
-            story.story?.chapterId === 'arrival' &&
-            story.story.beatId === 'seek'
-          }
           session={session}
           pending={pending}
           shown={combat.shown}

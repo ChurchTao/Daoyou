@@ -81,7 +81,7 @@ function ScenePicture({
 }
 
 function Face({ value }: { value?: string }) {
-  if (!value) return <span className="block size-[4.5rem] shrink-0" />;
+  if (!value) return <span className="block w-[4.5rem] shrink-0" />;
   return value.startsWith('icon:') ? (
     <GameIcon
       purpose="artwork"
@@ -449,7 +449,7 @@ export function PerformancePlayer({
 
   return (
     <section
-      className="bg-paper text-ink relative flex h-dvh flex-col overflow-hidden"
+      className="bg-paper text-ink relative flex h-dvh flex-col overflow-hidden motion-safe:animate-[fade-in_0.5s_ease-out]"
       aria-label={script.title}
     >
       <h1 className="sr-only">{script.title}</h1>

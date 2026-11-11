@@ -1,0 +1,103 @@
+{
+  "id": "v1-registered",
+  "track": "main",
+  "title": "记名",
+  "next": "v1-alchemy",
+  "gated": true,
+  "beats": [
+    {
+      "id": "ration",
+      "kind": "performance",
+      "script": "v1-ration",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "去库房领记名弟子的份例。",
+      "href": "/game/story"
+    },
+    {
+      "id": "chore",
+      "kind": "objective",
+      "goals": [
+        {
+          "label": "完成 1 次宗门日常",
+          "need": {
+            "type": "count",
+            "count": "sect_dailies",
+            "atLeast": 1
+          }
+        }
+      ],
+      "scene": "sect-affairs",
+      "prompt": "去事务堂接一件差事，做完交差。",
+      "href": "/game/sect/affairs"
+    },
+    {
+      "id": "forge-talk",
+      "kind": "performance",
+      "script": "v1-forge",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "交了差，路过器坊。",
+      "href": "/game/story"
+    },
+    {
+      "id": "forge",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "forge-first-weapon"
+        },
+        {
+          "type": "fact",
+          "fact": "weapon_forged"
+        }
+      ],
+      "scene": "sect-refinery",
+      "prompt": "选好图纸和石料，开炉铸一件兵器。",
+      "href": "/game/sect/refinery?workspace=craft&guide=forge-first-weapon",
+      "mode": "all",
+      "classroom": "refinery",
+      "grant": "first-weapon"
+    },
+    {
+      "id": "forged",
+      "kind": "performance",
+      "script": "v1-forged",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "兵器打成了，给器坊执事看看。",
+      "href": "/game/story"
+    },
+    {
+      "id": "equip",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "weapon-equip"
+        },
+        {
+          "type": "fact",
+          "fact": "weapon_equipped"
+        }
+      ],
+      "scene": "inventory",
+      "prompt": "打开储物袋，把新兵器穿戴上。",
+      "href": "/game/inventory?guide=weapon-equip",
+      "mode": "all"
+    },
+    {
+      "id": "sleepless",
+      "kind": "performance",
+      "script": "v1-sleepless",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "夜里睡不着。",
+      "href": "/game/story",
+      "unlocks": [
+        "journal"
+      ]
+    }
+  ]
+}

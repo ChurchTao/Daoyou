@@ -1,0 +1,54 @@
+{
+  "id": "v1-token",
+  "title": "道友",
+  "requires": [],
+  "cast": {
+    "chen": {
+      "name": "陈放",
+      "portrait": "icon:portrait-disciple-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "弟子房，白天。陈放已经能下地了。"
+    },
+    {
+      "type": "title",
+      "kicker": "几日后",
+      "text": "道友"
+    },
+    {
+      "type": "narration",
+      "text": "过了几天，陈放能下地了。"
+    },
+    {
+      "type": "narration",
+      "text": "他神神秘秘地塞给你一枚传音符。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "十一个只是咱们这一宗的。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "别的宗也有。到处都有。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "大家平日就在这上头说话，互相叫「道友」。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "进去看看。别说漏了就行。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

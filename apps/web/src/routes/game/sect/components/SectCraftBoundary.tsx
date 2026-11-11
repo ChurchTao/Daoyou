@@ -22,10 +22,8 @@ export function SectCraftBoundary({
   const [classroomMembership, setClassroomMembership] = useState<string>();
   const eligible =
     activeMembership &&
-    story.story?.chapterId === 'arrival' &&
-    story.story.kind === 'practice' &&
-    story.story.beatId === (sceneKey === 'alchemy' ? 'hearth' : 'forge') &&
-    story.story.scene === `sect-${sceneKey}`;
+    story.story?.kind === 'practice' &&
+    story.story.classroom === sceneKey;
   const membershipId = context.data?.membershipId;
   if (eligible && membershipId && classroomMembership !== membershipId)
     setClassroomMembership(membershipId);

@@ -2,6 +2,7 @@ import { apiFetch } from '@app/lib/api/fetch';
 import { PerformancePlayer } from '@app/components/feature/performance/PerformancePlayer';
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { InkButton } from '@app/components/ui';
+import { cn } from '@app/lib/cn';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { useCultivatorIdentity, usePlayerSession } from '@app/lib/resources/player';
 import { storyPerformanceContext } from '@app/lib/story/performanceContext';
@@ -12,6 +13,8 @@ import { getPerformanceScript } from '@daoyou/game-content/performance/catalog';
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 
+const LEAVE_MS = 350;
+
 export default function StoryRoute() {
   const navigate = useNavigate();
   const story = useStory();
@@ -19,8 +22,10 @@ export default function StoryRoute() {
   const player = usePlayerSession();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  // 淡出期间主线已经走到下一幕，纸上要留着刚演完的这一场。
+  const [leaving, setLeaving] = useState<string | null>(null);
   const cultivator = profile.data?.cultivator;
-  const scriptId = story.story?.scriptId;
+  const scriptId = leaving ?? story.story?.scriptId;
 
   if (story.loading || profile.loading || player.loading) {
     return <GameLoadingState variant="fullscreen" message="正在接续故事……" />;
@@ -39,7 +44,7 @@ export default function StoryRoute() {
     );
   }
 
-  if (!scriptId || story.story?.kind !== 'performance') {
+  if (!scriptId || (!leaving && story.story?.kind !== 'performance')) {
     return <Navigate to="/game" replace />;
   }
 
@@ -50,6 +55,13 @@ export default function StoryRoute() {
   const script = fillPerformanceScript(getPerformanceScript(scriptId), context);
 
   return (
+    <div
+      className={cn(
+        'transition-opacity ease-out',
+        leaving ? 'opacity-0' : 'opacity-100',
+      )}
+      style={{ transitionDuration: `${LEAVE_MS}ms` }}
+    >
     <PerformancePlayer
       key={script.id}
       script={script}
@@ -63,7 +75,7 @@ export default function StoryRoute() {
       exitLabel="稍后再看"
       busy={busy}
       error={error}
-      onExit={() => navigate('/game')}
+      onExit={() => void navigate('/game', { viewTransition: true })}
       flags={story.story?.flags}
       onFinish={(outcome, chosen) => {
         setBusy(true);
@@ -75,8 +87,16 @@ export default function StoryRoute() {
         })
           .then((response) => consumeResourceMutation<StoryView>(response))
           .then((next) => {
-            setBusy(false);
-            navigate(next.href, { replace: true });
+            // 接着还是演出就直接换幕；要回到游戏界面，先让纸页淡下去。
+            if (next.kind === 'performance') {
+              setBusy(false);
+              void navigate(next.href, { replace: true });
+              return;
+            }
+            setLeaving(scriptId);
+            window.setTimeout(() => {
+              void navigate(next.href, { replace: true, viewTransition: true });
+            }, LEAVE_MS);
           })
           .catch((reason: unknown) => {
             setError(reason instanceof Error ? reason.message : '这页没能记住，再试一次。');
@@ -84,5 +104,6 @@ export default function StoryRoute() {
           });
       }}
     />
+    </div>
   );
 }

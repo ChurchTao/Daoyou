@@ -1,0 +1,30 @@
+{
+  "id": "v1-kin",
+  "track": "main",
+  "title": "同乡",
+  "next": "v1-after",
+  "gated": true,
+  "beats": [
+    {
+      "id": "fever",
+      "kind": "performance",
+      "script": "v1-fever",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "陈放的伤要有人守夜。",
+      "href": "/game/story"
+    },
+    {
+      "id": "token",
+      "kind": "performance",
+      "script": "v1-token",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "陈放有东西要给你。",
+      "href": "/game/story",
+      "unlocks": [
+        "world-chat"
+      ]
+    }
+  ]
+}

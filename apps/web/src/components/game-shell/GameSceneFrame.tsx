@@ -2,6 +2,7 @@ import { InkButton } from '@app/components/ui';
 import { resolveGameScene } from '@app/lib/router/routeTitle';
 import { cn } from '@app/lib/cn';
 import type { ReactNode } from 'react';
+import { storyCueSummary } from '@app/lib/story/cueSummary';
 import { useStory } from '@app/lib/story/useStory';
 import { useMatches } from 'react-router';
 import { GameLoadingState } from './GameLoadingState';
@@ -241,7 +242,7 @@ export function GameSceneFrame({
             >
               {storyCue ? (
                 <p className="text-ink-secondary mb-4 flex flex-wrap items-center gap-x-3 text-sm leading-7">
-                  <span>{storyCue.prompt}</span>
+                  <span>{storyCueSummary(storyCue)}</span>
                   <InkButton href={storyCue.href} variant="primary">
                     前往
                   </InkButton>

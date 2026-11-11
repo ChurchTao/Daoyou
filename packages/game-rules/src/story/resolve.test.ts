@@ -2,7 +2,10 @@ import { StoryChapterSchema } from '@daoyou/game-content/authoring/story';
 import { describe, expect, it } from 'vitest';
 import { openingStoryProgress } from './progress.js';
 import { storyMarkForSignal } from './signals.js';
-import { getStoryChapter } from '@daoyou/game-content/story/catalog';
+import {
+  getStoryChapter,
+  OPENING_STORY_CHAPTER,
+} from '@daoyou/game-content/story/catalog';
 import {
   acknowledgeGuide,
   acknowledgePerformance,
@@ -725,5 +728,176 @@ describe('chapters that hand over', () => {
   it('wants a chapter without a successor to rest on a life beat', () => {
     const { next: _next, ...loose } = linked;
     expect(StoryChapterSchema.safeParse(loose).success).toBe(false);
+  });
+});
+
+describe('objectives that count', () => {
+  const drill: StoryChapter = {
+    id: 'drill',
+    track: 'main',
+    title: '攒本事',
+    next: 'arrival',
+    beats: [
+      {
+        id: 'talk',
+        kind: 'performance',
+        script: 'drill-play',
+        outcome: 'go',
+        scene: 'story',
+        prompt: '先看完。',
+        href: '/game/story',
+      },
+      {
+        id: 'work',
+        kind: 'objective',
+        goals: [
+          {
+            label: '完成 3 次宗门日常',
+            need: { type: 'count', count: 'sect_dailies', atLeast: 3 },
+          },
+          {
+            label: '闭关 1 次',
+            need: { type: 'count', count: 'retreats', atLeast: 1 },
+          },
+        ],
+        scene: 'sect-affairs',
+        prompt: '为考校做准备。',
+        href: '/game/sect/affairs',
+      },
+    ],
+  };
+  const at = (beatId: string, extra: Partial<StoryProgress> = {}) =>
+    progress(beatId, { storyId: 'drill', ...extra });
+  const counted = (dailies: number, retreats: number) => ({
+    ...emptyStoryFacts(),
+    counts: { sect_dailies: dailies, retreats },
+  });
+
+  it('counts only what is done after the beat begins', () => {
+    const entered = acknowledgePerformance(
+      drill,
+      at('talk'),
+      counted(10, 4),
+      'drill-play',
+      'go',
+    );
+    expect(entered.progress.beatId).toBe('work');
+    expect(entered.progress.marks).toEqual([
+      'base:work:sect_dailies=10',
+      'base:work:retreats=4',
+    ]);
+    expect(StoryProgressSchema.safeParse(entered.progress).success).toBe(true);
+    expect(presentStory(drill, entered.progress, counted(12, 4)).goals).toEqual([
+      { label: '完成 3 次宗门日常', done: false, current: 2, target: 3 },
+      { label: '闭关 1 次', done: false, current: 0, target: 1 },
+    ]);
+    expect(resolveStory(drill, entered.progress, counted(13, 4)).finished).toBe(
+      false,
+    );
+    const done = resolveStory(drill, entered.progress, counted(15, 5));
+    expect(done.finished).toBe(true);
+    expect(presentStory(drill, done.progress, counted(15, 5)).goals).toEqual([
+      { label: '完成 3 次宗门日常', done: true, current: 3, target: 3 },
+      { label: '闭关 1 次', done: true, current: 1, target: 1 },
+    ]);
+  });
+
+  it('starts from zero when the beat has no baseline yet', () => {
+    expect(presentStory(drill, at('work'), counted(8, 2)).goals).toEqual([
+      { label: '完成 3 次宗门日常', done: false, current: 0, target: 3 },
+      { label: '闭关 1 次', done: false, current: 0, target: 1 },
+    ]);
+    const settled = resolveStory(drill, at('work'), counted(8, 2));
+    expect(settled.finished).toBe(false);
+    expect(settled.progress.marks).toContain('base:work:sect_dailies=8');
+  });
+
+  it('leaves other beats without goals', () => {
+    expect(presentStory(drill, at('talk'), emptyStoryFacts()).goals).toEqual([]);
+  });
+});
+
+describe('entries that open along the way', () => {
+  const gated: StoryChapter = {
+    id: 'gated',
+    track: 'main',
+    title: '入山',
+    next: 'arrival',
+    gated: true,
+    beats: [
+      {
+        id: 'talk',
+        kind: 'performance',
+        script: 'gated-play',
+        outcome: 'go',
+        scene: 'story',
+        prompt: '先看完。',
+        href: '/game/story',
+        unlocks: ['cave', 'cultivator'],
+      },
+      {
+        id: 'grow',
+        kind: 'wait',
+        until: { type: 'fact', fact: 'market_bought' },
+        scene: 'market',
+        prompt: '去坊市买一样东西。',
+        href: '/game/market',
+        unlocks: ['market'],
+      },
+    ],
+  };
+  const at = (beatId: string, extra: Partial<StoryProgress> = {}) =>
+    progress(beatId, { storyId: 'gated', ...extra });
+
+  it('lists what has opened up to the current beat', () => {
+    expect(
+      presentStory(gated, at('talk'), emptyStoryFacts(), [], ['inventory'])
+        .unlocked,
+    ).toEqual(['inventory', 'cave', 'cultivator']);
+    expect(presentStory(gated, at('grow'), emptyStoryFacts()).unlocked).toEqual([
+      'cave',
+      'cultivator',
+      'market',
+    ]);
+  });
+
+  it('sets no limit outside a gated chapter', () => {
+    expect(
+      presentStory(chapter, progress('watch'), emptyStoryFacts(), [], ['cave'])
+        .unlocked,
+    ).toBeNull();
+  });
+
+  it('moves on once a noted one-off fact is in', () => {
+    const bought = noteStoryFact(
+      gated,
+      at('grow'),
+      emptyStoryFacts(),
+      'market_bought',
+    );
+    expect(bought.finished).toBe(true);
+  });
+});
+
+describe('volume one', () => {
+  it('runs from the opening chapter to a resting beat', () => {
+    const seen: string[] = [];
+    let current = getStoryChapter(OPENING_STORY_CHAPTER);
+    while (current.next && !seen.includes(current.id)) {
+      seen.push(current.id);
+      expect(current.gated).toBe(true);
+      current = getStoryChapter(current.next);
+    }
+    expect(seen).toHaveLength(10);
+    expect(current.gated).toBeUndefined();
+    expect(current.beats.at(-1)?.kind).toBe('life');
+  });
+
+  it('opens a new character on the first beat of volume one', () => {
+    expect(openingStoryProgress(OPENING_STORY_CHAPTER)).toMatchObject({
+      storyId: 'v1-creek',
+      beatId: 'wake',
+      status: 'active',
+    });
   });
 });

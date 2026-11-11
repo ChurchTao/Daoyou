@@ -11,6 +11,7 @@ import { GameSceneSection } from '@app/components/game-shell/GameSceneSection';
 import { InkButton, InkNotice } from '@app/components/ui';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
 import { useCultivatorProgress } from '@app/lib/resources/player';
+import { storyCueSummary } from '@app/lib/story/cueSummary';
 import { useStory } from '@app/lib/story/useStory';
 import {
   findCurrentMajorBreakthroughTask,
@@ -172,7 +173,7 @@ export function HomeView() {
       <HomeUrgentRow
         key="story-cue"
         title={<span className="text-wood">{storyCue.chapterTitle}</span>}
-        summary={storyCue.prompt}
+        summary={storyCueSummary(storyCue)}
         action={
           <InkButton href={storyCue.href} variant="primary">
             继续
