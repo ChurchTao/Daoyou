@@ -1,7 +1,13 @@
 import { InkButton } from '@app/components/ui';
 import type { SpiritFieldSnapshot } from '@daoyou/contracts/spirit-field';
 import type { SpiritGardenPlantView } from '@daoyou/game-domain/spirit-field';
+import {
+  formatGardenDuration,
+  gardenSeedName,
+  pendingPlantQuantity,
+} from '../garden-presentation';
 import { BotanicalArt } from './BotanicalArt';
+import { GardenIncidentHistory } from './GardenIncidentHistory';
 
 interface GardenCollectionProps {
   snapshot: SpiritFieldSnapshot;
@@ -46,9 +52,7 @@ export function GardenCollection({
   const hasExhaustedPlot = snapshot.plots.some((plot) => plot.plant?.exhausted);
   const coverSpecies = snapshot.species[0];
   const pending = snapshot.collection.reduce(
-    (sum, plant) =>
-      sum +
-      plant.pending.reduce((amount, product) => amount + product.quantity, 0),
+    (sum, plant) => sum + pendingPlantQuantity(plant),
     0,
   );
   return (
@@ -57,7 +61,7 @@ export function GardenCollection({
         <p className="text-ink-secondary text-sm leading-6">
           暂歇一隅，留待来日。
           <br />
-          收藏期间暂停成长与生产，剩余生产时间和培养成果都会保留。
+          收藏期间暂停成长、生产、寿命与冷却，培养成果都会保留。
         </p>
         <p className="text-ink-secondary shrink-0 text-sm">
           <span className="text-ink font-mono text-2xl">
@@ -112,10 +116,7 @@ export function GardenCollection({
               const species = snapshot.species.find(
                 (entry) => entry.id === plant.speciesId,
               );
-              const quantity = plant.pending.reduce(
-                (sum, product) => sum + product.quantity,
-                0,
-              );
+              const quantity = pendingPlantQuantity(plant);
               const branchName =
                 plant.branch && species
                   ? species.branches[plant.branch].name
@@ -143,7 +144,27 @@ export function GardenCollection({
                     <p className="text-ink-secondary text-sm">
                       在田生长 <GrowthAge value={plant.activeGrowthMs} />
                     </p>
+                    {!plant.firstYieldGranted ? (
+                      <p className="text-ink-secondary text-xs">
+                        幼苗尚未引灵成株，寿命尚未开始。
+                      </p>
+                    ) : null}
+                    {plant.mutated ? (
+                      <p className="text-teal text-xs">
+                        异化 · 速生 <span className="font-mono">10%</span>
+                      </p>
+                    ) : null}
+                    {plant.recoveryRemainingMs > 0 ? (
+                      <p className="text-ink-secondary text-xs leading-6">
+                        歇养尚余{' '}
+                        <span className="font-mono">
+                          {formatGardenDuration(plant.recoveryRemainingMs)}
+                        </span>
+                        ，迁回后继续恢复。
+                      </p>
+                    ) : null}
                     <p className="text-sm">
+                      {!plant.firstYieldGranted ? '成株后产出：' : ''}
                       {plant.output.name}
                       <span className="text-ink-secondary ml-2 text-xs">
                         {plant.branch ? branchName : '基础产出'}
@@ -153,6 +174,29 @@ export function GardenCollection({
                       <p className="text-teal text-sm">
                         <span className="font-mono">{quantity}</span> 份待领取
                       </p>
+                    ) : null}
+                    {plant.pendingSeedSpeciesId ? (
+                      <p className="text-teal text-xs leading-6">
+                        含
+                        {gardenSeedName(
+                          plant.pendingSeedSpeciesId,
+                          snapshot.species,
+                        )}{' '}
+                        <span className="font-mono">1</span> 枚
+                      </p>
+                    ) : null}
+                    {plant.incidents.length > 0 ? (
+                      <details className="text-xs">
+                        <summary className="text-ink-secondary cursor-pointer leading-6">
+                          灵植异事
+                        </summary>
+                        <div className="mt-2">
+                          <GardenIncidentHistory
+                            plants={[plant]}
+                            species={snapshot.species}
+                          />
+                        </div>
+                      </details>
                     ) : null}
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                       <InkButton

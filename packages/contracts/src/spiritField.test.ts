@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  SpiritFieldBranchBatchRequestSchema,
   SpiritFieldBranchRequestSchema,
   SpiritFieldEvolveRequestSchema,
   SpiritFieldHarvestRequestSchema,
+  SpiritFieldMatureBatchRequestSchema,
   SpiritFieldRestoreRequestSchema,
   SpiritFieldSowRequestSchema,
   SpiritFieldStarterRequestSchema,
@@ -74,6 +76,44 @@ describe('long-lived spirit field commands', () => {
     ).toBe(false);
     expect(
       SpiritFieldRestoreRequestSchema.safeParse({ ...plant, plantId: '' })
+        .success,
+    ).toBe(false);
+  });
+
+  it('requires explicit, unique batch targets without client-supplied costs', () => {
+    const targets = [
+      { plotIndex: 0, plantId: 'plant-1' },
+      { plotIndex: 1, plantId: 'plant-2' },
+    ];
+    for (const [schema, branch] of [
+      [SpiritFieldMatureBatchRequestSchema, {}],
+      [SpiritFieldBranchBatchRequestSchema, { branch: 'essence' }],
+    ] as const) {
+      const request = { ...command, ...branch, targets };
+      expect(schema.parse(request)).toEqual(request);
+      for (const invalidTargets of [
+        [],
+        [targets[0], { plotIndex: 0, plantId: 'plant-2' }],
+        [targets[0], { plotIndex: 1, plantId: 'plant-1' }],
+        [{ plotIndex: 6, plantId: 'plant-1' }],
+        [{ plotIndex: 0, plantId: '' }],
+        Array.from({ length: 7 }, (_, index) => ({
+          plotIndex: index,
+          plantId: `plant-${index}`,
+        })),
+        [{ plotIndex: 0, plantId: 'plant-1', qi: 0 }],
+      ]) {
+        expect(
+          schema.safeParse({ ...request, targets: invalidTargets }).success,
+        ).toBe(false);
+      }
+      expect(schema.safeParse({ ...request, qi: 0 }).success).toBe(false);
+      expect(schema.safeParse({ ...request, expectedVersion: -1 }).success).toBe(
+        false,
+      );
+    }
+    expect(
+      SpiritFieldBranchBatchRequestSchema.safeParse({ ...command, targets })
         .success,
     ).toBe(false);
   });

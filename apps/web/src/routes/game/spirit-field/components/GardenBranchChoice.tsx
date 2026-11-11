@@ -13,6 +13,8 @@ interface GardenBranchChoiceProps {
   plant: SpiritGardenPlantView;
   species: SpiritGardenSpecies;
   selectedBranch: SpiritGardenBranch | null;
+  qi: number | undefined;
+  currencyUnavailable: boolean;
   locked: boolean;
   onSelect(branch: SpiritGardenBranch): void;
   onConfirm(): void;
@@ -23,6 +25,8 @@ export function GardenBranchChoice({
   plant,
   species,
   selectedBranch,
+  qi,
+  currencyUnavailable,
   locked,
   onSelect,
   onConfirm,
@@ -88,7 +92,7 @@ export function GardenBranchChoice({
               <span className="mt-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm">
                 <span>{output.name}</span>
                 <span className="text-ink-secondary text-xs">
-                  每{' '}
+                  {plant.mutated ? '基础周期每 ' : '每 '}
                   <span className="font-mono">
                     {formatGardenDuration(output.cycleMs)}
                   </span>{' '}
@@ -104,8 +108,18 @@ export function GardenBranchChoice({
       <div className="space-y-2 text-xs leading-6">
         <p className="text-crimson">每株只选一次，确定后无法更改。</p>
         <p className="text-ink-secondary">
-          确定方向无需额外消耗。已积蓄的收成、当前进度与剩余生产时间都会保留。
+          引自身天地灵气，助植株蕴灵定向。已积蓄收成与剩余生产时间保留；未完成的一轮若改为较短周期，按完成比例折算进度。
         </p>
+        <p>
+          本次消耗 <span className="font-mono">{plant.branchQiCost}</span>{' '}
+          天地灵气；当前 <span className="font-mono">{qi ?? '—'}</span>。
+        </p>
+        {qi !== undefined && qi < plant.branchQiCost ? (
+          <p className="text-crimson">当前天地灵气不足。</p>
+        ) : null}
+        {currencyUnavailable ? (
+          <p className="text-ink-secondary">正在确认当前天地灵气，请稍候。</p>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -114,7 +128,13 @@ export function GardenBranchChoice({
         </InkButton>
         <InkButton
           variant="primary"
-          disabled={choiceDisabled || !selectedBranch}
+          disabled={
+            choiceDisabled ||
+            !selectedBranch ||
+            currencyUnavailable ||
+            qi === undefined ||
+            qi < plant.branchQiCost
+          }
           onClick={onConfirm}
         >
           {selectedBranch

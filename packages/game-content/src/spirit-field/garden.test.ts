@@ -16,9 +16,7 @@ describe('spirit garden authoring catalog', () => {
     expect(catalog.species).toHaveLength(32);
     expect(
       catalog.species.filter((entry) => entry.name === '金雷竹'),
-    ).toMatchObject([
-      { id: 'gold_thunder_bamboo', quality: '天品' },
-    ]);
+    ).toMatchObject([{ id: 'gold_thunder_bamboo', quality: '天品' }]);
   });
 
   it('keeps the editor schema aligned with the runtime authoring shape', () => {
@@ -26,19 +24,24 @@ describe('spirit garden authoring catalog', () => {
     expect(() => loadSpiritGardenCatalog(data)).not.toThrow();
   });
 
-  it('accepts designer timing and yield changes without a runtime factory overwriting them', () => {
+  it('accepts designer growth and final period changes without overwriting them', () => {
     const changed = structuredClone(data);
     changed.species[0].matureMs = 300_000;
-    changed.species[0].baseOutput.cycleMs = 21_600_000;
-    changed.species[0].branches.abundance.output.cycleMs = 21_600_000;
-    changed.species[0].branches.abundance.output.quantity = 3;
+    changed.species[0].branchMs = 1;
+    changed.species[0].evolveMs = 1;
+    changed.productionByQuality.凡品.herbCycleMs = 21_600_000;
+    changed.productionByQuality.凡品.fruitCycleMs = 3_600_000;
+    changed.productionByQuality.神品.treasureCycleMs = 28 * 86_400_000;
     const catalog = loadSpiritGardenCatalog(changed);
     expect(catalog.species[0].matureMs).toBe(300_000);
-    expect(catalog.species[0].branches.abundance.output).toMatchObject({
-      quantity: 3,
-      cycleMs: 21_600_000,
+    expect(catalog.productionByQuality.凡品).toMatchObject({
+      herbCycleMs: 21_600_000,
+      fruitCycleMs: 3_600_000,
     });
-    expect(data.species[0].branches.abundance.output.quantity).toBe(2);
+    expect(catalog.productionByQuality.神品.treasureCycleMs).toBe(
+      28 * 86_400_000,
+    );
+    expect(data.productionByQuality.凡品.herbCycleMs).toBe(28_800_000);
   });
 
   it.each<{
@@ -98,28 +101,38 @@ describe('spirit garden authoring catalog', () => {
     {
       name: 'zero production period',
       change: (value) => {
-        value.species[0].baseOutput.cycleMs = 0;
+        value.productionByQuality.凡品.herbCycleMs = 0;
       },
-      path: 'species.0.baseOutput.cycleMs',
+      path: 'productionByQuality.凡品.herbCycleMs',
     },
     {
-      name: 'period exceeding the storage allowance',
+      name: 'period exceeding the effective production lifetime',
       change: (value) => {
-        value.species[31].branches.essence.output.cycleMs = 604_800_000;
+        value.productionByQuality.神品.treasureCycleMs = 28 * 86_400_000 + 1;
       },
-      path: 'species.31.branches',
+      path: 'productionByQuality.神品.treasureCycleMs',
     },
     {
-      name: 'production acceleration when changing route',
+      name: 'missing production quality',
       change: (value) => {
-        value.species[0].branches.essence.output.cycleMs = 3_600_000;
+        Reflect.deleteProperty(value.productionByQuality, '地品');
       },
-      path: 'species.0.branches.essence.output.cycleMs',
+      path: 'productionByQuality.地品',
     },
     {
-      name: 'inverted growth milestones',
+      name: 'species-local production overrides',
       change: (value) => {
-        value.species[0].branchMs = value.species[0].evolveMs + 1;
+        Object.assign(value.species[0].baseOutput, {
+          quantity: 1000,
+          cycleMs: 1,
+        });
+      },
+      path: 'species.0.baseOutput',
+    },
+    {
+      name: 'zero seedling duration',
+      change: (value) => {
+        value.species[0].matureMs = 0;
       },
       path: 'species.0.matureMs',
     },

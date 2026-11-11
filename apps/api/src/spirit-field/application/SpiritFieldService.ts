@@ -3,9 +3,12 @@ import type { RealmType } from '@daoyou/constants/realms';
 import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import type {
   SpiritFieldArchiveRequest,
+  SpiritFieldBranchBatchRequest,
   SpiritFieldBranchRequest,
   SpiritFieldEvolveRequest,
   SpiritFieldHarvestRequest,
+  SpiritFieldMatureBatchRequest,
+  SpiritFieldMatureRequest,
   SpiritFieldRestoreRequest,
   SpiritFieldRetireRequest,
   SpiritFieldSnapshot,
@@ -33,6 +36,7 @@ import {
   getSpiritGardenPlantView,
   getSpiritGardenSpecies,
   harvestSpiritGarden,
+  matureSpiritGardenPlant,
   migrateLegacySpiritGarden,
   plantSpiritGardenSeed,
   resolveSpiritGardenSpecies,
@@ -43,6 +47,7 @@ import {
   SPIRIT_GARDEN_OFFLINE_CAP_MS,
   SPIRIT_GARDEN_SPECIES,
 } from '@daoyou/game-rules/spirit-field';
+import { QiService } from '@server/cultivator/application/QiService.js';
 import { updateSpiritStones } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
 import { grantInventory } from '@server/inventory/operations.js';
 import {
@@ -60,6 +65,7 @@ import {
 import { describeJournal } from '@server/player/application/JournalSettlement.js';
 import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
 import { and, eq } from 'drizzle-orm';
+import { createHash, randomInt } from 'node:crypto';
 import { SpiritFieldServiceError } from './SpiritFieldError.js';
 import {
   consumeFieldItem,
@@ -173,12 +179,39 @@ const bagChange = (action: string): ResourceChangeDescriptor => ({
   eventType: `inventory.spirit-field.${action}`,
   operation: 'invalidate',
 });
-const currencyChange = (spiritStones: number): ResourceChangeDescriptor => ({
+const currencyChange = (stage: string): ResourceChangeDescriptor => ({
   resourceTopic: 'player.currency',
-  eventType: 'currency.spirit_stones.changed',
-  operation: 'merge',
-  payload: { spiritStones },
+  eventType: `currency.spirit_field.${stage}`,
+  operation: 'invalidate',
 });
+
+async function spendStageQi(
+  actor: SpiritFieldActor,
+  input: { requestId: string } & (
+    | { plantId: string; plotIndex: number }
+    | { targets: { plantId: string; plotIndex: number }[] }
+  ),
+  stage: 'mature' | 'branch' | 'evolve' | 'mature-batch' | 'branch-batch',
+  cost: number,
+  tx: DbTransaction,
+) {
+  const requestKey = createHash('sha256').update(input.requestId).digest('hex');
+  const actionInstanceId = `spirit-garden-${stage}:${actor.cultivatorId}:${requestKey}`;
+  await QiService.reserveQi({
+    cultivatorId: actor.cultivatorId,
+    action: 'spirit_field_care',
+    actionInstanceId,
+    cost,
+    metadata: {
+      stage,
+      ...('targets' in input
+        ? { targetCount: input.targets.length }
+        : { plantId: input.plantId, plotIndex: input.plotIndex }),
+    },
+    tx,
+  });
+  await QiService.commitReservation({ actionInstanceId, tx });
+}
 
 async function spendStones(
   actor: SpiritFieldActor,
@@ -302,7 +335,8 @@ export async function getSpiritFieldSnapshot(
     ].reduce(
       (sum, plant) =>
         sum +
-        plant.pending.reduce((amount, product) => amount + product.quantity, 0),
+        plant.pending.reduce((amount, product) => amount + product.quantity, 0) +
+        (plant.pendingSeedSpeciesId ? 1 : 0),
       0,
     ),
   };
@@ -408,6 +442,107 @@ export function sowSpiritField(
   );
 }
 
+export function matureSpiritField(
+  actor: SpiritFieldActor,
+  input: SpiritFieldMatureRequest,
+) {
+  return runGardenCommand(
+    actor,
+    input,
+    'spirit_field_cultivate',
+    async ({ tx, garden, player, now }) => {
+      const plant = garden.plots[input.plotIndex]?.plant;
+      if (!plant || plant.id !== input.plantId)
+        throw new SpiritFieldServiceError('灵植已变化，请刷新后再试', 409);
+      const view = getSpiritGardenPlantView(plant, player.realm);
+      const next = gardenRule(() =>
+        matureSpiritGardenPlant(garden, input.plotIndex, input.plantId, now),
+      );
+      await spendStageQi(actor, input, 'mature', view.matureQiCost, tx);
+      return {
+        garden: next,
+        result: { message: '成株引灵已完成，灵植开始自然生产' },
+        detail: `为${view.speciesName}完成成株引灵`,
+        resourceChanges: [currencyChange('mature')],
+      };
+    },
+  );
+}
+
+export function matureSpiritFieldBatch(
+  actor: SpiritFieldActor,
+  input: SpiritFieldMatureBatchRequest,
+) {
+  return runGardenCommand(
+    actor,
+    input,
+    'spirit_field_cultivate',
+    async ({ tx, garden, player, now }) => {
+      let next = garden;
+      let qiCost = 0;
+      for (const target of input.targets) {
+        const plant = next.plots[target.plotIndex]?.plant;
+        if (!plant || plant.id !== target.plantId)
+          throw new SpiritFieldServiceError('灵植已变化，请刷新后再试', 409);
+        qiCost += getSpiritGardenPlantView(plant, player.realm).matureQiCost;
+        next = gardenRule(() =>
+          matureSpiritGardenPlant(next, target.plotIndex, target.plantId, now),
+        );
+      }
+      await spendStageQi(actor, input, 'mature-batch', qiCost, tx);
+      return {
+        garden: next,
+        result: {
+          count: input.targets.length,
+          message: `已为${input.targets.length}株灵植完成成株引灵`,
+        },
+        detail: `为${input.targets.length}株灵植完成成株引灵`,
+        resourceChanges: [currencyChange('mature-batch')],
+      };
+    },
+  );
+}
+
+export function branchSpiritFieldBatch(
+  actor: SpiritFieldActor,
+  input: SpiritFieldBranchBatchRequest,
+) {
+  return runGardenCommand(
+    actor,
+    input,
+    'spirit_field_branch',
+    async ({ tx, garden, player, now }) => {
+      let next = garden;
+      let qiCost = 0;
+      for (const target of input.targets) {
+        const plant = next.plots[target.plotIndex]?.plant;
+        if (!plant || plant.id !== target.plantId)
+          throw new SpiritFieldServiceError('灵植已变化，请刷新后再试', 409);
+        qiCost += getSpiritGardenPlantView(plant, player.realm).branchQiCost;
+        next = gardenRule(() =>
+          chooseSpiritGardenBranch(
+            next,
+            target.plotIndex,
+            target.plantId,
+            input.branch,
+            now,
+          ),
+        );
+      }
+      await spendStageQi(actor, input, 'branch-batch', qiCost, tx);
+      return {
+        garden: next,
+        result: {
+          count: input.targets.length,
+          message: `已为${input.targets.length}株灵植确定培养方向`,
+        },
+        detail: `为${input.targets.length}株灵植确定长期培养方向`,
+        resourceChanges: [currencyChange('branch-batch')],
+      };
+    },
+  );
+}
+
 export function branchSpiritField(
   actor: SpiritFieldActor,
   input: SpiritFieldBranchRequest,
@@ -416,8 +551,12 @@ export function branchSpiritField(
     actor,
     input,
     'spirit_field_branch',
-    async ({ garden, now }) => ({
-      garden: gardenRule(() =>
+    async ({ tx, garden, player, now }) => {
+      const plant = garden.plots[input.plotIndex]?.plant;
+      if (!plant || plant.id !== input.plantId)
+        throw new SpiritFieldServiceError('灵植已变化，请刷新后再试', 409);
+      const view = getSpiritGardenPlantView(plant, player.realm);
+      const next = gardenRule(() =>
         chooseSpiritGardenBranch(
           garden,
           input.plotIndex,
@@ -425,10 +564,15 @@ export function branchSpiritField(
           input.branch,
           now,
         ),
-      ),
-      result: { message: '培养方向已确定' },
-      detail: '为灵植确定长期培养方向',
-    }),
+      );
+      await spendStageQi(actor, input, 'branch', view.branchQiCost, tx);
+      return {
+        garden: next,
+        result: { message: '培养方向已确定' },
+        detail: `为${view.speciesName}确定长期培养方向`,
+        resourceChanges: [currencyChange('branch')],
+      };
+    },
   );
 }
 
@@ -452,6 +596,7 @@ export function evolveSpiritField(
           input.plantId,
           player.realm,
           now,
+          randomInt(1_000_000) / 1_000_000,
         ),
       );
       const item = (
@@ -468,6 +613,7 @@ export function evolveSpiritField(
           `请选择${view.evolveCost.materialQuality}及以上的灵草材料`,
           409,
         );
+      await spendStageQi(actor, input, 'evolve', view.evolveCost.qi, tx);
       await consumeFieldItem(
         actor.cultivatorId,
         input.resourceId,
@@ -475,17 +621,30 @@ export function evolveSpiritField(
         view.evolveCost.quantity,
         tx,
       );
-      const spiritStones = await spendStones(
+      await spendStones(
         actor,
         player,
         view.evolveCost.spiritStones,
         tx,
       );
+      const evolvedPlant = next.plots[input.plotIndex]!.plant!;
+      const nextView = getSpiritGardenPlantView(evolvedPlant, player.realm);
+      const evolved = evolvedPlant.evolved;
       return {
         garden: next,
-        detail: `${view.speciesName}完成蜕变`,
-        result: { message: '灵植蜕变成功' },
-        resourceChanges: [bagChange('evolved'), currencyChange(spiritStones)],
+        detail: evolved
+          ? `${view.speciesName}完成蜕变`
+          : `${view.speciesName}本次蜕变未成，原路线继续生产，积累灵机后可再试`,
+        result: {
+          message: evolved
+            ? '灵植蜕变成功'
+            : '本次蜕变未成，原路线继续生产，积累灵机后可再试',
+          evolved,
+          attemptsRemaining: nextView.evolutionAttemptsRemaining,
+          chance: view.evolveSuccessChance,
+          cooldownRemainingMs: nextView.evolveCooldownRemainingMs,
+        },
+        resourceChanges: [bagChange('evolved'), currencyChange('evolve')],
       };
     },
   );
@@ -568,11 +727,18 @@ export function harvestSpiritField(
     'spirit_field_harvest',
     async ({ tx, garden, field, now }) => {
       const harvested = gardenRule(() => harvestSpiritGarden(garden, now));
-      if (!harvested.products.length)
+      if (!harvested.products.length && !harvested.seeds.length)
         throw new SpiritFieldServiceError('当前没有可领取的产物', 409);
       const delivered = await grantInventory(
         actor.cultivatorId,
-        harvested.products.map(productGrant),
+        [
+          ...harvested.products.map(productGrant),
+          ...harvested.seeds.map((seed) =>
+            seedGrant(
+              buildSpiritGardenSeed(seed.speciesId, seed.quality, seed.quantity),
+            ),
+          ),
+        ],
         tx,
       );
       for (let index = 0; index < harvested.products.length; index += 1) {
@@ -610,10 +776,13 @@ export function harvestSpiritField(
         result: {
           message: '已领取全部产物',
           products: harvested.products,
-          quantity: harvested.products.reduce(
-            (sum, product) => sum + product.quantity,
-            0,
-          ),
+          seeds: harvested.seeds,
+          quantity:
+            harvested.products.reduce(
+              (sum, product) => sum + product.quantity,
+              0,
+            ) +
+            harvested.seeds.reduce((sum, seed) => sum + seed.quantity, 0),
           locations: locationsOf(delivered),
         },
         resourceChanges: [bagChange('harvested')],

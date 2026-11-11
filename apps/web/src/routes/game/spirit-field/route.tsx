@@ -8,11 +8,12 @@ import {
 } from '@app/components/feature/items/inventoryFilterModel';
 import { GameSceneFrame, GameSceneLoading } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
-import { InkButton, InkNotice } from '@app/components/ui';
+import { InkButton, InkChoiceButton, InkNotice } from '@app/components/ui';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { useCraftStorage } from '@app/lib/resources/craftStorage';
+import { useCultivatorCurrency } from '@app/lib/resources/player';
 import { QUALITY_ORDER } from '@daoyou/constants/qualities';
 import type { InventoryView } from '@daoyou/contracts/inventory';
 import { findItemDefinition } from '@daoyou/game-content/items';
@@ -27,6 +28,8 @@ import type {
 } from '@daoyou/game-domain/spirit-field';
 import {
   canPlantSpiritFieldSeed,
+  getSpiritGardenEvolutionPreview,
+  getSpiritGardenOutput,
   getSpiritGardenSpecies,
   resolveSpiritGardenSpecies,
 } from '@daoyou/game-rules/spirit-field';
@@ -38,6 +41,11 @@ import { GardenCodex } from './components/GardenCodex';
 import { GardenCollection } from './components/GardenCollection';
 import { GardenPlantDetail } from './components/GardenPlantDetail';
 import {
+  formatGardenDuration,
+  gardenSeedName,
+  pendingPlantQuantity,
+} from './garden-presentation';
+import {
   useSpiritGarden,
   type GardenAction,
   type GardenOutcome,
@@ -45,10 +53,12 @@ import {
 
 type Item = InventoryView['items'][number];
 type PlantTarget = { plotIndex: number; plantId: string };
+type BatchPlantTarget = PlantTarget & { speciesName: string };
 type ItemTarget =
   { purpose: 'sow'; plotIndex: number } | ({ purpose: 'evolve' } & PlantTarget);
 type Panel =
-  | ({ view: 'plant' | 'branch' | 'evolve' } & PlantTarget)
+  | ({ view: 'plant' | 'mature' | 'branch' | 'evolve' } & PlantTarget)
+  | { view: 'mature-batch' | 'branch-batch'; targets: BatchPlantTarget[] }
   | { view: 'sow'; plotIndex: number }
   | { view: 'inventory'; target: ItemTarget }
   | { view: 'collection' | 'codex' }
@@ -58,6 +68,9 @@ const targetKey = (target: ItemTarget) =>
   `${target.purpose}:${target.plotIndex}:${'plantId' in target ? target.plantId : ''}`;
 const titles = {
   plant: '灵植小记',
+  mature: '引灵成株',
+  'mature-batch': '批量引灵成株',
+  'branch-batch': '批量蕴灵定向',
   branch: '择定长养之路',
   evolve: '灵植蜕变',
   sow: '栽种新灵植',
@@ -73,7 +86,13 @@ export default function SpiritFieldPage() {
   const { snapshot, locked } = garden;
   const { pushToast } = useInkUI();
   const bag = useInventoryBag();
+  const currency = useCultivatorCurrency();
   const [panel, setPanel] = useState<Panel | null>(null);
+  const [evolutionResult, setEvolutionResult] = useState<{
+    plantId: string;
+    result: GardenOutcome['result'];
+    cost: SpiritGardenPlantView['evolveCost'];
+  } | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [restorePlant, setRestorePlant] =
     useState<SpiritGardenPlantView | null>(null);
@@ -121,6 +140,38 @@ export default function SpiritFieldPage() {
     panel && 'plantId' in panel && panelPlant?.id === panel.plantId
       ? panelPlant
       : null;
+  const batchPanel =
+    panel?.view === 'mature-batch' || panel?.view === 'branch-batch'
+      ? panel
+      : null;
+  const batchEntries =
+    batchPanel?.targets.map((target) => {
+      const plant = snapshot?.plots[target.plotIndex]?.plant;
+      return { target, plant: plant?.id === target.plantId ? plant : null };
+    }) ?? [];
+  const batchReady = Boolean(
+    snapshot &&
+    batchPanel &&
+    batchEntries.length > 0 &&
+    batchEntries.every(
+      ({ plant }) =>
+        plant &&
+        (batchPanel.view === 'mature-batch'
+          ? plant.canMature
+          : plant.canBranch),
+    ),
+  );
+  useEffect(() => {
+    if (!snapshot || !batchPanel || batchReady || locked) return;
+    const timer = window.setTimeout(() => {
+      setPanel((current) => (current === batchPanel ? null : current));
+      pushToast({
+        message: '本批灵植的身份或长势已变化，请重新打开批量确认。',
+        tone: 'warning',
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [snapshot, batchPanel, batchReady, locked, pushToast]);
   const itemTarget: ItemTarget | null =
     panel?.view === 'inventory'
       ? panel.target
@@ -215,12 +266,31 @@ export default function SpiritFieldPage() {
     }
     const { action, result } = outcome;
     setSelection(null);
+    setEvolutionResult(null);
     storage.reload();
     if (action.endpoint === 'harvest') {
       setPanel({ view: 'receipt', result });
       return;
     }
-    pushToast({ message: result.message ?? '灵圃已更新', tone: 'success' });
+    if (action.endpoint === 'evolve' && typeof result.evolved === 'boolean') {
+      const plant = snapshot?.plots[action.input.plotIndex]?.plant;
+      if (plant?.id === action.input.plantId)
+        setEvolutionResult({
+          plantId: plant.id,
+          result,
+          cost: plant.evolveCost,
+        });
+    }
+    pushToast({
+      message:
+        action.endpoint === 'evolve' && result.evolved === false
+          ? '蜕变未成，本次费用已消耗。'
+          : (result.message ?? '灵圃已更新'),
+      tone:
+        action.endpoint === 'evolve' && result.evolved === false
+          ? 'warning'
+          : 'success',
+    });
     switch (action.endpoint) {
       case 'sow':
         setSelectedIndex(action.input.plotIndex);
@@ -234,6 +304,7 @@ export default function SpiritFieldPage() {
             : null,
         );
         break;
+      case 'mature':
       case 'branch':
       case 'evolve':
         setPanel({
@@ -241,6 +312,10 @@ export default function SpiritFieldPage() {
           plotIndex: action.input.plotIndex,
           plantId: action.input.plantId,
         });
+        break;
+      case 'mature-batch':
+      case 'branch-batch':
+        setPanel(null);
         break;
       case 'archive':
         setPanel({ view: 'collection' });
@@ -269,11 +344,34 @@ export default function SpiritFieldPage() {
   async function act(action: GardenAction) {
     afterAction(await garden.act(action));
   }
+  function openBatch(view: 'mature-batch' | 'branch-batch') {
+    if (!snapshot || locked) return;
+    const targets = snapshot.plots.flatMap((plot) => {
+      const plant = plot.plant;
+      const ready =
+        view === 'mature-batch' ? plant?.canMature : plant?.canBranch;
+      return plant && ready
+        ? [
+            {
+              plotIndex: plot.index,
+              plantId: plant.id,
+              speciesName: plant.speciesName,
+            },
+          ]
+        : [];
+    });
+    if (!targets.length) return;
+    setBranch(null);
+    setSelection(null);
+    setEvolutionResult(null);
+    setPanel({ view, targets });
+  }
   function selectPlot(index: number) {
     if (!snapshot || locked) return;
     const plot = snapshot.plots[index];
     if (!plot) return;
     setSelectedIndex(index);
+    setEvolutionResult(null);
     if (restorePlant) {
       if (!plot.plant)
         void act({
@@ -333,6 +431,21 @@ export default function SpiritFieldPage() {
     validPanelPlant && panel && 'plotIndex' in panel
       ? { plotIndex: panel.plotIndex, plantId: validPanelPlant.id }
       : null;
+  const evolvedPreview =
+    panel?.view === 'evolve' && validPanelPlant?.canEvolve
+      ? getSpiritGardenEvolutionPreview(validPanelPlant, snapshot.player.realm)
+      : null;
+  const batchQi = batchReady
+    ? batchEntries.reduce((sum, { plant }) => {
+        if (!plant) return sum;
+        return (
+          sum +
+          (batchPanel?.view === 'mature-batch'
+            ? plant.matureQiCost
+            : plant.branchQiCost)
+        );
+      }, 0)
+    : null;
   const seed =
     panel?.view === 'sow' && chosen
       ? SeedFactsSchema.safeParse(chosen.instanceData)
@@ -457,6 +570,8 @@ export default function SpiritFieldPage() {
         onOpenCollection={() => setPanel({ view: 'collection' })}
         onOpenCodex={() => setPanel({ view: 'codex' })}
         onStarter={() => void act({ endpoint: 'starter', input: {} })}
+        onMatureBatch={() => openBatch('mature-batch')}
+        onBranchBatch={() => openBatch('branch-batch')}
         onCancelRestore={() => setRestorePlant(null)}
       />
       <InkDetailDrawer
@@ -474,6 +589,199 @@ export default function SpiritFieldPage() {
       >
         <div ref={contentRef} tabIndex={-1} className="outline-none">
           {notice}
+          {batchPanel ? (
+            <div className="space-y-6 text-sm leading-7">
+              <InkButton
+                variant="secondary"
+                disabled={locked}
+                onClick={() => setPanel(null)}
+              >
+                返回灵圃
+              </InkButton>
+              <p className="text-ink-secondary">
+                {batchPanel.view === 'mature-batch'
+                  ? '为下列幼苗一并引灵成株，迎来首批收成并开始生产寿命。'
+                  : '为下列灵植一并引灵定向，所选方向适用于本次全部目标。'}
+              </p>
+              {batchPanel.view === 'branch-batch' ? (
+                <div
+                  className="flex flex-wrap gap-3"
+                  role="group"
+                  aria-label="本批培养方向"
+                >
+                  <InkChoiceButton
+                    selected={branch === 'abundance'}
+                    disabled={locked}
+                    onClick={() => setBranch('abundance')}
+                  >
+                    全部繁茂{branch === 'abundance' ? ' · 已选' : ''}
+                  </InkChoiceButton>
+                  <InkChoiceButton
+                    selected={branch === 'essence'}
+                    disabled={locked}
+                    onClick={() => setBranch('essence')}
+                  >
+                    各株特化{branch === 'essence' ? ' · 已选' : ''}
+                  </InkChoiceButton>
+                </div>
+              ) : null}
+              <ul className="divide-ink/10 divide-y">
+                {batchEntries.map(({ target, plant }) => {
+                  const species = snapshot.species.find(
+                    (entry) => entry.id === plant?.speciesId,
+                  );
+                  const output =
+                    plant && (batchPanel.view === 'mature-batch' || branch)
+                      ? getSpiritGardenOutput(
+                          batchPanel.view === 'branch-batch' && branch
+                            ? { ...plant, branch }
+                            : plant,
+                        )
+                      : null;
+                  return (
+                    <li
+                      key={`${target.plotIndex}:${target.plantId}`}
+                      className="space-y-1 py-3 first:pt-0"
+                    >
+                      <p>
+                        <span className="text-ink-secondary">
+                          第{' '}
+                          <span className="font-mono">
+                            {target.plotIndex + 1}
+                          </span>{' '}
+                          畦 ·{' '}
+                        </span>
+                        {target.speciesName}
+                      </p>
+                      <p className="text-ink-secondary text-xs">
+                        {output ? (
+                          <>
+                            {batchPanel.view === 'branch-batch' &&
+                            branch &&
+                            species
+                              ? `${species.branches[branch].name} · `
+                              : '成株后 · '}
+                            {output.name}
+                          </>
+                        ) : (
+                          '选定方向后查看产物'
+                        )}
+                      </p>
+                      {plant ? (
+                        <p className="text-ink-secondary text-xs">
+                          <span className="font-mono">
+                            {batchPanel.view === 'mature-batch'
+                              ? plant.matureQiCost
+                              : plant.branchQiCost}
+                          </span>{' '}
+                          天地灵气
+                        </p>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="border-ink/10 space-y-2 border-y py-4">
+                <p>
+                  合计消耗 <span className="font-mono">{batchQi ?? '—'}</span>{' '}
+                  天地灵气
+                </p>
+                <p className="text-ink-secondary text-xs">
+                  当前天地灵气{' '}
+                  <span className="font-mono">{currency.data?.qi ?? '—'}</span>
+                </p>
+                {currency.error ? (
+                  <p className="text-crimson text-xs">{currency.error}</p>
+                ) : null}
+              </div>
+              {!batchReady ? (
+                <InkNotice tone="warning">
+                  所选灵植的身份或长势已变化，请返回灵圃重新选择。
+                </InkNotice>
+              ) : null}
+              {batchQi !== null &&
+              currency.data &&
+              currency.data.qi < batchQi ? (
+                <p className="text-crimson">
+                  当前天地灵气不足，需备足本批全部消耗后再试。
+                </p>
+              ) : null}
+              <InkButton
+                variant="primary"
+                className="w-full justify-center"
+                disabled={
+                  locked ||
+                  !batchReady ||
+                  batchQi === null ||
+                  currency.loading ||
+                  Boolean(currency.error) ||
+                  !currency.data ||
+                  currency.data.qi < batchQi ||
+                  (batchPanel.view === 'branch-batch' && !branch)
+                }
+                onClick={() => {
+                  if (!batchReady) return;
+                  const targets = batchPanel.targets.map(
+                    ({ plotIndex, plantId }) => ({ plotIndex, plantId }),
+                  );
+                  if (batchPanel.view === 'mature-batch')
+                    void act({ endpoint: 'mature-batch', input: { targets } });
+                  else if (branch)
+                    void act({
+                      endpoint: 'branch-batch',
+                      input: { targets, branch },
+                    });
+                }}
+              >
+                {batchPanel.view === 'mature-batch'
+                  ? '为本批引灵成株'
+                  : '为本批确定方向'}
+              </InkButton>
+            </div>
+          ) : null}
+          {panel?.view === 'plant' &&
+          validPanelPlant &&
+          evolutionResult?.plantId === validPanelPlant.id ? (
+            <div
+              className={`mb-6 space-y-2 border-l-2 pl-3 text-sm leading-7 ${evolutionResult.result.evolved ? 'border-teal text-teal' : 'border-crimson text-ink'}`}
+              role="status"
+            >
+              <p className="font-semibold">
+                {evolutionResult.result.evolved ? '蜕变已成' : '蜕变未成'}
+              </p>
+              <p className="text-ink-secondary text-xs">
+                本次已消耗{' '}
+                <span className="font-mono">{evolutionResult.cost.qi}</span>{' '}
+                天地灵气、{' '}
+                <SpiritStones amount={evolutionResult.cost.spiritStones} /> 与{' '}
+                <span className="font-mono">
+                  {evolutionResult.cost.quantity}
+                </span>{' '}
+                份{evolutionResult.cost.materialQuality}及以上药材。
+              </p>
+              {evolutionResult.result.evolved === false ? (
+                <p className="text-ink-secondary text-xs">
+                  保留当前形态与产物，照常生产。剩余尝试{' '}
+                  <span className="font-mono">
+                    {validPanelPlant.evolutionAttemptsRemaining}
+                  </span>{' '}
+                  次。
+                  {validPanelPlant.evolutionAttemptsRemaining > 0 &&
+                  validPanelPlant.evolveCooldownRemainingMs > 0 ? (
+                    <>
+                      再有效在田长养约{' '}
+                      <span className="font-mono">
+                        {formatGardenDuration(
+                          validPanelPlant.evolveCooldownRemainingMs,
+                        )}
+                      </span>{' '}
+                      后可重试。
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           {panel?.view === 'inventory' ? inventory : null}
           {panel?.view === 'plant' &&
           validPanelPlant &&
@@ -482,8 +790,10 @@ export default function SpiritFieldPage() {
             <GardenPlantDetail
               plant={validPanelPlant}
               species={species}
+              allSpecies={snapshot.species}
               elapsedMs={elapsedMs}
               locked={locked}
+              onMature={() => setPanel({ view: 'mature', ...plantTarget })}
               onBranch={() => {
                 setBranch(null);
                 setPanel({ view: 'branch', ...plantTarget });
@@ -508,6 +818,77 @@ export default function SpiritFieldPage() {
               }}
             />
           ) : null}
+          {panel?.view === 'mature' && validPanelPlant && plantTarget ? (
+            <div className="space-y-6 text-sm leading-7">
+              <InkButton
+                variant="secondary"
+                onClick={backToPlant}
+                disabled={locked}
+              >
+                返回灵植小记
+              </InkButton>
+              <div className="flex items-center gap-5">
+                <BotanicalArt
+                  speciesId={validPanelPlant.speciesId}
+                  stage={validPanelPlant.stage}
+                  className="w-24 shrink-0"
+                />
+                <div className="min-w-0">
+                  <h3 className="text-xl font-semibold">
+                    {validPanelPlant.speciesName}
+                  </h3>
+                  <p className="text-ink-secondary mt-2">
+                    引自身天地灵气，助幼苗成株。
+                  </p>
+                </div>
+              </div>
+              <p className="text-ink-secondary">
+                成株后迎来首批收成，开始周期生产与生产寿命计时。等待成株期间，寿命尚未开始。
+              </p>
+              <div className="border-ink/10 space-y-2 border-y py-4">
+                <p>
+                  本次消耗{' '}
+                  <span className="font-mono">
+                    {validPanelPlant.matureQiCost}
+                  </span>{' '}
+                  天地灵气
+                </p>
+                <p className="text-ink-secondary text-xs">
+                  当前天地灵气{' '}
+                  <span className="font-mono">{currency.data?.qi ?? '—'}</span>
+                </p>
+                {currency.error ? (
+                  <p className="text-crimson text-xs">{currency.error}</p>
+                ) : null}
+              </div>
+              {!validPanelPlant.canMature ? (
+                <InkNotice>
+                  幼苗尚未养足根基，或已经完成成株，请返回查看最新长势。
+                </InkNotice>
+              ) : null}
+              {currency.data &&
+              currency.data.qi < validPanelPlant.matureQiCost ? (
+                <p className="text-crimson">当前天地灵气不足。</p>
+              ) : null}
+              <InkButton
+                variant="primary"
+                className="w-full justify-center"
+                disabled={
+                  locked ||
+                  !validPanelPlant.canMature ||
+                  currency.loading ||
+                  Boolean(currency.error) ||
+                  !currency.data ||
+                  currency.data.qi < validPanelPlant.matureQiCost
+                }
+                onClick={() =>
+                  void act({ endpoint: 'mature', input: plantTarget })
+                }
+              >
+                引灵成株
+              </InkButton>
+            </div>
+          ) : null}
           {panel?.view === 'branch' &&
           validPanelPlant &&
           species &&
@@ -516,6 +897,8 @@ export default function SpiritFieldPage() {
               plant={validPanelPlant}
               species={species}
               selectedBranch={branch}
+              qi={currency.data?.qi}
+              currencyUnavailable={currency.loading || Boolean(currency.error)}
               locked={locked}
               onSelect={setBranch}
               onConfirm={() => {
@@ -551,22 +934,80 @@ export default function SpiritFieldPage() {
                     {validPanelPlant.speciesName}
                   </h3>
                   <p className="text-teal mt-1">
-                    一次蜕变，今后的收成提高一品。
+                    蜕变成功后，今后的收成提高一品。
                   </p>
                 </div>
               </div>
               <p className="text-ink-secondary">
-                已积蓄的收成保留原品质，当前进度与剩余生产时间都会保留。条件满足后必定成功，每株可蜕变一次。
+                引自身天地灵气，助植株跨阶。已积蓄的收成保留原品质，当前进度与剩余生产时间都会保留。
               </p>
+              <div className="space-y-2 text-xs leading-6">
+                <p>
+                  本次成功率{' '}
+                  <span className="font-mono">
+                    {Math.round(validPanelPlant.evolveSuccessChance * 100)}%
+                  </span>
+                  ，剩余尝试{' '}
+                  <span className="font-mono">
+                    {validPanelPlant.evolutionAttemptsRemaining}
+                  </span>{' '}
+                  次。
+                </p>
+                <p className="text-crimson">
+                  每次尝试均实扣全部费用。失败后保持当前形态与产物，再有效在田长养{' '}
+                  <span className="font-mono">24</span> 小时后可重试，最多尝试{' '}
+                  <span className="font-mono">3</span> 次。
+                </p>
+              </div>
               <div className="border-ink/10 border-y py-4">
+                {evolvedPreview ? (
+                  <div className="mb-4 space-y-1">
+                    <p>
+                      {evolvedPreview.mutated
+                        ? '升品后基础周期每 '
+                        : '升品后每 '}
+                      <span className="font-mono">
+                        {formatGardenDuration(evolvedPreview.output.cycleMs)}
+                      </span>{' '}
+                      产{' '}
+                      <span className="font-mono">
+                        {evolvedPreview.output.quantity}
+                      </span>{' '}
+                      份{evolvedPreview.output.name}，预计还能收{' '}
+                      <span className="font-mono">
+                        {evolvedPreview.remainingHarvestCycles}
+                      </span>{' '}
+                      轮。
+                    </p>
+                    {evolvedPreview.remainingHarvestCycles === 0 ? (
+                      <p className="text-ink-secondary text-xs">
+                        剩余生产时间不足一轮。
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
                 <p>本次投入</p>
                 <p className="mt-2">
+                  <span className="font-mono">
+                    {validPanelPlant.evolveCost.qi}
+                  </span>{' '}
+                  天地灵气、{' '}
                   <SpiritStones
                     amount={validPanelPlant.evolveCost.spiritStones}
                   />{' '}
-                  与 <span className="font-mono">1</span> 份
-                  {validPanelPlant.evolveCost.materialQuality}及以上药材
+                  与{' '}
+                  <span className="font-mono">
+                    {validPanelPlant.evolveCost.quantity}
+                  </span>{' '}
+                  份{validPanelPlant.evolveCost.materialQuality}及以上药材
                 </p>
+                <p className="text-ink-secondary mt-2 text-xs">
+                  当前天地灵气{' '}
+                  <span className="font-mono">{currency.data?.qi ?? '—'}</span>
+                </p>
+                {currency.error ? (
+                  <p className="text-crimson mt-2 text-xs">{currency.error}</p>
+                ) : null}
               </div>
               <div className="flex items-center gap-4">
                 <div className="w-20">
@@ -594,6 +1035,10 @@ export default function SpiritFieldPage() {
                   locked ||
                   !chosen ||
                   !canChoose(itemTarget, chosen) ||
+                  currency.loading ||
+                  Boolean(currency.error) ||
+                  !currency.data ||
+                  currency.data.qi < validPanelPlant.evolveCost.qi ||
                   snapshot.player.spiritStones <
                     validPanelPlant.evolveCost.spiritStones
                 }
@@ -609,11 +1054,15 @@ export default function SpiritFieldPage() {
                     });
                 }}
               >
-                投入并完成蜕变
+                投入并尝试蜕变
               </InkButton>
               {snapshot.player.spiritStones <
               validPanelPlant.evolveCost.spiritStones ? (
                 <p className="text-crimson">当前灵石不足。</p>
+              ) : null}
+              {currency.data &&
+              currency.data.qi < validPanelPlant.evolveCost.qi ? (
+                <p className="text-crimson">当前天地灵气不足。</p>
               ) : null}
             </div>
           ) : null}
@@ -621,7 +1070,7 @@ export default function SpiritFieldPage() {
             <div className="space-y-6 text-sm leading-7">
               <p className="text-ink-secondary">
                 第 <span className="font-mono">{panel.plotIndex + 1}</span> 畦 ·
-                种下后自动成长，采收保留植株。
+                种下后先在田扎根，长足后可引灵成株。
               </p>
               {seedSpecies ? (
                 <div className="flex items-center gap-5">
@@ -648,7 +1097,7 @@ export default function SpiritFieldPage() {
                 <div className="garden-planting-note">
                   <p className="text-lg">为这一畦，选一株长养的草木。</p>
                   <p className="text-ink-secondary mt-2">
-                    灵种决定物种与品阶，成熟后会按周期产出，直到采尽。
+                    灵种决定物种与品阶，引灵成株后按周期产出，直到采尽。
                   </p>
                 </div>
               )}
@@ -744,7 +1193,7 @@ export default function SpiritFieldPage() {
               <InkButton
                 variant="primary"
                 className="w-full justify-center"
-                disabled={locked || retired.pending.length > 0}
+                disabled={locked || pendingPlantQuantity(retired) > 0}
                 onClick={() =>
                   void act({
                     endpoint: 'retire',
@@ -791,6 +1240,25 @@ export default function SpiritFieldPage() {
                     <span className="font-mono">×{product.quantity}</span>
                   </li>
                 ))}
+                {panel.result.seeds?.map((seed, index) => (
+                  <li
+                    key={`seed:${seed.speciesId}:${index}`}
+                    className="flex items-center gap-4"
+                  >
+                    <BotanicalArt
+                      speciesId={seed.speciesId}
+                      stage="seedling"
+                      className="w-12 shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p>{gardenSeedName(seed.speciesId, snapshot.species)}</p>
+                      <p className="text-ink-secondary text-xs">
+                        {seed.quality}
+                      </p>
+                    </div>
+                    <span className="font-mono">×{seed.quantity}</span>
+                  </li>
+                ))}
               </ul>
               <p className="text-ink-secondary">
                 已送至
@@ -811,7 +1279,7 @@ export default function SpiritFieldPage() {
             </div>
           ) : null}
           {panel &&
-          ['plant', 'branch', 'evolve'].includes(panel.view) &&
+          ['plant', 'mature', 'branch', 'evolve'].includes(panel.view) &&
           !validPanelPlant ? (
             <InkNotice>这株灵植已经移动，请返回灵圃重新查看。</InkNotice>
           ) : null}

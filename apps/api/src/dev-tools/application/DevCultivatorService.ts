@@ -127,32 +127,119 @@ export async function patchDevCultivator(
           );
           const milestone =
             input.spiritField.milestone ??
-            (plant.activeGrowthMs < view.matureMs
+            (!plant.firstYieldGranted
               ? 'mature'
               : !plant.branch
                 ? 'branch'
-                : !plant.evolved
+                : !plant.evolved && view.evolutionAttemptsRemaining > 0
                   ? 'evolve'
                   : 'yield');
-          const target =
+          if (milestone !== 'mature' && !plant.firstYieldGranted)
+            throw new InventoryError('请先回灵田支付天地灵气完成成株引灵');
+          if (milestone === 'mature' && plant.firstYieldGranted)
+            throw new InventoryError('灵植已经完成成株引灵');
+          if (milestone === 'branch' && plant.branch)
+            throw new InventoryError('灵植已经完成定向');
+          if (milestone === 'evolve') {
+            if (!plant.branch)
+              throw new InventoryError('请先回灵田支付天地灵气完成定向');
+            if (plant.evolved) throw new InventoryError('灵植已经完成蜕变');
+            if (view.evolutionAttemptsRemaining === 0)
+              throw new InventoryError('灵植的蜕变尝试次数已经用尽');
+          }
+          if (view.storageFull)
+            throw new InventoryError('待领收成已满，请先领取');
+          if (view.exhausted) throw new InventoryError('灵植已经采尽');
+          let advanceMs =
             milestone === 'mature'
-              ? view.matureMs
+              ? Math.max(0, view.matureMs - plant.activeGrowthMs)
               : milestone === 'branch'
-                ? view.branchMs
-                : view.evolveMs;
-          const advanceMs =
-            milestone === 'yield'
-              ? view.output.cycleMs - plant.productionMs
-              : target - plant.activeGrowthMs;
+                ? view.branchRemainingMs
+                : milestone === 'evolve'
+                  ? Math.max(
+                      view.evolveRemainingMs,
+                      view.evolveCooldownRemainingMs,
+                    )
+                  : view.nextYieldMs;
           if (advanceMs <= 0)
-            throw new InventoryError('灵植已经达到指定成长节点');
+            throw new InventoryError(
+              milestone === 'mature'
+                ? '灵植已可成株，请回灵田支付天地灵气'
+                : milestone === 'yield'
+                  ? '当前无法推进下一轮收成，请先核对灵植状态'
+                  : '灵植已达到该节点，请回灵田完成付费操作',
+            );
+          let preparedGarden = settleSpiritGarden(
+            {
+              ...garden,
+              plots: garden.plots.map((plot) =>
+                plot.index === index ? plot : { ...plot, plant: null },
+              ),
+              collection: [],
+            },
+            now + advanceMs,
+          );
+          let prepared = preparedGarden.plots[index]!.plant!;
+          const previousQuantity = plant.pending.reduce(
+            (sum, product) => sum + product.quantity,
+            0,
+          );
+          while (
+            milestone === 'yield' &&
+            prepared.pending.reduce((sum, product) => sum + product.quantity, 0) ===
+              previousQuantity
+          ) {
+            const nextView = getSpiritGardenPlantView(
+              prepared,
+              (input.realm ?? before.realm) as RealmType,
+            );
+            if (nextView.storageFull)
+              throw new InventoryError('待领收成已满，请先领取');
+            if (nextView.exhausted)
+              throw new InventoryError('剩余生产时间不足以完成新一轮收成');
+            if (nextView.nextYieldMs <= 0)
+              throw new InventoryError('当前无法推进下一轮收成，请先核对灵植状态');
+            advanceMs += nextView.nextYieldMs;
+            preparedGarden = settleSpiritGarden(preparedGarden, now + advanceMs);
+            prepared = preparedGarden.plots[index]!.plant!;
+          }
+          const preparedView = getSpiritGardenPlantView(
+            prepared,
+            (input.realm ?? before.realm) as RealmType,
+          );
+          const remainingMs =
+            milestone === 'branch'
+              ? preparedView.branchRemainingMs
+              : milestone === 'evolve'
+                ? Math.max(
+                    preparedView.evolveRemainingMs,
+                    preparedView.evolveCooldownRemainingMs,
+                  )
+                : 0;
+          if (remainingMs > 0)
+            throw new InventoryError(
+              preparedView.storageFull
+                ? '待领收成已满，请先领取后再推进成长'
+                : '剩余生产时间不足以达到指定成长节点',
+            );
+          // Rebase the simulated timeline as a whole, retaining incident order.
           const plots = garden.plots.map((plot) =>
             plot.index === index
-              ? { ...plot, plant: { ...plant, settledAt: now - advanceMs } }
+              ? {
+                  ...plot,
+                  plant: {
+                    ...prepared,
+                    settledAt: now,
+                    incidents: prepared.incidents.map((incident) => ({
+                      ...incident,
+                      occurredAt: incident.occurredAt - advanceMs,
+                    })),
+                  },
+                }
               : plot,
           );
           await updateSpiritField(tx, field.id, {
-            garden: settleSpiritGarden({ ...garden, plots }, now),
+            garden: { ...garden, plots },
           });
         }
         let sect;

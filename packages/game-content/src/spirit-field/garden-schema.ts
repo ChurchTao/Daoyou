@@ -1,5 +1,5 @@
 import { ELEMENT_VALUES } from '@daoyou/constants/elements';
-import { QUALITY_ORDER, QUALITY_VALUES } from '@daoyou/constants/qualities';
+import { QUALITY_VALUES } from '@daoyou/constants/qualities';
 import {
   SPIRIT_SEED_GROWTH_FORMS,
   SPIRIT_SEED_HARVEST_PARTS,
@@ -18,15 +18,26 @@ const duration = z
   .int()
   .positive()
   .max(30 * 86_400_000);
+const productionDuration = z
+  .number()
+  .int()
+  .positive()
+  .max(28 * 86_400_000)
+  .describe(
+    '实际生产周期，单位毫秒；不再按品质倍率缩放，最长为二十八天有效生产寿命。',
+  );
+const production = z
+  .object({
+    herbCycleMs: productionDuration,
+    fruitCycleMs: productionDuration,
+    treasureCycleMs: productionDuration,
+  })
+  .strict();
 const output = z
   .object({
     name: text.max(80),
     description: text,
     kind: z.enum(['herb', 'tcdb', 'spirit_fruit']),
-    quantity: z.number().int().min(1).max(1000),
-    cycleMs: duration.describe(
-      '凡品基准生产周期，单位毫秒；运行时按原种品质倍率缩放。',
-    ),
     fruitEffects: SpiritGardenFruitEffectsSchema.optional().describe(
       '仅灵果填写。最多三种药性，share 合计为 1，共享原有单效灵果强度。灵兽修为不可与人物药性组合。',
     ),
@@ -70,9 +81,13 @@ const species = z
           .describe('图谱列号，从左到右编号 0—3。'),
       })
       .strict(),
-    matureMs: duration.describe('凡品基准成株时间，单位毫秒。'),
-    branchMs: duration.describe('凡品基准蕴灵定向时间，单位毫秒。'),
-    evolveMs: duration.describe('凡品基准蜕变时间，单位毫秒。'),
+    matureMs: duration.describe('幼苗至可付费成株的实际等待时间，单位毫秒。'),
+    branchMs: duration.describe(
+      '付费成株后至可定向的凡品基准等待时间，单位毫秒。',
+    ),
+    evolveMs: duration.describe(
+      '付费定向后至可尝试蜕变的凡品基准等待时间，单位毫秒。',
+    ),
     baseOutput: output,
     branches: z.object({ abundance: branch, essence: branch }).strict(),
   })
@@ -83,12 +98,6 @@ const species = z
         code: 'custom',
         path: ['name'],
         message: '物种名称必须填写成株名称',
-      });
-    if (value.matureMs > value.branchMs || value.branchMs > value.evolveMs)
-      ctx.addIssue({
-        code: 'custom',
-        path: ['matureMs'],
-        message: '成株、定向、蜕变时间必须依次递增',
       });
     if (value.baseOutput.kind !== 'herb')
       ctx.addIssue({
@@ -114,13 +123,6 @@ const species = z
         path: ['branches', 'essence', 'output', 'kind'],
         message: '特化路线必须产出灵果或天材地宝',
       });
-    for (const key of ['abundance', 'essence'] as const)
-      if (value.branches[key].output.cycleMs < value.baseOutput.cycleMs)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['branches', key, 'output', 'cycleMs'],
-          message: '定向后的周期不得短于基础周期，避免沿用进度重复增产',
-        });
   });
 
 export const SpiritGardenCatalogShape = z
@@ -129,6 +131,11 @@ export const SpiritGardenCatalogShape = z
     schemaVersion: z.literal(1),
     offlineCapMs: duration.describe('每株最多积蓄的生产时间，单位毫秒。'),
     collectionLimit: z.number().int().min(1).max(128),
+    productionByQuality: z
+      .record(z.enum(QUALITY_VALUES), production)
+      .describe(
+        '按实际产物品质选择周期；基础药材每轮一份、繁茂药材两份、灵果及天材地宝各一份。',
+      ),
     species: z.array(species).length(QUALITY_VALUES.length * speciesPerQuality),
   })
   .strict();
@@ -142,7 +149,9 @@ export const SpiritGardenCatalogSchema = SpiritGardenCatalogShape.superRefine(
     const add = (path: (string | number)[], message: string) =>
       ctx.addIssue({ code: 'custom', path, message });
     for (const quality of QUALITY_VALUES) {
-      const entries = catalog.species.filter((entry) => entry.quality === quality);
+      const entries = catalog.species.filter(
+        (entry) => entry.quality === quality,
+      );
       if (entries.length !== speciesPerQuality)
         add(['species'], `${quality}必须有四种灵植`);
       if (new Set(entries.map((entry) => entry.portrait.atlas)).size !== 1)
@@ -166,20 +175,6 @@ export const SpiritGardenCatalogSchema = SpiritGardenCatalogShape.superRefine(
           add([...path, outputKey, 'name'], '不同物种产物名称不可重复');
         productNames.add(product.name);
       }
-      for (const product of [
-        entry.baseOutput,
-        entry.branches.abundance.output,
-        entry.branches.essence.output,
-      ])
-        if (
-          Math.round(
-            product.cycleMs * (1 + QUALITY_ORDER[entry.quality] * 0.25),
-          ) > catalog.offlineCapMs
-        )
-          add(
-            [...path, 'branches'],
-            '生产周期不得超过积蓄上限，否则成熟后无法持续生产',
-          );
     });
   },
 );

@@ -1,4 +1,8 @@
-import type { SpiritGardenPlantView } from '@daoyou/game-domain/spirit-field';
+import type {
+  SpiritGardenIncident,
+  SpiritGardenPlantView,
+  SpiritGardenSpecies,
+} from '@daoyou/game-domain/spirit-field';
 
 export function formatGardenDuration(ms: number): string {
   if (ms <= 0) return '即将完成';
@@ -26,11 +30,75 @@ export function stageLabel(plant: SpiritGardenPlantView): string {
 }
 
 export function pendingPlantQuantity(plant: SpiritGardenPlantView): number {
-  return plant.pending.reduce((sum, product) => sum + product.quantity, 0);
+  return (
+    plant.pending.reduce((sum, product) => sum + product.quantity, 0) +
+    (plant.pendingSeedSpeciesId ? 1 : 0)
+  );
+}
+
+export function gardenRecoveryPresentation(plant: SpiritGardenPlantView) {
+  const kind = plant.incidents.at(-1)?.kind;
+  if (kind === 'pests') return { label: '虫害歇养', icon: '🐛' };
+  if (kind === 'beast') return { label: '偷吃歇养', icon: '🐾' };
+  return { label: '自行恢复', icon: null };
+}
+
+export function gardenSeedName(
+  speciesId: string,
+  species: SpiritGardenSpecies[],
+): string {
+  const seedSpecies = species.find((entry) => entry.id === speciesId);
+  return seedSpecies ? `${seedSpecies.name}的种子` : '灵种';
+}
+
+const incidentPlantParts: Record<SpiritGardenSpecies['growthForm'], string> = {
+  herb: '嫩叶',
+  flower: '花叶',
+  vine: '藤梢',
+  shrub: '枝叶',
+  tree: '枝梢',
+  fungus: '菌体',
+  aquatic: '水叶',
+  root: '根须',
+};
+
+export function gardenIncidentPresentation(
+  incident: SpiritGardenIncident,
+  species: SpiritGardenSpecies,
+) {
+  const part = incidentPlantParts[species.growthForm];
+  switch (incident.kind) {
+    case 'pests':
+      return {
+        label: '虫害',
+        description: `${species.name}的${part}受了虫扰，歇养六小时后自行恢复。`,
+      };
+    case 'beast':
+      return {
+        label: '灵兽偷吃',
+        description:
+          species.growthForm === 'fungus' || species.growthForm === 'aquatic'
+            ? `灵兽偷吸了${species.name}凝结的灵露，歇养两小时后自行恢复。`
+            : `灵兽啃食了${species.name}的嫩芽，歇养两小时后自行恢复。`,
+      };
+    case 'mutation':
+      return {
+        label: '异化速生',
+        description: `${species.name}的${part}间凝起新灵机，此后的生产速度提高一成。`,
+      };
+  }
 }
 
 export interface PlantOpportunity {
-  kind: 'branch' | 'evolve' | 'full' | 'growing' | 'producing' | 'exhausted';
+  kind:
+    | 'mature'
+    | 'branch'
+    | 'evolve'
+    | 'full'
+    | 'growing'
+    | 'producing'
+    | 'exhausted'
+    | 'recovering';
   label: string;
   description: string;
   actionLabel: string;
@@ -44,23 +112,42 @@ export function getPlantOpportunity(
     return {
       kind: 'exhausted',
       label: '采尽',
-      description: plant.pending.length
-        ? '领取最后一批收成后，就能清畦重种。'
-        : '这株灵植的收成已领完，可以清畦重种。',
+      description:
+        pendingPlantQuantity(plant) > 0
+          ? '领取最后一批收成后，就能清畦重种。'
+          : '这株灵植的收成已领完，可以清畦重种。',
       actionLabel: '查看这株灵植',
+    };
+  if (plant.canMature)
+    return {
+      kind: 'mature',
+      label: '可引灵成株',
+      description:
+        '幼苗根基已足。引入自身天地灵气，便能助其成株，迎来首次收成。',
+      actionLabel: '助其成株',
+    };
+  if (plant.recoveryRemainingMs > 0)
+    return {
+      kind: 'recovering',
+      label: `${gardenRecoveryPresentation(plant).label}${plant.storageFull ? ' · 暂缓' : ''}`,
+      description: plant.storageFull
+        ? `还需歇养约 ${formatGardenDuration(plant.recoveryRemainingMs)}。积蓄已满，歇养暂缓；领取收成后继续恢复。`
+        : `还需歇养约 ${formatGardenDuration(plant.recoveryRemainingMs)}。期间暂停生产，寿命照常消耗，无需照料。`,
+      actionLabel: '查看长势',
     };
   if (plant.canBranch)
     return {
       kind: 'branch',
-      label: '可定培养方向',
-      description: '灵蕴已足。可以确定长期培养方向，今后的收成会随之改变。',
+      label: '可蕴灵定向',
+      description: '灵蕴已足。引入自身天地灵气，确定今后的收成方向。',
       actionLabel: '确定培养方向',
     };
   if (plant.canEvolve)
     return {
       kind: 'evolve',
-      label: '可完成蜕变',
-      description: '这株灵植已经养足根基，备好药材后即可提升往后产物的品质。',
+      label: '可尝试蜕变',
+      description:
+        '这株灵植已经养足根基，可以投入灵气与药材，尝试提升往后产物的品质。',
       actionLabel: '前去蜕变',
     };
   if (plant.storageFull)
@@ -70,11 +157,11 @@ export function getPlantOpportunity(
       description: '待领收成已经积满，剩余生产时间暂停消耗。收获后会继续生产。',
       actionLabel: '查看这株灵植',
     };
-  if (plant.stage === 'seedling')
+  if (!plant.firstYieldGranted)
     return {
       kind: 'growing',
       label: '幼苗正在扎根',
-      description: `距首次成株约 ${formatGardenDuration(plant.matureMs - plant.activeGrowthMs)}，成株后按周期产出。`,
+      description: `再在田长养约 ${formatGardenDuration(plant.matureMs - plant.activeGrowthMs)}，便可引灵成株。等待期间寿命尚未开始。`,
       actionLabel: '查看长势',
     };
   if (plant.remainingHarvestCycles === 0)
@@ -88,14 +175,28 @@ export function getPlantOpportunity(
     return {
       kind: 'growing',
       label: '静待灵蕴充盈',
-      description: `再长养约 ${formatGardenDuration(plant.branchMs - plant.activeGrowthMs)}，便能决定它往后的培养方向。`,
+      description: `再在田长养约 ${formatGardenDuration(plant.branchRemainingMs)}，便能引灵蕴养，决定往后的培养方向。`,
       actionLabel: '查看培养进程',
     };
-  if (!plant.evolved && plant.activeGrowthMs < plant.evolveMs)
+  if (!plant.evolved && plant.evolutionAttemptsRemaining === 0)
+    return {
+      kind: 'producing',
+      label: '蜕变次数已尽',
+      description: '这株灵植已用尽蜕变机会，仍会按现有方向继续生产。',
+      actionLabel: '查看这株灵植',
+    };
+  if (!plant.evolved && plant.evolveCooldownRemainingMs > 0)
+    return {
+      kind: 'growing',
+      label: '蜕变余韵未散',
+      description: `再有效在田长养约 ${formatGardenDuration(plant.evolveCooldownRemainingMs)}，便可再次尝试，期间照常生产。`,
+      actionLabel: '查看培养进程',
+    };
+  if (!plant.evolved && plant.evolveRemainingMs > 0)
     return {
       kind: 'growing',
       label: '根基日渐深厚',
-      description: `距蜕变积累约 ${formatGardenDuration(plant.evolveMs - plant.activeGrowthMs)}，期间照常产出。`,
+      description: `再在田长养约 ${formatGardenDuration(plant.evolveRemainingMs)}，便养足蜕变根基，期间照常产出。`,
       actionLabel: '查看培养进程',
     };
   return {
@@ -104,7 +205,9 @@ export function getPlantOpportunity(
     description:
       !plant.evolved && plant.evolveReason
         ? plant.evolveReason
-        : `每 ${formatGardenDuration(plant.output.cycleMs)} 产出 ${plant.output.quantity} 份${plant.output.name}。`,
+        : plant.mutated
+          ? `已生出速生灵性，距下次产出约 ${formatGardenDuration(plant.nextYieldMs)}。`
+          : `每 ${formatGardenDuration(plant.output.cycleMs)} 产出 ${plant.output.quantity} 份${plant.output.name}。`,
     actionLabel: '查看这株灵植',
   };
 }

@@ -5,9 +5,20 @@ import {
   type Quality,
 } from '@daoyou/constants/qualities';
 import { REALM_ORDER, type RealmType } from '@daoyou/constants/realms';
+import { BASE_PRICES } from '@daoyou/game-content/materials';
 import {
+  SPIRIT_GARDEN_BRANCH_QI_COSTS,
   SPIRIT_GARDEN_COLLECTION_LIMIT,
+  SPIRIT_GARDEN_EVOLUTION_ATTEMPT_LIMIT,
+  SPIRIT_GARDEN_EVOLUTION_COOLDOWN_MS,
+  SPIRIT_GARDEN_EVOLUTION_QI_COSTS,
+  SPIRIT_GARDEN_EVOLUTION_STONE_RATIO,
+  SPIRIT_GARDEN_EVOLUTION_SUCCESS_CHANCES,
+  SPIRIT_GARDEN_INCIDENT_INTERVAL_MS,
+  SPIRIT_GARDEN_MATURE_QI_COSTS,
   SPIRIT_GARDEN_OFFLINE_CAP_MS,
+  SPIRIT_GARDEN_PEST_RECOVERY_MS,
+  SPIRIT_GARDEN_PRODUCTION_BY_QUALITY,
   SPIRIT_GARDEN_PRODUCTION_LIFETIME_MS,
   SPIRIT_GARDEN_SPECIES,
   getSpiritFieldQualityBalance,
@@ -30,10 +41,16 @@ import {
   type SpiritGardenPlant,
   type SpiritGardenPlantView,
   type SpiritGardenProduct,
+  type SpiritGardenSeedReward,
   type SpiritGardenSpeciesId,
   type SpiritGardenState,
 } from '@daoyou/game-domain/spirit-field';
 import { z } from 'zod';
+import {
+  isSpiritGardenMutated,
+  recordSpiritGardenIncident,
+  spiritGardenProductionRate,
+} from './garden-incidents.js';
 import {
   getSpiritFieldPlotRuntime,
   settleSpiritFieldHarvest,
@@ -80,13 +97,47 @@ const plantSchema = z
     activeGrowthMs: nonnegative,
     settledAt: nonnegative,
     productionMs: nonnegative,
-    storedProductionMs: nonnegative.max(SPIRIT_GARDEN_OFFLINE_CAP_MS),
+    productionBonusRemainder: z.number().int().min(0).max(9).default(0),
+    storedProductionMs: nonnegative.max(SPIRIT_GARDEN_PRODUCTION_LIFETIME_MS),
     productionUsedMs: nonnegative
       .max(SPIRIT_GARDEN_PRODUCTION_LIFETIME_MS)
       .default(0),
+    productionClockMs: nonnegative.max(SPIRIT_GARDEN_PRODUCTION_LIFETIME_MS),
+    incidents: z
+      .array(
+        z
+          .object({
+            kind: z.enum(['pests', 'beast', 'mutation']),
+            productionDay: z.number().int().min(1).max(27),
+            occurredAt: nonnegative,
+            seedSpeciesId: speciesIdSchema.nullable(),
+          })
+          .strict(),
+      )
+      .max(3)
+      .default([]),
+    recoveryRemainingMs: nonnegative
+      .max(SPIRIT_GARDEN_PEST_RECOVERY_MS)
+      .default(0),
+    pendingSeedSpeciesId: speciesIdSchema.nullable().default(null),
     firstYieldGranted: z.boolean(),
     branch: z.enum(SPIRIT_GARDEN_BRANCHES).nullable(),
+    branchAtProductionMs: nonnegative
+      .max(SPIRIT_GARDEN_PRODUCTION_LIFETIME_MS)
+      .nullable(),
     evolved: z.boolean(),
+    evolutionAttempts: z
+      .array(
+        z
+          .object({
+            atProductionMs: nonnegative.max(
+              SPIRIT_GARDEN_PRODUCTION_LIFETIME_MS,
+            ),
+            succeeded: z.boolean(),
+          })
+          .strict(),
+      )
+      .max(SPIRIT_GARDEN_EVOLUTION_ATTEMPT_LIMIT),
     pending: z.array(productSchema).max(8),
   })
   .strict()
@@ -142,10 +193,90 @@ export const SpiritGardenStateSchema = z
       }
       const output = getSpiritGardenOutput(plant);
       if (
+        plant.storedProductionMs > storageCapacity(plant) ||
         plant.productionMs >= output.cycleMs ||
-        plant.productionMs > plant.storedProductionMs
+        plant.productionMs * 10 + plant.productionBonusRemainder >
+          plant.storedProductionMs * spiritGardenProductionRate(plant)
       )
         ctx.addIssue({ code: 'custom', message: '灵植生产进度无效' });
+      const growth = times(plant);
+      const latestAttempt = plant.evolutionAttempts.at(-1);
+      if (
+        plant.productionClockMs > plant.productionUsedMs ||
+        plant.activeGrowthMs > growth.matureMs + plant.productionUsedMs ||
+        (plant.firstYieldGranted && plant.activeGrowthMs < growth.matureMs) ||
+        (!plant.firstYieldGranted &&
+          (plant.activeGrowthMs > growth.matureMs ||
+            plant.productionUsedMs !== 0 ||
+            plant.productionClockMs !== 0 ||
+            plant.productionMs !== 0 ||
+            plant.productionBonusRemainder !== 0 ||
+            plant.storedProductionMs !== 0 ||
+            plant.pending.length !== 0 ||
+            plant.pendingSeedSpeciesId !== null ||
+            plant.incidents.length !== 0 ||
+            plant.recoveryRemainingMs !== 0 ||
+            plant.branch !== null ||
+            plant.evolutionAttempts.length !== 0)) ||
+        (plant.branch === null) !== (plant.branchAtProductionMs === null) ||
+        (plant.branchAtProductionMs !== null &&
+          (!plant.firstYieldGranted ||
+            plant.branchAtProductionMs < growth.branchMs ||
+            plant.branchAtProductionMs > plant.productionUsedMs)) ||
+        plant.evolved !== Boolean(latestAttempt?.succeeded) ||
+        (plant.quality === '神品' && plant.evolutionAttempts.length !== 0) ||
+        plant.evolutionAttempts.some(
+          (attempt, index) =>
+            plant.branchAtProductionMs === null ||
+            attempt.atProductionMs <
+              plant.branchAtProductionMs + growth.evolveMs ||
+            attempt.atProductionMs > plant.productionUsedMs ||
+            (index > 0 &&
+              (plant.evolutionAttempts[index - 1]!.succeeded ||
+                attempt.atProductionMs <
+                  plant.evolutionAttempts[index - 1]!.atProductionMs +
+                    SPIRIT_GARDEN_EVOLUTION_COOLDOWN_MS)),
+        )
+      )
+        ctx.addIssue({ code: 'custom', message: '灵植阶段突破记录无效' });
+      const negativeIncidents = plant.incidents.filter(
+        (incident) => incident.kind !== 'mutation',
+      );
+      const seedIncidents = plant.incidents.filter(
+        (incident) => incident.seedSpeciesId !== null,
+      );
+      const lastIncident = plant.incidents.at(-1);
+      if (
+        negativeIncidents.length > 2 ||
+        plant.incidents.length - negativeIncidents.length > 1 ||
+        seedIncidents.length > 1 ||
+        plant.incidents.some(
+          (incident, index) =>
+            incident.productionDay * SPIRIT_GARDEN_INCIDENT_INTERVAL_MS >
+              plant.productionClockMs ||
+            incident.occurredAt > plant.settledAt ||
+            (index > 0 &&
+              (incident.productionDay <=
+                plant.incidents[index - 1]!.productionDay ||
+                incident.occurredAt <
+                  plant.incidents[index - 1]!.occurredAt)) ||
+            (incident.seedSpeciesId !== null &&
+              (incident.kind !== 'beast' ||
+                getSpiritGardenSpecies(incident.seedSpeciesId).quality !==
+                  plant.quality)),
+        ) ||
+        (plant.pendingSeedSpeciesId !== null &&
+          !seedIncidents.some(
+            (incident) => incident.seedSpeciesId === plant.pendingSeedSpeciesId,
+          )) ||
+        (plant.recoveryRemainingMs > 0 &&
+          (!lastIncident ||
+            lastIncident.kind === 'mutation' ||
+            (lastIncident.kind === 'beast' &&
+              plant.recoveryRemainingMs > 2 * 3_600_000))) ||
+        (!isSpiritGardenMutated(plant) && plant.productionBonusRemainder !== 0)
+      )
+        ctx.addIssue({ code: 'custom', message: '灵植异事记录无效' });
       if (
         plant.pending.some((product) => product.speciesId !== plant.speciesId)
       )
@@ -249,13 +380,15 @@ function times(plant: SpiritGardenPlant) {
   );
   const multiplier = 1 + QUALITY_ORDER[plant.quality] * 0.25;
   return {
-    matureMs: Math.round(species.matureMs * multiplier),
+    matureMs: species.matureMs,
     branchMs: Math.round(species.branchMs * multiplier),
     evolveMs: Math.round(species.evolveMs * multiplier),
   };
 }
 export function getSpiritGardenOutput(
-  plant: Pick<SpiritGardenPlant, 'speciesId' | 'quality' | 'branch'>,
+  plant: Pick<SpiritGardenPlant, 'speciesId' | 'quality' | 'branch'> & {
+    evolved?: boolean;
+  },
 ): SpiritGardenOutput {
   const species = getSpiritGardenSpeciesForQuality(
     plant.speciesId,
@@ -264,14 +397,57 @@ export function getSpiritGardenOutput(
   const output = plant.branch
     ? species.branches[plant.branch].output
     : species.baseOutput;
+  const production = SPIRIT_GARDEN_PRODUCTION_BY_QUALITY[outputQuality(plant)];
   return {
     ...output,
-    cycleMs: Math.round(
-      output.cycleMs * (1 + QUALITY_ORDER[plant.quality] * 0.25),
-    ),
+    quantity: plant.branch === 'abundance' ? 2 : 1,
+    cycleMs:
+      output.kind === 'herb'
+        ? production.herbCycleMs
+        : output.kind === 'spirit_fruit'
+          ? production.fruitCycleMs
+          : production.treasureCycleMs,
   };
 }
-function outputQuality(plant: SpiritGardenPlant): Quality {
+function storageCapacity(plant: SpiritGardenPlant): number {
+  return Math.max(
+    SPIRIT_GARDEN_OFFLINE_CAP_MS,
+    getSpiritGardenOutput(plant).cycleMs,
+  );
+}
+/** Shorter cycles retain completion ratio; longer cycles retain elapsed work. */
+function changePlantOutput(
+  plant: SpiritGardenPlant,
+  change: Partial<Pick<SpiritGardenPlant, 'branch' | 'evolved'>>,
+): SpiritGardenPlant {
+  const next = { ...plant, ...change };
+  const oldCycle = getSpiritGardenOutput(plant).cycleMs;
+  const newCycle = getSpiritGardenOutput(next).cycleMs;
+  const oldTicks = plant.productionMs * 10 + plant.productionBonusRemainder;
+  const newTicks =
+    newCycle < oldCycle
+      ? Number((BigInt(oldTicks) * BigInt(newCycle)) / BigInt(oldCycle))
+      : oldTicks;
+  next.productionMs = Math.floor(newTicks / 10);
+  next.productionBonusRemainder = isSpiritGardenMutated(plant)
+    ? newTicks % 10
+    : 0;
+  const rate = spiritGardenProductionRate(plant);
+  const completedStoredMs =
+    plant.storedProductionMs - Math.ceil(oldTicks / rate);
+  next.storedProductionMs = Math.min(
+    storageCapacity(next),
+    completedStoredMs +
+      Math.ceil(
+        (next.productionMs * 10 + next.productionBonusRemainder) / rate,
+      ),
+  );
+  return next;
+}
+function outputQuality(plant: {
+  quality: Quality;
+  evolved?: boolean;
+}): Quality {
   return QUALITY_VALUES[
     Math.min(
       QUALITY_VALUES.length - 1,
@@ -325,35 +501,82 @@ function settlePlant(
   nowMs: number,
 ): SpiritGardenPlant {
   const elapsed = Math.max(0, nowMs - plant.settledAt);
-  const remainingMs = remainingProductionTime(plant);
-  if (elapsed === 0 || remainingMs === 0) return plant;
+  if (elapsed === 0 || remainingProductionTime(plant) === 0) return plant;
   const matureMs = times(plant).matureMs;
-  const untilMatureMs = Math.max(0, matureMs - plant.activeGrowthMs);
+  if (!plant.firstYieldGranted) {
+    return {
+      ...plant,
+      activeGrowthMs: Math.min(matureMs, plant.activeGrowthMs + elapsed),
+      settledAt: Math.max(plant.settledAt, nowMs),
+    };
+  }
   const output = getSpiritGardenOutput(plant);
-  const acceptedMs = Math.min(
-    Math.max(0, elapsed - untilMatureMs),
-    SPIRIT_GARDEN_OFFLINE_CAP_MS - plant.storedProductionMs,
-    remainingMs,
-  );
-  const exhausted = acceptedMs === remainingMs;
-  const activeGrowthMs =
-    plant.activeGrowthMs + (exhausted ? untilMatureMs + acceptedMs : elapsed);
-  const productionMs = plant.productionMs + acceptedMs;
-  const cycles = Math.floor(productionMs / output.cycleMs);
-  const firstYield = !plant.firstYieldGranted && activeGrowthMs >= matureMs;
-  const quantity = cycles * output.quantity + (firstYield ? 1 : 0);
+  const storageCapMs = storageCapacity(plant);
+  let remainingElapsedMs = elapsed;
+  let cursorMs = plant.settledAt;
+  let next = { ...plant };
+
+  // Lifespan includes recovery; the separate production clock fixes incident draws.
+  while (
+    remainingElapsedMs > 0 &&
+    remainingProductionTime(next) > 0 &&
+    next.storedProductionMs < storageCapMs
+  ) {
+    if (next.recoveryRemainingMs > 0) {
+      const recoveringMs = Math.min(
+        remainingElapsedMs,
+        next.recoveryRemainingMs,
+        remainingProductionTime(next),
+      );
+      next.recoveryRemainingMs -= recoveringMs;
+      next.productionUsedMs += recoveringMs;
+      next.activeGrowthMs += recoveringMs;
+      cursorMs += recoveringMs;
+      remainingElapsedMs -= recoveringMs;
+      continue;
+    }
+    const nextIncidentAt =
+      (Math.floor(next.productionClockMs / SPIRIT_GARDEN_INCIDENT_INTERVAL_MS) +
+        1) *
+      SPIRIT_GARDEN_INCIDENT_INTERVAL_MS;
+    const acceptedMs = Math.min(
+      remainingElapsedMs,
+      nextIncidentAt - next.productionClockMs,
+      storageCapMs - next.storedProductionMs,
+      remainingProductionTime(next),
+    );
+    const productionTicks =
+      next.productionMs * 10 +
+      next.productionBonusRemainder +
+      acceptedMs * spiritGardenProductionRate(next);
+    const cycleTicks = output.cycleMs * 10;
+    const cycles = Math.floor(productionTicks / cycleTicks);
+    next.productionMs = Math.floor((productionTicks % cycleTicks) / 10);
+    next.productionBonusRemainder = productionTicks % 10;
+    next.storedProductionMs += acceptedMs;
+    next.productionUsedMs += acceptedMs;
+    next.productionClockMs += acceptedMs;
+    next.activeGrowthMs += acceptedMs;
+    cursorMs += acceptedMs;
+    remainingElapsedMs -= acceptedMs;
+    if (cycles > 0)
+      next.pending = addProduct(
+        next.pending,
+        productOf(next, output, cycles * output.quantity),
+      );
+    if (
+      next.productionClockMs === nextIncidentAt &&
+      remainingProductionTime(next) > 0
+    )
+      next = recordSpiritGardenIncident(next, cursorMs);
+  }
+  const exhausted = remainingProductionTime(next) === 0;
   return {
-    ...plant,
-    activeGrowthMs,
+    ...next,
     settledAt: Math.max(plant.settledAt, nowMs),
-    productionMs: exhausted ? 0 : productionMs % output.cycleMs,
-    storedProductionMs: plant.storedProductionMs + acceptedMs,
-    productionUsedMs: plant.productionUsedMs + acceptedMs,
-    firstYieldGranted: plant.firstYieldGranted || firstYield,
-    pending:
-      quantity > 0
-        ? addProduct(plant.pending, productOf(plant, output, quantity))
-        : plant.pending,
+    productionMs: exhausted ? 0 : next.productionMs,
+    productionBonusRemainder: exhausted ? 0 : next.productionBonusRemainder,
+    recoveryRemainingMs: exhausted ? 0 : next.recoveryRemainingMs,
   };
 }
 function recordCodex(state: SpiritGardenState): SpiritGardenState {
@@ -367,7 +590,7 @@ function recordCodex(state: SpiritGardenState): SpiritGardenState {
     ...state.plots.flatMap((plot) => (plot.plant ? [plot.plant] : [])),
     ...state.collection,
   ]) {
-    if (plant.activeGrowthMs < times(plant).matureMs) continue;
+    if (!plant.firstYieldGranted) continue;
     const entry = entries.get(plant.speciesId) ?? {
       speciesId: plant.speciesId,
       matured: false,
@@ -449,13 +672,42 @@ export function plantSpiritGardenSeed(
     activeGrowthMs: 0,
     settledAt: nowMs,
     productionMs: 0,
+    productionBonusRemainder: 0,
     storedProductionMs: 0,
     productionUsedMs: 0,
+    productionClockMs: 0,
+    incidents: [],
+    recoveryRemainingMs: 0,
+    pendingSeedSpeciesId: null,
     firstYieldGranted: false,
     branch: null,
+    branchAtProductionMs: null,
     evolved: false,
+    evolutionAttempts: [],
     pending: [],
   });
+}
+export function matureSpiritGardenPlant(
+  state: SpiritGardenState,
+  plotIndex: number,
+  plantId: string,
+  nowMs: number,
+): SpiritGardenState {
+  const settled = settleSpiritGarden(state, nowMs);
+  const plant = selectedPlant(settled, plotIndex, plantId);
+  if (plant.firstYieldGranted) throw new Error('这株灵植已经完成成株突破');
+  if (plant.activeGrowthMs < times(plant).matureMs)
+    throw new Error('幼苗尚未积累足够生机');
+  return recordCodex(
+    replacePlant(settled, plotIndex, {
+      ...plant,
+      firstYieldGranted: true,
+      pending: addProduct(
+        plant.pending,
+        productOf(plant, getSpiritGardenOutput(plant), 1),
+      ),
+    }),
+  );
 }
 export function chooseSpiritGardenBranch(
   state: SpiritGardenState,
@@ -467,12 +719,18 @@ export function chooseSpiritGardenBranch(
   const settled = settleSpiritGarden(state, nowMs);
   const plant = selectedPlant(settled, plotIndex, plantId);
   if (remainingProductionTime(plant) === 0) throw new Error('这株灵植已经采尽');
+  if (!plant.firstYieldGranted) throw new Error('请先投入灵气完成成株突破');
   if (!SPIRIT_GARDEN_BRANCHES.includes(branch))
     throw new Error('培养方向不存在');
   if (plant.branch) throw new Error('这株灵植已经选定培养方向');
-  if (plant.activeGrowthMs < times(plant).branchMs)
+  if (plant.productionUsedMs < times(plant).branchMs)
     throw new Error('灵植尚未蕴灵，暂不能选择培养方向');
-  return recordCodex(replacePlant(settled, plotIndex, { ...plant, branch }));
+  return recordCodex(
+    replacePlant(settled, plotIndex, {
+      ...changePlantOutput(plant, { branch }),
+      branchAtProductionMs: plant.productionUsedMs,
+    }),
+  );
 }
 export function getSpiritGardenPlantView(
   plant: SpiritGardenPlant,
@@ -490,21 +748,60 @@ export function getSpiritGardenPlantView(
     ]!;
   const minRealm = getSpiritFieldQualityBalance(nextQuality).minRealm;
   const remainingProductionMs = remainingProductionTime(plant);
+  const rate = spiritGardenProductionRate(plant);
+  const productionTicks =
+    plant.productionMs * 10 + plant.productionBonusRemainder;
   const exhausted = remainingProductionMs === 0;
+  const branchRemainingMs = Math.max(
+    0,
+    growth.branchMs - plant.productionUsedMs,
+  );
+  const evolveRemainingMs =
+    plant.branchAtProductionMs === null
+      ? growth.evolveMs
+      : Math.max(
+          0,
+          growth.evolveMs -
+            (plant.productionUsedMs - plant.branchAtProductionMs),
+        );
+  const lastAttempt = plant.evolutionAttempts.at(-1);
+  const evolveCooldownRemainingMs =
+    !plant.evolved && lastAttempt
+      ? Math.max(
+          0,
+          lastAttempt.atProductionMs +
+            SPIRIT_GARDEN_EVOLUTION_COOLDOWN_MS -
+            plant.productionUsedMs,
+        )
+      : 0;
+  const evolutionAttemptsRemaining =
+    plant.evolved || plant.quality === '神品'
+      ? 0
+      : SPIRIT_GARDEN_EVOLUTION_ATTEMPT_LIMIT - plant.evolutionAttempts.length;
   const evolveReason = exhausted
     ? '这株灵植已经采尽'
-    : plant.evolved
-      ? '这株灵植已经完成蜕变'
-      : plant.quality === '神品'
-        ? '神品灵植已至品阶上限'
-        : !plant.branch
-          ? '先选定培养方向'
-          : plant.activeGrowthMs < growth.evolveMs
-            ? '灵植生长积累尚不足'
-            : REALM_ORDER[realm] < REALM_ORDER[minRealm]
-              ? `需要${minRealm}及以上境界`
-              : null;
+    : !plant.firstYieldGranted
+      ? '先投入灵气完成成株突破'
+      : plant.evolved
+        ? '这株灵植已经完成蜕变'
+        : plant.quality === '神品'
+          ? '神品灵植已至品阶上限'
+          : !plant.branch
+            ? '先投入灵气选定培养方向'
+            : evolutionAttemptsRemaining === 0
+              ? '这株灵植的三次蜕变机会已经用尽'
+              : evolveRemainingMs > 0
+                ? '定向后的生长积累尚不足'
+                : evolveCooldownRemainingMs > 0
+                  ? '蜕变失败后需再积累灵机，稍后重试'
+                  : REALM_ORDER[realm] < REALM_ORDER[minRealm]
+                    ? `需要${minRealm}及以上境界`
+                    : null;
   const output = getSpiritGardenOutput(plant);
+  const productiveRemainingMs = Math.max(
+    0,
+    remainingProductionMs - plant.recoveryRemainingMs,
+  );
   return {
     ...plant,
     speciesId: species.id,
@@ -512,9 +809,9 @@ export function getSpiritGardenPlantView(
     description: species.description,
     stage: plant.evolved
       ? 'evolved'
-      : plant.activeGrowthMs >= growth.branchMs
+      : plant.branch
         ? 'nurtured'
-        : plant.activeGrowthMs >= growth.matureMs
+        : plant.firstYieldGranted
           ? 'mature'
           : 'seedling',
     outputQuality: quality,
@@ -522,28 +819,57 @@ export function getSpiritGardenPlantView(
     ...growth,
     nextYieldMs: exhausted
       ? 0
-      : Math.max(0, growth.matureMs - plant.activeGrowthMs) ||
-        output.cycleMs - plant.productionMs,
+      : !plant.firstYieldGranted
+        ? Math.max(0, growth.matureMs - plant.activeGrowthMs)
+        : plant.recoveryRemainingMs +
+          Math.ceil((output.cycleMs * 10 - productionTicks) / rate),
     remainingProductionMs,
     remainingHarvestCycles: exhausted
       ? 0
       : Math.floor(
-          (plant.productionMs + remainingProductionMs) / output.cycleMs,
+          (productionTicks + productiveRemainingMs * rate) /
+            (output.cycleMs * 10),
         ),
     exhausted,
+    mutated: isSpiritGardenMutated(plant),
+    canMature:
+      !plant.firstYieldGranted && plant.activeGrowthMs >= growth.matureMs,
+    matureQiCost: SPIRIT_GARDEN_MATURE_QI_COSTS[plant.quality],
+    branchQiCost: SPIRIT_GARDEN_BRANCH_QI_COSTS[plant.quality],
+    branchRemainingMs,
+    evolveRemainingMs,
+    evolveCooldownRemainingMs,
+    evolutionAttemptsRemaining,
+    evolveSuccessChance: SPIRIT_GARDEN_EVOLUTION_SUCCESS_CHANCES[plant.quality],
     canBranch:
-      !exhausted && !plant.branch && plant.activeGrowthMs >= growth.branchMs,
+      !exhausted &&
+      plant.firstYieldGranted &&
+      !plant.branch &&
+      branchRemainingMs === 0,
     canEvolve: evolveReason === null,
     evolveReason,
     evolveCost: {
-      spiritStones: 300 * (QUALITY_ORDER[plant.quality] + 1) ** 2,
+      spiritStones: Math.ceil(
+        BASE_PRICES[nextQuality] * SPIRIT_GARDEN_EVOLUTION_STONE_RATIO,
+      ),
+      qi: SPIRIT_GARDEN_EVOLUTION_QI_COSTS[plant.quality],
       materialKind: 'herb',
       materialQuality: plant.quality,
       quantity: 1,
       minRealm,
     },
-    storageFull: plant.storedProductionMs >= SPIRIT_GARDEN_OFFLINE_CAP_MS,
+    storageFull: plant.storedProductionMs >= storageCapacity(plant),
   };
+}
+/** A hypothetical success for the confirmation screen; never commits an attempt. */
+export function getSpiritGardenEvolutionPreview(
+  plant: SpiritGardenPlant,
+  realm: RealmType,
+): SpiritGardenPlantView {
+  return getSpiritGardenPlantView(
+    changePlantOutput(plant, { evolved: true }),
+    realm,
+  );
 }
 export function evolveSpiritGardenPlant(
   state: SpiritGardenState,
@@ -551,16 +877,28 @@ export function evolveSpiritGardenPlant(
   plantId: string,
   realm: RealmType,
   nowMs: number,
+  roll: number,
 ): SpiritGardenState {
+  if (!Number.isFinite(roll) || roll < 0 || roll >= 1)
+    throw new Error('蜕变判定无效');
   const settled = settleSpiritGarden(state, nowMs);
   const plant = selectedPlant(settled, plotIndex, plantId);
   const view = getSpiritGardenPlantView(plant, realm);
   if (!view.canEvolve) throw new Error(view.evolveReason ?? '当前不能蜕变');
+  const succeeded = roll < view.evolveSuccessChance;
+  const next = {
+    ...plant,
+    evolutionAttempts: [
+      ...plant.evolutionAttempts,
+      { atProductionMs: plant.productionUsedMs, succeeded },
+    ],
+  };
   return recordCodex(
-    replacePlant(settled, plotIndex, {
-      ...plant,
-      evolved: true,
-    }),
+    replacePlant(
+      settled,
+      plotIndex,
+      succeeded ? changePlantOutput(next, { evolved: true }) : next,
+    ),
   );
 }
 export function archiveSpiritGardenPlant(
@@ -594,7 +932,8 @@ export function retireSpiritGardenPlant(
   if (!plant) throw new Error('收藏中没有找到这株灵植');
   if (plotIndex !== undefined && remainingProductionTime(plant) > 0)
     throw new Error('这株灵植尚未采尽');
-  if (plant.pending.length > 0) throw new Error('请先领取这株灵植的待领产物');
+  if (plant.pending.length > 0 || plant.pendingSeedSpeciesId !== null)
+    throw new Error('请先领取这株灵植的待领产物');
   if (plotIndex !== undefined) return replacePlant(settled, plotIndex, null);
   return {
     ...settled,
@@ -627,16 +966,41 @@ export function restoreSpiritGardenPlant(
 export function harvestSpiritGarden(
   state: SpiritGardenState,
   nowMs: number,
-): { state: SpiritGardenState; products: SpiritGardenProduct[] } {
+): {
+  state: SpiritGardenState;
+  products: SpiritGardenProduct[];
+  seeds: SpiritGardenSeedReward[];
+} {
   const settled = settleSpiritGarden(state, nowMs);
-  const products = [
-    ...settled.plots.flatMap((plot) => plot.plant?.pending ?? []),
-    ...settled.collection.flatMap((plant) => plant.pending),
+  const plants = [
+    ...settled.plots.flatMap((plot) => (plot.plant ? [plot.plant] : [])),
+    ...settled.collection,
   ];
-  if (products.length === 0) throw new Error('灵圃暂时没有可领取的产物');
+  const products = plants.flatMap((plant) => plant.pending);
+  const seeds: SpiritGardenSeedReward[] = plants.flatMap((plant) =>
+    plant.pendingSeedSpeciesId
+      ? [
+          {
+            speciesId: plant.pendingSeedSpeciesId,
+            quality: plant.quality,
+            quantity: 1,
+          },
+        ]
+      : [],
+  );
+  if (products.length === 0 && seeds.length === 0)
+    throw new Error('灵圃暂时没有可领取的产物');
   const clear = (plant: SpiritGardenPlant) =>
-    plant.pending.length > 0
-      ? { ...plant, pending: [], storedProductionMs: plant.productionMs }
+    plant.pending.length > 0 || plant.pendingSeedSpeciesId !== null
+      ? {
+          ...plant,
+          pending: [],
+          pendingSeedSpeciesId: null,
+          storedProductionMs: Math.ceil(
+            (plant.productionMs * 10 + plant.productionBonusRemainder) /
+              spiritGardenProductionRate(plant),
+          ),
+        }
       : plant;
   return {
     state: {
@@ -648,6 +1012,7 @@ export function harvestSpiritGarden(
       collection: settled.collection.map(clear),
     },
     products,
+    seeds,
   };
 }
 export function getSpiritGardenMaturedCount(state: SpiritGardenState): number {

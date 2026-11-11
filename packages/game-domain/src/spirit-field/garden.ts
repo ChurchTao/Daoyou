@@ -62,10 +62,14 @@ export interface SpiritGardenSpecies {
   matureMs: number;
   branchMs: number;
   evolveMs: number;
-  baseOutput: SpiritGardenOutput;
+  baseOutput: Omit<SpiritGardenOutput, 'quantity' | 'cycleMs'>;
   branches: Record<
     SpiritGardenBranch,
-    { name: string; description: string; output: SpiritGardenOutput }
+    {
+      name: string;
+      description: string;
+      output: Omit<SpiritGardenOutput, 'quantity' | 'cycleMs'>;
+    }
   >;
 }
 export interface SpiritGardenProduct {
@@ -79,6 +83,22 @@ export interface SpiritGardenProduct {
   quality: Quality;
   quantity: number;
 }
+export type SpiritGardenIncidentKind = 'pests' | 'beast' | 'mutation';
+export interface SpiritGardenIncident {
+  kind: SpiritGardenIncidentKind;
+  productionDay: number;
+  occurredAt: number;
+  seedSpeciesId: SpiritGardenSpeciesId | null;
+}
+export interface SpiritGardenSeedReward {
+  speciesId: SpiritGardenSpeciesId;
+  quality: Quality;
+  quantity: 1;
+}
+export interface SpiritGardenEvolutionAttempt {
+  atProductionMs: number;
+  succeeded: boolean;
+}
 export interface SpiritGardenPlant {
   id: string;
   speciesId: SpiritGardenSpeciesId;
@@ -87,11 +107,20 @@ export interface SpiritGardenPlant {
   activeGrowthMs: number;
   settledAt: number;
   productionMs: number;
+  /** Tenths of a millisecond retained by the 10% mutation bonus. */
+  productionBonusRemainder: number;
   storedProductionMs: number;
   productionUsedMs: number;
+  /** Actual production time, excluding recovery, used only for incident draws. */
+  productionClockMs: number;
+  incidents: SpiritGardenIncident[];
+  recoveryRemainingMs: number;
+  pendingSeedSpeciesId: SpiritGardenSpeciesId | null;
   firstYieldGranted: boolean;
   branch: SpiritGardenBranch | null;
+  branchAtProductionMs: number | null;
   evolved: boolean;
+  evolutionAttempts: SpiritGardenEvolutionAttempt[];
   pending: SpiritGardenProduct[];
 }
 export interface SpiritGardenPlot {
@@ -123,11 +152,21 @@ export interface SpiritGardenPlantView extends SpiritGardenPlant {
   remainingProductionMs: number;
   remainingHarvestCycles: number;
   exhausted: boolean;
+  mutated: boolean;
+  canMature: boolean;
+  matureQiCost: number;
+  branchQiCost: number;
+  branchRemainingMs: number;
+  evolveRemainingMs: number;
+  evolveCooldownRemainingMs: number;
+  evolutionAttemptsRemaining: number;
+  evolveSuccessChance: number;
   canBranch: boolean;
   canEvolve: boolean;
   evolveReason: string | null;
   evolveCost: {
     spiritStones: number;
+    qi: number;
     materialKind: 'herb';
     materialQuality: Quality;
     quantity: 1;

@@ -2,21 +2,30 @@ import { apiFetch } from '@app/lib/api/fetch';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import type {
   SpiritFieldArchiveRequest,
+  SpiritFieldBranchBatchRequest,
   SpiritFieldBranchRequest,
   SpiritFieldEvolveRequest,
+  SpiritFieldMatureBatchRequest,
+  SpiritFieldMatureRequest,
   SpiritFieldRestoreRequest,
   SpiritFieldRetireRequest,
   SpiritFieldSnapshot,
   SpiritFieldSowRequest,
 } from '@daoyou/contracts/spirit-field';
-import type { SpiritGardenProduct } from '@daoyou/game-domain/spirit-field';
+import type {
+  SpiritGardenProduct,
+  SpiritGardenSeedReward,
+} from '@daoyou/game-domain/spirit-field';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Input<T> = Omit<T, 'requestId' | 'expectedVersion'>;
 export type GardenAction =
   | { endpoint: 'starter' | 'harvest'; input: Record<string, never> }
   | { endpoint: 'sow'; input: Input<SpiritFieldSowRequest> }
+  | { endpoint: 'mature'; input: Input<SpiritFieldMatureRequest> }
+  | { endpoint: 'mature-batch'; input: Input<SpiritFieldMatureBatchRequest> }
   | { endpoint: 'branch'; input: Input<SpiritFieldBranchRequest> }
+  | { endpoint: 'branch-batch'; input: Input<SpiritFieldBranchBatchRequest> }
   | { endpoint: 'evolve'; input: Input<SpiritFieldEvolveRequest> }
   | { endpoint: 'archive'; input: Input<SpiritFieldArchiveRequest> }
   | { endpoint: 'restore'; input: Input<SpiritFieldRestoreRequest> }
@@ -26,7 +35,13 @@ export interface GardenOutcome {
   result: {
     message?: string;
     plantId?: string;
+    evolved?: boolean;
+    attemptsRemaining?: number;
+    chance?: number;
+    cooldownRemainingMs?: number;
+    count?: number;
     products?: SpiritGardenProduct[];
+    seeds?: SpiritGardenSeedReward[];
     quantity?: number;
     locations?: string[];
   };

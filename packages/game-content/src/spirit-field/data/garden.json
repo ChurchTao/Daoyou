@@ -3,6 +3,48 @@
   "schemaVersion": 1,
   "offlineCapMs": 604800000,
   "collectionLimit": 24,
+  "productionByQuality": {
+    "凡品": {
+      "herbCycleMs": 28800000,
+      "fruitCycleMs": 57600000,
+      "treasureCycleMs": 43200000
+    },
+    "灵品": {
+      "herbCycleMs": 43200000,
+      "fruitCycleMs": 64800000,
+      "treasureCycleMs": 64800000
+    },
+    "玄品": {
+      "herbCycleMs": 86400000,
+      "fruitCycleMs": 64800000,
+      "treasureCycleMs": 108000000
+    },
+    "真品": {
+      "herbCycleMs": 129600000,
+      "fruitCycleMs": 86400000,
+      "treasureCycleMs": 172800000
+    },
+    "地品": {
+      "herbCycleMs": 172800000,
+      "fruitCycleMs": 86400000,
+      "treasureCycleMs": 216000000
+    },
+    "天品": {
+      "herbCycleMs": 216000000,
+      "fruitCycleMs": 64800000,
+      "treasureCycleMs": 259200000
+    },
+    "仙品": {
+      "herbCycleMs": 259200000,
+      "fruitCycleMs": 50400000,
+      "treasureCycleMs": 345600000
+    },
+    "神品": {
+      "herbCycleMs": 338400000,
+      "fruitCycleMs": 43200000,
+      "treasureCycleMs": 475200000
+    }
+  },
   "species": [
     {
       "id": "licorice",
@@ -16,15 +58,13 @@
         "atlas": "botanical-garden-fan",
         "index": 0
       },
-      "matureMs": 240000,
+      "matureMs": 300000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "甘草根",
         "description": "细花落后取须根，洗去浮土即可入药。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -33,9 +73,7 @@
           "output": {
             "name": "甘草根",
             "description": "细花落后取须根，洗去浮土即可入药。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -45,8 +83,6 @@
             "name": "甘草露",
             "description": "甘草根养足后析出的清露，可减轻丹毒。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "detox",
@@ -69,15 +105,13 @@
         "atlas": "botanical-garden-fan",
         "index": 1
       },
-      "matureMs": 240000,
+      "matureMs": 300000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "野菊花",
         "description": "挑初开的黄花整朵采下，花心适合配药。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -86,9 +120,7 @@
           "output": {
             "name": "野菊花",
             "description": "挑初开的黄花整朵采下，花心适合配药。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -98,8 +130,6 @@
             "name": "野菊花露",
             "description": "多养一段时日，盛开的花心便会蓄下回气的清露。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "mana",
@@ -122,15 +152,13 @@
         "atlas": "botanical-garden-fan",
         "index": 2
       },
-      "matureMs": 240000,
+      "matureMs": 300000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "茯苓块",
         "description": "顺松根挖出，再把圆团切成晒干的药块。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -139,9 +167,7 @@
           "output": {
             "name": "茯苓块",
             "description": "顺松根挖出，再把圆团切成晒干的药块。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -151,8 +177,6 @@
             "name": "茯苓膏",
             "description": "团心养至细白时可凝出一小块助益闭关的膏。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "cultivation",
@@ -175,15 +199,13 @@
         "atlas": "botanical-garden-fan",
         "index": 3
       },
-      "matureMs": 240000,
+      "matureMs": 300000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "山枣青果",
         "description": "挑去带刺的果梗，青果可供配药。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -192,9 +214,7 @@
           "output": {
             "name": "山枣青果",
             "description": "挑去带刺的果梗，青果可供配药。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -204,8 +224,6 @@
             "name": "山枣",
             "description": "枣皮转红后肉厚汁足，可作日常补给。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "healing",
@@ -228,15 +246,13 @@
         "atlas": "botanical-garden-ling",
         "index": 0
       },
-      "matureMs": 240000,
+      "matureMs": 900000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "朱果嫩叶",
         "description": "摘外围嫩叶配药，留下托果的内叶。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -245,9 +261,7 @@
           "output": {
             "name": "朱果嫩叶",
             "description": "摘外围嫩叶配药，留下托果的内叶。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -257,8 +271,6 @@
             "name": "朱果",
             "description": "叶片翻开后取红果，服下可恢复气血。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "healing",
@@ -281,15 +293,13 @@
         "atlas": "botanical-garden-ling",
         "index": 1
       },
-      "matureMs": 240000,
+      "matureMs": 900000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "月见草花",
         "description": "将初开的花采下阴干，留作药引。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -298,9 +308,7 @@
           "output": {
             "name": "月见草花",
             "description": "将初开的花采下阴干，留作药引。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -310,8 +318,6 @@
             "name": "月见花露",
             "description": "盛放时聚在花心的清露，可恢复法力。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "mana",
@@ -334,15 +340,13 @@
         "atlas": "botanical-garden-ling",
         "index": 2
       },
-      "matureMs": 240000,
+      "matureMs": 900000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "灵稻穗",
         "description": "将稻穗连壳晒干，再取谷粒配药。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -351,9 +355,7 @@
           "output": {
             "name": "灵稻穗",
             "description": "将稻穗连壳晒干，再取谷粒配药。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -363,8 +365,6 @@
             "name": "灵米",
             "description": "沉穗脱壳后只留最饱满的米粒，闭关前可服用。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "cultivation",
@@ -387,15 +387,13 @@
         "atlas": "botanical-garden-ling",
         "index": 3
       },
-      "matureMs": 240000,
+      "matureMs": 900000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "霓裳草叶",
         "description": "外层卷叶适合采作药材，内层仍可继续舒展。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -404,9 +402,7 @@
           "output": {
             "name": "霓裳草叶",
             "description": "外层卷叶适合采作药材，内层仍可继续舒展。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -416,8 +412,6 @@
             "name": "霓裳香叶",
             "description": "香气聚在全展的内叶上，灵兽食用可增长修为。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "beast_cultivation",
@@ -440,15 +434,13 @@
         "atlas": "botanical-garden-xuan",
         "index": 0
       },
-      "matureMs": 240000,
+      "matureMs": 1800000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "玉髓",
         "description": "从芝盖中央取下的白髓，相传是筑基三药之一。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -457,9 +449,7 @@
           "output": {
             "name": "玉髓",
             "description": "从芝盖中央取下的白髓，相传是筑基三药之一。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -469,8 +459,6 @@
             "name": "玉髓灵膏",
             "description": "厚实的白髓凝成软膏，可辅助突破与洗髓。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "breakthrough",
@@ -497,15 +485,13 @@
         "atlas": "botanical-garden-xuan",
         "index": 1
       },
-      "matureMs": 240000,
+      "matureMs": 1800000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "紫猴花心",
         "description": "花心露出猴面时可采，相传是筑基三药之一。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -514,9 +500,7 @@
           "output": {
             "name": "紫猴花心",
             "description": "花心露出猴面时可采，相传是筑基三药之一。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -526,8 +510,6 @@
             "name": "紫猴花露",
             "description": "取猴面花心凝出的露，可辅助突破并恢复气血。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "breakthrough",
@@ -554,15 +536,13 @@
         "atlas": "botanical-garden-xuan",
         "index": 2
       },
-      "matureMs": 240000,
+      "matureMs": 1800000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "天灵果仁",
         "description": "裂壳后可取果仁，相传是筑基三药之一。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -571,9 +551,7 @@
           "output": {
             "name": "天灵果仁",
             "description": "裂壳后可取果仁，相传是筑基三药之一。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -583,8 +561,6 @@
             "name": "天灵果浆",
             "description": "果皮完全张开后收取的清浆，可辅助突破并恢复法力。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "breakthrough",
@@ -611,15 +587,13 @@
         "atlas": "botanical-garden-xuan",
         "index": 3
       },
-      "matureMs": 240000,
+      "matureMs": 1800000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "龙血草叶",
         "description": "采下通脉的红叶，留作炼体类药材。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -628,9 +602,7 @@
           "output": {
             "name": "龙血草叶",
             "description": "采下通脉的红叶，留作炼体类药材。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -640,8 +612,6 @@
             "name": "龙血草汁",
             "description": "从通红叶脉收取的浓汁，可辅助炼体。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "tempering",
@@ -664,15 +634,13 @@
         "atlas": "botanical-garden-zhen",
         "index": 0
       },
-      "matureMs": 240000,
+      "matureMs": 3600000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "灵参根须",
         "description": "参根自行褪下的须丝，干燥后可配药。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -681,9 +649,7 @@
           "output": {
             "name": "灵参根须",
             "description": "参根自行褪下的须丝，干燥后可配药。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -693,8 +659,6 @@
             "name": "灵参露",
             "description": "在盘曲根须间积下的清露，可辅助突破。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "breakthrough",
@@ -717,15 +681,13 @@
         "atlas": "botanical-garden-zhen",
         "index": 1
       },
-      "matureMs": 240000,
+      "matureMs": 3600000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "养魂木皮",
         "description": "只采自然脱落的薄皮，以免惊散聚来的神魂。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -734,9 +696,7 @@
           "output": {
             "name": "养魂木皮",
             "description": "只采自然脱落的薄皮，以免惊散聚来的神魂。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -746,8 +706,6 @@
             "name": "养魂木屑",
             "description": "轻轻拢在枝根下的细屑，可辅助感悟。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "insight",
@@ -770,15 +728,13 @@
         "atlas": "botanical-garden-zhen",
         "index": 2
       },
-      "matureMs": 240000,
+      "matureMs": 3600000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "含羞藤须",
         "description": "嫩梢舒展后可采外须，余下藤梢会继续生长。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -787,9 +743,7 @@
           "output": {
             "name": "含羞藤须",
             "description": "嫩梢舒展后可采外须，余下藤梢会继续生长。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -799,8 +753,6 @@
             "name": "含羞藤花",
             "description": "藤梢尽展后才能采的花，可恢复气血与法力。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "healing",
@@ -827,15 +779,13 @@
         "atlas": "botanical-garden-zhen",
         "index": 3
       },
-      "matureMs": 240000,
+      "matureMs": 3600000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "食铁花瓣",
         "description": "花开后可采外围硬瓣，晒干配药。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -844,9 +794,7 @@
           "output": {
             "name": "食铁花瓣",
             "description": "花开后可采外围硬瓣，晒干配药。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -855,9 +803,7 @@
           "output": {
             "name": "铁心珠",
             "description": "将碎铁咬合打磨而成的珠，可供炼器。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
+            "kind": "tcdb"
           }
         }
       }
@@ -874,15 +820,13 @@
         "atlas": "botanical-garden-di",
         "index": 0
       },
-      "matureMs": 240000,
+      "matureMs": 7200000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "雪莲花瓣",
         "description": "雪莲伏在冻岩上的外瓣，采下可作药引。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -891,9 +835,7 @@
           "output": {
             "name": "雪莲花瓣",
             "description": "雪莲伏在冻岩上的外瓣，采下可作药引。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -903,8 +845,6 @@
             "name": "雪莲心",
             "description": "整株开足后才露出的嫩心，可恢复气血并减轻丹毒。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "healing",
@@ -931,15 +871,13 @@
         "atlas": "botanical-garden-di",
         "index": 1
       },
-      "matureMs": 240000,
+      "matureMs": 7200000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "地火芝片",
         "description": "剥取翻起的芝边，待热气散尽便可配药。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -948,9 +886,7 @@
           "output": {
             "name": "地火芝片",
             "description": "剥取翻起的芝边，待热气散尽便可配药。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -960,8 +896,6 @@
             "name": "火芝心",
             "description": "从芝盖翻口露出的红髓，可辅助炼体。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "tempering",
@@ -984,15 +918,13 @@
         "atlas": "botanical-garden-di",
         "index": 2
       },
-      "matureMs": 240000,
+      "matureMs": 7200000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "海心草叶",
         "description": "从水中捞起的透叶，可沥干后入药。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -1001,9 +933,7 @@
           "output": {
             "name": "海心草叶",
             "description": "从水中捞起的透叶，可沥干后入药。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -1013,8 +943,6 @@
             "name": "海心露",
             "description": "长叶蓄足泉息后，从梢头滴出的露珠，可恢复法力。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "mana",
@@ -1037,15 +965,13 @@
         "atlas": "botanical-garden-di",
         "index": 3
       },
-      "matureMs": 240000,
+      "matureMs": 7200000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "石中花瓣",
         "description": "最早探出石壳的花瓣，可采来配药。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -1054,9 +980,7 @@
           "output": {
             "name": "石中花瓣",
             "description": "最早探出石壳的花瓣，可采来配药。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -1066,8 +990,6 @@
             "name": "石中花芯",
             "description": "石壳尽裂后露出的花芯，可辅助洗髓。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "marrow_wash",
@@ -1090,15 +1012,13 @@
         "atlas": "botanical-garden-tian",
         "index": 0
       },
-      "matureMs": 240000,
+      "matureMs": 10800000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "雷竹细枝",
         "description": "从竹节侧面抽出的小枝，收干后可配药。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -1107,9 +1027,7 @@
           "output": {
             "name": "雷竹细枝",
             "description": "从竹节侧面抽出的小枝，收干后可配药。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -1118,9 +1036,7 @@
           "output": {
             "name": "金雷竹节",
             "description": "竹节蕴着淡金色的雷气，可供炼器。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
+            "kind": "tcdb"
           }
         }
       }
@@ -1137,15 +1053,13 @@
         "atlas": "botanical-garden-tian",
         "index": 1
       },
-      "matureMs": 240000,
+      "matureMs": 10800000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "扶桑赤叶",
         "description": "从向阳一侧取下的赤叶，配药时常作火性引子。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -1154,9 +1068,7 @@
           "output": {
             "name": "扶桑赤叶",
             "description": "从向阳一侧取下的赤叶，配药时常作火性引子。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -1166,8 +1078,6 @@
             "name": "扶桑果",
             "description": "生于赤叶簇间的熟果，可辅助炼体。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "tempering",
@@ -1190,15 +1100,13 @@
         "atlas": "botanical-garden-tian",
         "index": 2
       },
-      "matureMs": 240000,
+      "matureMs": 10800000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "月桂花",
         "description": "自最早开放的枝头采花，阴干后配药。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -1207,9 +1115,7 @@
           "output": {
             "name": "月桂花",
             "description": "自最早开放的枝头采花，阴干后配药。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -1219,8 +1125,6 @@
             "name": "月桂花露",
             "description": "整弯枝条开足时可取的花露，可回补法力并助闭关。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "mana",
@@ -1247,15 +1151,13 @@
         "atlas": "botanical-garden-tian",
         "index": 3
       },
-      "matureMs": 240000,
+      "matureMs": 10800000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "星辰果皮",
         "description": "果熟时自然剥落的带星果皮，可收起配药。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -1264,9 +1166,7 @@
           "output": {
             "name": "星辰果皮",
             "description": "果熟时自然剥落的带星果皮，可收起配药。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -1276,8 +1176,6 @@
             "name": "星辰果",
             "description": "枝尖透出星点的果子，服用可辅助感悟。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "insight",
@@ -1300,15 +1198,13 @@
         "atlas": "botanical-garden-xian",
         "index": 0
       },
-      "matureMs": 240000,
+      "matureMs": 16200000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "古茶芽",
         "description": "春梢新发时采下的茶芽，可入药。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -1317,9 +1213,7 @@
           "output": {
             "name": "古茶芽",
             "description": "春梢新发时采下的茶芽，可入药。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -1329,8 +1223,6 @@
             "name": "悟道茶叶",
             "description": "叶片完全展平后可辨叶形与道纹，服用可辅助感悟。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "insight",
@@ -1353,15 +1245,13 @@
         "atlas": "botanical-garden-xian",
         "index": 1
       },
-      "matureMs": 240000,
+      "matureMs": 16200000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "参果花",
         "description": "从幼果外脱落的花可留作药引。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -1370,9 +1260,7 @@
           "output": {
             "name": "参果花",
             "description": "从幼果外脱落的花可留作药引。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -1382,8 +1270,6 @@
             "name": "人参果",
             "description": "果肉长足后呈小人模样，服用可延寿。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "longevity",
@@ -1406,15 +1292,13 @@
         "atlas": "botanical-garden-xian",
         "index": 2
       },
-      "matureMs": 240000,
+      "matureMs": 16200000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "剑草尖",
         "description": "从长叶上分离的薄尖，磨成细末可配药。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -1423,9 +1307,7 @@
           "output": {
             "name": "剑草尖",
             "description": "从长叶上分离的薄尖，磨成细末可配药。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -1434,9 +1316,7 @@
           "output": {
             "name": "剑草叶",
             "description": "九叶展齐后采下的厚叶，可供炼器。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
+            "kind": "tcdb"
           }
         }
       }
@@ -1453,15 +1333,13 @@
         "atlas": "botanical-garden-xian",
         "index": 3
       },
-      "matureMs": 240000,
+      "matureMs": 16200000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "还魂草嫩茎",
         "description": "从干叶簇间钻出的嫩茎，可配作疗伤药材。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -1470,9 +1348,7 @@
           "output": {
             "name": "还魂草嫩茎",
             "description": "从干叶簇间钻出的嫩茎，可配作疗伤药材。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -1482,8 +1358,6 @@
             "name": "还魂草露",
             "description": "新茎抽出后蓄在叶根的草露，可恢复气血。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "healing",
@@ -1506,15 +1380,13 @@
         "atlas": "botanical-garden-shen",
         "index": 0
       },
-      "matureMs": 240000,
+      "matureMs": 21600000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "麒麟芽",
         "description": "从角状枝叶之间探出的软芽，可收作药材。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -1523,9 +1395,7 @@
           "output": {
             "name": "麒麟芽",
             "description": "从角状枝叶之间探出的软芽，可收作药材。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -1535,8 +1405,6 @@
             "name": "麒麟神果",
             "description": "角枝尽展时托出的果，灵兽食用可增长修为。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "beast_cultivation",
@@ -1559,15 +1427,13 @@
         "atlas": "botanical-garden-shen",
         "index": 1
       },
-      "matureMs": 240000,
+      "matureMs": 21600000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "九妙灵叶",
         "description": "同根异枝吐出的薄叶，各有纹样，可配药。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -1576,9 +1442,7 @@
           "output": {
             "name": "九妙灵叶",
             "description": "同根异枝吐出的薄叶，各有纹样，可配药。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -1588,8 +1452,6 @@
             "name": "九妙圣果",
             "description": "枝梢合拢后共托的熟果，可延寿并辅助洗髓。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "longevity",
@@ -1616,15 +1478,13 @@
         "atlas": "botanical-garden-shen",
         "index": 2
       },
-      "matureMs": 240000,
+      "matureMs": 21600000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "建木薄皮",
         "description": "从横枝基部蜕下的薄皮，可留作药材。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -1633,9 +1493,7 @@
           "output": {
             "name": "建木薄皮",
             "description": "从横枝基部蜕下的薄皮，可留作药材。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -1644,9 +1502,7 @@
           "output": {
             "name": "建木心",
             "description": "枝层长齐后可自老枝采得硬木，可供炼器。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
+            "kind": "tcdb"
           }
         }
       }
@@ -1663,15 +1519,13 @@
         "atlas": "botanical-garden-shen",
         "index": 3
       },
-      "matureMs": 240000,
+      "matureMs": 21600000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
         "name": "青莲花瓣",
         "description": "青莲外圈自行脱落的老瓣，可以配药。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
+        "kind": "herb"
       },
       "branches": {
         "abundance": {
@@ -1680,9 +1534,7 @@
           "output": {
             "name": "青莲花瓣",
             "description": "青莲外圈自行脱落的老瓣，可以配药。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
+            "kind": "herb"
           }
         },
         "essence": {
@@ -1692,8 +1544,6 @@
             "name": "青莲子",
             "description": "青瓣全开后从莲房中央采下，可辅助闭关与突破。",
             "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "cultivation",

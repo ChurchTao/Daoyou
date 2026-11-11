@@ -1,8 +1,11 @@
 import type {
   SpiritFieldArchiveRequest,
+  SpiritFieldBranchBatchRequest,
   SpiritFieldBranchRequest,
   SpiritFieldEvolveRequest,
   SpiritFieldHarvestRequest,
+  SpiritFieldMatureBatchRequest,
+  SpiritFieldMatureRequest,
   SpiritFieldRestoreRequest,
   SpiritFieldRetireRequest,
   SpiritFieldSowRequest,
@@ -13,11 +16,14 @@ import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { toPlayerStateMutationResponse } from '@server/player/application/state/ResourceMutationResponse.js';
 import {
   archiveSpiritField,
+  branchSpiritFieldBatch,
   branchSpiritField,
   claimSpiritFieldStarterSeeds,
   evolveSpiritField,
   getSpiritFieldSnapshot,
   harvestSpiritField,
+  matureSpiritFieldBatch,
+  matureSpiritField,
   restoreSpiritField,
   retireSpiritField,
   sowSpiritField,
@@ -47,6 +53,22 @@ export class SpiritFieldService {
 
   async branch(actor: ActiveCultivatorRef, input: SpiritFieldBranchRequest) {
     return toPlayerStateMutationResponse(await branchSpiritField(actor, input));
+  }
+
+  async mature(actor: ActiveCultivatorRef, input: SpiritFieldMatureRequest) {
+    return toPlayerStateMutationResponse(await matureSpiritField(actor, input));
+  }
+
+  async matureBatch(actor: ActiveCultivatorRef, input: SpiritFieldMatureBatchRequest) {
+    return toPlayerStateMutationResponse(
+      await matureSpiritFieldBatch(actor, input),
+    );
+  }
+
+  async branchBatch(actor: ActiveCultivatorRef, input: SpiritFieldBranchBatchRequest) {
+    return toPlayerStateMutationResponse(
+      await branchSpiritFieldBatch(actor, input),
+    );
   }
 
   async evolve(actor: ActiveCultivatorRef, input: SpiritFieldEvolveRequest) {

@@ -1,8 +1,11 @@
 import {
   SpiritFieldArchiveRequestSchema,
+  SpiritFieldBranchBatchRequestSchema,
   SpiritFieldBranchRequestSchema,
   SpiritFieldEvolveRequestSchema,
   SpiritFieldHarvestRequestSchema,
+  SpiritFieldMatureBatchRequestSchema,
+  SpiritFieldMatureRequestSchema,
   SpiritFieldRestoreRequestSchema,
   SpiritFieldRetireRequestSchema,
   SpiritFieldSowRequestSchema,
@@ -16,6 +19,10 @@ import {
   Post,
   UseFilters,
 } from '@nestjs/common';
+import {
+  QiInsufficientError,
+  QiServiceError,
+} from '@server/cultivator/application/QiService.js';
 import { InventoryError } from '@server/inventory/operations.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { redisLockErrorResponse } from '@server/lib/http/errors.js';
@@ -31,6 +38,23 @@ import { SpiritFieldService } from './spirit-field.service.js';
 const SpiritFieldErrors = apiErrorFilter((error) => {
   const lock = redisLockErrorResponse(error);
   if (lock) return lock;
+  if (error instanceof QiInsufficientError)
+    return Response.json(
+      {
+        success: false,
+        error: error.message,
+        code: error.code,
+        required: error.required,
+        current: error.current,
+        action: error.action,
+      },
+      { status: 409 },
+    );
+  if (error instanceof QiServiceError)
+    return Response.json(
+      { success: false, error: error.message },
+      { status: error.status },
+    );
   if (
     error instanceof InventoryError ||
     error instanceof PlayerCommandIdempotencyError
@@ -101,6 +125,36 @@ export class SpiritFieldController {
     input: z.infer<typeof SpiritFieldHarvestRequestSchema>,
   ) {
     return this.field.harvest(actor, input);
+  }
+
+  @Post('mature')
+  @HttpCode(200)
+  mature(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody(new ZodPipe(SpiritFieldMatureRequestSchema))
+    input: z.infer<typeof SpiritFieldMatureRequestSchema>,
+  ) {
+    return this.field.mature(actor, input);
+  }
+
+  @Post('mature-batch')
+  @HttpCode(200)
+  matureBatch(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody(new ZodPipe(SpiritFieldMatureBatchRequestSchema))
+    input: z.infer<typeof SpiritFieldMatureBatchRequestSchema>,
+  ) {
+    return this.field.matureBatch(actor, input);
+  }
+
+  @Post('branch-batch')
+  @HttpCode(200)
+  branchBatch(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody(new ZodPipe(SpiritFieldBranchBatchRequestSchema))
+    input: z.infer<typeof SpiritFieldBranchBatchRequestSchema>,
+  ) {
+    return this.field.branchBatch(actor, input);
   }
 
   @Post('branch')
