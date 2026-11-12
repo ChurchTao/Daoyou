@@ -49,7 +49,15 @@ export function GardenCanvas({
   onBranchBatch,
   onCancelRestore,
 }: GardenCanvasProps) {
-  const occupied = snapshot.plots.filter((plot) => plot.plant);
+  const occupied = snapshot.plots.filter(
+    (plot) => plot.plant || plot.unknownPlant,
+  );
+  const unknownCount = snapshot.plots.filter(
+    (plot) => plot.unknownPlant,
+  ).length;
+  const hasUnknownQuality = snapshot.plots.some(
+    (plot) => plot.unknownPlant?.quality === null,
+  );
   const plants = [
     ...snapshot.plots.flatMap((plot) => (plot.plant ? [plot.plant] : [])),
     ...snapshot.collection,
@@ -118,9 +126,13 @@ export function GardenCanvas({
                   ? newGarden
                     ? '一座灵圃，从一枚灵种开始'
                     : '点选空田，种下新的灵植'
-                  : exhaustedPlot
-                    ? '停止产出的灵植可清理后重新栽种'
-                    : '灵植正在生长'}
+                  : unknownCount > 0
+                    ? hasUnknownQuality
+                      ? '有未知灵植品质待核对，点选田块查看'
+                      : '未知灵植仅可铲除，换取同品质新灵种'
+                    : exhaustedPlot
+                      ? '停止产出的灵植可清理后重新栽种'
+                      : '灵植正在生长'}
               </span>
             )}
           </p>
@@ -238,7 +250,10 @@ export function GardenCanvas({
               const actionReady = Boolean(
                 plant?.canMature || plant?.canBranch || plant?.canEvolve,
               );
-              const availableRestore = Boolean(restorePlant && !plant);
+              const unknown = plot.unknownPlant;
+              const availableRestore = Boolean(
+                restorePlant && !plant && !unknown,
+              );
               const action = plant?.canMature
                 ? '可成株'
                 : plant?.canBranch
@@ -253,16 +268,18 @@ export function GardenCanvas({
                   type="button"
                   className={cn(
                     'garden-plot',
-                    !plant && 'garden-plot--empty',
+                    !plant && !unknown && 'garden-plot--empty',
                     selectedIndex === plot.index && 'garden-plot--selected',
                     actionReady && 'garden-plot--opportunity',
                     availableRestore && 'garden-plot--restore',
                   )}
-                  disabled={locked || Boolean(restorePlant && plant)}
+                  disabled={
+                    locked || Boolean(restorePlant && (plant || unknown))
+                  }
                   onClick={() => onSelectPlot(plot.index)}
                   aria-haspopup={restorePlant ? undefined : 'dialog'}
                   aria-pressed={selectedIndex === plot.index}
-                  aria-label={`${plot.index + 1}号田，${plant ? `${plant.speciesName}，${stageLabel(plant)}${productQuantity ? `，${productQuantity} 份产物待领取` : ''}${plant.pendingSeedSpeciesId ? '，1 枚灵种待领取' : ''}${plant.recoveryRemainingMs > 0 ? `，${recovery?.label}${plant.storageFull ? '，收成已满，恢复计时暂停' : `，约 ${formatGardenDuration(plant.recoveryRemainingMs)}`}` : ''}${plant.mutated ? '，产出速度提高10%' : ''}${action ? `，${action}` : ''}` : availableRestore ? `移回${plot.index + 1}号田` : '空田，栽种灵植'}`}
+                  aria-label={`${plot.index + 1}号田，${plant ? `${plant.speciesName}，${stageLabel(plant)}${productQuantity ? `，${productQuantity} 份产物待领取` : ''}${plant.pendingSeedSpeciesId ? '，1 枚灵种待领取' : ''}${plant.recoveryRemainingMs > 0 ? `，${recovery?.label}${plant.storageFull ? '，收成已满，恢复计时暂停' : `，约 ${formatGardenDuration(plant.recoveryRemainingMs)}`}` : ''}${plant.mutated ? '，产出速度提高10%' : ''}${action ? `，${action}` : ''}` : unknown ? `未知灵植，${unknown.quality ? '仅可铲除' : '品质待核对'}` : availableRestore ? `移回${plot.index + 1}号田` : '空田，栽种灵植'}`}
                 >
                   <span className="garden-plot-number">
                     <span className="font-mono">{plot.index + 1}</span>号田
@@ -357,6 +374,16 @@ export function GardenCanvas({
                         </span>
                       </span>
                     </>
+                  ) : unknown ? (
+                    <span className="garden-empty-content">
+                      <span className="garden-empty-plus" aria-hidden="true">
+                        ？
+                      </span>
+                      <span>未知灵植</span>
+                      <span className="text-crimson text-xs">
+                        {unknown.quality ? '仅可铲除' : '品质待核对'}
+                      </span>
+                    </span>
                   ) : (
                     <span className="garden-empty-content">
                       <span className="garden-empty-plus" aria-hidden="true">

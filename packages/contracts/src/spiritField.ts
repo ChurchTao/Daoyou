@@ -2,6 +2,7 @@ import type { RealmType } from '@daoyou/constants/realms';
 import type {
   SpiritGardenCodexEntry,
   SpiritGardenPlantView,
+  SpiritGardenPlot,
   SpiritGardenSpecies,
 } from '@daoyou/game-domain/spirit-field';
 import { SPIRIT_GARDEN_BRANCHES } from '@daoyou/game-domain/spirit-field';
@@ -23,7 +24,8 @@ const batchTargets = z
   .max(6)
   .superRefine((targets, ctx) => {
     if (
-      new Set(targets.map((target) => target.plotIndex)).size !== targets.length ||
+      new Set(targets.map((target) => target.plotIndex)).size !==
+        targets.length ||
       new Set(targets.map((target) => target.plantId)).size !== targets.length
     )
       ctx.addIssue({ code: 'custom', message: '同批目标田块和灵植不可重复' });
@@ -59,6 +61,10 @@ export const SpiritFieldEvolveRequestSchema = z
   })
   .strict();
 export const SpiritFieldArchiveRequestSchema = z.object(plantCommand).strict();
+export const SpiritFieldUprootRequestSchema = z.object(plantCommand).strict();
+export type SpiritFieldUprootRequest = z.infer<
+  typeof SpiritFieldUprootRequestSchema
+>;
 export const SpiritFieldRestoreRequestSchema = z.object(plantCommand).strict();
 export type SpiritFieldSowRequest = z.infer<typeof SpiritFieldSowRequestSchema>;
 export type SpiritFieldHarvestRequest = z.infer<
@@ -95,7 +101,13 @@ export interface SpiritFieldSnapshot {
     collectionLimit: number;
   };
   player: { realm: RealmType; spiritStones: number };
-  plots: { index: number; plant: SpiritGardenPlantView | null }[];
+  plots: (Omit<SpiritGardenPlot, 'plant' | 'unknownPlant'> & {
+    plant: SpiritGardenPlantView | null;
+    unknownPlant?: Pick<
+      NonNullable<SpiritGardenPlot['unknownPlant']>,
+      'id' | 'quality'
+    >;
+  })[];
   collection: SpiritGardenPlantView[];
   codex: SpiritGardenCodexEntry[];
   species: SpiritGardenSpecies[];

@@ -1,4 +1,5 @@
 import type { LegacySpiritFieldPlotState } from '@daoyou/game-domain/legacy/spirit-field';
+import { readPersistedSpiritGarden } from '@daoyou/game-rules/legacy/spirit-field-plots';
 import {
   createSpiritGarden,
   parseSpiritGardenState,
@@ -31,7 +32,10 @@ function mapRow(row: typeof spiritFields.$inferSelect): SpiritFieldRecord {
     totalCareCount: row.totalCareCount,
     starterClaimed: row.starterClaimed,
     plots: row.plots,
-    garden: row.garden === null ? null : parseSpiritGardenState(row.garden),
+    garden:
+      row.garden === null
+        ? null
+        : readPersistedSpiritGarden(row.garden, row.id),
     version: row.version,
   };
 }

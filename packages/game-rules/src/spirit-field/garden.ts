@@ -156,6 +156,14 @@ export const SpiritGardenStateSchema = z
           .object({
             index: z.number().int().min(0).max(5),
             plant: plantSchema.nullable(),
+            unknownPlant: z
+              .object({
+                id: z.string().min(1).max(160),
+                quality: z.enum(QUALITY_VALUES).nullable(),
+                legacyPlant: z.record(z.string(), z.unknown()).optional(),
+              })
+              .strict()
+              .optional(),
           })
           .strict(),
       )
@@ -170,11 +178,19 @@ export const SpiritGardenStateSchema = z
   .superRefine((state, ctx) => {
     if (state.plots.some((plot, index) => plot.index !== index))
       ctx.addIssue({ code: 'custom', message: '灵田田块次序无效' });
+    if (state.plots.some((plot) => plot.plant && plot.unknownPlant))
+      ctx.addIssue({ code: 'custom', message: '同一田块不可存在多株灵植' });
     const plants = [
       ...state.plots.flatMap((plot) => (plot.plant ? [plot.plant] : [])),
       ...state.collection,
     ];
-    if (new Set(plants.map((plant) => plant.id)).size !== plants.length)
+    const plantIds = [
+      ...plants.map((plant) => plant.id),
+      ...state.plots.flatMap((plot) =>
+        plot.unknownPlant ? [plot.unknownPlant.id] : [],
+      ),
+    ];
+    if (new Set(plantIds).size !== plantIds.length)
       ctx.addIssue({ code: 'custom', message: '灵植身份重复' });
     if (
       new Set(state.codex.map((entry) => entry.speciesId)).size !==
@@ -647,11 +663,21 @@ export function plantSpiritGardenSeed(
   nowMs: number,
 ): SpiritGardenState {
   const settled = settleSpiritGarden(state, nowMs);
-  if (!settled.plots[plotIndex] || settled.plots[plotIndex]!.plant)
+  if (
+    !settled.plots[plotIndex] ||
+    settled.plots[plotIndex]!.plant ||
+    settled.plots[plotIndex]!.unknownPlant
+  )
     throw new Error('请先选择一块空田');
   if (
     [
-      ...settled.plots.flatMap((plot) => (plot.plant ? [plot.plant.id] : [])),
+      ...settled.plots.flatMap((plot) =>
+        plot.plant
+          ? [plot.plant.id]
+          : plot.unknownPlant
+            ? [plot.unknownPlant.id]
+            : [],
+      ),
       ...settled.collection.map((plant) => plant.id),
     ].includes(plantId)
   )
@@ -974,7 +1000,11 @@ export function restoreSpiritGardenPlant(
   nowMs: number,
 ): SpiritGardenState {
   const settled = settleSpiritGarden(state, nowMs);
-  if (!settled.plots[plotIndex] || settled.plots[plotIndex]!.plant)
+  if (
+    !settled.plots[plotIndex] ||
+    settled.plots[plotIndex]!.plant ||
+    settled.plots[plotIndex]!.unknownPlant
+  )
     throw new Error('请先选择一块空田');
   const plant = settled.collection.find((entry) => entry.id === plantId);
   if (!plant) throw new Error('暂存区中没有找到这株灵植');

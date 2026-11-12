@@ -126,6 +126,13 @@ export interface SpiritGardenPlant {
 export interface SpiritGardenPlot {
   index: number;
   plant: SpiritGardenPlant | null;
+  /** A retained legacy occupant. It has no growth or production behavior. */
+  unknownPlant?: {
+    id: string;
+    quality: Quality | null;
+    /** Original early garden facts for administrative review, never used by growth or rewards. */
+    legacyPlant?: Record<string, unknown>;
+  };
 }
 export interface SpiritGardenCodexEntry {
   speciesId: SpiritGardenSpeciesId;

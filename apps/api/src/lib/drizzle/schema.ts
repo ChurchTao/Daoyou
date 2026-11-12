@@ -246,7 +246,7 @@ export const spiritFields = pgTable(
     totalCareCount: integer('total_care_count').notNull().default(0),
     starterClaimed: boolean('starter_claimed').notNull().default(false),
     plots: jsonb('plots').$type<LegacySpiritFieldPlotState[]>().notNull().default([]),
-    // Null marks a legacy field; initialization migrates its retained plots once.
+    // Null retains legacy plots; reads only project unknown occupants until an explicit write.
     garden: jsonb('garden').$type<SpiritGardenState>(),
     version: integer('version').notNull().default(1),
     createdAt: timestamp('created_at').notNull().defaultNow(),

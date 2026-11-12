@@ -87,6 +87,7 @@ export const JOURNAL_ACTIVITIES = {
   spirit_field_restore: '移回灵田',
   spirit_field_redeem: '兑换灵种',
   spirit_field_retire: '移除灵植',
+  spirit_field_uproot: '铲除未知灵植',
   sect_task_action: '宗门任务',
   sect_battle_settlement: '宗门任务战斗',
   sect_shop_purchase: '宗门兑换',

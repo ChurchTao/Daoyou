@@ -14,6 +14,7 @@ import type {
   SpiritFieldSnapshot,
   SpiritFieldSowRequest,
   SpiritFieldStarterRequest,
+  SpiritFieldUprootRequest,
 } from '@daoyou/contracts/spirit-field';
 import type { Material } from '@daoyou/game-domain/character';
 import type { InventoryItem, ItemGrant } from '@daoyou/game-domain/inventory';
@@ -26,7 +27,10 @@ import type {
   SpiritGardenProduct,
   SpiritGardenState,
 } from '@daoyou/game-domain/spirit-field';
-import { migrateLegacySpiritGarden } from '@daoyou/game-rules/legacy/spirit-field-plots';
+import {
+  projectLegacySpiritGarden,
+  uprootLegacySpiritGardenPlant,
+} from '@daoyou/game-rules/legacy/spirit-field-plots';
 import {
   archiveSpiritGardenPlant,
   buildSpiritFruitSpec,
@@ -127,10 +131,10 @@ function gardenRule<T>(run: () => T): T {
   }
 }
 
-function stateOf(field: SpiritFieldRecord, now: number) {
+function stateOf(field: SpiritFieldRecord) {
   return (
     field.garden ??
-    gardenRule(() => migrateLegacySpiritGarden(field.plots, now, field.id))
+    gardenRule(() => projectLegacySpiritGarden(field.plots, field.id))
   );
 }
 
@@ -153,9 +157,7 @@ function runGardenCommand<T>(
       if (field.version !== input.expectedVersion)
         throw new SpiritFieldServiceError('灵圃已经变化，请刷新后再试', 409);
       const now = Date.now();
-      const garden = gardenRule(() =>
-        settleSpiritGarden(stateOf(field, now), now),
-      );
+      const garden = gardenRule(() => settleSpiritGarden(stateOf(field), now));
       const changed = await run({ tx, field, player, garden, now });
       await updateSpiritField(tx, field.id, {
         garden: changed.garden,
@@ -272,43 +274,23 @@ function productGrant(product: SpiritGardenProduct): ItemGrant {
   };
 }
 
-async function initializeLegacyField(
-  actor: SpiritFieldActor,
-  field: SpiritFieldRecord,
-) {
-  if (field.garden !== null) return;
-  // A read may initialize the legacy aggregate once; production is still projected
-  // from timestamps, and all subsequent reads leave the persistent cursor alone.
-  await playerCommandExecutor.executeWithLock({
-    allowEmpty: true,
-    userId: actor.userId,
-    cultivatorId: actor.cultivatorId,
-    source: 'spirit_field_initialize',
-    command: async (tx) => {
-      await loadCultivator(actor, tx);
-      const current = await getOrCreateSpiritField(actor.cultivatorId, tx);
-      if (current.garden === null)
-        await updateSpiritField(tx, current.id, {
-          garden: stateOf(current, Date.now()),
-        });
-      return { result: null, resourceChanges: [] };
-    },
-  });
-}
-
 export async function getSpiritFieldSnapshot(
   actor: SpiritFieldActor,
 ): Promise<SpiritFieldSnapshot> {
   const player = await loadCultivator(actor);
-  let field = await getOrCreateSpiritField(actor.cultivatorId);
-  if (field.garden === null) {
-    await initializeLegacyField(actor, field);
-    field = await getOrCreateSpiritField(actor.cultivatorId);
-  }
+  const field = await getOrCreateSpiritField(actor.cultivatorId);
   const now = Date.now();
-  const garden = gardenRule(() => settleSpiritGarden(stateOf(field, now), now));
+  const garden = gardenRule(() => settleSpiritGarden(stateOf(field), now));
   const plots = garden.plots.map((plot) => ({
     index: plot.index,
+    ...(plot.unknownPlant
+      ? {
+          unknownPlant: {
+            id: plot.unknownPlant.id,
+            quality: plot.unknownPlant.quality,
+          },
+        }
+      : {}),
     plant: plot.plant
       ? getSpiritGardenPlantView(plot.plant, player.realm)
       : null,
@@ -696,6 +678,44 @@ export function restoreSpiritField(
       detail: '将灵植从暂存区移回灵田，继续生长与生产',
       result: { message: '灵植已移回灵田' },
     }),
+  );
+}
+
+export function uprootSpiritField(
+  actor: SpiritFieldActor,
+  input: SpiritFieldUprootRequest,
+) {
+  return runGardenCommand(
+    actor,
+    input,
+    'spirit_field_uproot',
+    async ({ tx, garden }) => {
+      const cleared = gardenRule(() =>
+        uprootLegacySpiritGardenPlant(
+          garden,
+          input.plotIndex,
+          input.plantId,
+          () => randomInt(1_000_000) / 1_000_000,
+        ),
+      );
+      const seed = cleared.seed;
+      const delivered = await grantInventory(
+        actor.cultivatorId,
+        [seedGrant(buildSpiritGardenSeed(seed.speciesId, seed.quality, 1))],
+        tx,
+      );
+      return {
+        garden: cleared.state,
+        detail: `铲除未知灵植，获得1枚${seed.quality}新灵种`,
+        result: {
+          message: '已铲除未知灵植，获得1枚同品质新灵种',
+          seeds: [seed],
+          quantity: 1,
+          locations: locationsOf(delivered),
+        },
+        resourceChanges: [bagChange('uprooted')],
+      };
+    },
   );
 }
 

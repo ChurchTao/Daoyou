@@ -68,13 +68,19 @@ type BatchPlantTarget = PlantTarget & { speciesName: string };
 type ItemTarget =
   { purpose: 'sow'; plotIndex: number } | ({ purpose: 'evolve' } & PlantTarget);
 type Panel =
-  | ({ view: 'plant' | 'mature' | 'branch' | 'evolve' | 'clear' } & PlantTarget)
+  | ({
+      view: 'plant' | 'mature' | 'branch' | 'evolve' | 'clear' | 'uproot';
+    } & PlantTarget)
   | { view: 'mature-batch' | 'branch-batch'; targets: BatchPlantTarget[] }
   | { view: 'sow'; plotIndex: number }
   | { view: 'inventory' | 'vault'; target: ItemTarget }
   | { view: 'collection' | 'codex' }
   | { view: 'retire'; plantId: string }
-  | { view: 'receipt'; result: GardenOutcome['result'] };
+  | {
+      view: 'receipt';
+      source: 'harvest' | 'uproot' | 'retire';
+      result: GardenOutcome['result'];
+    };
 const targetKey = (target: ItemTarget) =>
   `${target.purpose}:${target.plotIndex}:${'plantId' in target ? target.plantId : ''}`;
 const titles = {
@@ -91,6 +97,7 @@ const titles = {
   codex: '灵植图鉴',
   retire: '永久移除灵植',
   clear: '清理田块',
+  uproot: '铲除未知灵植',
   receipt: '收成已领取',
 };
 
@@ -217,7 +224,7 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
     const plot = snapshot.plots[target.plotIndex];
     const kind = findItemDefinition(item.definitionId)?.kind;
     if (target.purpose === 'sow') {
-      if (plot?.plant || kind !== 'seed') return false;
+      if (plot?.plant || plot?.unknownPlant || kind !== 'seed') return false;
       const facts = SeedFactsSchema.safeParse(item.instanceData);
       return (
         facts.success &&
@@ -292,9 +299,10 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
     storage.reload();
     if (
       action.endpoint === 'harvest' ||
+      action.endpoint === 'uproot' ||
       (action.endpoint === 'retire' && result.seeds?.length)
     ) {
-      setPanel({ view: 'receipt', result });
+      setPanel({ view: 'receipt', source: action.endpoint, result });
       return;
     }
     if (action.endpoint === 'evolve' && typeof result.evolved === 'boolean') {
@@ -359,7 +367,9 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
         setPanel(null);
         break;
       case 'starter': {
-        const empty = snapshot?.plots.find((plot) => !plot.plant);
+        const empty = snapshot?.plots.find(
+          (plot) => !plot.plant && !plot.unknownPlant,
+        );
         if (empty) setSelectedIndex(empty.index);
         setPanel(empty ? { view: 'sow', plotIndex: empty.index } : null);
         break;
@@ -398,7 +408,7 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
     setSelectedIndex(index);
     setEvolutionResult(null);
     if (restorePlant) {
-      if (!plot.plant)
+      if (!plot.plant && !plot.unknownPlant)
         void act({
           endpoint: 'restore',
           input: { plotIndex: index, plantId: restorePlant.id },
@@ -408,9 +418,15 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
     setSelection(null);
     setBranch(null);
     setPanel(
-      plot.plant
-        ? { view: action ?? 'plant', plotIndex: index, plantId: plot.plant.id }
-        : { view: 'sow', plotIndex: index },
+      plot.unknownPlant
+        ? { view: 'uproot', plotIndex: index, plantId: plot.unknownPlant.id }
+        : plot.plant
+          ? {
+              view: action ?? 'plant',
+              plotIndex: index,
+              plantId: plot.plant.id,
+            }
+          : { view: 'sow', plotIndex: index },
     );
   }
 
@@ -491,6 +507,14 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
   const retired =
     panel?.view === 'retire'
       ? snapshot.collection.find((entry) => entry.id === panel.plantId)
+      : null;
+  const unknownPlant =
+    panel?.view === 'uproot'
+      ? snapshot.plots[panel.plotIndex]?.unknownPlant
+      : null;
+  const validUnknownPlant =
+    panel?.view === 'uproot' && unknownPlant?.id === panel.plantId
+      ? unknownPlant
       : null;
   const inventoryTarget =
     panel?.view === 'inventory' || panel?.view === 'vault'
@@ -704,7 +728,13 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
         onClose={() => {
           if (!garden.busy) setPanel(null);
         }}
-        title={panel ? titles[panel.view] : ''}
+        title={
+          panel?.view === 'receipt' && panel.source === 'uproot'
+            ? '已换得新灵种'
+            : panel
+              ? titles[panel.view]
+              : ''
+        }
         size={
           panel?.view === 'inventory' || panel?.view === 'codex' ? 'lg' : 'md'
         }
@@ -1445,6 +1475,63 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
               </InkButton>
             </div>
           ) : null}
+          {panel?.view === 'uproot' ? (
+            <div className="space-y-6 text-sm leading-7">
+              {validUnknownPlant ? (
+                <>
+                  <p>
+                    <span className="font-mono">{panel.plotIndex + 1}</span>
+                    号田 · 未知灵植
+                    {validUnknownPlant.quality
+                      ? ` · ${validUnknownPlant.quality}`
+                      : ''}
+                  </p>
+                  <InkNotice tone="warning">
+                    {validUnknownPlant.quality
+                      ? '旧版灵植不再继续生长或结算收成，仅可铲除。铲除后无法恢复。'
+                      : '旧版灵植不再继续生长或结算收成。'}
+                  </InkNotice>
+                  {validUnknownPlant.quality ? (
+                    <>
+                      <p className="text-teal">
+                        铲除后随机获得 <span className="font-mono">1</span> 枚
+                        {validUnknownPlant.quality}新灵种，同品质的
+                        <span className="font-mono">4</span> 种灵植等概率抽取。
+                      </p>
+                      <p className="text-ink-secondary">
+                        不消耗灵石或天地灵气。背包不足时，种子交付至储藏室。
+                      </p>
+                    </>
+                  ) : (
+                    <InkNotice tone="warning">
+                      这株旧灵植的品质无法识别，请联系管理员核对，原记录会保留。
+                    </InkNotice>
+                  )}
+                  <InkButton
+                    variant="primary"
+                    className="w-full justify-center"
+                    pending={garden.busy}
+                    disabled={locked || !validUnknownPlant.quality}
+                    onClick={() =>
+                      void act({
+                        endpoint: 'uproot',
+                        input: {
+                          plotIndex: panel.plotIndex,
+                          plantId: panel.plantId,
+                        },
+                      })
+                    }
+                  >
+                    确认铲除
+                    <span className="font-mono">{panel.plotIndex + 1}</span>
+                    号田未知灵植
+                  </InkButton>
+                </>
+              ) : (
+                <InkNotice>这株灵植已经变化，请关闭后重新查看灵田。</InkNotice>
+              )}
+            </div>
+          ) : null}
           {panel?.view === 'clear' && validPanelPlant && plantTarget ? (
             <div className="space-y-6 text-sm leading-7">
               <InkButton
@@ -1492,7 +1579,11 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
           {panel?.view === 'receipt' ? (
             <div className="space-y-6 text-sm leading-7">
               <div className="border-ink/10 border-b pb-5">
-                <p className="text-ink-secondary">这一次的收成</p>
+                <p className="text-ink-secondary">
+                  {panel.source === 'uproot'
+                    ? '铲除换得的新灵种'
+                    : '这一次的收成'}
+                </p>
                 <div className="text-teal mt-2 flex flex-wrap items-baseline gap-x-5 gap-y-2 text-3xl">
                   {receiptProducts > 0 ? (
                     <p>

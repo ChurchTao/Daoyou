@@ -56,7 +56,9 @@ export function GardenCollection({
   onRetire,
   onHarvest,
 }: GardenCollectionProps) {
-  const emptyPlots = snapshot.plots.filter((plot) => !plot.plant).length;
+  const emptyPlots = snapshot.plots.filter(
+    (plot) => !plot.plant && !plot.unknownPlant,
+  ).length;
   const hasExhaustedPlot = snapshot.plots.some((plot) => plot.plant?.exhausted);
   const coverSpecies = snapshot.species[0];
   const pending = snapshot.collection.reduce(

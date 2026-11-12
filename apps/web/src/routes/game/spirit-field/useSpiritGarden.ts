@@ -11,6 +11,7 @@ import type {
   SpiritFieldRetireRequest,
   SpiritFieldSnapshot,
   SpiritFieldSowRequest,
+  SpiritFieldUprootRequest,
 } from '@daoyou/contracts/spirit-field';
 import type {
   SpiritGardenProduct,
@@ -29,7 +30,8 @@ export type GardenAction =
   | { endpoint: 'evolve'; input: Input<SpiritFieldEvolveRequest> }
   | { endpoint: 'archive'; input: Input<SpiritFieldArchiveRequest> }
   | { endpoint: 'restore'; input: Input<SpiritFieldRestoreRequest> }
-  | { endpoint: 'retire'; input: Input<SpiritFieldRetireRequest> };
+  | { endpoint: 'retire'; input: Input<SpiritFieldRetireRequest> }
+  | { endpoint: 'uproot'; input: Input<SpiritFieldUprootRequest> };
 export interface GardenOutcome {
   action: GardenAction;
   result: {

@@ -8,6 +8,7 @@ import {
   SpiritFieldRestoreRequestSchema,
   SpiritFieldSowRequestSchema,
   SpiritFieldStarterRequestSchema,
+  SpiritFieldUprootRequestSchema,
 } from './spiritField.js';
 
 const command = { requestId: 'garden:request-1', expectedVersion: 4 };
@@ -80,6 +81,23 @@ describe('long-lived spirit field commands', () => {
     ).toBe(false);
   });
 
+  it('requires the complete unknown-plant target and forbids client-selected compensation', () => {
+    const request = { ...command, plotIndex: 0, plantId: 'field-1:unknown:0' };
+    expect(SpiritFieldUprootRequestSchema.parse(request)).toEqual(request);
+    for (const input of [
+      command,
+      { ...request, plotIndex: 6 },
+      { ...request, plantId: '' },
+      { ...request, expectedVersion: -1 },
+      { ...request, quality: '神品' },
+      { ...request, quantity: 100 },
+      { ...request, speciesId: 'licorice' },
+    ])
+      expect(SpiritFieldUprootRequestSchema.safeParse(input).success).toBe(
+        false,
+      );
+  });
+
   it('requires explicit, unique batch targets without client-supplied costs', () => {
     const targets = [
       { plotIndex: 0, plantId: 'plant-1' },
@@ -108,9 +126,9 @@ describe('long-lived spirit field commands', () => {
         ).toBe(false);
       }
       expect(schema.safeParse({ ...request, qi: 0 }).success).toBe(false);
-      expect(schema.safeParse({ ...request, expectedVersion: -1 }).success).toBe(
-        false,
-      );
+      expect(
+        schema.safeParse({ ...request, expectedVersion: -1 }).success,
+      ).toBe(false);
     }
     expect(
       SpiritFieldBranchBatchRequestSchema.safeParse({ ...command, targets })

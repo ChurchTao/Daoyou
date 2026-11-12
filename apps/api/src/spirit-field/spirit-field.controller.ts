@@ -10,6 +10,7 @@ import {
   SpiritFieldRetireRequestSchema,
   SpiritFieldSowRequestSchema,
   SpiritFieldStarterRequestSchema,
+  SpiritFieldUprootRequestSchema,
 } from '@daoyou/contracts/spirit-field';
 import {
   Controller,
@@ -195,6 +196,16 @@ export class SpiritFieldController {
     input: z.infer<typeof SpiritFieldRestoreRequestSchema>,
   ) {
     return this.field.restore(actor, input);
+  }
+
+  @Post('uproot')
+  @HttpCode(200)
+  uproot(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody(new ZodPipe(SpiritFieldUprootRequestSchema))
+    input: z.infer<typeof SpiritFieldUprootRequestSchema>,
+  ) {
+    return this.field.uproot(actor, input);
   }
 
   @Post('retire')

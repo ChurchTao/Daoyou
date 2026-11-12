@@ -17,7 +17,7 @@ import {
   getSpiritGardenPlantView,
   settleSpiritGarden,
 } from '@daoyou/game-rules/spirit-field';
-import { migrateLegacySpiritGarden } from '@daoyou/game-rules/legacy/spirit-field-plots';
+import { projectLegacySpiritGarden } from '@daoyou/game-rules/legacy/spirit-field-plots';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@server/lib/drizzle/db.js';
 import {
@@ -115,8 +115,7 @@ export async function patchDevCultivator(
           const index = input.spiritField.finishGrowth;
           const now = Date.now();
           const garden = settleSpiritGarden(
-            field.garden ??
-              migrateLegacySpiritGarden(field.plots, now, field.id),
+            field.garden ?? projectLegacySpiritGarden(field.plots, field.id),
             now,
           );
           const plant = garden.plots[index]?.plant;

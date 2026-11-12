@@ -10,23 +10,25 @@ import type {
   SpiritFieldRetireRequest,
   SpiritFieldSowRequest,
   SpiritFieldStarterRequest,
+  SpiritFieldUprootRequest,
 } from '@daoyou/contracts/spirit-field';
 import { Injectable } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { toPlayerStateMutationResponse } from '@server/player/application/state/ResourceMutationResponse.js';
 import {
   archiveSpiritField,
-  branchSpiritFieldBatch,
   branchSpiritField,
+  branchSpiritFieldBatch,
   claimSpiritFieldStarterSeeds,
   evolveSpiritField,
   getSpiritFieldSnapshot,
   harvestSpiritField,
-  matureSpiritFieldBatch,
   matureSpiritField,
+  matureSpiritFieldBatch,
   restoreSpiritField,
   retireSpiritField,
   sowSpiritField,
+  uprootSpiritField,
 } from './application/SpiritFieldService.js';
 
 @Injectable()
@@ -59,13 +61,19 @@ export class SpiritFieldService {
     return toPlayerStateMutationResponse(await matureSpiritField(actor, input));
   }
 
-  async matureBatch(actor: ActiveCultivatorRef, input: SpiritFieldMatureBatchRequest) {
+  async matureBatch(
+    actor: ActiveCultivatorRef,
+    input: SpiritFieldMatureBatchRequest,
+  ) {
     return toPlayerStateMutationResponse(
       await matureSpiritFieldBatch(actor, input),
     );
   }
 
-  async branchBatch(actor: ActiveCultivatorRef, input: SpiritFieldBranchBatchRequest) {
+  async branchBatch(
+    actor: ActiveCultivatorRef,
+    input: SpiritFieldBranchBatchRequest,
+  ) {
     return toPlayerStateMutationResponse(
       await branchSpiritFieldBatch(actor, input),
     );
@@ -85,6 +93,10 @@ export class SpiritFieldService {
     return toPlayerStateMutationResponse(
       await restoreSpiritField(actor, input),
     );
+  }
+
+  async uproot(actor: ActiveCultivatorRef, input: SpiritFieldUprootRequest) {
+    return toPlayerStateMutationResponse(await uprootSpiritField(actor, input));
   }
 
   async retire(actor: ActiveCultivatorRef, input: SpiritFieldRetireRequest) {
