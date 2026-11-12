@@ -44,6 +44,13 @@ export function GardenCodex({
   const record = snapshot.codex.find(
     (entry) => entry.speciesId === selected?.id,
   );
+  const baseOutput = selected
+    ? getSpiritGardenOutput({
+        speciesId: selected.id,
+        quality: selected.quality,
+        branch: null,
+      })
+    : null;
   const maturedInQuality = speciesInQuality.filter((species) =>
     snapshot.codex.some(
       (entry) => entry.speciesId === species.id && entry.matured,
@@ -54,9 +61,7 @@ export function GardenCodex({
     <section className="space-y-6" aria-label="灵植图录">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <p className="text-ink-secondary text-sm leading-6">
-          养过的草木，走过的生长之路，
-          <br />
-          皆记入这本百草志。
+          养成记录会永久保留。
         </p>
         <p className="shrink-0 text-sm">
           <span className="text-teal font-mono text-3xl">
@@ -122,7 +127,7 @@ export function GardenCodex({
                 className={`mt-1 block text-xs ${entry?.matured ? 'text-teal' : 'text-ink-secondary'}`}
               >
                 {entry?.evolved
-                  ? '蜕变已录'
+                  ? '已完成蜕变'
                   : entry?.matured
                     ? '已养成'
                     : '待养成'}
@@ -149,9 +154,19 @@ export function GardenCodex({
                 {selected.description}
               </p>
               <p className="text-sm">成株产物：{selected.baseOutput.name}</p>
+              {baseOutput ? (
+                <p className="text-ink-secondary text-xs leading-5">
+                  每{' '}
+                  <span className="font-mono">
+                    {formatGardenDuration(baseOutput.cycleMs)}
+                  </span>{' '}
+                  产出 <span className="font-mono">{baseOutput.quantity}</span>{' '}
+                  份
+                </p>
+              ) : null}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4" aria-label="培养路线记载">
+          <div className="grid gap-4 sm:grid-cols-2" aria-label="培养路线记载">
             {(['abundance', 'essence'] as const).map((branch) => {
               const route = selected.branches[branch];
               const known = record?.branches.includes(branch);
@@ -177,7 +192,7 @@ export function GardenCodex({
                     <span className="font-mono">
                       {formatGardenDuration(output.cycleMs)}
                     </span>{' '}
-                    <span className="font-mono">{output.quantity}</span> 份
+                    产出 <span className="font-mono">{output.quantity}</span> 份
                   </p>
                   <p className="text-ink-secondary mt-2 text-xs leading-6">
                     {output.description}
@@ -188,15 +203,13 @@ export function GardenCodex({
           </div>
           <dl className="text-ink-secondary flex flex-wrap gap-x-6 gap-y-2 text-xs">
             <div className="flex gap-2">
-              <dt>首次养成</dt>
-              <dd className={record?.matured ? 'text-teal' : ''}>
-                {record?.matured ? '已记载' : '未记载'}
-              </dd>
-            </div>
-            <div className="flex gap-2">
               <dt>灵植蜕变</dt>
               <dd className={record?.evolved ? 'text-teal' : ''}>
-                {record?.evolved ? '已记载' : '未记载'}
+                {selected.quality === '神品'
+                  ? '神品不再蜕变'
+                  : record?.evolved
+                    ? '已记载'
+                    : '未记载'}
               </dd>
             </div>
           </dl>

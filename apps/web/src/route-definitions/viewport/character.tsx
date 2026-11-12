@@ -60,7 +60,7 @@ export const characterRoutes = [
       {
         id: 'spirit-field',
         presentation: 'workflow',
-        summary: '种下灵植，长养一圃草木，静候百般收成。',
+        summary: '栽种灵植，收获药材，选择培养方向并提升产物品质。',
       },
       '洞府灵田',
     )}

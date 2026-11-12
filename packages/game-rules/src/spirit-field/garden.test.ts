@@ -14,6 +14,7 @@ import {
   clearSpiritGardenPlot,
   createSpiritGarden,
   evolveSpiritGardenPlant,
+  getSpiritGardenBranchPreview,
   getSpiritGardenMaturedCount,
   getSpiritGardenPlantView,
   getSpiritGardenSeedCandidates,
@@ -221,6 +222,41 @@ describe('long-term spirit garden', () => {
     ).toMatchObject([{ kind: 'spirit_fruit', quantity: 1 }]);
     expect(parseSpiritGardenState(changed)).toEqual(changed);
   });
+  it.each([
+    { speciesId: 'licorice', decisionHours: 28, waitHours: 12 },
+    { speciesId: 'qilin_elixir', decisionHours: 141, waitHours: 6 },
+  ] as const)(
+    'previews the first $speciesId fruit at its actual harvest boundary without choosing a branch',
+    ({ speciesId, decisionHours, waitHours }) => {
+      const initial = planted(speciesId);
+      const decisionAt =
+        initial.plots[0]!.plant!.settledAt + decisionHours * hour;
+      const before = settleSpiritGarden(initial, decisionAt);
+      const saved = structuredClone(before);
+      const preview = getSpiritGardenBranchPreview(
+        before.plots[0]!.plant!,
+        'essence',
+        '渡劫',
+      );
+      expect(before).toEqual(saved);
+      expect(preview.nextYieldMs).toBe(waitHours * hour);
+      const chosen = chooseSpiritGardenBranch(
+        before,
+        0,
+        plantId,
+        'essence',
+        decisionAt,
+      );
+      const fruitAt = (time: number) =>
+        settleSpiritGarden(chosen, time).plots[0]!.plant!.pending.filter(
+          (product) => product.kind === 'spirit_fruit',
+        );
+      expect(fruitAt(decisionAt + preview.nextYieldMs - 1)).toEqual([]);
+      expect(fruitAt(decisionAt + preview.nextYieldMs)).toMatchObject([
+        { quantity: 1 },
+      ]);
+    },
+  );
   it('preserves old products and partial work through a longer output cycle', () => {
     const branch = chooseSpiritGardenBranch(
       planted(),
@@ -659,7 +695,7 @@ describe('long-term spirit garden', () => {
   it('requires exhaustion and all pending rewards claimed before clearing can grant a seed', () => {
     expect(() =>
       clearSpiritGardenPlot(planted(), 0, plantId, at(day), 0),
-    ).toThrow('尚未采尽');
+    ).toThrow('尚未停止产出');
     let state = planted();
     for (const days of [7, 14, 21])
       state = harvestSpiritGarden(state, at(days * day)).state;
@@ -709,6 +745,55 @@ describe('long-term spirit garden', () => {
       ),
     };
     expect(() => archiveSpiritGardenPlant(full, 0, plantId, at(day))).toThrow();
+  });
+  it('allows the sixth stored plant and rejects a seventh without removing any plant', () => {
+    const growing = planted();
+    const state = {
+      ...growing,
+      collection: Array.from({ length: 5 }, (_, i) => ({
+        ...growing.plots[0]!.plant!,
+        id: `stored-${i}`,
+      })),
+    };
+    const full = archiveSpiritGardenPlant(state, 0, plantId, at(0));
+    expect(full.collection).toHaveLength(6);
+    const next = plantSpiritGardenSeed(
+      full,
+      0,
+      seed(),
+      'next-plant',
+      '炼气',
+      at(0),
+    );
+    const saved = structuredClone(next);
+    expect(() =>
+      archiveSpiritGardenPlant(next, 0, 'next-plant', at(0)),
+    ).toThrow('暂存区已满');
+    expect(next).toEqual(saved);
+  });
+  it('keeps older over-capacity collections readable and lets players move plants back', () => {
+    const growing = planted();
+    const state = {
+      ...createSpiritGarden(),
+      collection: Array.from({ length: 24 }, (_, i) => ({
+        ...growing.plots[0]!.plant!,
+        id: `stored-${i}`,
+      })),
+    };
+    expect(parseSpiritGardenState(state).collection).toHaveLength(24);
+    const restored = restoreSpiritGardenPlant(
+      state,
+      0,
+      'stored-0',
+      '炼气',
+      at(0),
+    );
+    expect(restored.collection).toHaveLength(23);
+    expect(restored.plots[0]!.plant?.id).toBe('stored-0');
+    expect(() =>
+      archiveSpiritGardenPlant(restored, 0, 'stored-0', at(0)),
+    ).toThrow('暂存区已满');
+    expect(parseSpiritGardenState(restored).collection).toHaveLength(23);
   });
   it('records paid mature species once while keeping unaccepted seedlings out of the codex', () => {
     let state = createSpiritGarden();

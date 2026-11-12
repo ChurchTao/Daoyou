@@ -29,6 +29,7 @@ export {
   clearSpiritGardenPlot,
   createSpiritGarden,
   evolveSpiritGardenPlant,
+  getSpiritGardenBranchPreview,
   getSpiritGardenEvolutionPreview,
   getSpiritGardenMaturedCount,
   getSpiritGardenOutput,

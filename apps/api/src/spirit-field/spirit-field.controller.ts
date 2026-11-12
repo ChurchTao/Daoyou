@@ -79,7 +79,7 @@ const SpiritFieldErrors = apiErrorFilter((error) => {
     );
   console.error('spirit field api error:', error);
   return Response.json(
-    { success: false, error: '灵田灵机暂乱，请稍后再试' },
+    { success: false, error: '灵田操作暂时失败，请稍后重试' },
     { status: 500 },
   );
 });

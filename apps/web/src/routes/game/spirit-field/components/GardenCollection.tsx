@@ -1,10 +1,13 @@
 import { InkButton } from '@app/components/ui';
+import { REALM_ORDER } from '@daoyou/constants/realms';
 import type { SpiritFieldSnapshot } from '@daoyou/contracts/spirit-field';
+import { SPIRIT_GARDEN_MIN_REALM } from '@daoyou/game-content/spirit-field/config';
 import type { SpiritGardenPlantView } from '@daoyou/game-domain/spirit-field';
 import {
   formatGardenDuration,
   gardenSeedName,
   pendingPlantQuantity,
+  stageLabel,
 } from '../garden-presentation';
 import { BotanicalArt } from './BotanicalArt';
 import { GardenIncidentHistory } from './GardenIncidentHistory';
@@ -24,8 +27,13 @@ function GrowthAge({ value }: { value: number }) {
   if (days > 0)
     return (
       <>
-        <span className="font-mono">{days}</span> 天{' '}
-        <span className="font-mono">{hours % 24}</span> 小时
+        <span className="font-mono">{days}</span> 天
+        {hours % 24 > 0 ? (
+          <>
+            {' '}
+            <span className="font-mono">{hours % 24}</span> 小时
+          </>
+        ) : null}
       </>
     );
   if (hours > 0)
@@ -55,13 +63,20 @@ export function GardenCollection({
     (sum, plant) => sum + pendingPlantQuantity(plant),
     0,
   );
+  const pendingProducts = snapshot.collection.reduce(
+    (sum, plant) =>
+      sum +
+      plant.pending.reduce((total, product) => total + product.quantity, 0),
+    0,
+  );
+  const pendingSeeds = snapshot.collection.filter(
+    (plant) => plant.pendingSeedSpeciesId,
+  ).length;
   return (
-    <section className="space-y-6" aria-label="保种收藏">
-      <div className="flex items-end justify-between gap-4">
+    <section className="space-y-6" aria-label="灵植暂存">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <p className="text-ink-secondary text-sm leading-6">
-          暂歇一隅，留待来日。
-          <br />
-          收藏期间暂停成长、生产、寿命与冷却，培养成果都会保留。
+          可将整株灵植放入暂存区，腾出田块。暂存期间，生长、生产、寿命、恢复和蜕变冷却计时均暂停；移回灵田后继续。
         </p>
         <p className="text-ink-secondary shrink-0 text-sm">
           <span className="text-ink font-mono text-2xl">
@@ -71,19 +86,42 @@ export function GardenCollection({
           <span className="font-mono">
             {snapshot.profile.collectionLimit}
           </span>{' '}
-          株
+          格
         </p>
       </div>
+      {snapshot.collection.length > snapshot.profile.collectionLimit ? (
+        <p className="text-crimson text-sm leading-6" role="status">
+          暂存区容量已调整，已有灵植全部保留。请先移回或永久移除多余灵植，腾出空位后才能继续暂存。
+        </p>
+      ) : null}
       {pending > 0 ? (
         <div className="border-ink/15 flex flex-wrap items-center justify-between gap-3 border-y py-3 text-sm">
           <p>
-            收藏中留有{' '}
-            <span className="text-teal font-mono font-semibold">{pending}</span>{' '}
-            份收成
+            暂存灵植的待领收成：
+            {pendingProducts > 0 ? (
+              <>
+                <span className="text-teal font-mono font-semibold">
+                  {pendingProducts}
+                </span>{' '}
+                份产物
+              </>
+            ) : null}
+            {pendingProducts > 0 && pendingSeeds > 0 ? '、' : null}
+            {pendingSeeds > 0 ? (
+              <>
+                <span className="text-teal font-mono font-semibold">
+                  {pendingSeeds}
+                </span>{' '}
+                枚灵种
+              </>
+            ) : null}
           </p>
           <InkButton variant="primary" disabled={locked} onClick={onHarvest}>
-            与田中产物一并收获
+            领取全部收成
           </InkButton>
+          <p className="text-ink-secondary w-full text-xs leading-5">
+            同时领取灵田与暂存区中的产物和灵种。
+          </p>
         </div>
       ) : null}
       {!snapshot.collection.length ? (
@@ -95,9 +133,9 @@ export function GardenCollection({
               className="mb-3 w-24 opacity-35"
             />
           ) : null}
-          <p className="text-base">保种阁尚空</p>
+          <p className="text-base">暂无暂存的灵植</p>
           <p className="text-ink-secondary mt-2 max-w-64 text-sm leading-6">
-            将田中灵植移来歇养，便能腾出一畦，尝试新的草木。
+            在灵植详情中选择「暂存灵植」，腾出田地后就能种下新的灵植。
           </p>
         </div>
       ) : (
@@ -105,10 +143,10 @@ export function GardenCollection({
           {emptyPlots === 0 ? (
             <p className="border-crimson/40 text-ink-secondary border-l-2 pl-3 text-sm leading-6">
               {hasExhaustedPlot
-                ? '六畦均有灵植。领完采尽植株的收成后，可清畦腾位。'
+                ? '田地已满。领取已停止产出的灵植的收成后，可清理田块腾出空位。'
                 : snapshot.collection.length >= snapshot.profile.collectionLimit
-                  ? '田地与保种阁都已满。领取收成后，可以结束一株收藏灵植的培育，为新草木腾位。'
-                  : '六畦均有灵植。先将田中一株移入保种阁，再选择要迁回的灵植。'}
+                  ? '田地与暂存区都已满。领取收成后，可永久移除暂存灵植，腾出空位后再暂存田中的灵植。'
+                  : '田地已满。先暂存田中的一株灵植，再选择要移回的灵植。'}
             </p>
           ) : null}
           <ul className="divide-ink/10 divide-y">
@@ -117,10 +155,17 @@ export function GardenCollection({
                 (entry) => entry.id === plant.speciesId,
               );
               const quantity = pendingPlantQuantity(plant);
+              const productQuantity = plant.pending.reduce(
+                (sum, product) => sum + product.quantity,
+                0,
+              );
+              const minRealm = SPIRIT_GARDEN_MIN_REALM[plant.outputQuality];
+              const realmInsufficient =
+                REALM_ORDER[snapshot.player.realm] < REALM_ORDER[minRealm];
               const branchName =
                 plant.branch && species
                   ? species.branches[plant.branch].name
-                  : '尚未定向';
+                  : '未选培养方向';
               return (
                 <li
                   key={plant.id}
@@ -137,8 +182,7 @@ export function GardenCollection({
                         {plant.speciesName}
                       </h3>
                       <span className="text-ink-secondary text-xs">
-                        {plant.outputQuality} ·{' '}
-                        {plant.evolved ? '已蜕变' : branchName}
+                        {plant.outputQuality} · {stageLabel(plant)}
                       </span>
                     </div>
                     <p className="text-ink-secondary text-sm">
@@ -146,21 +190,21 @@ export function GardenCollection({
                     </p>
                     {!plant.firstYieldGranted ? (
                       <p className="text-ink-secondary text-xs">
-                        幼苗尚未引灵成株，寿命尚未开始。
+                        幼苗尚未成株，生产寿命尚未开始。
                       </p>
                     ) : null}
                     {plant.mutated ? (
                       <p className="text-teal text-xs">
-                        异化 · 速生 <span className="font-mono">10%</span>
+                        产出速度 + <span className="font-mono">10%</span>
                       </p>
                     ) : null}
                     {plant.recoveryRemainingMs > 0 ? (
                       <p className="text-ink-secondary text-xs leading-6">
-                        歇养尚余{' '}
+                        恢复还需约{' '}
                         <span className="font-mono">
                           {formatGardenDuration(plant.recoveryRemainingMs)}
                         </span>
-                        ，迁回后继续恢复。
+                        ，移回后继续恢复。
                       </p>
                     ) : null}
                     <p className="text-sm">
@@ -170,14 +214,15 @@ export function GardenCollection({
                         {plant.branch ? branchName : '基础产出'}
                       </span>
                     </p>
-                    {quantity > 0 ? (
+                    {productQuantity > 0 ? (
                       <p className="text-teal text-sm">
-                        <span className="font-mono">{quantity}</span> 份待领取
+                        <span className="font-mono">{productQuantity}</span>{' '}
+                        份产物待领取
                       </p>
                     ) : null}
                     {plant.pendingSeedSpeciesId ? (
                       <p className="text-teal text-xs leading-6">
-                        含
+                        待领取：
                         {gardenSeedName(
                           plant.pendingSeedSpeciesId,
                           snapshot.species,
@@ -201,10 +246,15 @@ export function GardenCollection({
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                       <InkButton
                         variant="primary"
-                        disabled={locked || emptyPlots === 0}
+                        disabled={
+                          locked ||
+                          emptyPlots === 0 ||
+                          plant.exhausted ||
+                          realmInsufficient
+                        }
                         onClick={() => onRestore(plant)}
                       >
-                        迁回灵圃
+                        移回灵田
                       </InkButton>
                       <details className="text-ink-secondary text-sm">
                         <summary className="cursor-pointer py-1">
@@ -213,7 +263,7 @@ export function GardenCollection({
                         <div className="mt-2 space-y-2 text-right">
                           {quantity > 0 ? (
                             <p className="max-w-44 text-xs leading-5">
-                              先领取全部产物，才能结束培育。
+                              先领取全部产物和灵种，才能永久移除这株灵植。
                             </p>
                           ) : null}
                           <InkButton
@@ -221,11 +271,20 @@ export function GardenCollection({
                             variant="secondary"
                             onClick={() => onRetire(plant)}
                           >
-                            结束培育
+                            永久移除灵植
                           </InkButton>
                         </div>
                       </details>
                     </div>
+                    {plant.exhausted ? (
+                      <p className="text-ink-secondary text-xs leading-5">
+                        这株灵植已停止产出，不能再移回灵田。
+                      </p>
+                    ) : realmInsufficient ? (
+                      <p className="text-ink-secondary text-xs leading-5">
+                        移回需要达到{minRealm}。
+                      </p>
+                    ) : null}
                   </div>
                 </li>
               );

@@ -12,14 +12,17 @@ import {
 } from '../garden-presentation';
 import '../garden.css';
 import { BotanicalArt } from './BotanicalArt';
-import { GardenIncidentHistory } from './GardenIncidentHistory';
+import { GardenIncidentReport } from './GardenIncidentReport';
 
 export interface GardenCanvasProps {
   snapshot: SpiritFieldSnapshot;
+  cultivatorId?: string;
   selectedIndex: number | null;
   locked: boolean;
+  harvesting: boolean;
+  claimingStarter: boolean;
   restorePlant: SpiritGardenPlantView | null;
-  onSelectPlot(index: number): void;
+  onSelectPlot(index: number, action?: 'mature' | 'branch' | 'evolve'): void;
   onHarvest(): void;
   onOpenCollection(): void;
   onOpenCodex(): void;
@@ -31,8 +34,11 @@ export interface GardenCanvasProps {
 
 export function GardenCanvas({
   snapshot,
+  cultivatorId,
   selectedIndex,
   locked,
+  harvesting,
+  claimingStarter,
   restorePlant,
   onSelectPlot,
   onHarvest,
@@ -49,6 +55,15 @@ export function GardenCanvas({
     ...snapshot.collection,
   ];
   const hasIncidents = plants.some((plant) => plant.incidents.length > 0);
+  const pendingProducts = plants.reduce(
+    (sum, plant) =>
+      sum +
+      plant.pending.reduce((total, product) => total + product.quantity, 0),
+    0,
+  );
+  const pendingSeeds = plants.filter(
+    (plant) => plant.pendingSeedSpeciesId,
+  ).length;
   const matureReadyCount = snapshot.plots.filter(
     (plot) => plot.plant?.canMature,
   ).length;
@@ -85,19 +100,27 @@ export function GardenCanvas({
             {snapshot.pendingQuantity > 0 ? (
               <>
                 <strong className="font-mono">
-                  {snapshot.pendingQuantity}
+                  {pendingProducts || pendingSeeds}
                 </strong>
-                <span>份收成，静待采收</span>
+                <span>
+                  {pendingProducts > 0 ? '份产物待领取' : '枚灵种待领取'}
+                  {pendingProducts > 0 && pendingSeeds > 0 ? (
+                    <>
+                      ，另有 <span className="font-mono">{pendingSeeds}</span>{' '}
+                      枚灵种
+                    </>
+                  ) : null}
+                </span>
               </>
             ) : (
               <span className="garden-no-yield">
                 {allEmpty
                   ? newGarden
                     ? '一座灵圃，从一枚灵种开始'
-                    : '空畦静候新的长养'
+                    : '点选空田，种下新的灵植'
                   : exhaustedPlot
-                    ? '采尽的灵植可清畦重种'
-                    : '灵植正在静静生长'}
+                    ? '停止产出的灵植可清理后重新栽种'
+                    : '灵植正在生长'}
               </span>
             )}
           </p>
@@ -105,6 +128,8 @@ export function GardenCanvas({
         <div className="garden-toolbar-actions">
           <InkButton
             variant="primary"
+            pending={harvesting}
+            pendingLabel="正在收获……"
             disabled={locked || snapshot.pendingQuantity === 0}
             onClick={onHarvest}
           >
@@ -116,7 +141,7 @@ export function GardenCanvas({
               disabled={locked}
               onClick={onOpenCollection}
             >
-              保种阁{' '}
+              灵植暂存{' '}
               <span className="font-mono">{snapshot.collection.length}</span>
             </InkButton>
             <InkButton
@@ -124,7 +149,7 @@ export function GardenCanvas({
               disabled={locked}
               onClick={onOpenCodex}
             >
-              百草志{' '}
+              灵植图鉴{' '}
               <span className="font-mono">
                 {snapshot.profile.maturedSpeciesCount}
                 <span>/{snapshot.species.length}</span>
@@ -138,14 +163,14 @@ export function GardenCanvas({
         <div className="garden-restore-note" role="status">
           <p>
             为<span className="font-semibold">{restorePlant.speciesName}</span>
-            选一块空畦，继续长养。
+            选一块空田，继续生长。
           </p>
           <InkButton
             variant="secondary"
             onClick={onCancelRestore}
             disabled={locked}
           >
-            取消迁回
+            取消移回
           </InkButton>
         </div>
       ) : null}
@@ -155,27 +180,29 @@ export function GardenCanvas({
           <div className="garden-ground-heading">
             <span>田中灵植</span>
             <span>
-              <span className="font-mono">{occupied.length}</span> 株长养
+              已种植 <span className="font-mono">{occupied.length}</span> 株
               <span aria-hidden="true" className="garden-heading-dot">
                 ·
               </span>
-              <span className="font-mono">{snapshot.plots.length}</span> 畦灵田
+              <span className="font-mono">{snapshot.plots.length}</span> 块田
             </span>
           </div>
           {allEmpty && !restorePlant ? (
             <div className="garden-first-plant">
               <p>
                 {snapshot.collection.length > 0
-                  ? '田中尚空。可以迁回保种阁里的灵植，或另栽新种。'
+                  ? '田中尚空。可以移回暂存区里的灵植，或另栽新种。'
                   : snapshot.profile.starterClaimed
                     ? newGarden
-                      ? '灵种入土，日久自有灵华。点选一块空畦，种下第一株。'
-                      : '点选一块空畦，继续养成新的草木。'
-                    : '先领下三种灵种，再为它们选一处安身之地。'}
+                      ? '已领到灵种。点选一块空田，种下第一株。'
+                      : '点选一块空田，种下新的灵植。'
+                    : '先领取三种初始灵种，再点选空田栽种。'}
               </p>
               {!snapshot.profile.starterClaimed ? (
                 <InkButton
                   variant="primary"
+                  pending={claimingStarter}
+                  pendingLabel="正在领种……"
                   disabled={locked}
                   onClick={onStarter}
                 >
@@ -188,6 +215,25 @@ export function GardenCanvas({
             {snapshot.plots.map((plot) => {
               const plant = plot.plant;
               const quantity = plant ? pendingPlantQuantity(plant) : 0;
+              const productQuantity =
+                plant?.pending.reduce(
+                  (sum, product) => sum + product.quantity,
+                  0,
+                ) ?? 0;
+              const pendingLabel = (
+                <>
+                  {productQuantity > 0 ? (
+                    <>
+                      <span className="font-mono">{productQuantity}</span>{' '}
+                      份待领
+                    </>
+                  ) : null}
+                  {productQuantity > 0 && plant?.pendingSeedSpeciesId
+                    ? ' · '
+                    : null}
+                  {plant?.pendingSeedSpeciesId ? '灵种待领' : null}
+                </>
+              );
               const recovery = plant ? gardenRecoveryPresentation(plant) : null;
               const actionReady = Boolean(
                 plant?.canMature || plant?.canBranch || plant?.canEvolve,
@@ -196,7 +242,7 @@ export function GardenCanvas({
               const action = plant?.canMature
                 ? '可成株'
                 : plant?.canBranch
-                  ? '可定向'
+                  ? '可选择方向'
                   : plant?.canEvolve
                     ? '可蜕变'
                     : null;
@@ -216,10 +262,10 @@ export function GardenCanvas({
                   onClick={() => onSelectPlot(plot.index)}
                   aria-haspopup={restorePlant ? undefined : 'dialog'}
                   aria-pressed={selectedIndex === plot.index}
-                  aria-label={`第 ${plot.index + 1} 畦，${plant ? `${plant.speciesName}，${stageLabel(plant)}${quantity ? `，${quantity} 份待收` : ''}${plant.recoveryRemainingMs > 0 ? `，${recovery?.label}${plant.storageFull ? '，积蓄已满，歇养暂缓' : `，约 ${formatGardenDuration(plant.recoveryRemainingMs)}`}` : ''}${plant.mutated ? '，异化速生百分之十' : ''}${action ? `，${action}` : ''}` : availableRestore ? '迁回此畦' : '空田，栽种灵植'}`}
+                  aria-label={`${plot.index + 1}号田，${plant ? `${plant.speciesName}，${stageLabel(plant)}${productQuantity ? `，${productQuantity} 份产物待领取` : ''}${plant.pendingSeedSpeciesId ? '，1 枚灵种待领取' : ''}${plant.recoveryRemainingMs > 0 ? `，${recovery?.label}${plant.storageFull ? '，收成已满，恢复计时暂停' : `，约 ${formatGardenDuration(plant.recoveryRemainingMs)}`}` : ''}${plant.mutated ? '，产出速度提高10%' : ''}${action ? `，${action}` : ''}` : availableRestore ? `移回${plot.index + 1}号田` : '空田，栽种灵植'}`}
                 >
                   <span className="garden-plot-number">
-                    第 <span className="font-mono">{plot.index + 1}</span> 畦
+                    <span className="font-mono">{plot.index + 1}</span>号田
                   </span>
                   <span className="garden-soil" aria-hidden="true" />
                   {plant ? (
@@ -262,24 +308,16 @@ export function GardenCanvas({
                                   {' '}
                                   ·{' '}
                                   <span className="text-teal">
-                                    <span className="font-mono">
-                                      {quantity}
-                                    </span>
-                                    份待收
+                                    {pendingLabel}
                                   </span>
                                 </>
                               ) : null}
                             </>
                           ) : plant.storageFull && !plant.exhausted ? (
-                            <>
-                              <span className="font-mono">{quantity}</span> 份 ·
-                              积蓄已满
-                            </>
+                            <>{pendingLabel} · 收成已满</>
                           ) : quantity ? (
                             <>
-                              {stageLabel(plant)} ·{' '}
-                              <span className="font-mono">{quantity}</span>{' '}
-                              份待收
+                              {stageLabel(plant)} · {pendingLabel}
                             </>
                           ) : (
                             stageLabel(plant)
@@ -293,21 +331,21 @@ export function GardenCanvas({
                         >
                           {plant.mutated ? (
                             <>
-                              异化 · 速生<span className="font-mono">10%</span>
+                              产出速度 +<span className="font-mono">10%</span>
                               {plant.recoveryRemainingMs > 0 &&
                               plant.storageFull ? (
                                 <span className="text-ink-secondary">
                                   {' '}
-                                  · 积满暂缓
+                                  · 收成已满，恢复计时暂停
                                 </span>
                               ) : null}
                             </>
                           ) : plant.recoveryRemainingMs > 0 ? (
                             plant.storageFull ? (
-                              '积蓄已满 · 歇养暂缓'
+                              '收成已满 · 恢复计时暂停'
                             ) : (
                               <>
-                                歇养约{' '}
+                                恢复约{' '}
                                 <span className="font-mono">
                                   {formatGardenDuration(
                                     plant.recoveryRemainingMs,
@@ -324,7 +362,11 @@ export function GardenCanvas({
                       <span className="garden-empty-plus" aria-hidden="true">
                         ＋
                       </span>
-                      <span>{availableRestore ? '迁回此畦' : '种下一株'}</span>
+                      <span>
+                        {availableRestore
+                          ? `移回${plot.index + 1}号田`
+                          : '种下一株'}
+                      </span>
                     </span>
                   )}
                 </button>
@@ -332,13 +374,13 @@ export function GardenCanvas({
             })}
           </div>
           <p className="garden-ground-footer">
-            采尽后可清畦重种。
+            停止产出后，可清理田块并重新栽种。
             <span>
-              产物可积蓄{' '}
+              最多暂存{' '}
               <span className="font-mono">
                 {Math.round(snapshot.profile.offlineCapMs / 86_400_000)}
               </span>{' '}
-              天
+              天的产出
             </span>
           </p>
           {matureReadyCount > 0 || branchReadyCount > 0 ? (
@@ -348,14 +390,16 @@ export function GardenCanvas({
                 disabled={locked || matureReadyCount === 0}
                 onClick={onMatureBatch}
               >
-                批量成株 (<span className="font-mono">{matureReadyCount}</span>)
+                批量培育成株 (
+                <span className="font-mono">{matureReadyCount}</span>)
               </InkButton>
               <InkButton
                 variant="secondary"
                 disabled={locked || branchReadyCount === 0}
                 onClick={onBranchBatch}
               >
-                批量定向 (<span className="font-mono">{branchReadyCount}</span>)
+                批量选择培养方向 (
+                <span className="font-mono">{branchReadyCount}</span>)
               </InkButton>
             </div>
           ) : null}
@@ -363,11 +407,20 @@ export function GardenCanvas({
 
         <aside className="garden-notebook" aria-label="灵圃手记">
           <p className="garden-eyebrow">灵圃手记</p>
+          {hasIncidents && cultivatorId ? (
+            <GardenIncidentReport
+              snapshot={snapshot}
+              cultivatorId={cultivatorId}
+              locked={locked || Boolean(restorePlant)}
+              onSelectPlot={onSelectPlot}
+              onOpenCollection={onOpenCollection}
+            />
+          ) : null}
           {notedPlant && notedPlot && opportunity ? (
             <>
               <div className="garden-notebook-current">
                 <span className="garden-notebook-plot">
-                  第 <span className="font-mono">{notedPlot.index + 1}</span> 畦
+                  <span className="font-mono">{notedPlot.index + 1}</span>号田
                 </span>
                 <h2>{notedPlant.speciesName}</h2>
                 <p>
@@ -375,7 +428,7 @@ export function GardenCanvas({
                 </p>
                 {notedPlant.mutated ? (
                   <span className="garden-notebook-mutation text-teal">
-                    异化 · 速生 <span className="font-mono">10%</span>
+                    产出速度 + <span className="font-mono">10%</span>
                   </span>
                 ) : null}
               </div>
@@ -403,7 +456,16 @@ export function GardenCanvas({
                 }
                 className="garden-note-action"
                 disabled={locked || Boolean(restorePlant)}
-                onClick={() => onSelectPlot(notedPlot.index)}
+                onClick={() =>
+                  onSelectPlot(
+                    notedPlot.index,
+                    opportunity.kind === 'mature' ||
+                      opportunity.kind === 'branch' ||
+                      opportunity.kind === 'evolve'
+                      ? opportunity.kind
+                      : undefined,
+                  )
+                }
               >
                 {opportunity.actionLabel}
               </InkButton>
@@ -432,23 +494,10 @@ export function GardenCanvas({
             <div className="garden-notebook-empty">
               <h2>留一方小天地</h2>
               <p>
-                幼苗先在田中扎根，长足后引灵成株。往后的蕴灵与蜕变，由你慢慢养成。
+                点选空田栽种。幼苗长足后，投入天地灵气使其成株，便会开始生产；之后还可选择培养方向、尝试蜕变。
               </p>
             </div>
           )}
-          {hasIncidents ? (
-            <section
-              className="garden-notebook-incidents"
-              aria-label="近日异事"
-            >
-              <h3>近日异事</h3>
-              <GardenIncidentHistory
-                plants={plants}
-                species={snapshot.species}
-                limit={3}
-              />
-            </section>
-          ) : null}
           <div className="garden-codex-goal">
             <span>百草研习</span>
             <p>
@@ -460,7 +509,7 @@ export function GardenCanvas({
               disabled={locked}
               onClick={onOpenCodex}
             >
-              查看百草志
+              查看灵植图鉴
             </InkButton>
           </div>
         </aside>

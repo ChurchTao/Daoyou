@@ -1,10 +1,11 @@
 import { InkButton } from '@app/components/ui';
+import type { RealmType } from '@daoyou/constants/realms';
 import type {
   SpiritGardenBranch,
   SpiritGardenPlantView,
   SpiritGardenSpecies,
 } from '@daoyou/game-domain/spirit-field';
-import { getSpiritGardenOutput } from '@daoyou/game-rules/spirit-field';
+import { getSpiritGardenBranchPreview } from '@daoyou/game-rules/spirit-field';
 import { useId } from 'react';
 import { formatGardenDuration } from '../garden-presentation';
 import { BotanicalArt } from './BotanicalArt';
@@ -12,6 +13,7 @@ import { BotanicalArt } from './BotanicalArt';
 interface GardenBranchChoiceProps {
   plant: SpiritGardenPlantView;
   species: SpiritGardenSpecies;
+  realm: RealmType;
   selectedBranch: SpiritGardenBranch | null;
   qi: number | undefined;
   currencyUnavailable: boolean;
@@ -24,6 +26,7 @@ interface GardenBranchChoiceProps {
 export function GardenBranchChoice({
   plant,
   species,
+  realm,
   selectedBranch,
   qi,
   currencyUnavailable,
@@ -36,18 +39,18 @@ export function GardenBranchChoice({
   const choiceDisabled = locked || !plant.canBranch;
   return (
     <div className="space-y-6 pb-2">
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-3 sm:gap-5">
         <BotanicalArt
           speciesId={plant.speciesId}
           stage={plant.stage}
-          className="w-28 shrink-0"
+          className="w-20 shrink-0 sm:w-28"
         />
         <div className="space-y-2">
           <p className="text-crimson text-xs">
-            {plant.exhausted ? '采尽' : '蕴灵已足'}
+            {plant.exhausted ? '已停止产出' : '可选择培养方向'}
           </p>
           <h3 className="text-xl font-semibold">
-            让{plant.speciesName}长成什么
+            {plant.speciesName}的培养方向
           </h3>
           <p className="text-ink-secondary text-sm leading-7">
             {plant.exhausted
@@ -61,7 +64,8 @@ export function GardenBranchChoice({
         <legend className="sr-only">培养方向</legend>
         {(['abundance', 'essence'] as const).map((branch) => {
           const route = species.branches[branch];
-          const output = getSpiritGardenOutput({ ...plant, branch });
+          const preview = getSpiritGardenBranchPreview(plant, branch, realm);
+          const output = preview.output;
           const selected = selectedBranch === branch;
           return (
             <label
@@ -83,7 +87,7 @@ export function GardenBranchChoice({
                 <span
                   className={`text-xs ${selected ? 'text-crimson' : 'text-ink-secondary'}`}
                 >
-                  {selected ? '已选此向' : '选择此向'}
+                  {selected ? '已选择' : '选择'}
                 </span>
               </span>
               <span className="text-ink-secondary mt-2 block text-sm leading-7">
@@ -100,6 +104,15 @@ export function GardenBranchChoice({
                   {plant.outputQuality}
                 </span>
               </span>
+              <span className="text-ink-secondary mt-2 block text-xs leading-6">
+                {preview.exhausted
+                  ? '这株灵植已停止产出。'
+                  : preview.remainingHarvestCycles === 0
+                    ? '剩余寿命不足以完成下一轮产出。'
+                    : preview.storageFull
+                      ? '收成已满，领取后继续生产。'
+                      : `选择后，距下次产出约 ${formatGardenDuration(preview.nextYieldMs)}${preview.recoveryRemainingMs > 0 ? '（含恢复时间）' : ''}。`}
+              </span>
             </label>
           );
         })}
@@ -108,8 +121,14 @@ export function GardenBranchChoice({
       <div className="space-y-2 text-xs leading-6">
         <p className="text-crimson">每株只选一次，确定后无法更改。</p>
         <p className="text-ink-secondary">
-          引自身天地灵气，助植株蕴灵定向。已积蓄收成与剩余生产时间保留；未完成的一轮若改为较短周期，按完成比例折算进度。
+          消耗天地灵气后，按所选方向生产。已有收成与剩余生产寿命保留，当前生产进度会按新周期调整。
         </p>
+        <details className="text-ink-secondary">
+          <summary className="cursor-pointer">生产进度如何调整</summary>
+          <p className="mt-1">
+            新周期更短时，保留当前完成比例；更长时，保留本轮已生产的时间。
+          </p>
+        </details>
         <p>
           本次消耗 <span className="font-mono">{plant.branchQiCost}</span>{' '}
           天地灵气；当前 <span className="font-mono">{qi ?? '—'}</span>。
@@ -138,7 +157,7 @@ export function GardenBranchChoice({
           onClick={onConfirm}
         >
           {selectedBranch
-            ? `确定${species.branches[selectedBranch].name}方向`
+            ? `确认选择「${species.branches[selectedBranch].name}」`
             : '先选择培养方向'}
         </InkButton>
       </div>

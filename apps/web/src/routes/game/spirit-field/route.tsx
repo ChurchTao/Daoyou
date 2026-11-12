@@ -1,4 +1,4 @@
-import { VaultWithdrawal } from '@app/components/feature/forging/VaultWithdrawal';
+import { VaultWithdrawalList } from '@app/components/feature/forging/VaultWithdrawal';
 import { CraftInventoryPanel } from '@app/components/feature/items/CraftInventoryPanel';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
@@ -13,10 +13,20 @@ import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { useCraftStorage } from '@app/lib/resources/craftStorage';
-import { useCultivatorCurrency } from '@app/lib/resources/player';
+import {
+  useCultivatorCurrency,
+  usePlayerSession,
+} from '@app/lib/resources/player';
 import { QUALITY_ORDER } from '@daoyou/constants/qualities';
 import type { InventoryView } from '@daoyou/contracts/inventory';
 import { findItemDefinition } from '@daoyou/game-content/items';
+import {
+  SPIRIT_GARDEN_CLEAR_SEED_CHANCE,
+  SPIRIT_GARDEN_EVOLUTION_ATTEMPT_LIMIT,
+  SPIRIT_GARDEN_EVOLUTION_COOLDOWN_MS,
+  SPIRIT_GARDEN_MATURE_QI_COSTS,
+  SPIRIT_GARDEN_MIN_REALM,
+} from '@daoyou/game-content/spirit-field/config';
 import {
   MaterialFactsSchema,
   SeedFactsSchema,
@@ -61,29 +71,38 @@ type Panel =
   | ({ view: 'plant' | 'mature' | 'branch' | 'evolve' | 'clear' } & PlantTarget)
   | { view: 'mature-batch' | 'branch-batch'; targets: BatchPlantTarget[] }
   | { view: 'sow'; plotIndex: number }
-  | { view: 'inventory'; target: ItemTarget }
+  | { view: 'inventory' | 'vault'; target: ItemTarget }
   | { view: 'collection' | 'codex' }
   | { view: 'retire'; plantId: string }
   | { view: 'receipt'; result: GardenOutcome['result'] };
 const targetKey = (target: ItemTarget) =>
   `${target.purpose}:${target.plotIndex}:${'plantId' in target ? target.plantId : ''}`;
 const titles = {
-  plant: '灵植小记',
-  mature: '引灵成株',
-  'mature-batch': '批量引灵成株',
-  'branch-batch': '批量蕴灵定向',
-  branch: '择定长养之路',
+  plant: '灵植详情',
+  mature: '培育成株',
+  'mature-batch': '批量培育成株',
+  'branch-batch': '批量选择培养方向',
+  branch: '选择培养方向',
   evolve: '灵植蜕变',
   sow: '栽种新灵植',
   inventory: '选择物品',
-  collection: '保种阁',
-  codex: '百草志',
-  retire: '结束培育',
-  clear: '清畦留种',
-  receipt: '收成已收妥',
+  vault: '洞府宝库 · 取出药材',
+  collection: '灵植暂存',
+  codex: '灵植图鉴',
+  retire: '永久移除灵植',
+  clear: '清理田块',
+  receipt: '收成已领取',
 };
 
 export default function SpiritFieldPage() {
+  const cultivatorId = usePlayerSession().data?.activeCultivator?.id;
+  if (!cultivatorId) return <GameSceneLoading message="正在查看灵田……" />;
+  return (
+    <CultivatorSpiritField key={cultivatorId} cultivatorId={cultivatorId} />
+  );
+}
+
+function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
   const garden = useSpiritGarden();
   const { snapshot, locked } = garden;
   const { pushToast } = useInkUI();
@@ -168,7 +187,7 @@ export default function SpiritFieldPage() {
     const timer = window.setTimeout(() => {
       setPanel((current) => (current === batchPanel ? null : current));
       pushToast({
-        message: '本批灵植的身份或长势已变化，请重新打开批量确认。',
+        message: '部分灵植的状态已更新，请重新打开批量确认。',
         tone: 'warning',
       });
     }, 0);
@@ -290,7 +309,7 @@ export default function SpiritFieldPage() {
     pushToast({
       message:
         action.endpoint === 'evolve' && result.evolved === false
-          ? '蜕变未成，本次费用已消耗。'
+          ? '蜕变失败，本次费用已消耗。'
           : (result.message ?? '灵圃已更新'),
       tone:
         action.endpoint === 'evolve' && result.evolved === false
@@ -372,7 +391,7 @@ export default function SpiritFieldPage() {
     setEvolutionResult(null);
     setPanel({ view, targets });
   }
-  function selectPlot(index: number) {
+  function selectPlot(index: number, action?: 'mature' | 'branch' | 'evolve') {
     if (!snapshot || locked) return;
     const plot = snapshot.plots[index];
     if (!plot) return;
@@ -390,13 +409,13 @@ export default function SpiritFieldPage() {
     setBranch(null);
     setPanel(
       plot.plant
-        ? { view: 'plant', plotIndex: index, plantId: plot.plant.id }
+        ? { view: action ?? 'plant', plotIndex: index, plantId: plot.plant.id }
         : { view: 'sow', plotIndex: index },
     );
   }
 
   if (!snapshot && !garden.readError)
-    return <GameSceneLoading message="正在推开灵圃的门……" />;
+    return <GameSceneLoading message="正在读取灵田……" />;
   if (!snapshot)
     return (
       <GameSceneFrame>
@@ -462,17 +481,50 @@ export default function SpiritFieldPage() {
           resolveSpiritGardenSpecies(seed.data.seedSpec.plant),
         )
       : null;
+  const seedOutput = seedSpecies
+    ? getSpiritGardenOutput({
+        speciesId: seedSpecies.id,
+        quality: seedSpecies.quality,
+        branch: null,
+      })
+    : null;
   const retired =
     panel?.view === 'retire'
       ? snapshot.collection.find((entry) => entry.id === panel.plantId)
       : null;
+  const inventoryTarget =
+    panel?.view === 'inventory' || panel?.view === 'vault'
+      ? panel.target
+      : null;
+  const inventoryPlantCandidate =
+    inventoryTarget?.purpose === 'evolve'
+      ? snapshot.plots[inventoryTarget.plotIndex]?.plant
+      : null;
+  const inventoryPlant =
+    inventoryTarget?.purpose === 'evolve' &&
+    inventoryPlantCandidate?.id === inventoryTarget.plantId
+      ? inventoryPlantCandidate
+      : null;
+  const missingInventoryPlant =
+    inventoryTarget?.purpose === 'evolve' && !inventoryPlant;
+  const receiptProducts =
+    panel?.view === 'receipt'
+      ? (panel.result.products?.reduce(
+          (sum, product) => sum + product.quantity,
+          0,
+        ) ?? 0)
+      : 0;
+  const receiptSeeds =
+    panel?.view === 'receipt'
+      ? (panel.result.seeds?.reduce((sum, seed) => sum + seed.quantity, 0) ?? 0)
+      : 0;
   const inventory =
     panel?.view === 'inventory' ? (
       <>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm">
           <p className="text-ink-secondary">
             {panel.target.purpose === 'sow'
-              ? `为第 ${panel.target.plotIndex + 1} 畦选择灵种`
+              ? `为${panel.target.plotIndex + 1}号田选择灵种`
               : '选择本次蜕变要投入的药材'}
           </p>
           <InkButton
@@ -483,6 +535,29 @@ export default function SpiritFieldPage() {
             返回{panel.target.purpose === 'sow' ? '栽种' : '蜕变'}
           </InkButton>
         </div>
+        {panel.target.purpose === 'sow' &&
+        inventoryView &&
+        !inventoryLoading &&
+        !inventoryError &&
+        !inventoryView.items.some(
+          (item) =>
+            matchesInventoryFilters(item, filter) &&
+            canChoose(panel.target, item),
+        ) ? (
+          <InkNotice>
+            当前列表没有符合要求的灵种。可调整筛选或查看储藏室，也可在出售灵种的坊市补充。
+          </InkNotice>
+        ) : null}
+        {panel.target.purpose === 'evolve' && inventoryPlant ? (
+          <p className="text-ink-secondary mb-4 text-sm leading-6">
+            需选用同一叠药材：{inventoryPlant.evolveCost.materialQuality}
+            及以上，至少{' '}
+            <span className="font-mono">
+              {inventoryPlant.evolveCost.quantity}
+            </span>{' '}
+            份。
+          </p>
+        ) : null}
         <CraftInventoryPanel
           source={source}
           onSource={setSource}
@@ -517,6 +592,20 @@ export default function SpiritFieldPage() {
                 !!item &&
                 matchesInventoryFilters(item, filter) &&
                 canChoose(panel.target, item);
+              const unavailableReason = legacySeed
+                ? '旧灵种无法播种，请前往旧灵种转化。'
+                : panel.target.purpose === 'sow'
+                  ? seedFacts?.success
+                    ? !canPlantSpiritGardenSeed(
+                        snapshot.player.realm,
+                        seedFacts.data.seedSpec.plant,
+                      )
+                      ? `栽种需要${SPIRIT_GARDEN_MIN_REALM[seedFacts.data.seedSpec.plant.quality]}及以上境界。`
+                      : '不符合当前筛选条件，可调整筛选后选用。'
+                    : '请选择灵种。'
+                  : item && canChoose(panel.target, item)
+                    ? '不符合当前筛选条件，可调整筛选后选用。'
+                    : '请选择品质和数量符合要求的药材。';
               return {
                 disabled:
                   !item || locked || inventoryLoading || !!inventoryError,
@@ -529,9 +618,7 @@ export default function SpiritFieldPage() {
                       <>
                         {!available ? (
                           <p className="text-ink-secondary text-sm">
-                            {legacySeed
-                              ? '旧灵种无法播种，请前往旧灵种转化。'
-                              : `此物不符合本次${panel.target.purpose === 'sow' ? '栽种' : '蜕变'}要求。`}
+                            {unavailableReason}
                           </p>
                         ) : null}
                         {legacySeed ? (
@@ -563,12 +650,22 @@ export default function SpiritFieldPage() {
               };
             }}
           />
-          <VaultWithdrawal
-            onChanged={() => {
-              storage.reload();
-              void garden.refresh();
-            }}
-          />
+          {panel.target.purpose === 'sow' ? (
+            <InkButton
+              href="/game/seed-migration"
+              variant="secondary"
+              disabled={locked}
+            >
+              旧灵种转化
+            </InkButton>
+          ) : (
+            <InkButton
+              disabled={locked}
+              onClick={() => setPanel({ view: 'vault', target: panel.target })}
+            >
+              从洞府宝库取出药材
+            </InkButton>
+          )}
         </CraftInventoryPanel>
       </>
     ) : null;
@@ -576,16 +673,22 @@ export default function SpiritFieldPage() {
   return (
     <GameSceneFrame
       variant="default"
-      description="长养一圃草木，静候百般收成。"
+      description="种下草木，收取药材与灵果，逐步培育出自己的灵圃。"
     >
       {garden.readError ? (
-        <InkNotice tone="warning">{garden.readError}</InkNotice>
+        <InkNotice tone="warning">
+          {garden.readError}{' '}
+          <InkButton onClick={() => void garden.refresh()}>重新读取</InkButton>
+        </InkNotice>
       ) : null}
       {!panel ? notice : null}
       <GardenCanvas
         snapshot={snapshot}
+        cultivatorId={cultivatorId}
         selectedIndex={selectedIndex}
         locked={locked}
+        harvesting={garden.pendingAction === 'harvest'}
+        claimingStarter={garden.pendingAction === 'starter'}
         restorePlant={restorePlant}
         onSelectPlot={selectPlot}
         onHarvest={() => void act({ endpoint: 'harvest', input: {} })}
@@ -611,6 +714,25 @@ export default function SpiritFieldPage() {
       >
         <div ref={contentRef} tabIndex={-1} className="outline-none">
           {notice}
+          {panel?.view === 'vault' && !missingInventoryPlant ? (
+            <div className="space-y-4">
+              <InkButton
+                variant="secondary"
+                onClick={() =>
+                  setPanel({ view: 'inventory', target: panel.target })
+                }
+              >
+                返回选择药材
+              </InkButton>
+              <VaultWithdrawalList
+                onChanged={() => {
+                  bag.invalidate();
+                  storage.reload();
+                  void garden.refresh();
+                }}
+              />
+            </div>
+          ) : null}
           {batchPanel ? (
             <div className="space-y-6 text-sm leading-7">
               <InkButton
@@ -618,12 +740,12 @@ export default function SpiritFieldPage() {
                 disabled={locked}
                 onClick={() => setPanel(null)}
               >
-                返回灵圃
+                返回灵田
               </InkButton>
               <p className="text-ink-secondary">
                 {batchPanel.view === 'mature-batch'
-                  ? '为下列幼苗一并引灵成株，迎来首批收成并开始生产寿命。'
-                  : '为下列灵植一并引灵定向，所选方向适用于本次全部目标。'}
+                  ? '为下列幼苗一并投入灵气，使其成株。每株立即获得首批收成，并开始计算生产寿命。'
+                  : '为下列灵植选择同一培养方向，每株只能选择一次，确认后无法更改。'}
               </p>
               {batchPanel.view === 'branch-batch' ? (
                 <div
@@ -636,14 +758,15 @@ export default function SpiritFieldPage() {
                     disabled={locked}
                     onClick={() => setBranch('abundance')}
                   >
-                    全部繁茂{branch === 'abundance' ? ' · 已选' : ''}
+                    全部药材增产{branch === 'abundance' ? ' · 已选' : ''}
                   </InkChoiceButton>
                   <InkChoiceButton
                     selected={branch === 'essence'}
                     disabled={locked}
                     onClick={() => setBranch('essence')}
                   >
-                    各株特化{branch === 'essence' ? ' · 已选' : ''}
+                    全部改产灵果或天材地宝
+                    {branch === 'essence' ? ' · 已选' : ''}
                   </InkChoiceButton>
                 </div>
               ) : null}
@@ -667,11 +790,10 @@ export default function SpiritFieldPage() {
                     >
                       <p>
                         <span className="text-ink-secondary">
-                          第{' '}
                           <span className="font-mono">
                             {target.plotIndex + 1}
-                          </span>{' '}
-                          畦 ·{' '}
+                          </span>
+                          号田 ·{' '}
                         </span>
                         {target.speciesName}
                       </p>
@@ -689,6 +811,17 @@ export default function SpiritFieldPage() {
                           '选定方向后查看产物'
                         )}
                       </p>
+                      {output ? (
+                        <p className="text-ink-secondary text-xs">
+                          每{' '}
+                          <span className="font-mono">
+                            {formatGardenDuration(output.cycleMs)}
+                          </span>{' '}
+                          产出{' '}
+                          <span className="font-mono">{output.quantity}</span>{' '}
+                          份
+                        </p>
+                      ) : null}
                       {plant ? (
                         <p className="text-ink-secondary text-xs">
                           <span className="font-mono">
@@ -718,7 +851,7 @@ export default function SpiritFieldPage() {
               </div>
               {!batchReady ? (
                 <InkNotice tone="warning">
-                  所选灵植的身份或长势已变化，请返回灵圃重新选择。
+                  部分灵植的状态已更新，请返回灵田重新选择。
                 </InkNotice>
               ) : null}
               {batchQi !== null &&
@@ -731,6 +864,7 @@ export default function SpiritFieldPage() {
               <InkButton
                 variant="primary"
                 className="w-full justify-center"
+                pending={garden.busy}
                 disabled={
                   locked ||
                   !batchReady ||
@@ -756,8 +890,8 @@ export default function SpiritFieldPage() {
                 }}
               >
                 {batchPanel.view === 'mature-batch'
-                  ? '为本批引灵成株'
-                  : '为本批确定方向'}
+                  ? '确认批量培育成株'
+                  : '确认批量选择培养方向'}
               </InkButton>
             </div>
           ) : null}
@@ -769,7 +903,7 @@ export default function SpiritFieldPage() {
               role="status"
             >
               <p className="font-semibold">
-                {evolutionResult.result.evolved ? '蜕变已成' : '蜕变未成'}
+                {evolutionResult.result.evolved ? '蜕变成功' : '蜕变失败'}
               </p>
               <p className="text-ink-secondary text-xs">
                 本次已消耗{' '}
@@ -783,15 +917,18 @@ export default function SpiritFieldPage() {
               </p>
               {evolutionResult.result.evolved === false ? (
                 <p className="text-ink-secondary text-xs">
-                  保留当前形态与产物，照常生产。剩余尝试{' '}
+                  保留当前形态，仍按原培养方向产出。剩余尝试{' '}
                   <span className="font-mono">
                     {validPanelPlant.evolutionAttemptsRemaining}
                   </span>{' '}
                   次。
+                  {validPanelPlant.evolutionAttemptsRemaining === 0
+                    ? '本株蜕变次数已用完，无法再次尝试。'
+                    : null}
                   {validPanelPlant.evolutionAttemptsRemaining > 0 &&
                   validPanelPlant.evolveCooldownRemainingMs > 0 ? (
                     <>
-                      再有效在田长养约{' '}
+                      再在田中生长约{' '}
                       <span className="font-mono">
                         {formatGardenDuration(
                           validPanelPlant.evolveCooldownRemainingMs,
@@ -804,7 +941,9 @@ export default function SpiritFieldPage() {
               ) : null}
             </div>
           ) : null}
-          {panel?.view === 'inventory' ? inventory : null}
+          {panel?.view === 'inventory' && !missingInventoryPlant
+            ? inventory
+            : null}
           {panel?.view === 'plant' &&
           validPanelPlant &&
           species &&
@@ -828,7 +967,8 @@ export default function SpiritFieldPage() {
                   snapshot.collection.length >= snapshot.profile.collectionLimit
                 ) {
                   pushToast({
-                    message: '保种阁已满，请先领取收成并整理收藏。',
+                    message:
+                      '暂存区已满。请先移回灵植，或领取收成后永久移除多余灵植，腾出空位。',
                     tone: 'danger',
                   });
                   setPanel({ view: 'collection' });
@@ -845,7 +985,7 @@ export default function SpiritFieldPage() {
                 onClick={backToPlant}
                 disabled={locked}
               >
-                返回灵植小记
+                返回灵植详情
               </InkButton>
               <div className="flex items-center gap-5">
                 <BotanicalArt
@@ -858,12 +998,12 @@ export default function SpiritFieldPage() {
                     {validPanelPlant.speciesName}
                   </h3>
                   <p className="text-ink-secondary mt-2">
-                    引自身天地灵气，助幼苗成株。
+                    消耗天地灵气，将幼苗培育成株。
                   </p>
                 </div>
               </div>
               <p className="text-ink-secondary">
-                成株后迎来首批收成，开始周期生产与生产寿命计时。等待成株期间，寿命尚未开始。
+                成株后立即获得首批收成，之后按周期生产。生产寿命从成株时开始计算，幼苗等待期间不消耗寿命。
               </p>
               <div className="border-ink/10 space-y-2 border-y py-4">
                 <p>
@@ -883,7 +1023,7 @@ export default function SpiritFieldPage() {
               </div>
               {!validPanelPlant.canMature ? (
                 <InkNotice>
-                  幼苗尚未养足根基，或已经完成成株，请返回查看最新长势。
+                  幼苗尚未达到成株条件，或已经完成成株，请返回查看最新长势。
                 </InkNotice>
               ) : null}
               {currency.data &&
@@ -893,6 +1033,7 @@ export default function SpiritFieldPage() {
               <InkButton
                 variant="primary"
                 className="w-full justify-center"
+                pending={garden.busy}
                 disabled={
                   locked ||
                   !validPanelPlant.canMature ||
@@ -905,7 +1046,7 @@ export default function SpiritFieldPage() {
                   void act({ endpoint: 'mature', input: plantTarget })
                 }
               >
-                引灵成株
+                培育成株
               </InkButton>
             </div>
           ) : null}
@@ -916,6 +1057,7 @@ export default function SpiritFieldPage() {
             <GardenBranchChoice
               plant={validPanelPlant}
               species={species}
+              realm={snapshot.player.realm}
               selectedBranch={branch}
               qi={currency.data?.qi}
               currencyUnavailable={currency.loading || Boolean(currency.error)}
@@ -941,7 +1083,7 @@ export default function SpiritFieldPage() {
                 onClick={backToPlant}
                 disabled={locked}
               >
-                返回灵植小记
+                返回灵植详情
               </InkButton>
               <div className="flex items-center gap-5">
                 <BotanicalArt
@@ -954,12 +1096,12 @@ export default function SpiritFieldPage() {
                     {validPanelPlant.speciesName}
                   </h3>
                   <p className="text-teal mt-1">
-                    蜕变成功后，今后的收成提高一品。
+                    蜕变成功后，之后产物的品质提升一档。
                   </p>
                 </div>
               </div>
               <p className="text-ink-secondary">
-                引自身天地灵气，助植株跨阶。已积蓄的收成保留原品质，当前进度与剩余生产时间都会保留。
+                成功后只提高之后产物的品质，原种品质不变。已积蓄的收成、当前生产进度与剩余寿命都会保留。
               </p>
               <div className="space-y-2 text-xs leading-6">
                 <p>
@@ -974,9 +1116,25 @@ export default function SpiritFieldPage() {
                   次。
                 </p>
                 <p className="text-crimson">
-                  每次尝试均实扣全部费用。失败后保持当前形态与产物，再有效在田长养{' '}
-                  <span className="font-mono">24</span> 小时后可重试，最多尝试{' '}
-                  <span className="font-mono">3</span> 次。
+                  无论成功或失败，均消耗全部费用和一次机会。失败后仍按原培养方向产出。
+                  {validPanelPlant.evolutionAttemptsRemaining > 1 ? (
+                    <>
+                      再在田中生长{' '}
+                      <span className="font-mono">
+                        {formatGardenDuration(
+                          SPIRIT_GARDEN_EVOLUTION_COOLDOWN_MS,
+                        )}
+                      </span>{' '}
+                      后可重试；收成已满或灵植处于暂存区时暂停冷却计时。
+                    </>
+                  ) : (
+                    '这是最后一次尝试，失败后无法再次蜕变。'
+                  )}
+                  每株最多尝试{' '}
+                  <span className="font-mono">
+                    {SPIRIT_GARDEN_EVOLUTION_ATTEMPT_LIMIT}
+                  </span>{' '}
+                  次。
                 </p>
               </div>
               <div className="border-ink/10 border-y py-4">
@@ -1051,6 +1209,7 @@ export default function SpiritFieldPage() {
               <InkButton
                 variant="primary"
                 className="w-full justify-center"
+                pending={garden.busy}
                 disabled={
                   locked ||
                   !chosen ||
@@ -1089,8 +1248,7 @@ export default function SpiritFieldPage() {
           {panel?.view === 'sow' && itemTarget ? (
             <div className="space-y-6 text-sm leading-7">
               <p className="text-ink-secondary">
-                第 <span className="font-mono">{panel.plotIndex + 1}</span> 畦 ·
-                种下后先在田扎根，长足后可引灵成株。
+                <span className="font-mono">{panel.plotIndex + 1}</span>号田
               </p>
               {seedSpecies ? (
                 <div className="flex items-center gap-5">
@@ -1105,7 +1263,7 @@ export default function SpiritFieldPage() {
                     {seed?.success ? (
                       <p className="text-ink-secondary mt-1 text-xs">
                         {seed.data.seedSpec.plant.quality}灵种 · 本次消耗{' '}
-                        <span className="font-mono">1</span> 份
+                        <span className="font-mono">1</span> 枚
                       </p>
                     ) : null}
                     <p className="text-ink-secondary mt-2">
@@ -1115,9 +1273,9 @@ export default function SpiritFieldPage() {
                 </div>
               ) : (
                 <div className="garden-planting-note">
-                  <p className="text-lg">为这一畦，选一株长养的草木。</p>
+                  <p className="text-lg">选择一枚灵种，种下新的草木。</p>
                   <p className="text-ink-secondary mt-2">
-                    灵种决定物种与品阶，引灵成株后按周期产出，直到采尽。
+                    幼苗长足后，投入天地灵气使其成株，即可开始收取产物。
                   </p>
                 </div>
               )}
@@ -1137,18 +1295,41 @@ export default function SpiritFieldPage() {
                   {chosen ? '更换灵种' : '从物品栏选择灵种'}
                 </InkButton>
               </div>
-              {seedSpecies ? (
+              {seedSpecies && seedOutput ? (
                 <div className="border-ink/10 space-y-2 border-y py-4">
-                  <p>成株后 · {seedSpecies.baseOutput.name}</p>
-                  <p className="text-ink-secondary">
-                    将来可选择{seedSpecies.branches.abundance.name}，或
-                    {seedSpecies.branches.essence.name}，养成自己的长养路线。
+                  <dl className="grid grid-cols-2 gap-3 text-xs leading-6">
+                    <div>
+                      <dt className="text-ink-secondary">幼苗生长</dt>
+                      <dd className="font-mono">
+                        {formatGardenDuration(seedSpecies.matureMs)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-ink-secondary">成株投入</dt>
+                      <dd>
+                        <span className="font-mono">
+                          {SPIRIT_GARDEN_MATURE_QI_COSTS[seedSpecies.quality]}
+                        </span>{' '}
+                        天地灵气
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className="pt-2">成株产物 · {seedOutput.name}</p>
+                  <p className="text-ink-secondary text-xs">
+                    成株时获得首批收成，之后每{' '}
+                    <span className="font-mono">
+                      {formatGardenDuration(seedOutput.cycleMs)}
+                    </span>{' '}
+                    产出{' '}
+                    <span className="font-mono">{seedOutput.quantity}</span>{' '}
+                    份。
                   </p>
                 </div>
               ) : null}
               <InkButton
                 variant="primary"
                 className="w-full justify-center"
+                pending={garden.busy}
                 disabled={locked || !chosen || !canChoose(itemTarget, chosen)}
                 onClick={() => {
                   if (chosen)
@@ -1162,7 +1343,7 @@ export default function SpiritFieldPage() {
                     });
                 }}
               >
-                栽入第 {panel.plotIndex + 1} 畦
+                {chosen ? `栽入${panel.plotIndex + 1}号田` : '先选择灵种'}
               </InkButton>
             </div>
           ) : null}
@@ -1194,25 +1375,30 @@ export default function SpiritFieldPage() {
                 variant="secondary"
                 onClick={() => setPanel({ view: 'collection' })}
               >
-                返回保种阁
+                返回灵植暂存
               </InkButton>
               <div className="flex items-center gap-5">
-                <BotanicalArt speciesId={retired.speciesId} className="w-24" />
+                <BotanicalArt
+                  speciesId={retired.speciesId}
+                  stage={retired.stage}
+                  className="w-24 shrink-0"
+                />
                 <div>
                   <h3 className="text-xl font-semibold">
                     {retired.speciesName}
                   </h3>
                   <p className="text-ink-secondary">
-                    {retired.outputQuality} · 已留下的图录成果会保留。
+                    {retired.outputQuality} · 养成记录会永久保留。
                   </p>
                 </div>
               </div>
               <InkNotice tone="warning">
-                这株灵植将永久移出保种阁，无法恢复。投入的灵种、药材和灵石不会返还。
+                这株灵植将永久移出暂存区，无法恢复。投入的物资和天地灵气不会返还。
               </InkNotice>
               <InkButton
                 variant="primary"
                 className="w-full justify-center"
+                pending={garden.busy}
                 disabled={locked || pendingPlantQuantity(retired) > 0}
                 onClick={() =>
                   void act({
@@ -1221,7 +1407,7 @@ export default function SpiritFieldPage() {
                   })
                 }
               >
-                确认永久结束培育
+                确认永久移除灵植
               </InkButton>
             </div>
           ) : null}
@@ -1232,24 +1418,29 @@ export default function SpiritFieldPage() {
                 disabled={locked}
                 onClick={backToPlant}
               >
-                返回灵植小记
+                返回灵植详情
               </InkButton>
               <p>
-                清理采尽的{validPanelPlant.speciesName}，腾出第{' '}
-                <span className="font-mono">{panel.plotIndex + 1}</span>{' '}
-                畦。图录成果保留。
+                清理停止产出的{validPanelPlant.speciesName}，腾出{' '}
+                <span className="font-mono">{panel.plotIndex + 1}</span>
+                号田。养成记录保留。
               </p>
               <p className="text-teal">
-                本次有 <span className="font-mono">25%</span> 概率留下{' '}
-                <span className="font-mono">1</span> 枚{validPanelPlant.quality}
+                本次有{' '}
+                <span className="font-mono">
+                  {Math.round(SPIRIT_GARDEN_CLEAR_SEED_CHANCE * 100)}%
+                </span>{' '}
+                概率获得 <span className="font-mono">1</span> 枚
+                {validPanelPlant.quality}
                 {gardenSeedName(validPanelPlant.speciesId, snapshot.species)}。
               </p>
               <p className="text-ink-secondary">
-                留种保持原物种与原种品质，蜕变不提高种子品质。
+                获得的种子保持原物种与原种品质，蜕变不提高种子品质。
               </p>
               <InkButton
                 variant="primary"
                 className="w-full justify-center"
+                pending={garden.busy}
                 disabled={
                   locked ||
                   !validPanelPlant.exhausted ||
@@ -1259,7 +1450,8 @@ export default function SpiritFieldPage() {
                   void act({ endpoint: 'retire', input: plantTarget })
                 }
               >
-                确认清畦
+                确认清理<span className="font-mono">{panel.plotIndex + 1}</span>
+                号田
               </InkButton>
             </div>
           ) : null}
@@ -1267,15 +1459,23 @@ export default function SpiritFieldPage() {
             <div className="space-y-6 text-sm leading-7">
               <div className="border-ink/10 border-b pb-5">
                 <p className="text-ink-secondary">这一次的收成</p>
-                <p className="text-teal mt-2 text-3xl">
-                  <span className="font-mono">
-                    {panel.result.quantity ?? 0}
-                  </span>
-                  <span className="ml-2 text-base">份</span>
-                </p>
+                <div className="text-teal mt-2 flex flex-wrap items-baseline gap-x-5 gap-y-2 text-3xl">
+                  {receiptProducts > 0 ? (
+                    <p>
+                      <span className="font-mono">{receiptProducts}</span>
+                      <span className="ml-2 text-base">份产物</span>
+                    </p>
+                  ) : null}
+                  {receiptSeeds > 0 ? (
+                    <p>
+                      <span className="font-mono">{receiptSeeds}</span>
+                      <span className="ml-2 text-base">枚灵种</span>
+                    </p>
+                  ) : null}
+                </div>
                 {snapshot.plots.some((plot) => plot.plant?.exhausted) ? (
                   <p className="text-ink-secondary mt-3">
-                    采尽的灵植可以清畦重种。
+                    停止产出的灵植可以清理后重新栽种。
                   </p>
                 ) : null}
               </div>
@@ -1332,14 +1532,29 @@ export default function SpiritFieldPage() {
                 className="w-full justify-center"
                 onClick={() => setPanel(null)}
               >
-                回到灵圃
+                回到灵田
               </InkButton>
             </div>
           ) : null}
-          {panel &&
-          ['plant', 'mature', 'branch', 'evolve'].includes(panel.view) &&
-          !validPanelPlant ? (
-            <InkNotice>这株灵植已经移动，请返回灵圃重新查看。</InkNotice>
+          {(panel &&
+            ['plant', 'mature', 'branch', 'evolve', 'clear'].includes(
+              panel.view,
+            ) &&
+            !validPanelPlant) ||
+          missingInventoryPlant ? (
+            <div className="space-y-3">
+              <InkNotice>这株灵植已经移动，请返回灵田重新查看。</InkNotice>
+              <InkButton
+                variant="secondary"
+                disabled={locked}
+                onClick={() => {
+                  setSelection(null);
+                  setPanel(null);
+                }}
+              >
+                返回灵田
+              </InkButton>
+            </div>
           ) : null}
         </div>
       </InkDetailDrawer>

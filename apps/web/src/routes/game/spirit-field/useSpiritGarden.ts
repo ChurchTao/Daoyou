@@ -59,7 +59,10 @@ export function useSpiritGarden() {
   const [now, setNow] = useState(Date.now);
   const [readError, setReadError] = useState('');
   const [mutationError, setMutationError] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [pendingAction, setPendingAction] = useState<
+    GardenAction['endpoint'] | null
+  >(null);
+  const busy = pendingAction !== null;
   const [needsRetry, setNeedsRetry] = useState(false);
   const pending = useRef(false);
   const attempt = useRef<Attempt | null>(null);
@@ -113,7 +116,7 @@ export function useSpiritGarden() {
     if (pending.current) return null;
     pending.current = true;
     readSequence.current += 1;
-    setBusy(true);
+    setPendingAction(request.action.endpoint);
     setMutationError('');
     try {
       const response = await apiFetch(
@@ -140,7 +143,7 @@ export function useSpiritGarden() {
       return null;
     } finally {
       pending.current = false;
-      setBusy(false);
+      setPendingAction(null);
     }
   }
 
@@ -165,6 +168,7 @@ export function useSpiritGarden() {
     readError,
     mutationError,
     busy,
+    pendingAction,
     needsRetry,
     locked: busy || needsRetry,
     refresh,

@@ -9,7 +9,7 @@
 | 字段 | 编辑含义 |
 | --- | --- |
 | `schemaVersion` | 目录结构版本，当前为 `1` |
-| `offlineCapMs` / `collectionLimit` | 基础积蓄时间与保种数量上限；实际积蓄上限不小于当前一轮周期 |
+| `offlineCapMs` / `collectionLimit` | 基础积蓄时间与暂存格数上限（当前6格，每格1株）；实际积蓄上限不小于当前一轮周期 |
 | `productionByQuality` | 八品质的实际药材、灵果与天材地宝生产周期，单位毫秒 |
 | `species[].id` | 存档身份；已使用的 ID 不更名、不删除 |
 | `name` / `description` / `element` | 成株名称、设定与五行 |
@@ -27,7 +27,7 @@
 
 种子与产物均沿用正常物品价格；种子基价在 `materials/config.ts`，成株／定向／蜕变灵气、固定成功率、三次尝试上限、二十四小时冷却及蜕变灵石比例在 `spirit-field/config.ts`。调平衡时核对整茬首熟、定向前收成、剩余寿命与种子成本，通过 `productionByQuality` 调整产量节奏。详见 [灵田收益预算](spirit-field.md#收益预算)。
 
-坊市灵种品质使用 `spirit-field/config.ts` 的 `SPIRIT_GARDEN_MARKET_SEED_QUALITY_WEIGHTS`，在货架品阶范围内归一化；当前天层神品实际概率为 2%，常层和珍层分布不变。清畦返同株原种品质种子的概率为 `SPIRIT_GARDEN_CLEAR_SEED_CHANCE = 0.25`。灵兽遗种从全部 32 个物种等权抽取，八阶各四种，因此品质各占 12.5%。调整目录数量时需同步核对这一分布。
+坊市灵种品质使用 `spirit-field/config.ts` 的 `SPIRIT_GARDEN_MARKET_SEED_QUALITY_WEIGHTS`，在货架品阶范围内归一化；当前天层神品实际概率为 2%，常层和珍层分布不变。清理田块返同株原种品质种子的概率为 `SPIRIT_GARDEN_CLEAR_SEED_CHANCE = 0.25`。灵兽遗种从全部 32 个物种等权抽取，八阶各四种，因此品质各占 12.5%。调整目录数量时需同步核对这一分布。
 
 新种使用 `seedSpec.version = 2`，只保存物种身份、品质、名称与展示字段；成长时间、生产周期和培养规则读取当前目录，不再复制旧三阶段时间、产量范围或隐藏习性。目录选种器位于 API 的 `spirit-field/application/SpiritGardenSeedGenerator.ts`，只做随机选种，不调用 AI。通用材料 AI 的类型、随机池和提示词描述均排除种子。
 
@@ -61,7 +61,7 @@
 
 ## 阶段立绘
 
-每阶一张 `botanical-garden-*.webp`，四列对应同阶四株，四行依次为幼苗、成株、蕴灵、蜕变。神品只使用前三行。只有付费成株、付费定向和成功蜕变才切换对应阶段；蜕变失败保留蕴灵形态。素材位于 `apps/web/public/assets/spirit-garden/`。同一株固定根部落点，阶段差异使用花、果、分杈和剪影表达。图录取成株行，田块、详情和保种阁取实际阶段。空白与图格间隙使用透明 alpha。
+每阶一张 `botanical-garden-*.webp`，四列对应同阶四株，四行依次为幼苗、成株、蕴灵、蜕变。神品只使用前三行。只有付费成株、付费定向和成功蜕变才切换对应阶段；蜕变失败保留蕴灵形态。素材位于 `apps/web/public/assets/spirit-garden/`。同一株固定根部落点，阶段差异使用花、果、分杈和剪影表达。图录取成株行，田块、详情和灵植暂存区取实际阶段。空白与图格间隙使用透明 alpha。
 
 立绘采用写意国画水墨，参考万界道友稀有灵兽的宽笔、飞白与局部彩墨。画面按纸色、深色底和手机田块尺寸验收。
 

@@ -1,3 +1,4 @@
+import { GameImage } from '@app/components/ui/GameImage';
 import type {
   SpiritGardenPlantView,
   SpiritGardenSpecies,
@@ -6,6 +7,7 @@ import {
   gardenIncidentPresentation,
   gardenSeedName,
 } from '../garden-presentation';
+import { GARDEN_INCIDENT_ART } from './gardenIncidentArt';
 
 interface GardenIncidentHistoryProps {
   plants: SpiritGardenPlantView[];
@@ -43,33 +45,47 @@ export function GardenIncidentHistory({
         if (!plantSpecies) return null;
         const presentation = gardenIncidentPresentation(incident, plantSpecies);
         return (
-          <li key={`${plant.id}:${incident.productionDay}:${incident.kind}`}>
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-              <span
-                className={
-                  incident.kind === 'mutation' ? 'text-teal' : 'text-ink'
-                }
-              >
-                {presentation.label}
-              </span>
-              <time
-                dateTime={new Date(incident.occurredAt).toISOString()}
-                className="text-ink-secondary font-mono"
-              >
-                {incidentDate.format(incident.occurredAt)}
-              </time>
+          <li
+            key={`${plant.id}:${incident.productionDay}:${incident.kind}`}
+            className="flow-root"
+          >
+            <GameImage
+              src={GARDEN_INCIDENT_ART[incident.kind]}
+              alt=""
+              width={64}
+              height={64}
+              loading="lazy"
+              decoding="async"
+              className="float-left mr-3 mb-1 size-14 object-contain sm:size-16"
+            />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                <span
+                  className={
+                    incident.kind === 'mutation' ? 'text-teal' : 'text-ink'
+                  }
+                >
+                  {presentation.label}
+                </span>
+                <time
+                  dateTime={new Date(incident.occurredAt).toISOString()}
+                  className="text-ink-secondary font-mono"
+                >
+                  {incidentDate.format(incident.occurredAt)}
+                </time>
+              </div>
+              <p className="text-ink-secondary">{presentation.description}</p>
+              {incident.seedSpeciesId ? (
+                <p className="text-teal">
+                  灵兽留下了 <span className="font-mono">1</span> 枚
+                  {
+                    species.find((entry) => entry.id === incident.seedSpeciesId)
+                      ?.quality
+                  }
+                  {gardenSeedName(incident.seedSpeciesId, species)}。
+                </p>
+              ) : null}
             </div>
-            <p className="text-ink-secondary">{presentation.description}</p>
-            {incident.seedSpeciesId ? (
-              <p className="text-teal">
-                灵兽留下了
-                {
-                  species.find((entry) => entry.id === incident.seedSpeciesId)
-                    ?.quality
-                }
-                {gardenSeedName(incident.seedSpeciesId, species)}。
-              </p>
-            ) : null}
           </li>
         );
       })}

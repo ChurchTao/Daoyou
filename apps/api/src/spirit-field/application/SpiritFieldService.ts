@@ -442,7 +442,11 @@ export function sowSpiritField(
       return {
         garden: next,
         detail: `种下${seedName}，开始长期培育`,
-        result: { message: '已种下灵植，将自动成长', plantId },
+        result: {
+          message:
+            '已栽种，幼苗将自动生长；生长时间达到后，需消耗天地灵气培育成株',
+          plantId,
+        },
         resourceChanges: [bagChange('sown')],
       };
     },
@@ -468,8 +472,8 @@ export function matureSpiritField(
       await spendStageQi(actor, input, 'mature', view.matureQiCost, tx);
       return {
         garden: next,
-        result: { message: '成株引灵已完成，灵植开始自然生产' },
-        detail: `为${view.speciesName}完成成株引灵`,
+        result: { message: '已培育成株，首批收成已产生，之后按周期产出' },
+        detail: `将${view.speciesName}培育成株`,
         resourceChanges: [currencyChange('mature')],
       };
     },
@@ -501,9 +505,9 @@ export function matureSpiritFieldBatch(
         garden: next,
         result: {
           count: input.targets.length,
-          message: `已为${input.targets.length}株灵植完成成株引灵`,
+          message: `已将${input.targets.length}株灵植培育成株`,
         },
-        detail: `为${input.targets.length}株灵植完成成株引灵`,
+        detail: `将${input.targets.length}株灵植培育成株`,
         resourceChanges: [currencyChange('mature-batch')],
       };
     },
@@ -541,9 +545,9 @@ export function branchSpiritFieldBatch(
         garden: next,
         result: {
           count: input.targets.length,
-          message: `已为${input.targets.length}株灵植确定培养方向`,
+          message: `已为${input.targets.length}株灵植选择培养方向`,
         },
-        detail: `为${input.targets.length}株灵植确定长期培养方向`,
+        detail: `为${input.targets.length}株灵植选择培养方向`,
         resourceChanges: [currencyChange('branch-batch')],
       };
     },
@@ -575,8 +579,8 @@ export function branchSpiritField(
       await spendStageQi(actor, input, 'branch', view.branchQiCost, tx);
       return {
         garden: next,
-        result: { message: '培养方向已确定' },
-        detail: `为${view.speciesName}确定长期培养方向`,
+        result: { message: '培养方向已选定' },
+        detail: `为${view.speciesName}选择培养方向`,
         resourceChanges: [currencyChange('branch')],
       };
     },
@@ -632,15 +636,16 @@ export function evolveSpiritField(
       const evolvedPlant = next.plots[input.plotIndex]!.plant!;
       const nextView = getSpiritGardenPlantView(evolvedPlant, player.realm);
       const evolved = evolvedPlant.evolved;
+      const message = evolved
+        ? '灵植蜕变成功，之后产物的品质提升一档'
+        : nextView.evolutionAttemptsRemaining === 0
+          ? '蜕变失败，本次费用已消耗。本株蜕变次数已用完，仍按原培养方向产出'
+          : `蜕变失败，本次费用已消耗。仍按原培养方向产出，剩余${nextView.evolutionAttemptsRemaining}次尝试；在田生长${Math.ceil(nextView.evolveCooldownRemainingMs / 3_600_000)}小时、冷却结束后可重试，收成已满或灵植处于暂存区时暂停计时`;
       return {
         garden: next,
-        detail: evolved
-          ? `${view.speciesName}完成蜕变`
-          : `${view.speciesName}本次蜕变未成，原路线继续生产，积累灵机后可再试`,
+        detail: `${view.speciesName}：${message}`,
         result: {
-          message: evolved
-            ? '灵植蜕变成功'
-            : '本次蜕变未成，原路线继续生产，积累灵机后可再试',
+          message,
           evolved,
           attemptsRemaining: nextView.evolutionAttemptsRemaining,
           chance: view.evolveSuccessChance,
@@ -664,8 +669,8 @@ export function archiveSpiritField(
       garden: gardenRule(() =>
         archiveSpiritGardenPlant(garden, input.plotIndex, input.plantId, now),
       ),
-      detail: '灵植移入保种收藏，保留成长与待领产物',
-      result: { message: '已移入保种收藏' },
+      detail: '暂存灵植，保留培养进度与待领收成',
+      result: { message: '已暂存灵植' },
     }),
   );
 }
@@ -688,8 +693,8 @@ export function restoreSpiritField(
           now,
         ),
       ),
-      detail: '从保种收藏迁回灵植，继续成长与生产',
-      result: { message: '灵植已迁回田中' },
+      detail: '将灵植从暂存区移回灵田，继续生长与生产',
+      result: { message: '灵植已移回灵田' },
     }),
   );
 }
@@ -741,15 +746,15 @@ export function retireSpiritField(
         garden: cleared.state,
         detail: clearingPlot
           ? cleared.seed
-            ? '清理采尽的灵植，收得一枚同株灵种'
-            : '清理采尽的灵植，保留图录成果'
-          : '结束一株收藏灵植的培育，保留图录成果',
+            ? '清理停止产出的灵植，获得1枚同物种、同原种品质的种子'
+            : '清理停止产出的灵植，保留养成记录'
+          : '永久移除暂存区中的一株灵植，保留养成记录',
         result: {
           message: clearingPlot
             ? cleared.seed
-              ? '已清畦，收得一枚同株灵种'
-              : '已清畦，可以重新播种'
-            : '已结束培育，图录成果已保留',
+              ? '已清理田块，获得1枚同物种、同原种品质的种子'
+              : '已清理田块，可以重新播种'
+            : '已永久移除灵植，养成记录已保留',
           seeds,
           quantity: seeds.length,
           locations: locationsOf(delivered),

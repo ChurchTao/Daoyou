@@ -621,7 +621,7 @@ export async function grantDevResources(input: DevGrant) {
         ids.push(id);
       } else if (grant.type === 'vault-seed') {
         if (!isSpiritGardenSeed(grant.facts.seedSpec.plant))
-          throw new InventoryError('旧版灵种已停止发放，请使用百草志灵种');
+          throw new InventoryError('旧版灵种已停止发放，请使用新版灵种');
         const granted = await grantInventory(
           input.cultivatorId,
           [

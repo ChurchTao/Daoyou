@@ -136,7 +136,7 @@ export const seedAdapter: ItemAdapter = (item) => {
                 {
                   title: '长期培养',
                   entries: lines(
-                    `成株后拥有28天有效生产寿命，持续产出${species.baseOutput.name}。\n${species.branches.abundance.name}：${species.branches.abundance.output.name}\n${species.branches.essence.name}：${species.branches.essence.output.name}`,
+                    `成株后可持续培养28天，产出${species.baseOutput.name}。收成已满或灵植处于暂存区时暂停计时；受虫害或偷吃影响而恢复时仍会计时。\n${species.branches.abundance.name}：${species.branches.abundance.output.name}\n${species.branches.essence.name}：${species.branches.essence.output.name}`,
                   ),
                 },
               ]

@@ -160,7 +160,10 @@ export const SpiritGardenStateSchema = z
           .strict(),
       )
       .length(6),
-    collection: z.array(plantSchema).max(SPIRIT_GARDEN_COLLECTION_LIMIT),
+    // Keep up to the former 24 stored plants readable; new archives use the current cap.
+    collection: z
+      .array(plantSchema)
+      .max(Math.max(24, SPIRIT_GARDEN_COLLECTION_LIMIT)),
     codex: z.array(codexSchema).max(SPIRIT_GARDEN_SPECIES.length),
   })
   .strict()
@@ -356,7 +359,7 @@ export function buildSpiritGardenSeed(
       seedDescription: species.description,
       clueTexts: [
         `成株后稳定产出${species.baseOutput.name}`,
-        `蕴灵后可选繁茂或${species.branches.essence.name}，成株后有28天有效生产寿命`,
+        `成株后继续生长，可消耗天地灵气选择培养方向：${species.branches.abundance.name}或${species.branches.essence.name}。成株后可持续培养28天；收成已满或灵植处于暂存区时暂停计时，恢复期间仍计时`,
       ],
       element: species.element,
       growthForm: species.growthForm,
@@ -686,9 +689,9 @@ export function matureSpiritGardenPlant(
 ): SpiritGardenState {
   const settled = settleSpiritGarden(state, nowMs);
   const plant = selectedPlant(settled, plotIndex, plantId);
-  if (plant.firstYieldGranted) throw new Error('这株灵植已经完成成株突破');
+  if (plant.firstYieldGranted) throw new Error('这株灵植已经培育成株');
   if (plant.activeGrowthMs < times(plant).matureMs)
-    throw new Error('幼苗尚未积累足够生机');
+    throw new Error('幼苗还在生长，暂时不能培育成株');
   return recordCodex(
     replacePlant(settled, plotIndex, {
       ...plant,
@@ -709,13 +712,14 @@ export function chooseSpiritGardenBranch(
 ): SpiritGardenState {
   const settled = settleSpiritGarden(state, nowMs);
   const plant = selectedPlant(settled, plotIndex, plantId);
-  if (remainingProductionTime(plant) === 0) throw new Error('这株灵植已经采尽');
-  if (!plant.firstYieldGranted) throw new Error('请先投入灵气完成成株突破');
+  if (remainingProductionTime(plant) === 0)
+    throw new Error('这株灵植已经停止产出');
+  if (!plant.firstYieldGranted) throw new Error('请先消耗天地灵气培育成株');
   if (!SPIRIT_GARDEN_BRANCHES.includes(branch))
     throw new Error('培养方向不存在');
   if (plant.branch) throw new Error('这株灵植已经选定培养方向');
   if (plant.productionUsedMs < times(plant).branchMs)
-    throw new Error('灵植尚未蕴灵，暂不能选择培养方向');
+    throw new Error('尚未达到选择培养方向所需的生长时间');
   return recordCodex(
     replacePlant(settled, plotIndex, {
       ...changePlantOutput(plant, { branch }),
@@ -770,21 +774,21 @@ export function getSpiritGardenPlantView(
       ? 0
       : SPIRIT_GARDEN_EVOLUTION_ATTEMPT_LIMIT - plant.evolutionAttempts.length;
   const evolveReason = exhausted
-    ? '这株灵植已经采尽'
+    ? '这株灵植已经停止产出'
     : !plant.firstYieldGranted
-      ? '先投入灵气完成成株突破'
+      ? '先消耗天地灵气培育成株'
       : plant.evolved
         ? '这株灵植已经完成蜕变'
         : plant.quality === '神品'
-          ? '神品灵植已至品阶上限'
+          ? '神品灵植不再蜕变，产物品质已达上限'
           : !plant.branch
-            ? '先投入灵气选定培养方向'
+            ? '先消耗天地灵气选择培养方向'
             : evolutionAttemptsRemaining === 0
-              ? '这株灵植的三次蜕变机会已经用尽'
+              ? '这株灵植的3次蜕变机会已经用尽'
               : evolveRemainingMs > 0
-                ? '定向后的生长积累尚不足'
+                ? '选择培养方向后还需继续生长，才能尝试蜕变'
                 : evolveCooldownRemainingMs > 0
-                  ? '蜕变失败后需再积累灵机，稍后重试'
+                  ? '蜕变冷却尚未结束，请等待冷却完成后重试'
                   : REALM_ORDER[realm] < REALM_ORDER[minRealm]
                     ? `需要${minRealm}及以上境界`
                     : null;
@@ -852,6 +856,15 @@ export function getSpiritGardenPlantView(
     storageFull: plant.storedProductionMs >= storageCapacity(plant),
   };
 }
+/** Preview the chosen output using the same progress adjustment as confirmation. */
+export function getSpiritGardenBranchPreview(
+  plant: SpiritGardenPlant,
+  branch: SpiritGardenBranch,
+  realm: RealmType,
+): SpiritGardenPlantView {
+  return getSpiritGardenPlantView(changePlantOutput(plant, { branch }), realm);
+}
+
 /** A hypothetical success for the confirmation screen; never commits an attempt. */
 export function getSpiritGardenEvolutionPreview(
   plant: SpiritGardenPlant,
@@ -900,9 +913,10 @@ export function archiveSpiritGardenPlant(
 ): SpiritGardenState {
   const settled = settleSpiritGarden(state, nowMs);
   if (settled.collection.length >= SPIRIT_GARDEN_COLLECTION_LIMIT)
-    throw new Error('保种收藏已满');
+    throw new Error('暂存区已满，请先移回或永久移除灵植，腾出空位');
   const plant = selectedPlant(settled, plotIndex, plantId);
-  if (remainingProductionTime(plant) === 0) throw new Error('这株灵植已经采尽');
+  if (remainingProductionTime(plant) === 0)
+    throw new Error('这株灵植已经停止产出');
   return {
     ...replacePlant(settled, plotIndex, null),
     collection: [...settled.collection, plant],
@@ -920,9 +934,9 @@ export function retireSpiritGardenPlant(
     plotIndex === undefined
       ? settled.collection.find((entry) => entry.id === plantId)
       : selectedPlant(settled, plotIndex, plantId);
-  if (!plant) throw new Error('收藏中没有找到这株灵植');
+  if (!plant) throw new Error('暂存区中没有找到这株灵植');
   if (plotIndex !== undefined && remainingProductionTime(plant) > 0)
-    throw new Error('这株灵植尚未采尽');
+    throw new Error('这株灵植尚未停止产出');
   if (plant.pending.length > 0 || plant.pendingSeedSpeciesId !== null)
     throw new Error('请先领取这株灵植的待领产物');
   if (plotIndex !== undefined) return replacePlant(settled, plotIndex, null);
@@ -963,13 +977,14 @@ export function restoreSpiritGardenPlant(
   if (!settled.plots[plotIndex] || settled.plots[plotIndex]!.plant)
     throw new Error('请先选择一块空田');
   const plant = settled.collection.find((entry) => entry.id === plantId);
-  if (!plant) throw new Error('收藏中没有找到这株灵植');
-  if (remainingProductionTime(plant) === 0) throw new Error('这株灵植已经采尽');
+  if (!plant) throw new Error('暂存区中没有找到这株灵植');
+  if (remainingProductionTime(plant) === 0)
+    throw new Error('这株灵植已经停止产出');
   if (
     REALM_ORDER[realm] <
     REALM_ORDER[SPIRIT_GARDEN_MIN_REALM[outputQuality(plant)]]
   )
-    throw new Error('当前境界不足以迁回这株灵植');
+    throw new Error('当前境界不足以移回这株灵植');
   return {
     ...replacePlant(settled, plotIndex, { ...plant, settledAt: nowMs }),
     collection: settled.collection.filter((entry) => entry.id !== plantId),
