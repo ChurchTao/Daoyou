@@ -38,6 +38,6 @@ description: 新增、修改或评审万界道友的灵田灵植、百草志物�
 ## 接入与验收
 
 - 当前目录八阶各四株，每阶一张 `1152×1536` 透明 WebP，按四列四行排列，每格 `288×384`。同株根部约落在格高的 88%，留足透明间隙。交付到 `apps/web/public/assets/spirit-garden/`，以 `portrait.atlas/index` 指定文件和列。取图沿用 [BotanicalArt](../../../apps/web/src/routes/game/spirit-field/components/BotanicalArt.tsx) 与 `GameImage`。生成草图的画布尺寸和排版可按需要调整，交付以实际切图为准。
-- 接入前确认本次是物种设计、已授权替换还是扩容。四列已经排满，增加名额涉及 [运行时校验](../../../packages/game-content/src/spirit-field/garden-schema.ts)、[编辑器 schema](../../../packages/game-content/src/spirit-field/data/garden.schema.json)、图谱寻址与百草志展示。扩容可先评估追加同规格图谱，保留已有格位、物种 ID 和已存事实。核对物种顺序、元素对旧种匹配的影响，并检查种子生成、在田株、保种、图录和待领收成。
-- 按 [配置指南](../../../docs/spirit-garden-content.md) 核对品阶、成长时间和产物。灵种名由「成株名的种子」派生。复合灵果的有效药性共享一份同品预算，灵兽修为保持独立。改内容和规则时遵循 [领域技能](../daoyou-game-core-domain/SKILL.md)，改场景布局或预览时使用相应的 [游戏 UI](../daoyou-game-ui/SKILL.md) 和 [物品预览](../daoyou-item-preview/SKILL.md) 规范。
+- 接入前确认本次是物种设计、已授权替换还是扩容。四列已经排满，增加名额涉及 [运行时校验](../../../packages/game-content/src/spirit-field/garden-schema.ts)、[编辑器 schema](../../../packages/game-content/src/spirit-field/data/garden.schema.json)、图谱寻址与百草志展示。扩容可先评估追加同规格图谱，保留已有格位、物种 ID 和已存事实。检查种子生成、在田株、保种、图录和待领收成。库存旧种不能播种，只能经材料转化按同品质随机换成新目录种子；不恢复名称、元素或目录首项的兼容播种。
+- 按 [配置指南](../../../docs/spirit-garden-content.md) 核对品阶、成长时间和产物。灵种名由「成株名的种子」派生。新种事实使用 `seedSpec.version = 2` 与显式 `speciesId`，不复制旧习性、三阶段时间或产量偏好，也不通过通用材料 AI 生成。旧事实读取与一次性资产结算只能位于显式 `legacy` 模块。复合灵果的有效药性共享一份同品预算，灵兽修为保持独立。改内容和规则时遵循 [领域技能](../daoyou-game-core-domain/SKILL.md)，改场景布局或预览时使用相应的 [游戏 UI](../daoyou-game-ui/SKILL.md) 和 [物品预览](../daoyou-item-preview/SKILL.md) 规范。
 - 美术验收同时查 alpha 和纸色、深色底合成。检查外缘、格间隙与内部留白，确保没有白底、脏边或串格。以手机田块约 85px、桌面约 139px 和百草志册签的实际尺寸查看。遮住标签仍应认出物种和阶段，去色后主要剪影仍有区别。通过后在 360px 与桌面实际页面确认切图、阶段和产物展示。按改动范围执行仓库规定的验证。

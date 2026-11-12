@@ -2,7 +2,7 @@ import { QUALITY_VALUES, type Quality } from '@daoyou/constants/qualities';
 import { BASE_PRICES } from '@daoyou/game-content/materials';
 import { SPIRIT_GARDEN_EVOLUTION_QI_COSTS } from '@daoyou/game-content/spirit-field/config';
 import {
-  readSpiritFieldSeedSpec,
+  readSpiritGardenSeedSpec,
   type SpiritGardenBranch,
   type SpiritGardenProduct,
   type SpiritGardenSpecies,
@@ -58,7 +58,7 @@ function fullCropReturn(
   let state = plantSpiritGardenSeed(
     createSpiritGarden(),
     0,
-    readSpiritFieldSeedSpec(
+    readSpiritGardenSeedSpec(
       buildSpiritGardenSeed(species.id, species.quality).details,
     )!.plant,
     id,
@@ -271,7 +271,7 @@ describe('spirit garden crop economics at ordinary prices', () => {
       const state = plantSpiritGardenSeed(
         createSpiritGarden(),
         0,
-        readSpiritFieldSeedSpec(
+        readSpiritGardenSeedSpec(
           buildSpiritGardenSeed(species.id, quality).details,
         )!.plant,
         plantId,

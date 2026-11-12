@@ -5,7 +5,7 @@ import {
   SPIRIT_GARDEN_PEST_RECOVERY_MS,
 } from '@daoyou/game-content/spirit-field/config';
 import {
-  readSpiritFieldSeedSpec,
+  readSpiritGardenSeedSpec,
   type SpiritGardenPlant,
   type SpiritGardenSpeciesId,
   type SpiritGardenState,
@@ -45,7 +45,7 @@ function planted(id: string, speciesId: SpiritGardenSpeciesId = 'licorice') {
   const initial = plantSpiritGardenSeed(
     createSpiritGarden(),
     0,
-    readSpiritFieldSeedSpec(
+    readSpiritGardenSeedSpec(
       buildSpiritGardenSeed(speciesId, species.quality).details,
     )!.plant,
     id,
@@ -93,6 +93,34 @@ function finishLifetime(initial: SpiritGardenState) {
 }
 
 describe('deterministic spirit garden incidents', () => {
+  it.each([
+    ['seed-quality-141', 'wild_chrysanthemum'],
+    ['seed-quality-2335', 'rainbow_skirt_grass'],
+    ['seed-quality-1075', 'jade_marrow_lingzhi'],
+    ['seed-quality-4907', 'nine_bend_spirit_ginseng'],
+    ['seed-quality-2444', 'stone_flower'],
+    ['seed-quality-2498', 'gold_thunder_bamboo'],
+    ['seed-quality-2201', 'ginseng_fruit'],
+    ['seed-quality-6136', 'nine_wonder_elixir'],
+  ] as const)(
+    'can leave any quality seed from an ordinary plant: %s',
+    (id, speciesId) => {
+      const initial = planted(id);
+      const eventAt = matureAt(initial) + day;
+      const result = harvestSpiritGarden(initial, eventAt);
+      expect(result.seeds).toEqual([
+        {
+          speciesId,
+          quality: getSpiritGardenSpecies(speciesId).quality,
+          quantity: 1,
+        },
+      ]);
+      expect(parseSpiritGardenState(result.state)).toEqual(result.state);
+      expect(
+        harvestSpiritGarden(result.state, eventAt + 10 * hour).seeds,
+      ).toEqual([]);
+    },
+  );
   it('supports pests, beasts and mutation for all 32 species and every cultivation branch', () => {
     expect(SPIRIT_GARDEN_SPECIES).toHaveLength(32);
     const cases = [
@@ -134,10 +162,8 @@ describe('deterministic spirit garden incidents', () => {
             const reward = harvestSpiritGarden(settled, plant.settledAt).seeds;
             expect(reward).toEqual([
               {
-                speciesId: SPIRIT_GARDEN_SPECIES.filter(
-                  (candidate) => candidate.quality === species.quality,
-                )[3]!.id,
-                quality: species.quality,
+                speciesId: 'qilin_elixir',
+                quality: '神品',
                 quantity: 1,
               },
             ]);
@@ -473,7 +499,7 @@ describe('deterministic spirit garden incidents', () => {
     const firstAt = matureAt(initial) + 6 * day;
     const first = harvestSpiritGarden(initial, firstAt);
     expect(first.seeds).toEqual([
-      { speciesId: 'mountain_jujube', quality: '凡品', quantity: 1 },
+      { speciesId: 'ginseng_fruit', quality: '仙品', quantity: 1 },
     ]);
     const secondAt = matureAt(initial) + 7 * day + 2 * hour;
     const second = harvestSpiritGarden(first.state, secondAt);
@@ -483,7 +509,7 @@ describe('deterministic spirit garden incidents', () => {
         kind: 'beast',
         productionDay: 6,
         occurredAt: firstAt,
-        seedSpeciesId: 'mountain_jujube',
+        seedSpeciesId: 'ginseng_fruit',
       },
       {
         kind: 'beast',
@@ -495,7 +521,7 @@ describe('deterministic spirit garden incidents', () => {
     expect(finishLifetime(second.state).seeds).toEqual([]);
   });
 
-  it('keeps a carried seed at the original grade after evolution upgrades production', () => {
+  it('keeps a random carried seed at its species quality independently of evolution and the source plant', () => {
     const initial = planted('incident-386');
     const branched = chooseSpiritGardenBranch(
       initial,
@@ -522,16 +548,16 @@ describe('deterministic spirit garden incidents', () => {
       true,
     );
     expect(result.seeds).toEqual([
-      { speciesId: 'mountain_jujube', quality: '凡品', quantity: 1 },
+      { speciesId: 'ginseng_fruit', quality: '仙品', quantity: 1 },
     ]);
     expect(
-      readSpiritFieldSeedSpec(
+      readSpiritGardenSeedSpec(
         buildSpiritGardenSeed(
           result.seeds[0]!.speciesId,
           result.seeds[0]!.quality,
         ).details,
       )!.plant.quality,
-    ).toBe('凡品');
+    ).toBe('仙品');
   });
 
   it('harvests a seed-only collection asset exactly once and blocks retirement until it is claimed', () => {
@@ -554,7 +580,7 @@ describe('deterministic spirit garden incidents', () => {
     const result = harvestSpiritGarden(archived, eventAt + 100 * day);
     expect(result.products).toEqual([]);
     expect(result.seeds).toEqual([
-      { speciesId: 'mountain_jujube', quality: '凡品', quantity: 1 },
+      { speciesId: 'qilin_elixir', quality: '神品', quantity: 1 },
     ]);
     expect(result.state.collection[0]!.pendingSeedSpeciesId).toBeNull();
     expect(() =>
@@ -638,14 +664,6 @@ describe('deterministic spirit garden incidents', () => {
         changes: {
           incidents: [incident('pests', 1, 'licorice')],
           pendingSeedSpeciesId: 'licorice',
-        },
-      },
-      {
-        name: 'wrong seed grade',
-        changes: {
-          incidents: [incident('beast', 1, 'spirit_rice')],
-          pendingSeedSpeciesId: 'spirit_rice',
-          recoveryRemainingMs: 0,
         },
       },
       {

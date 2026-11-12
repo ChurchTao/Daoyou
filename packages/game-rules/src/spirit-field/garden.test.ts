@@ -1,7 +1,6 @@
 import { seedFactsOf } from '@daoyou/game-domain/inventory';
 import {
-  readSpiritFieldSeedSpec,
-  type SpiritFieldPlotState,
+  readSpiritGardenSeedSpec,
   type SpiritGardenSpeciesId,
 } from '@daoyou/game-domain/spirit-field';
 import { describe, expect, it } from 'vitest';
@@ -12,6 +11,7 @@ import {
   archiveSpiritGardenPlant,
   buildSpiritGardenSeed,
   chooseSpiritGardenBranch,
+  clearSpiritGardenPlot,
   createSpiritGarden,
   evolveSpiritGardenPlant,
   getSpiritGardenMaturedCount,
@@ -19,8 +19,8 @@ import {
   getSpiritGardenSeedCandidates,
   getSpiritGardenSpecies,
   harvestSpiritGarden,
+  isSpiritGardenSeed,
   matureSpiritGardenPlant,
-  migrateLegacySpiritGarden,
   parseSpiritGardenState,
   plantSpiritGardenSeed,
   resolveSpiritGardenSpecies,
@@ -28,10 +28,6 @@ import {
   retireSpiritGardenPlant,
   settleSpiritGarden,
 } from './garden.js';
-import {
-  createDefaultSpiritFieldPlots,
-  settleSpiritFieldHarvest,
-} from './rules.js';
 
 const start = 1_000_000;
 const hour = 3_600_000;
@@ -43,7 +39,7 @@ function seed(
   speciesId: Parameters<typeof buildSpiritGardenSeed>[0] = 'licorice',
   quality: Parameters<typeof buildSpiritGardenSeed>[1] = '凡品',
 ) {
-  return readSpiritFieldSeedSpec(
+  return readSpiritGardenSeedSpec(
     buildSpiritGardenSeed(speciesId, quality).details,
   )!.plant;
 }
@@ -606,6 +602,88 @@ describe('long-term spirit garden', () => {
         .plant,
     ).toBeNull();
   });
+  it('returns a same-species original-quality seed on exactly the lowest 25% of exhausted-plot clearing draws', () => {
+    const evolved = evolveSpiritGardenPlant(
+      evolutionReady(),
+      0,
+      plantId,
+      '渡劫',
+      at(4 * day),
+      0,
+    );
+    const spent = {
+      ...evolved,
+      plots: evolved.plots.map((plot) => ({
+        ...plot,
+        plant: plot.plant
+          ? {
+              ...plot.plant,
+              activeGrowthMs: matureMs + lifetime,
+              productionUsedMs: lifetime,
+              productionClockMs: lifetime,
+              settledAt: at(lifetime),
+              productionMs: 0,
+              storedProductionMs: 0,
+              pending: [],
+            }
+          : null,
+      })),
+    };
+    expect(parseSpiritGardenState(spent)).toEqual(spent);
+    const original = structuredClone(spent);
+    for (const roll of [0, 0.25 - Number.EPSILON, 0.25, 1 - Number.EPSILON]) {
+      const result = clearSpiritGardenPlot(
+        spent,
+        0,
+        plantId,
+        at(lifetime),
+        roll,
+      );
+      expect(result.state.plots[0]!.plant).toBeNull();
+      expect(result.state.codex).toEqual(spent.codex);
+      expect(result.seed).toEqual(
+        roll < 0.25
+          ? {
+              speciesId: 'licorice',
+              quality: '凡品',
+              quantity: 1,
+            }
+          : null,
+      );
+      expect(() =>
+        clearSpiritGardenPlot(result.state, 0, plantId, at(lifetime), 0),
+      ).toThrow();
+    }
+    expect(spent).toEqual(original);
+  });
+  it('requires exhaustion and all pending rewards claimed before clearing can grant a seed', () => {
+    expect(() =>
+      clearSpiritGardenPlot(planted(), 0, plantId, at(day), 0),
+    ).toThrow('尚未采尽');
+    let state = planted();
+    for (const days of [7, 14, 21])
+      state = harvestSpiritGarden(state, at(days * day)).state;
+    const spent = settleSpiritGarden(state, at(lifetime));
+    expect(() =>
+      clearSpiritGardenPlot(spent, 0, plantId, at(lifetime), 0),
+    ).toThrow('先领取');
+    const claimed = harvestSpiritGarden(spent, at(lifetime)).state;
+    for (const roll of [-1, 1, NaN, Infinity])
+      expect(() =>
+        clearSpiritGardenPlot(claimed, 0, plantId, at(lifetime), roll),
+      ).toThrow('判定无效');
+    const archived = archiveSpiritGardenPlant(planted(), 0, plantId, at(0));
+    expect(() =>
+      clearSpiritGardenPlot(archived, 0, plantId, at(0), 0),
+    ).toThrow();
+    expect(
+      retireSpiritGardenPlant(
+        harvestSpiritGarden(archived, at(0)).state,
+        plantId,
+        at(0),
+      ).collection,
+    ).toEqual([]);
+  });
   it('checks occupied slots, stale identities, realm and collection capacity', () => {
     expect(() =>
       plantSpiritGardenSeed(planted(), 0, seed(), 'other', '炼气', start),
@@ -660,7 +738,7 @@ describe('long-term spirit garden', () => {
   it('keeps fixed same-species seeds stackable', () => {
     const first = buildSpiritGardenSeed('licorice', '凡品');
     const again = buildSpiritGardenSeed('licorice', '凡品', 4);
-    expect(readSpiritFieldSeedSpec(first.details)!.plant.seedName).toBe(
+    expect(readSpiritGardenSeedSpec(first.details)!.plant.seedName).toBe(
       '甘草的种子',
     );
     expect(inventoryStackIdentity('seed.v1', seedFactsOf(first))).toBe(
@@ -692,15 +770,28 @@ describe('long-term spirit garden', () => {
     ).toEqual(['gold_thunder_bamboo']);
     expect(getSpiritGardenSeedCandidates('凡品', '雷')).toEqual([]);
   });
-  it('finds a current species for seeds issued before the catalog', () => {
-    expect(
-      resolveSpiritGardenSpecies({
-        ...seed('licorice'),
-        id: 'pre-garden-seed',
-        seedName: '旧日风灵种',
-        element: '风',
-      }),
-    ).toBe('wild_chrysanthemum');
+  it('rejects legacy and removed-catalog seeds even when their name or element matches a new species', () => {
+    for (const legacy of [
+      { ...seed('licorice'), id: 'pre-garden-seed', seedName: '甘草的种子' },
+      { ...seed('licorice'), id: 'garden-seed:removed-species:凡品' },
+      { ...seed('licorice'), id: 'garden-seed:licorice:灵品' },
+    ]) {
+      expect(isSpiritGardenSeed(legacy)).toBe(false);
+      expect(() => resolveSpiritGardenSpecies(legacy)).toThrow(
+        '旧版灵种无法播种',
+      );
+      expect(() =>
+        plantSpiritGardenSeed(
+          createSpiritGarden(),
+          0,
+          legacy,
+          plantId,
+          '渡劫',
+          start,
+        ),
+      ).toThrow('材料转化');
+    }
+    expect(isSpiritGardenSeed(seed())).toBe(true);
   });
   it('rejects unknown species, mismatched quality and forged compound-effect budgets in durable state', () => {
     const original = planted().plots[0]!.plant!;
@@ -780,65 +871,5 @@ describe('long-term spirit garden', () => {
         plots: [{ index: 0, plant }, ...planted().plots.slice(1)],
       }),
     ).toThrow();
-  });
-});
-
-describe('legacy garden migration', () => {
-  function readyPlot(): SpiritFieldPlotState {
-    const plant = { ...seed(), id: 'pre-garden-growing', seedName: '旧日灵种' };
-    return {
-      index: 0,
-      plant,
-      plantId: plant.id,
-      plantedAt: new Date(start).toISOString(),
-      stageIndex: 2,
-      stageStartedAt: new Date(start).toISOString(),
-      stageEndsAt: new Date(start + 60_000).toISOString(),
-      history: [
-        {
-          stage: 'forming',
-          method: 'leaf_medicine',
-          affinity: 'excellent',
-          score: 100,
-          feedback: '灵机顺畅。',
-          completedAt: new Date(start).toISOString(),
-        },
-      ],
-    };
-  }
-  it('retains the original deterministic ready harvest and does not grant another first yield', () => {
-    const plots = createDefaultSpiritFieldPlots();
-    plots[0] = readyPlot();
-    const expected = settleSpiritFieldHarvest(
-      plots[0],
-      `field-1:0:${plots[0]!.plantedAt}:${plots[0]!.plant!.id}`,
-    );
-    const migrated = migrateLegacySpiritGarden(plots, at(100 * day), 'field-1');
-    const plant = migrated.plots[0]!.plant!;
-    expect(plant.pending[0]!.quantity).toBe(expected.quantity);
-    expect(plant.pending[0]!.quality).toBe(expected.quality);
-    expect(plant.pending[0]!.kind).toBe(expected.outcomeKind);
-    expect(plant.firstYieldGranted).toBe(true);
-    expect(
-      settleSpiritGarden(migrated, at(100 * day + 1)).plots[0]!.plant!.pending,
-    ).toEqual(plant.pending);
-    expect(parseSpiritGardenState(migrated)).toEqual(migrated);
-  });
-  it('rejects corrupted assets instead of replacing them with empty plots', () => {
-    expect(() => migrateLegacySpiritGarden([{ index: 0 }], start)).toThrow();
-    const plots = createDefaultSpiritFieldPlots();
-    plots[0] = {
-      ...readyPlot(),
-      plant: { ...seed(), quality: '不存在' as never },
-    };
-    expect(() => migrateLegacySpiritGarden(plots, start)).toThrow();
-    const orphan = createDefaultSpiritFieldPlots();
-    orphan[0] = { ...orphan[0]!, plantId: 'orphan' };
-    expect(() => migrateLegacySpiritGarden(orphan, start)).toThrow('无法识别');
-    const mismatched = createDefaultSpiritFieldPlots();
-    mismatched[0] = { ...readyPlot(), plantId: 'other' };
-    expect(() => migrateLegacySpiritGarden(mismatched, start)).toThrow(
-      '身份不一致',
-    );
   });
 });

@@ -83,7 +83,7 @@ Lint、TypeScript／构建、Prettier 是静态质量检查，不是额外一层
 
 新库存材料使用 `type: item`、`definitionId: material.v1`、`instanceData: { name, type, rank, element?, description? }`。传承灵印使用注册的定义 ID；随机道装使用 `{ "type": "equipment", "slot": "weapon", "level": 10 }`，法兵默认生成剑，可加 `weaponType` 指定 `axe/blade/spear/staff/sword/fan/bell/brush/banner`，非武器不得指定。全部定义在 `packages/game-content/src/items`，参数边界见 `packages/contracts/src/forging.ts`。
 
-旧丹药／消耗品、旧材料和灵种的 `vault-consumable`、`vault-material`、`vault-seed` 发放仍接受原事实，但写入当前背包，不再进入洞府宝库。新版消耗品也可直接使用 `type: item`、`definitionId: consumable.v1` 及同一完整 facts 作为 instanceData。该能力仍只在纯本地开放。
+旧丹药／消耗品和旧材料的 `vault-consumable`、`vault-material` 写入当前背包，不再进入洞府宝库。`vault-seed` 只接受 `seedSpec.version = 2` 的当前灵植目录种子，旧种不能通过新物资发放入口生成；验证旧种转化可使用下述 `historical` 邮件保留旧资产事实，再通过正式领取与转化。新版消耗品也可直接使用 `type: item`、`definitionId: consumable.v1` 及同一完整 facts 作为 instanceData。该能力仍只在纯本地开放。
 
 邮件附件验收可提交 `{ "type": "mail", "format": "historical" | "new_reward", "attachments": [...] }`。附件遵循共享 MailAttachmentsSchema，每次1–20个。format默认为new_reward，经过正式新奖励生产入口；historical原样保存合法附件协议，可构造新旧混合邮件。领取时材料与消耗品进入当前背包，旧法宝附件会拒绝入库。邮件固定使用本地验收标题与正文，返回邮件ID。该能力只创建样本，领取仍需真实角色通过正式邮件接口完成，不直接标记领取或绕过好友赠送成本。
 

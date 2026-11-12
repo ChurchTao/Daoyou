@@ -1,8 +1,7 @@
+import type { LegacySpiritFieldPlotState } from '@daoyou/game-domain/legacy/spirit-field';
 import {
-  createDefaultSpiritFieldPlots,
   createSpiritGarden,
   parseSpiritGardenState,
-  type SpiritFieldPlotState,
   type SpiritGardenState,
 } from '@daoyou/game-rules/spirit-field';
 import {
@@ -19,7 +18,7 @@ export interface SpiritFieldRecord {
   selfHarvestCount: number;
   totalCareCount: number;
   starterClaimed: boolean;
-  plots: SpiritFieldPlotState[];
+  plots: LegacySpiritFieldPlotState[];
   garden: SpiritGardenState | null;
   version: number;
 }
@@ -45,7 +44,7 @@ export async function getOrCreateSpiritField(
     .insert(spiritFields)
     .values({
       cultivatorId,
-      plots: createDefaultSpiritFieldPlots(),
+      plots: [],
       garden: createSpiritGarden(),
     })
     .onConflictDoNothing({ target: spiritFields.cultivatorId });

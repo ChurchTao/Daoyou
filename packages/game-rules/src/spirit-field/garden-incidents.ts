@@ -56,9 +56,8 @@ export function recordSpiritGardenIncident(
     !plant.incidents.some((incident) => incident.seedSpeciesId !== null) &&
     incidentDraw(plant.id, day, 'seed') < 0.1
   ) {
-    const candidates = SPIRIT_GARDEN_SPECIES.filter(
-      (species) => species.quality === plant.quality,
-    );
+    // Four species per quality make a uniform catalog draw uniform across all eight qualities.
+    const candidates = SPIRIT_GARDEN_SPECIES;
     seedSpeciesId =
       candidates[
         Math.floor(incidentDraw(plant.id, day, 'species') * candidates.length)

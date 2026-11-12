@@ -25,7 +25,8 @@ import type {
   ResourceTopic,
 } from '@daoyou/contracts/resources';
 import type { BeastLineup, SummonedBeast } from '@daoyou/game-domain/beasts';
-import type { SpiritFieldPlotState, SpiritGardenState } from '@daoyou/game-domain/spirit-field';
+import type { LegacySpiritFieldPlotState } from '@daoyou/game-domain/legacy/spirit-field';
+import type { SpiritGardenState } from '@daoyou/game-domain/spirit-field';
 import type {
   ItemLibraryEditorConfig,
   ItemLibraryPayload,
@@ -244,7 +245,7 @@ export const spiritFields = pgTable(
     selfHarvestCount: integer('self_harvest_count').notNull().default(0),
     totalCareCount: integer('total_care_count').notNull().default(0),
     starterClaimed: boolean('starter_claimed').notNull().default(false),
-    plots: jsonb('plots').$type<SpiritFieldPlotState[]>().notNull().default([]),
+    plots: jsonb('plots').$type<LegacySpiritFieldPlotState[]>().notNull().default([]),
     // Null marks a legacy field; initialization migrates its retained plots once.
     garden: jsonb('garden').$type<SpiritGardenState>(),
     version: integer('version').notNull().default(1),

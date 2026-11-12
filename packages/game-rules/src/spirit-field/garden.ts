@@ -8,6 +8,7 @@ import { REALM_ORDER, type RealmType } from '@daoyou/constants/realms';
 import { BASE_PRICES } from '@daoyou/game-content/materials';
 import {
   SPIRIT_GARDEN_BRANCH_QI_COSTS,
+  SPIRIT_GARDEN_CLEAR_SEED_CHANCE,
   SPIRIT_GARDEN_COLLECTION_LIMIT,
   SPIRIT_GARDEN_EVOLUTION_ATTEMPT_LIMIT,
   SPIRIT_GARDEN_EVOLUTION_COOLDOWN_MS,
@@ -16,34 +17,30 @@ import {
   SPIRIT_GARDEN_EVOLUTION_SUCCESS_CHANCES,
   SPIRIT_GARDEN_INCIDENT_INTERVAL_MS,
   SPIRIT_GARDEN_MATURE_QI_COSTS,
+  SPIRIT_GARDEN_MIN_REALM,
   SPIRIT_GARDEN_OFFLINE_CAP_MS,
   SPIRIT_GARDEN_PEST_RECOVERY_MS,
   SPIRIT_GARDEN_PRODUCTION_BY_QUALITY,
   SPIRIT_GARDEN_PRODUCTION_LIFETIME_MS,
   SPIRIT_GARDEN_SPECIES,
-  getSpiritFieldQualityBalance,
 } from '@daoyou/game-content/spirit-field/config';
 import type { Material } from '@daoyou/game-domain/character';
 import { PILL_FAMILY_VALUES } from '@daoyou/game-domain/consumables';
-import { CreationTags } from '@daoyou/game-domain/legacy/tags';
 import {
-  SPIRIT_FIELD_CULTIVATION_METHODS,
   SPIRIT_GARDEN_BRANCHES,
   SpiritGardenFruitEffectsSchema,
-  buildSpiritFieldSeedDetails,
-  buildSpiritFieldSeedMaterialFromPlant,
-  readSpiritFieldSeedSpec,
-  type SpiritFieldPlantSnapshot,
-  type SpiritFieldPlotState,
+  buildSpiritGardenSeedMaterialFromPlant,
   type SpiritGardenBranch,
   type SpiritGardenCodexEntry,
   type SpiritGardenOutput,
   type SpiritGardenPlant,
   type SpiritGardenPlantView,
   type SpiritGardenProduct,
+  type SpiritGardenSeedPlant,
   type SpiritGardenSeedReward,
   type SpiritGardenSpeciesId,
   type SpiritGardenState,
+  type SpiritSeedPlant,
 } from '@daoyou/game-domain/spirit-field';
 import { z } from 'zod';
 import {
@@ -51,10 +48,6 @@ import {
   recordSpiritGardenIncident,
   spiritGardenProductionRate,
 } from './garden-incidents.js';
-import {
-  getSpiritFieldPlotRuntime,
-  settleSpiritFieldHarvest,
-} from './rules.js';
 
 export {
   SPIRIT_GARDEN_COLLECTION_LIMIT,
@@ -260,10 +253,7 @@ export const SpiritGardenStateSchema = z
                 plant.incidents[index - 1]!.productionDay ||
                 incident.occurredAt <
                   plant.incidents[index - 1]!.occurredAt)) ||
-            (incident.seedSpeciesId !== null &&
-              (incident.kind !== 'beast' ||
-                getSpiritGardenSpecies(incident.seedSpeciesId).quality !==
-                  plant.quality)),
+            (incident.seedSpeciesId !== null && incident.kind !== 'beast'),
         ) ||
         (plant.pendingSeedSpeciesId !== null &&
           !seedIncidents.some(
@@ -309,24 +299,39 @@ function getSpiritGardenSpeciesForQuality(
   return species;
 }
 export function resolveSpiritGardenSpecies(
-  seed: SpiritFieldPlantSnapshot,
+  seed: SpiritSeedPlant,
 ): SpiritGardenSpeciesId {
-  const candidates = getSpiritGardenSeedCandidates(seed.quality);
-  // Seeds from the released plot system carry name and element but no catalog ID.
   const species =
-    candidates.find(
-      (entry) => seed.id === `garden-seed:${entry.id}:${seed.quality}`,
-    ) ??
-    candidates.find(
-      (entry) =>
-        seed.seedName === `${entry.name}的种子` ||
-        seed.seedName === `${entry.name}籽` ||
-        seed.seedName === entry.name,
-    ) ??
-    candidates.find((entry) => entry.element === seed.element) ??
-    candidates[0];
-  if (!species) throw new Error('当前品质没有可匹配的灵植物种');
+    'speciesId' in seed
+      ? getSpiritGardenSeedCandidates(seed.quality).find(
+          (entry) =>
+            seed.speciesId === entry.id &&
+            seed.id === `garden-seed:${entry.id}:${seed.quality}`,
+        )
+      : null;
+  if (!species) throw new Error('旧版灵种无法播种，请先进行材料转化');
   return species.id;
+}
+export function isSpiritGardenSeed(
+  seed: SpiritSeedPlant,
+): seed is SpiritGardenSeedPlant {
+  return (
+    'speciesId' in seed &&
+    getSpiritGardenSeedCandidates(seed.quality).some(
+      (entry) =>
+        seed.speciesId === entry.id &&
+        seed.id === `garden-seed:${entry.id}:${seed.quality}`,
+    )
+  );
+}
+export function canPlantSpiritGardenSeed(
+  realm: RealmType,
+  seed: SpiritSeedPlant,
+): boolean {
+  return (
+    isSpiritGardenSeed(seed) &&
+    REALM_ORDER[realm] >= REALM_ORDER[SPIRIT_GARDEN_MIN_REALM[seed.quality]]
+  );
 }
 export function getSpiritGardenSeedCandidates(
   quality: Quality,
@@ -343,32 +348,21 @@ export function buildSpiritGardenSeed(
   quantity = 1,
 ): Omit<Material, 'id'> {
   const species = getSpiritGardenSpeciesForQuality(speciesId, quality);
-  const balance = getSpiritFieldQualityBalance(quality);
-  return buildSpiritFieldSeedMaterialFromPlant(
+  return buildSpiritGardenSeedMaterialFromPlant(
     {
       id: `garden-seed:${species.id}:${quality}`,
+      speciesId: species.id,
       seedName: `${species.name}的种子`,
       seedDescription: species.description,
       clueTexts: [
         `成株后稳定产出${species.baseOutput.name}`,
-        `蕴灵后可选繁茂或${species.branches.essence.name}，长期保留植株`,
+        `蕴灵后可选繁茂或${species.branches.essence.name}，成株后有28天有效生产寿命`,
       ],
       element: species.element,
       growthForm: species.growthForm,
       harvestPart: species.harvestPart,
-      preferredMethods: [],
-      avoidedMethods: [],
-      preferredHabitats: ['mountain'],
-      avoidedHabitats: [],
-      growthTraits: ['slow-rooting'],
-      useTags: ['alchemy'],
-      outcomeBiases: ['herb'],
-      creationTags: [CreationTags.MATERIAL.SEMANTIC_ALCHEMY],
       quality,
-      minRealm: balance.minRealm,
-      stageDurationMs: balance.stageDurationMs,
-      baseYieldMin: 1,
-      baseYieldMax: 1,
+      minRealm: SPIRIT_GARDEN_MIN_REALM[quality],
     },
     quantity,
   );
@@ -644,7 +638,7 @@ function replacePlant(
 export function plantSpiritGardenSeed(
   state: SpiritGardenState,
   plotIndex: number,
-  seed: SpiritFieldPlantSnapshot,
+  seed: SpiritSeedPlant,
   plantId: string,
   realm: RealmType,
   nowMs: number,
@@ -659,10 +653,7 @@ export function plantSpiritGardenSeed(
     ].includes(plantId)
   )
     throw new Error('灵植身份重复');
-  if (
-    REALM_ORDER[realm] <
-    REALM_ORDER[getSpiritFieldQualityBalance(seed.quality).minRealm]
-  )
+  if (REALM_ORDER[realm] < REALM_ORDER[SPIRIT_GARDEN_MIN_REALM[seed.quality]])
     throw new Error('当前境界不足以培养这枚灵种');
   return replacePlant(settled, plotIndex, {
     id: plantId,
@@ -746,7 +737,7 @@ export function getSpiritGardenPlantView(
     QUALITY_VALUES[
       Math.min(QUALITY_VALUES.length - 1, QUALITY_ORDER[plant.quality] + 1)
     ]!;
-  const minRealm = getSpiritFieldQualityBalance(nextQuality).minRealm;
+  const minRealm = SPIRIT_GARDEN_MIN_REALM[nextQuality];
   const remainingProductionMs = remainingProductionTime(plant);
   const rate = spiritGardenProductionRate(plant);
   const productionTicks =
@@ -940,6 +931,27 @@ export function retireSpiritGardenPlant(
     collection: settled.collection.filter((entry) => entry.id !== plantId),
   };
 }
+/** Only an exhausted, fully claimed in-field plant can leave a same-species seed. */
+export function clearSpiritGardenPlot(
+  state: SpiritGardenState,
+  plotIndex: number,
+  plantId: string,
+  nowMs: number,
+  roll: number,
+): { state: SpiritGardenState; seed: SpiritGardenSeedReward | null } {
+  if (!Number.isFinite(roll) || roll < 0 || roll >= 1)
+    throw new Error('留种判定无效');
+  const settled = settleSpiritGarden(state, nowMs);
+  const plant = selectedPlant(settled, plotIndex, plantId);
+  const cleared = retireSpiritGardenPlant(settled, plantId, nowMs, plotIndex);
+  return {
+    state: cleared,
+    seed:
+      roll < SPIRIT_GARDEN_CLEAR_SEED_CHANCE
+        ? { speciesId: plant.speciesId, quality: plant.quality, quantity: 1 }
+        : null,
+  };
+}
 export function restoreSpiritGardenPlant(
   state: SpiritGardenState,
   plotIndex: number,
@@ -955,7 +967,7 @@ export function restoreSpiritGardenPlant(
   if (remainingProductionTime(plant) === 0) throw new Error('这株灵植已经采尽');
   if (
     REALM_ORDER[realm] <
-    REALM_ORDER[getSpiritFieldQualityBalance(outputQuality(plant)).minRealm]
+    REALM_ORDER[SPIRIT_GARDEN_MIN_REALM[outputQuality(plant)]]
   )
     throw new Error('当前境界不足以迁回这株灵植');
   return {
@@ -982,7 +994,7 @@ export function harvestSpiritGarden(
       ? [
           {
             speciesId: plant.pendingSeedSpeciesId,
-            quality: plant.quality,
+            quality: getSpiritGardenSpecies(plant.pendingSeedSpeciesId).quality,
             quantity: 1,
           },
         ]
@@ -1017,107 +1029,4 @@ export function harvestSpiritGarden(
 }
 export function getSpiritGardenMaturedCount(state: SpiritGardenState): number {
   return state.codex.filter((entry) => entry.matured).length;
-}
-/** Migrate once at the host's transaction time; never backfill years of passive production. */
-export function migrateLegacySpiritGarden(
-  input: unknown,
-  nowMs: number,
-  fieldId = 'legacy',
-): SpiritGardenState {
-  if (!Array.isArray(input) || (input.length !== 0 && input.length !== 6))
-    throw new Error('旧灵田数据无效，无法安全迁移');
-  let state = createSpiritGarden();
-  for (let index = 0; index < input.length; index += 1) {
-    const raw = input[index] as Partial<SpiritFieldPlotState> | null;
-    if (!raw || raw.index !== index || !('plant' in raw))
-      throw new Error('旧灵田田块数据无效');
-    if (raw.plant === null) {
-      if (raw.plantId !== null)
-        throw new Error('旧灵田存在无法识别的灵植，无法安全迁移');
-      continue;
-    }
-    if (!raw.plant || raw.plantId !== raw.plant.id)
-      throw new Error('旧灵植身份不一致，无法安全迁移');
-    const validSeed = readSpiritFieldSeedSpec(
-      buildSpiritFieldSeedDetails(raw.plant!),
-    );
-    if (!validSeed) throw new Error('旧灵植生长事实无效，无法安全迁移');
-    const history = z
-      .array(
-        z.object({
-          stage: z.enum(['germination', 'nourishing', 'forming']),
-          method: z.enum(SPIRIT_FIELD_CULTIVATION_METHODS),
-          affinity: z.enum(['excellent', 'good', 'neutral', 'strained']),
-          score: z.number().int().min(0).max(100),
-          feedback: z.string(),
-          resourceName: z.string().optional(),
-          completedAt: z.string(),
-        }),
-      )
-      .max(3)
-      .parse(raw.history);
-    if (
-      !Number.isInteger(raw.stageIndex) ||
-      raw.stageIndex! < 0 ||
-      raw.stageIndex! > 2
-    )
-      throw new Error('旧灵植阶段无效');
-    for (const value of [raw.stageStartedAt, raw.stageEndsAt, raw.plantedAt])
-      if (
-        value !== null &&
-        (typeof value !== 'string' || !Number.isFinite(Date.parse(value)))
-      )
-        throw new Error('旧灵植时间无效');
-    const plot = {
-      ...raw,
-      plant: validSeed.plant,
-      history,
-    } as SpiritFieldPlotState;
-    const id = `${validSeed.plant.id}:${index}`;
-    state = plantSpiritGardenSeed(
-      state,
-      index,
-      validSeed.plant,
-      id,
-      '渡劫',
-      nowMs,
-    );
-    const plant = state.plots[index]!.plant!;
-    const start = plot.stageStartedAt ? Date.parse(plot.stageStartedAt) : nowMs;
-    const end = plot.stageEndsAt ? Date.parse(plot.stageEndsAt) : nowMs;
-    const progress =
-      plot.stageStartedAt && plot.stageEndsAt
-        ? Math.max(0, Math.min(1, (nowMs - start) / Math.max(1, end - start)))
-        : 0;
-    const ready =
-      getSpiritFieldPlotRuntime(plot, nowMs).status === 'ready_to_harvest';
-    const activeGrowthMs = Math.round(
-      times(plant).matureMs * ((plot.stageIndex + progress) / 3),
-    );
-    let migrated: SpiritGardenPlant = {
-      ...plant,
-      activeGrowthMs: ready ? times(plant).matureMs : activeGrowthMs,
-    };
-    if (ready) {
-      const old = settleSpiritFieldHarvest(
-        plot,
-        `${fieldId}:${index}:${plot.plantedAt}:${plot.plant!.id}`,
-      );
-      const product: SpiritGardenProduct = {
-        speciesId: plant.speciesId,
-        name: `${getSpiritGardenSpecies(plant.speciesId).name}${old.outcomeKind === 'spirit_fruit' ? '留存灵果' : old.outcomeKind === 'tcdb' ? '留存灵华' : '留存灵材'}`,
-        description: '旧灵田成熟作物迁移保留的收成。',
-        element: plot.plant!.element,
-        kind: old.outcomeKind,
-        quality: old.quality,
-        quantity: old.quantity,
-        ...(old.outcomeKind === 'spirit_fruit'
-          ? { fruitFamily: old.fruitFamily! }
-          : {}),
-      };
-      migrated = { ...migrated, firstYieldGranted: true, pending: [product] };
-    }
-    state = replacePlant(state, index, migrated);
-  }
-  return recordCodex(state);
 }

@@ -15,9 +15,9 @@ import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import type { CultivationProgress } from '@daoyou/game-domain/character';
 import {
   getSpiritGardenPlantView,
-  migrateLegacySpiritGarden,
   settleSpiritGarden,
 } from '@daoyou/game-rules/spirit-field';
+import { migrateLegacySpiritGarden } from '@daoyou/game-rules/legacy/spirit-field-plots';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@server/lib/drizzle/db.js';
 import {

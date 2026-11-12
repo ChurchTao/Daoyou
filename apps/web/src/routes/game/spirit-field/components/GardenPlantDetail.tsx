@@ -323,6 +323,17 @@ export function GardenPlantDetail({
         </section>
       ) : null}
 
+      <details className="text-sm">
+        <summary className="text-ink-secondary cursor-pointer">
+          查看异事规则
+        </summary>
+        <p className="text-ink-secondary mt-3 text-xs leading-6">
+          灵兽偷吃后有 <span className="font-mono">10%</span> 概率遗落灵种，
+          凡至神八个品质等概率，每株一生最多获得{' '}
+          <span className="font-mono">1</span> 枚。
+        </p>
+      </details>
+
       <section aria-label="生长历程" className="space-y-4">
         <h3 className="font-semibold">生长历程</h3>
         <ol className="space-y-0">

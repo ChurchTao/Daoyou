@@ -1,5 +1,17 @@
+import { QUALITY_ORDER, type Quality } from '@daoyou/constants/qualities';
+import {
+  type CreateItemLibraryEntry,
+  type ItemLibraryMaterialGenerateInput,
+  type ItemLibrarySpiritSeedGenerateInput,
+} from '@daoyou/contracts/items/library';
+import type { Material } from '@daoyou/game-domain/character';
+import { type MaterialType } from '@daoyou/game-domain/inventory';
+import {
+  ItemLibraryEntrySchema,
+  type ItemLibraryEntry,
+} from '@daoyou/game-domain/items/catalog';
+import type { MaterialSkeleton } from '@daoyou/game-domain/materials/generation';
 import type { AiService } from '@nestjs/ai';
-import { SpiritSeedGenerator } from '@server/lib/generation/SpiritSeedGenerator.js';
 import {
   getExecutor,
   type DbExecutor,
@@ -7,14 +19,9 @@ import {
 } from '@server/lib/drizzle/db.js';
 import { itemLibrary } from '@server/lib/drizzle/schema.js';
 import { MaterialGenerator } from '@server/lib/generation/MaterialGenerator.js';
-import type { MaterialSkeleton } from '@daoyou/game-domain/materials/generation';
-import { type CreateItemLibraryEntry, type ItemLibraryMaterialGenerateInput, type ItemLibrarySpiritSeedGenerateInput } from '@daoyou/contracts/items/library';
-import { ItemLibraryEntrySchema, type ItemLibraryEntry } from '@daoyou/game-domain/items/catalog';
-import { QUALITY_ORDER, type Quality } from '@daoyou/constants/qualities';
-import { type MaterialType } from '@daoyou/game-domain/inventory';
-import type { Material } from '@daoyou/game-domain/character';
-import { and, asc, eq, gte, inArray, sql } from 'drizzle-orm';
 import { computeItemLibrarySampleKey } from '@server/lib/utils/itemLibrarySampleKey.js';
+import { SpiritGardenSeedGenerator } from '@server/spirit-field/application/SpiritGardenSeedGenerator.js';
+import { and, asc, eq, gte, inArray, sql } from 'drizzle-orm';
 
 type ItemLibraryRow = typeof itemLibrary.$inferSelect;
 
@@ -95,7 +102,7 @@ const DAILY_MARKET_QUALITY_WEIGHTS: Array<{
 ];
 
 const DAILY_MARKET_TYPE_WEIGHTS: Array<{
-  materialType: MaterialType;
+  materialType: ItemLibraryMaterialGenerateInput['materialType'];
   weight: number;
 }> = [
   { materialType: 'tcdb', weight: 5 },
@@ -225,24 +232,14 @@ export function materialLibraryEntryToMaterial(
   return materialEntryToWrite(entry);
 }
 
-export async function generateMaterialLibraryEntries(ai: AiService, input: {
-  request: ItemLibraryMaterialGenerateInput;
-  userId: string;
-  ignoreItemIdConflicts?: boolean;
-}): Promise<ItemLibraryEntry[]> {
-  // 兼容尚未刷新、仍从普通材料入口提交 seed 的管理后台页面；
-  // 服务端统一改走灵种生成器，避免构造缺失 seedSpec 的普通材料。
-  if (input.request.materialType === 'seed') {
-    return generateSpiritSeedLibraryEntries({
-      request: {
-        count: input.request.count,
-        quality: input.request.quality,
-        status: input.request.status,
-      },
-      userId: input.userId,
-    });
-  }
-
+export async function generateMaterialLibraryEntries(
+  ai: AiService,
+  input: {
+    request: ItemLibraryMaterialGenerateInput;
+    userId: string;
+    ignoreItemIdConflicts?: boolean;
+  },
+): Promise<ItemLibraryEntry[]> {
   const skeletons: MaterialSkeleton[] = Array.from(
     { length: input.request.count },
     () => ({
@@ -251,7 +248,10 @@ export async function generateMaterialLibraryEntries(ai: AiService, input: {
       quantity: 1,
     }),
   );
-  const generated = await MaterialGenerator.generateFromSkeletons(ai, skeletons);
+  const generated = await MaterialGenerator.generateFromSkeletons(
+    ai,
+    skeletons,
+  );
   if (generated.length === 0) return [];
   const seed =
     input.request.seed ??
@@ -312,12 +312,12 @@ export async function generateSpiritSeedLibraryEntries(input: {
 }): Promise<ItemLibraryEntry[]> {
   const generated: Array<Omit<Material, 'id'>> = [];
   const generationOptions = {
-      guaranteedRank: input.request.quality,
-      specifiedElement: input.request.element,
+    guaranteedRank: input.request.quality,
+    specifiedElement: input.request.element,
   };
   for (let remaining = input.request.count; remaining > 0; remaining -= 8) {
     generated.push(
-      ...SpiritSeedGenerator.generateRandom(
+      ...SpiritGardenSeedGenerator.generateRandom(
         Math.min(8, remaining),
         generationOptions,
       ),
@@ -369,12 +369,15 @@ export async function generateSpiritSeedLibraryEntries(input: {
   return rows.map(parseRow);
 }
 
-export async function generateRandomMaterialLibraryEntries(ai: AiService, input: {
-  count: number;
-  userId: string;
-  source: string;
-  seed?: string;
-}): Promise<ItemLibraryEntry[]> {
+export async function generateRandomMaterialLibraryEntries(
+  ai: AiService,
+  input: {
+    count: number;
+    userId: string;
+    source: string;
+    seed?: string;
+  },
+): Promise<ItemLibraryEntry[]> {
   const count = normalizePositiveCount(input.count);
   if (count <= 0) return [];
 
@@ -426,12 +429,15 @@ export async function generateRandomMaterialLibraryEntries(ai: AiService, input:
   return rows.map(parseRow);
 }
 
-export async function generateDailyMarketMaterialLibraryEntries(ai: AiService, input: {
-  count: number;
-  userId: string;
-  source: string;
-  seed?: string;
-}): Promise<ItemLibraryEntry[]> {
+export async function generateDailyMarketMaterialLibraryEntries(
+  ai: AiService,
+  input: {
+    count: number;
+    userId: string;
+    source: string;
+    seed?: string;
+  },
+): Promise<ItemLibraryEntry[]> {
   const seed =
     input.seed ?? `daily_market:${input.source}:${new Date().toISOString()}`;
   const plan = buildDailyMarketMaterialGenerationPlan({

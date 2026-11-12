@@ -62,7 +62,12 @@ export function GardenIncidentHistory({
             <p className="text-ink-secondary">{presentation.description}</p>
             {incident.seedSpeciesId ? (
               <p className="text-teal">
-                灵兽留下了{gardenSeedName(incident.seedSpeciesId, species)}。
+                灵兽留下了
+                {
+                  species.find((entry) => entry.id === incident.seedSpeciesId)
+                    ?.quality
+                }
+                {gardenSeedName(incident.seedSpeciesId, species)}。
               </p>
             ) : null}
           </li>

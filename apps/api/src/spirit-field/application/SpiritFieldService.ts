@@ -26,18 +26,19 @@ import type {
   SpiritGardenProduct,
   SpiritGardenState,
 } from '@daoyou/game-domain/spirit-field';
+import { migrateLegacySpiritGarden } from '@daoyou/game-rules/legacy/spirit-field-plots';
 import {
   archiveSpiritGardenPlant,
   buildSpiritFruitSpec,
   buildSpiritGardenSeed,
   chooseSpiritGardenBranch,
+  clearSpiritGardenPlot,
   evolveSpiritGardenPlant,
   getSpiritGardenMaturedCount,
   getSpiritGardenPlantView,
   getSpiritGardenSpecies,
   harvestSpiritGarden,
   matureSpiritGardenPlant,
-  migrateLegacySpiritGarden,
   plantSpiritGardenSeed,
   resolveSpiritGardenSpecies,
   restoreSpiritGardenPlant,
@@ -335,7 +336,10 @@ export async function getSpiritFieldSnapshot(
     ].reduce(
       (sum, plant) =>
         sum +
-        plant.pending.reduce((amount, product) => amount + product.quantity, 0) +
+        plant.pending.reduce(
+          (amount, product) => amount + product.quantity,
+          0,
+        ) +
         (plant.pendingSeedSpeciesId ? 1 : 0),
       0,
     ),
@@ -397,7 +401,10 @@ export function sowSpiritField(
         !resource.spec
       )
         throw new SpiritFieldServiceError('没有找到可播种的灵种', 404);
-      const seedName = `${getSpiritGardenSpecies(resolveSpiritGardenSpecies(resource.spec.plant)).name}的种子`;
+      const seedName = gardenRule(
+        () =>
+          `${getSpiritGardenSpecies(resolveSpiritGardenSpecies(resource.spec.plant)).name}的种子`,
+      );
       const plantId = globalThis.crypto.randomUUID();
       const next = gardenRule(() =>
         plantSpiritGardenSeed(
@@ -621,12 +628,7 @@ export function evolveSpiritField(
         view.evolveCost.quantity,
         tx,
       );
-      await spendStones(
-        actor,
-        player,
-        view.evolveCost.spiritStones,
-        tx,
-      );
+      await spendStones(actor, player, view.evolveCost.spiritStones, tx);
       const evolvedPlant = next.plots[input.plotIndex]!.plant!;
       const nextView = getSpiritGardenPlantView(evolvedPlant, player.realm);
       const evolved = evolvedPlant.evolved;
@@ -701,19 +703,60 @@ export function retireSpiritField(
     actor,
     input,
     'spirit_field_retire',
-    async ({ garden, now }) => ({
-      garden: gardenRule(() =>
-        retireSpiritGardenPlant(garden, input.plantId, now, input.plotIndex),
-      ),
-      detail: clearingPlot
-        ? '清理采尽的灵植，保留图录成果'
-        : '结束一株收藏灵植的培育，保留图录成果',
-      result: {
-        message: clearingPlot
-          ? '已清畦，可以重新播种'
-          : '已结束培育，图录成果已保留',
-      },
-    }),
+    async ({ tx, garden, now }) => {
+      const cleared =
+        input.plotIndex !== undefined
+          ? gardenRule(() =>
+              clearSpiritGardenPlot(
+                garden,
+                input.plotIndex!,
+                input.plantId,
+                now,
+                randomInt(1_000_000) / 1_000_000,
+              ),
+            )
+          : {
+              state: gardenRule(() =>
+                retireSpiritGardenPlant(garden, input.plantId, now),
+              ),
+              seed: null,
+            };
+      const seeds = cleared.seed ? [cleared.seed] : [];
+      const delivered = seeds.length
+        ? await grantInventory(
+            actor.cultivatorId,
+            seeds.map((seed) =>
+              seedGrant(
+                buildSpiritGardenSeed(
+                  seed.speciesId,
+                  seed.quality,
+                  seed.quantity,
+                ),
+              ),
+            ),
+            tx,
+          )
+        : [];
+      return {
+        garden: cleared.state,
+        detail: clearingPlot
+          ? cleared.seed
+            ? '清理采尽的灵植，收得一枚同株灵种'
+            : '清理采尽的灵植，保留图录成果'
+          : '结束一株收藏灵植的培育，保留图录成果',
+        result: {
+          message: clearingPlot
+            ? cleared.seed
+              ? '已清畦，收得一枚同株灵种'
+              : '已清畦，可以重新播种'
+            : '已结束培育，图录成果已保留',
+          seeds,
+          quantity: seeds.length,
+          locations: locationsOf(delivered),
+        },
+        resourceChanges: seeds.length ? [bagChange('cleared')] : [],
+      };
+    },
   );
 }
 
@@ -735,7 +778,11 @@ export function harvestSpiritField(
           ...harvested.products.map(productGrant),
           ...harvested.seeds.map((seed) =>
             seedGrant(
-              buildSpiritGardenSeed(seed.speciesId, seed.quality, seed.quantity),
+              buildSpiritGardenSeed(
+                seed.speciesId,
+                seed.quality,
+                seed.quantity,
+              ),
             ),
           ),
         ],
@@ -781,8 +828,7 @@ export function harvestSpiritField(
             harvested.products.reduce(
               (sum, product) => sum + product.quantity,
               0,
-            ) +
-            harvested.seeds.reduce((sum, seed) => sum + seed.quantity, 0),
+            ) + harvested.seeds.reduce((sum, seed) => sum + seed.quantity, 0),
           locations: locationsOf(delivered),
         },
         resourceChanges: [bagChange('harvested')],

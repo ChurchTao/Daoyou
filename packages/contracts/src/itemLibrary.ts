@@ -1,19 +1,19 @@
-import { z } from 'zod';
-import {
-  ItemLibraryItemIdSchema,
-  ItemLibraryStatusSchema,
-  ItemLibraryTypeSchema,
-  ItemLibraryMaterialPayloadSchema,
-  ArtifactEditorConfigSchema,
-} from '@daoyou/game-domain/items/catalog';
 import { ELEMENT_VALUES } from '@daoyou/constants/elements';
 import { QUALITY_VALUES } from '@daoyou/constants/qualities';
 import {
+  INVENTORY_MATERIAL_TYPES,
   MATERIAL_TYPE_VALUES,
   MaterialFactsSchema,
-  INVENTORY_MATERIAL_TYPES,
   seedFactsOf,
 } from '@daoyou/game-domain/inventory';
+import {
+  ArtifactEditorConfigSchema,
+  ItemLibraryItemIdSchema,
+  ItemLibraryMaterialPayloadSchema,
+  ItemLibraryStatusSchema,
+  ItemLibraryTypeSchema,
+} from '@daoyou/game-domain/items/catalog';
+import { z } from 'zod';
 
 export const ArtifactPreviewRequestSchema = ArtifactEditorConfigSchema.extend({
   name: z.string().trim().min(1).max(100),
@@ -63,7 +63,7 @@ export const ItemLibraryListQuerySchema = z.object({
 
 export const ItemLibraryMaterialGenerateSchema = z.object({
   count: z.number().int().min(1).max(200),
-  materialType: z.enum([...INVENTORY_MATERIAL_TYPES, 'seed']),
+  materialType: z.enum(INVENTORY_MATERIAL_TYPES),
   quality: z.enum(QUALITY_VALUES),
   status: ItemLibraryStatusSchema.default('published'),
   seed: z.string().trim().min(1).max(120).optional(),

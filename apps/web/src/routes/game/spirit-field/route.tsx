@@ -27,10 +27,11 @@ import type {
   SpiritGardenSpeciesId,
 } from '@daoyou/game-domain/spirit-field';
 import {
-  canPlantSpiritFieldSeed,
+  canPlantSpiritGardenSeed,
   getSpiritGardenEvolutionPreview,
   getSpiritGardenOutput,
   getSpiritGardenSpecies,
+  isSpiritGardenSeed,
   resolveSpiritGardenSpecies,
 } from '@daoyou/game-rules/spirit-field';
 import { useEffect, useRef, useState } from 'react';
@@ -57,7 +58,7 @@ type BatchPlantTarget = PlantTarget & { speciesName: string };
 type ItemTarget =
   { purpose: 'sow'; plotIndex: number } | ({ purpose: 'evolve' } & PlantTarget);
 type Panel =
-  | ({ view: 'plant' | 'mature' | 'branch' | 'evolve' } & PlantTarget)
+  | ({ view: 'plant' | 'mature' | 'branch' | 'evolve' | 'clear' } & PlantTarget)
   | { view: 'mature-batch' | 'branch-batch'; targets: BatchPlantTarget[] }
   | { view: 'sow'; plotIndex: number }
   | { view: 'inventory'; target: ItemTarget }
@@ -78,6 +79,7 @@ const titles = {
   collection: '保种阁',
   codex: '百草志',
   retire: '结束培育',
+  clear: '清畦留种',
   receipt: '收成已收妥',
 };
 
@@ -200,7 +202,8 @@ export default function SpiritFieldPage() {
       const facts = SeedFactsSchema.safeParse(item.instanceData);
       return (
         facts.success &&
-        canPlantSpiritFieldSeed(
+        isSpiritGardenSeed(facts.data.seedSpec.plant) &&
+        canPlantSpiritGardenSeed(
           snapshot.player.realm,
           facts.data.seedSpec.plant,
         )
@@ -268,7 +271,10 @@ export default function SpiritFieldPage() {
     setSelection(null);
     setEvolutionResult(null);
     storage.reload();
-    if (action.endpoint === 'harvest') {
+    if (
+      action.endpoint === 'harvest' ||
+      (action.endpoint === 'retire' && result.seeds?.length)
+    ) {
       setPanel({ view: 'receipt', result });
       return;
     }
@@ -450,11 +456,12 @@ export default function SpiritFieldPage() {
     panel?.view === 'sow' && chosen
       ? SeedFactsSchema.safeParse(chosen.instanceData)
       : null;
-  const seedSpecies = seed?.success
-    ? getSpiritGardenSpecies(
-        resolveSpiritGardenSpecies(seed.data.seedSpec.plant),
-      )
-    : null;
+  const seedSpecies =
+    seed?.success && isSpiritGardenSeed(seed.data.seedSpec.plant)
+      ? getSpiritGardenSpecies(
+          resolveSpiritGardenSpecies(seed.data.seedSpec.plant),
+        )
+      : null;
   const retired =
     panel?.view === 'retire'
       ? snapshot.collection.find((entry) => entry.id === panel.plantId)
@@ -499,6 +506,13 @@ export default function SpiritFieldPage() {
             items={inventoryView?.items ?? []}
             quickTouchHint
             slotProps={(item) => {
+              const seedFacts =
+                item?.definitionId === 'seed.v1'
+                  ? SeedFactsSchema.safeParse(item.instanceData)
+                  : null;
+              const legacySeed =
+                seedFacts?.success &&
+                !isSpiritGardenSeed(seedFacts.data.seedSpec.plant);
               const available =
                 !!item &&
                 matchesInventoryFilters(item, filter) &&
@@ -515,10 +529,18 @@ export default function SpiritFieldPage() {
                       <>
                         {!available ? (
                           <p className="text-ink-secondary text-sm">
-                            此物不符合本次
-                            {panel.target.purpose === 'sow' ? '栽种' : '蜕变'}
-                            要求。
+                            {legacySeed
+                              ? '旧灵种无法播种，请前往旧灵种转化。'
+                              : `此物不符合本次${panel.target.purpose === 'sow' ? '栽种' : '蜕变'}要求。`}
                           </p>
+                        ) : null}
+                        {legacySeed ? (
+                          <InkButton
+                            href="/game/seed-migration"
+                            variant="secondary"
+                          >
+                            旧灵种转化
+                          </InkButton>
                         ) : null}
                         <InkButton
                           variant="primary"
@@ -800,9 +822,7 @@ export default function SpiritFieldPage() {
               }}
               onEvolve={() => setPanel({ view: 'evolve', ...plantTarget })}
               onHarvest={() => void act({ endpoint: 'harvest', input: {} })}
-              onClear={() =>
-                void act({ endpoint: 'retire', input: plantTarget })
-              }
+              onClear={() => setPanel({ view: 'clear', ...plantTarget })}
               onArchive={() => {
                 if (
                   snapshot.collection.length >= snapshot.profile.collectionLimit
@@ -1202,6 +1222,44 @@ export default function SpiritFieldPage() {
                 }
               >
                 确认永久结束培育
+              </InkButton>
+            </div>
+          ) : null}
+          {panel?.view === 'clear' && validPanelPlant && plantTarget ? (
+            <div className="space-y-6 text-sm leading-7">
+              <InkButton
+                variant="secondary"
+                disabled={locked}
+                onClick={backToPlant}
+              >
+                返回灵植小记
+              </InkButton>
+              <p>
+                清理采尽的{validPanelPlant.speciesName}，腾出第{' '}
+                <span className="font-mono">{panel.plotIndex + 1}</span>{' '}
+                畦。图录成果保留。
+              </p>
+              <p className="text-teal">
+                本次有 <span className="font-mono">25%</span> 概率留下{' '}
+                <span className="font-mono">1</span> 枚{validPanelPlant.quality}
+                {gardenSeedName(validPanelPlant.speciesId, snapshot.species)}。
+              </p>
+              <p className="text-ink-secondary">
+                留种保持原物种与原种品质，蜕变不提高种子品质。
+              </p>
+              <InkButton
+                variant="primary"
+                className="w-full justify-center"
+                disabled={
+                  locked ||
+                  !validPanelPlant.exhausted ||
+                  pendingPlantQuantity(validPanelPlant) > 0
+                }
+                onClick={() =>
+                  void act({ endpoint: 'retire', input: plantTarget })
+                }
+              >
+                确认清畦
               </InkButton>
             </div>
           ) : null}

@@ -35,10 +35,6 @@ import {
   sameStack,
   sortBag,
 } from '@daoyou/game-rules/inventory';
-import {
-  getSpiritGardenSpecies,
-  resolveSpiritGardenSpecies,
-} from '@daoyou/game-rules/spirit-field';
 import { hasActiveCombat } from '@server/combat/application/CombatOccupancy.js';
 import { inventoryStackKey } from '@server/inventory/application/inventoryStackKey.js';
 import {
@@ -103,16 +99,9 @@ export function inventoryItemOf(
     item.instanceData = ConsumableFactsSchema.parse(item.instanceData);
   return item;
 }
-function seedInventoryName(facts: z.infer<typeof SeedFactsSchema>): string {
-  const species = getSpiritGardenSpecies(
-    resolveSpiritGardenSpecies(facts.seedSpec.plant),
-  );
-  return `${species.name}的种子`;
-}
-/** Read projection only: legacy seed identities and stack keys remain unchanged. */
 function inventoryItemName(row: typeof inventoryItems.$inferSelect): string {
   if (row.definitionId === 'seed.v1')
-    return seedInventoryName(SeedFactsSchema.parse(row.instanceData));
+    return SeedFactsSchema.parse(row.instanceData).seedSpec.plant.seedName;
   if (
     row.definitionId === 'equipment.v6' ||
     row.definitionId === 'material.v1' ||
@@ -134,26 +123,6 @@ export async function readInventory(
   const matches = ITEM_DEFINITIONS.filter((i) =>
     i.name.includes(query.search),
   ).map((i) => i.id);
-  // Search the same projected name that the bag displays, without rewriting legacy facts.
-  const seedSearchRows =
-    query.search && (query.kind === 'all' || query.kind === 'seed')
-      ? await executor
-          .select({ id: inventoryItems.id, instanceData: inventoryItems.instanceData })
-          .from(inventoryItems)
-          .where(and(
-            ownerFilter,
-            eq(inventoryItems.location, query.location),
-            eq(inventoryItems.definitionId, 'seed.v1'),
-          ))
-      : [];
-  const searchText = query.search.toLowerCase();
-  const matchingSeedIds = seedSearchRows.flatMap((row) => {
-    const facts = SeedFactsSchema.safeParse(row.instanceData);
-    return facts.success &&
-      seedInventoryName(facts.data).toLowerCase().includes(searchText)
-      ? [row.id]
-      : [];
-  });
   const materialRanks = QUALITY_VALUES.slice(
     query.minRank ? QUALITY_VALUES.indexOf(query.minRank) : 0,
     query.maxRank ? QUALITY_VALUES.indexOf(query.maxRank) + 1 : undefined,
@@ -200,11 +169,8 @@ export async function readInventory(
     query.search
       ? or(
           inArray(inventoryItems.definitionId, matches),
-          matchingSeedIds.length
-            ? inArray(inventoryItems.id, matchingSeedIds)
-            : undefined,
           ilike(
-            sql`${inventoryItems.instanceData}->>'name'`,
+            sql`coalesce(${inventoryItems.instanceData}->>'name', ${inventoryItems.instanceData}->'seedSpec'->'plant'->>'seedName')`,
             `%${query.search.replace(/[\\%_]/g, '\\$&')}%`,
           ),
         )
@@ -594,9 +560,7 @@ export async function mutateInventory(
                     eq(inventoryItems.definitionId, item.definitionId),
                     ...(item.definitionId === 'consumable.v1'
                       ? []
-                      : [
-                          eq(inventoryItems.stackKey, item.stackKey ?? ''),
-                        ]),
+                      : [eq(inventoryItems.stackKey, item.stackKey ?? '')]),
                     sql`${inventoryItems.quantity} < ${itemDefinition(item.definitionId).stackLimit}`,
                   ),
                 ]
@@ -616,36 +580,34 @@ export async function mutateInventory(
                   )
               : [];
           const before = [
-            ...new Map(
-              [
-                ...rows.map((row) => [row.id, inventoryItemOf(row)] as const),
-                ...targets
-                  .map(inventoryItemOf)
-                  .filter((item) =>
-                    sources.some((source) => {
-                      const itemKey = resolvedStackKey(
-                        item.definitionId,
-                        item.instanceData,
-                        item.stackKey,
-                      );
-                      const sourceKey = resolvedStackKey(
-                        source.definitionId,
-                        source.instanceData,
-                        source.stackKey,
-                      );
-                      return (
-                        item.definitionId === source.definitionId &&
-                        itemKey !== null &&
-                        itemKey === sourceKey
-                      );
-                    }),
-                  )
-                  .map(
-                    (item) =>
-                      [item.id, withResolvedConsumableStack(item)] as const,
-                  ),
-              ],
-            ).values(),
+            ...new Map([
+              ...rows.map((row) => [row.id, inventoryItemOf(row)] as const),
+              ...targets
+                .map(inventoryItemOf)
+                .filter((item) =>
+                  sources.some((source) => {
+                    const itemKey = resolvedStackKey(
+                      item.definitionId,
+                      item.instanceData,
+                      item.stackKey,
+                    );
+                    const sourceKey = resolvedStackKey(
+                      source.definitionId,
+                      source.instanceData,
+                      source.stackKey,
+                    );
+                    return (
+                      item.definitionId === source.definitionId &&
+                      itemKey !== null &&
+                      itemKey === sourceKey
+                    );
+                  }),
+                )
+                .map(
+                  (item) =>
+                    [item.id, withResolvedConsumableStack(item)] as const,
+                ),
+            ]).values(),
           ];
           let next = before.map((item) => ({ ...item }));
           for (const source of sources) {
@@ -768,7 +730,9 @@ export async function mutateInventory(
                     ) === wanted,
                 )
                 .slice(0, 1)
-                .map((row) => withResolvedConsumableStack(inventoryItemOf(row))),
+                .map((row) =>
+                  withResolvedConsumableStack(inventoryItemOf(row)),
+                ),
             );
           }
         }
