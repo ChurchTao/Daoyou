@@ -59,6 +59,7 @@ export const gameDockGroups: GameNavGroup[] = [
         id: 'legacy-storage',
         sceneLabel: '洞府宝库',
         href: '/game/cave/storage',
+        expandedDockLabel: '📦 旧藏宝库',
       },
       {
         id: 'cultivator',
@@ -121,11 +122,13 @@ export const gameDockGroups: GameNavGroup[] = [
         id: 'artifact-migration',
         sceneLabel: '旧法宝焕新',
         href: '/game/artifact-migration',
+        expandedDockLabel: '⚒️ 旧法宝焕新',
       },
       {
         id: 'manual-migration',
         sceneLabel: '旧功法传承',
         href: '/game/manual-migration',
+        expandedDockLabel: '📜 旧功法传承',
       },
       { id: 'story', sceneLabel: '入世' },
       { id: 'story-preview', sceneLabel: '看演出' },

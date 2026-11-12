@@ -12,7 +12,12 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "陈放的伤要有人守夜。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "hail": {
+        "by": "林晚",
+        "portrait": "icon:portrait-disciple-f",
+        "line": "陈放烧起来了。今夜要有人守着。"
+      }
     },
     {
       "id": "token",
@@ -24,7 +29,12 @@
       "href": "/game/story",
       "unlocks": [
         "world-chat"
-      ]
+      ],
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "你过来。有样东西，早该给你。"
+      }
     }
   ]
 }

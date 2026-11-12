@@ -12,7 +12,12 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "去库房领记名弟子的份例。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "hail": {
+        "by": "贺钧",
+        "portrait": "icon:portrait-noble-m",
+        "line": "新来的记名弟子？份例在库房，过时不候。"
+      }
     },
     {
       "id": "chore",
@@ -28,8 +33,13 @@
         }
       ],
       "scene": "sect-affairs",
-      "prompt": "去事务堂接一件差事，做完交差。",
-      "href": "/game/sect/affairs"
+      "prompt": "去宗门领一件差事，做完回去交差。",
+      "href": "/game/sect/affairs",
+      "hail": {
+        "by": "贺钧",
+        "portrait": "icon:portrait-noble-m",
+        "line": "差事做完记得回去交牌子。执事不等人。"
+      }
     },
     {
       "id": "forge-talk",
@@ -38,7 +48,11 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "交了差，路过器坊。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "hail": {
+        "by": "{forge_teacher}",
+        "line": "那个新来的，过来一下。"
+      }
     },
     {
       "id": "forge",
@@ -58,7 +72,11 @@
       "href": "/game/sect/refinery?workspace=craft&guide=forge-first-weapon",
       "mode": "all",
       "classroom": "refinery",
-      "grant": "first-weapon"
+      "grant": "first-weapon",
+      "hail": {
+        "by": "{forge_teacher}",
+        "line": "炉子给你空着。图纸、石料自己挑。"
+      }
     },
     {
       "id": "forged",
@@ -67,7 +85,15 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "兵器打成了，给器坊执事看看。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "unlocks": [
+        "refine",
+        "storage"
+      ],
+      "hail": {
+        "by": "{forge_teacher}",
+        "line": "打完了？拿来我看。"
+      }
     },
     {
       "id": "equip",
@@ -85,7 +111,11 @@
       "scene": "inventory",
       "prompt": "打开储物袋，把新兵器穿戴上。",
       "href": "/game/inventory?guide=weapon-equip",
-      "mode": "all"
+      "mode": "all",
+      "hail": {
+        "by": "{forge_teacher}",
+        "line": "打出来就挂上。放在袋子里它不会自己砍人。"
+      }
     },
     {
       "id": "sleepless",

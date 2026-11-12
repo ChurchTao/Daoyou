@@ -12,7 +12,11 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "入门考校开始了。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "hail": {
+        "by": "{instructor}",
+        "line": "考校的人到齐了没有？进场。"
+      }
     },
     {
       "id": "garden",
@@ -27,7 +31,12 @@
       "unlocks": [
         "dungeon",
         "dungeon-history"
-      ]
+      ],
+      "hail": {
+        "by": "林晚",
+        "portrait": "icon:portrait-disciple-f",
+        "line": "废弃药园在落日森林。我看过舆图。"
+      }
     },
     {
       "id": "blocked",
@@ -45,7 +54,12 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "三天后放榜。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "放榜了放榜了！你怎么还坐得住？"
+      }
     }
   ]
 }

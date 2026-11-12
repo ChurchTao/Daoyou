@@ -1,6 +1,6 @@
 {
   "id": "v1-cubs",
-  "title": "石缝里",
+  "title": "篓底",
   "requires": [],
   "cast": {
     "elder": {
@@ -11,7 +11,7 @@
   "cues": [
     {
       "type": "scene",
-      "alt": "溪边的乱石滩，石缝里有东西在动。"
+      "alt": "溪边的乱石滩，药篓翻倒在石头边上。"
     },
     {
       "type": "narration",
@@ -51,21 +51,85 @@
     },
     {
       "type": "narration",
-      "text": "溪边的石缝里有动静。"
+      "text": "药篓翻倒在石头边上。篓底有东西动了一下。"
     },
     {
       "type": "narration",
-      "text": "三只小东西挤在一起，浑身湿透，都在发抖。"
+      "text": "一只银灰虎斑的小猫从草药底下钻出来。圆脸，短腿，四只爪子雪白，像穿了袜子。"
+    },
+    {
+      "type": "narration",
+      "text": "它抖了抖毛，看了你一眼，走过来，挨着你的脚坐下了。"
     },
     {
       "type": "line",
       "speaker": "elder",
-      "text": "昨夜山上闹了一宿，兽都往下跑，把窝踩散了。大的没回来。"
+      "text": "咪咪。"
+    },
+    {
+      "type": "narration",
+      "text": "猫没有理他。"
     },
     {
       "type": "line",
       "speaker": "elder",
-      "text": "三张嘴你喂不起。挑一只吧，那两只我抱回去。"
+      "text": "上个月在溪边捡的。喂了它一个月，摸都不让我摸一下。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "倒肯挨着你。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "（把它抱起来）",
+          "then": [
+            {
+              "type": "narration",
+              "text": "它没有躲，在你胳膊弯里转了半圈，找了个舒服的姿势。"
+            }
+          ]
+        },
+        {
+          "label": "它咬人吗？",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "elder",
+              "text": "咬我。"
+            },
+            {
+              "type": "narration",
+              "text": "猫打了个哈欠。"
+            }
+          ]
+        },
+        {
+          "label": "我自己都不知道往哪去。",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "elder",
+              "text": "它也不知道。正好。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "带着吧。山里走夜路，身边有个活物，胆子大些。"
+    },
+    {
+      "type": "narration",
+      "text": "咪咪顺着你的袖子爬上肩头，尾巴绕过来，搭在你脖子上。"
+    },
+    {
+      "type": "aside",
+      "text": "咪咪跟了你。往后在灵兽袋里能看到它。"
     },
     {
       "type": "end",

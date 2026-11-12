@@ -1,29 +1,37 @@
-import { postEvents } from '@app/lib/api/postEvents';
-import { hasPendingCommandRequest, pendingCommandRequest } from '@app/lib/pendingCommandRequest';
-import { usePlayerSession } from '@app/lib/resources/player';
-import { HomeUrgentRow } from '@app/components/feature/home/HomeUrgentRow';
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
 import { SpiritStones } from '@app/components/ui/SpiritStones';
+import { postEvents } from '@app/lib/api/postEvents';
+import {
+  hasPendingCommandRequest,
+  pendingCommandRequest,
+} from '@app/lib/pendingCommandRequest';
 import { consumeResourceChanges } from '@app/lib/resources/mutations';
-import { GeneratedMaterial } from '@daoyou/game-domain/materials/generation';
+import { usePlayerSession } from '@app/lib/resources/player';
 import { getGameConceptInfo } from '@daoyou/game-content/presentation/concepts';
-import { useEffect, useState } from 'react';
+import { GeneratedMaterial } from '@daoyou/game-domain/materials/generation';
+import { useEffect, useState, type ReactNode } from 'react';
 
 interface YieldCardProps {
   cultivator: { last_yield_at?: string };
   onOk?: () => void;
   onInteractionActiveChange?: (active: boolean) => void;
-  variant?: 'card' | 'compact';
+  /** 换一种写法来触发领取。给了就不画卡片。 */
+  trigger?: (state: {
+    hours: number;
+    retry: boolean;
+    claiming: boolean;
+    claim: () => void;
+  }) => ReactNode;
 }
 
 export function YieldCard({
   cultivator,
   onOk,
   onInteractionActiveChange,
-  variant = 'card',
+  trigger,
 }: YieldCardProps) {
   const { pushToast } = useInkUI();
   const owner = usePlayerSession().data?.activeCultivator?.id;
@@ -122,7 +130,7 @@ export function YieldCard({
       pending={claiming}
       pendingLabel="结算中……"
       onClick={handleClaimYield}
-      className={variant === 'card' ? 'min-w-20' : undefined}
+      className="min-w-20"
     >
       {pendingYield ? '重试领取' : timeSinceYield < 1 ? '历练中' : '领取'}
     </InkButton>
@@ -133,21 +141,13 @@ export function YieldCard({
 
   return (
     <>
-      {variant === 'compact' ? (
-        <HomeUrgentRow
-          title={
-            <>
-              <span>🗺️ 外出历练</span>
-              {timeSinceYield >= 24 ? (
-                <InkBadge tone="danger" compact>
-                  已满
-                </InkBadge>
-              ) : null}
-            </>
-          }
-          summary={`已历练 ${timeSinceYield}/24小时`}
-          action={actionButton}
-        />
+      {trigger ? (
+        trigger({
+          hours: timeSinceYield,
+          retry: pendingYield,
+          claiming,
+          claim: () => void handleClaimYield(),
+        })
       ) : (
         <div className="border-ink/20 relative mb-6 overflow-hidden border bg-white/70 p-4">
           <div className="relative z-10 flex items-center justify-between">

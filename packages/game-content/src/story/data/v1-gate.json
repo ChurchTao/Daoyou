@@ -12,7 +12,12 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "许伯上山来了，有话要说。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "hail": {
+        "by": "许伯",
+        "portrait": "icon:portrait-elder-m",
+        "line": "在不在？有句话，说完就走。"
+      }
     },
     {
       "id": "map",
@@ -28,7 +33,12 @@
       "href": "/game/map-v2?guide=map-qingxi",
       "unlocks": [
         "map"
-      ]
+      ],
+      "hail": {
+        "by": "许伯",
+        "portrait": "icon:portrait-elder-m",
+        "line": "石案上那张舆图，先把路认了。"
+      }
     },
     {
       "id": "queue",
@@ -37,7 +47,12 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "诸宗开山收徒，山门前排着长队。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "hail": {
+        "by": "山门接引人",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "拜师的往这边排。"
+      }
     },
     {
       "id": "join",
@@ -54,7 +69,12 @@
       "lesson": "sect-door",
       "unlocks": [
         "sect"
-      ]
+      ],
+      "hail": {
+        "by": "山门接引人",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "名册在那头，自己看。"
+      }
     },
     {
       "id": "bones",
@@ -62,8 +82,12 @@
       "script": "v1-bones",
       "outcome": "done",
       "scene": "story",
-      "prompt": "轮到你验根骨了。",
-      "href": "/game/story"
+      "prompt": "名字落了册，还要验一回根骨。",
+      "href": "/game/story",
+      "hail": {
+        "by": "{receptionist}",
+        "line": "下一个。腰牌拿出来。"
+      }
     },
     {
       "id": "path",
@@ -84,7 +108,11 @@
       "mode": "all",
       "unlocks": [
         "sect-methods"
-      ]
+      ],
+      "hail": {
+        "by": "{instructor}",
+        "line": "悟道处的门开着。选好了路子再来见我。"
+      }
     },
     {
       "id": "points",
@@ -97,7 +125,14 @@
       ],
       "scene": "cultivator",
       "prompt": "看看根基怎么分配。拿不准可以先留着。",
-      "href": "/game/cultivator?allocate=1&guide=first-attributes"
+      "href": "/game/cultivator?allocate=1&guide=first-attributes",
+      "unlocks": [
+        "cultivator-attributes"
+      ],
+      "hail": {
+        "by": "{instructor}",
+        "line": "根基怎么分，自己掂量。拿不准就先留着。"
+      }
     },
     {
       "id": "spar",
@@ -106,7 +141,14 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "教习还有几句话交代。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "unlocks": [
+        "training-room"
+      ],
+      "hail": {
+        "by": "{instructor}",
+        "line": "过来，还有几句话。"
+      }
     }
   ]
 }

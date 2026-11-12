@@ -383,11 +383,19 @@ export function presentStory(
     prompt: shifted.prompt,
     href: shifted.href,
     scriptId: beat.kind === 'performance' ? beat.script : null,
+    hail: beat.hail
+      ? {
+          by: beat.hail.by,
+          portrait: beat.hail.portrait ?? null,
+          line: beat.hail.line,
+        }
+      : null,
     guideLesson: pendingGuide(beat, progress),
     classroom: beat.kind === 'practice' ? (beat.classroom ?? null) : null,
     unlocked: chapter.gated
       ? [...new Set([...opened, ...chapterUnlocks(chapter, beat.id)])]
       : null,
+    fresh: chapter.gated ? [...(beat.unlocks ?? [])] : [],
     flags: [...new Set([...carried, ...storyFlags(progress.marks)])],
     goals:
       beat.kind === 'objective'

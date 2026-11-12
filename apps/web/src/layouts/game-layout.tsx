@@ -1,4 +1,5 @@
 import { GuideOverlay } from '@app/components/feature/guide/GuideOverlay';
+import { StoryNudge } from '@app/components/feature/story/StoryNudge';
 import { HuntTeamBar } from '@app/components/feature/hunts/HuntTeamBar';
 import { WorldChatPreviewBar } from '@app/components/feature/world-chat/WorldChatPreviewBar';
 import { WorldChatFeedProvider } from '@app/components/feature/world-chat/useWorldChatFeedModel';
@@ -232,6 +233,7 @@ export function GameMapLayout({
       >
         <Outlet />
       </main>
+      <StoryNudge />
       <GuideOverlay />
     </div>
   );

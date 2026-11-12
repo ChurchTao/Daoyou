@@ -17,7 +17,7 @@ type StorySignalRule = {
   slot?: string;
 };
 
-// 练功房不进入剧情。青溪坡上打完、捉住或自己退开记成事实。炼成一件法兵也记成事实。
+// 练功房不进入剧情。青溪坡上打完、捉住、逃开或放弃都记成事实。炼成一件法兵也记成事实。
 const rules: readonly StorySignalRule[] = [
   { type: 'alchemy.craft.completed', fact: 'alchemy_crafted' },
   {

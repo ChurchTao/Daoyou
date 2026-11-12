@@ -226,9 +226,10 @@
         }
       ],
       "scene": "beasts",
-      "prompt": "选择一位初始灵兽伙伴，确认携带出战与首发，看看它的本领。",
+      "prompt": "打开灵兽袋，看看跟着你的咪咪，确认携带出战与首发。",
       "href": "/game/beasts?guide=beast-pouch",
-      "mode": "all"
+      "mode": "all",
+      "grant": "starter-beast"
     },
     {
       "id": "tracks",

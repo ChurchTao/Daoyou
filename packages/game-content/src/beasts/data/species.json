@@ -1,7 +1,7 @@
 {
   "$schema": "./species.schema.json",
   "formatVersion": 2,
-  "contentRevision": 17,
+  "contentRevision": 18,
   "species": [
     {
       "id": "combat.wild.species.spirit-fox",
@@ -10,7 +10,7 @@
       "icon": "icon:beast-spirit-fox",
       "description": "灰白小狐，尾端长毛聚起灵火时宛如烛芯；夜间常蹲在灵泉旁，将蓬尾绕至身前，以尾尖火光映脸。",
       "carryLevel": 5,
-      "starter": true,
+      "starter": false,
       "aptitudes": {
         "attack": {
           "min": 672,
@@ -56,7 +56,7 @@
       "icon": "icon:beast-rock-boar",
       "description": "身躯矮壮，肩背高耸，钢灰硬皮自颈后连至臀部；性情暴躁，稍受惊扰便喷鼻冲撞，受击时立即转身顶向来敌。",
       "carryLevel": 5,
-      "starter": true,
+      "starter": false,
       "aptitudes": {
         "attack": {
           "min": 816,
@@ -101,7 +101,7 @@
       "icon": "icon:beast-wind-wolf",
       "description": "身形轻瘦，灰银细毛，耳尖与尾缘泛着淡青光泽；警觉时隐去身形，潜伏于幽林，待猎物走近才突然扑出。",
       "carryLevel": 5,
-      "starter": true,
+      "starter": false,
       "aptitudes": {
         "attack": {
           "min": 1104,
@@ -146,7 +146,7 @@
       "icon": "icon:beast-mimi",
       "description": "银灰虎斑的小灵猫，圆脸短足，胸腹雪白，四爪如穿白袜。常将前爪拢在胸前伏成一团，长尾绕身；灵息稍有异动，便竖耳抬头，以黄绿圆眼凝望来处。",
       "carryLevel": 5,
-      "starter": false,
+      "starter": true,
       "aptitudes": {
         "attack": {
           "min": 780,
@@ -1571,7 +1571,7 @@
     }
   ],
   "generation": {
-    "starterLevel": 10,
+    "starterLevel": 5,
     "lifespan": 1000,
     "minBirthSkills": 0,
     "maxBirthSkills": 6

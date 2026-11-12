@@ -18,7 +18,12 @@
       "href": "/game/retreat",
       "unlocks": [
         "tasks"
-      ]
+      ],
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "你离圆满就差一口气了吧？我可不等你啊。"
+      }
     },
     {
       "id": "guard",
@@ -27,7 +32,12 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "陈放在静室门口等你。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "来静室一趟。有话当面说。"
+      }
     },
     {
       "id": "rise",
@@ -38,7 +48,12 @@
       },
       "scene": "tasks",
       "prompt": "去任务中心查看破境卷宗：备丹、过试炼，再回静室冲关。",
-      "href": "/game/tasks"
+      "href": "/game/tasks",
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "丹备好，试炼过了，就进去。门口有我。"
+      }
     },
     {
       "id": "risen",
@@ -47,7 +62,12 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "冲关已成。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "出来了？！让我看看——"
+      }
     }
   ]
 }

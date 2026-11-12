@@ -30,7 +30,10 @@ import {
   rewindToUnwatchedPerformance,
   type StoryResolution,
 } from '@daoyou/game-rules/story';
+import { BEAST_STARTER_SPECIES } from '@daoyou/game-content/beasts';
+import { STORY_STARTER_BEAST_GRANT } from '@daoyou/game-content/rewards/story';
 import { getStoryChapter } from '@daoyou/game-content/story/catalog';
+import { giveStarterBeast } from '@server/combat/application/starterBeastGift.js';
 import {
   emptyStoryFacts,
   chapterUnlocks,
@@ -42,7 +45,7 @@ import {
   type StoryProgress,
   type StoryView,
 } from '@daoyou/game-domain/story';
-import { and, count, eq, sql } from 'drizzle-orm';
+import { and, count, eq, isNotNull, sql } from 'drizzle-orm';
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import { grantInventory } from '@server/inventory/operations.js';
 
@@ -148,7 +151,7 @@ async function readStoryFacts(
           ),
         )
         .limit(1),
-    // 历来做完的宗门日常，换过宗门的也算。
+    // 历来交了差的宗门日常，换过宗门的也算。做完没交的不算。
     () =>
       tx
         .select({ value: count() })
@@ -161,7 +164,7 @@ async function readStoryFacts(
           and(
             eq(sectMemberships.cultivatorId, cultivatorId),
             eq(sectTaskRecords.kind, 'daily'),
-            eq(sectTaskRecords.status, 'completed'),
+            isNotNull(sectTaskRecords.claimedAt),
           ),
         ),
     () =>
@@ -193,7 +196,14 @@ async function applyRewards(
   ids: readonly string[],
   tx: DbTransaction,
 ): Promise<{ items: boolean; spiritStones: boolean }> {
-  const rewards = ids.map((id) => storyReward(id, cultivatorId));
+  // 初始灵兽不是掉落池里的东西，单独放进灵兽袋。
+  if (ids.includes(STORY_STARTER_BEAST_GRANT)) {
+    const species = BEAST_STARTER_SPECIES[0];
+    if (species) await giveStarterBeast(cultivatorId, species.id, tx);
+  }
+  const rewards = ids
+    .filter((id) => id !== STORY_STARTER_BEAST_GRANT)
+    .map((id) => storyReward(id, cultivatorId));
   const items = rewards.flatMap((reward) => reward.items);
   const stones = rewards.reduce((sum, reward) => sum + reward.spiritStones, 0);
   if (items.length > 0) await grantInventory(cultivatorId, items, tx);

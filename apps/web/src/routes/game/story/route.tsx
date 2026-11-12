@@ -5,9 +5,11 @@ import { InkButton } from '@app/components/ui';
 import { cn } from '@app/lib/cn';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { useCultivatorIdentity, usePlayerSession } from '@app/lib/resources/player';
-import { storyPerformanceContext } from '@app/lib/story/performanceContext';
+import {
+  fillStoryScript,
+  storyPerformanceContext,
+} from '@app/lib/story/performanceContext';
 import { useStory } from '@app/lib/story/useStory';
-import { fillPerformanceScript } from '@daoyou/game-domain/performance';
 import type { StoryView } from '@daoyou/game-domain/story';
 import { getPerformanceScript } from '@daoyou/game-content/performance/catalog';
 import { useState } from 'react';
@@ -52,7 +54,11 @@ export default function StoryRoute() {
     cultivator,
     player.data?.activeCultivator?.sectId,
   );
-  const script = fillPerformanceScript(getPerformanceScript(scriptId), context);
+  const script = fillStoryScript(
+    getPerformanceScript(scriptId),
+    context,
+    player.data?.activeCultivator?.sectId,
+  );
 
   return (
     <div

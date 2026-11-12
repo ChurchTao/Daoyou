@@ -14,7 +14,8 @@
       "portrait": "icon:portrait-disciple-f"
     },
     "porter": {
-      "name": "门房"
+      "name": "门房",
+      "portrait": "icon:portrait-servant-m"
     },
     "shen": {
       "name": "沈长老",

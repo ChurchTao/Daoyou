@@ -12,7 +12,11 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "今天的差事是去丹房打杂。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "hail": {
+        "by": "{alchemy_teacher}",
+        "line": "今天打杂的是谁？丹房这边缺人。"
+      }
     },
     {
       "id": "furnace",
@@ -32,7 +36,11 @@
       "href": "/game/sect/alchemy?workspace=craft&guide=alchemy-first-furnace",
       "mode": "all",
       "classroom": "alchemy",
-      "grant": "first-furnace-lesson"
+      "grant": "first-furnace-lesson",
+      "hail": {
+        "by": "{alchemy_teacher}",
+        "line": "翠芽草四份，一起下。看着火。"
+      }
     },
     {
       "id": "pals",
@@ -41,7 +49,14 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "丹成了，给丹房执事看看。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "unlocks": [
+        "alchemy"
+      ],
+      "hail": {
+        "by": "{alchemy_teacher}",
+        "line": "出炉了？端过来。"
+      }
     }
   ]
 }

@@ -606,7 +606,11 @@ describe('story resolver', () => {
     play('arrival-tracks', 'tracks', 'seek');
     accept(noteStoryFact(arrival, current, facts, 'qingxi_met'), 'remain');
     play('arrival-remain', 'remained', 'entered');
-    expect(issued).toEqual(['first-furnace-lesson', 'first-weapon']);
+    expect(issued).toEqual([
+      'first-furnace-lesson',
+      'first-weapon',
+      'starter-beast',
+    ]);
     expect(resolveStory(arrival, current, facts).grants).toEqual([]);
     expect(
       rewindToUnwatchedPerformance(arrival, current, emptyStoryFacts()).beatId,

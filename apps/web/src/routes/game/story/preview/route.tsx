@@ -2,9 +2,12 @@ import { PerformancePlayer } from '@app/components/feature/performance/Performan
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { InkButton, InkInput } from '@app/components/ui';
 import { useCultivatorIdentity, usePlayerSession } from '@app/lib/resources/player';
-import { storyPerformanceContext } from '@app/lib/story/performanceContext';
+import {
+  fillStoryScript,
+  storyPerformanceContext,
+} from '@app/lib/story/performanceContext';
 import { listPerformanceScripts, getPerformanceScript } from '@daoyou/game-content/performance/catalog';
-import { fillPerformanceScript, type PerformanceContext } from '@daoyou/game-domain/performance';
+import type { PerformanceContext } from '@daoyou/game-domain/performance';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
@@ -120,11 +123,15 @@ export default function StoryPreviewRoute() {
     );
   }
 
-  let filled: ReturnType<typeof fillPerformanceScript>;
+  let filled: ReturnType<typeof fillStoryScript>;
   let context: PerformanceContext;
   try {
     context = watchContext(script.requires, cultivator, player.data?.activeCultivator?.sectId);
-    filled = fillPerformanceScript(script, context);
+    filled = fillStoryScript(
+      script,
+      context,
+      player.data?.activeCultivator?.sectId,
+    );
   } catch (reason) {
     return (
       <PreviewShelf

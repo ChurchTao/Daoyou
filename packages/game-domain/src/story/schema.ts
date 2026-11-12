@@ -57,6 +57,16 @@ const unlocksSchema = z
   .max(12)
   .optional();
 
+// 招呼：洞府里，这一幕等着玩家的那个人说的一句话。名字里可以带演出的占位符。
+const hailSchema = z
+  .object({
+    by: z.string().trim().min(1).max(20),
+    portrait: z.string().trim().min(1).max(60).optional(),
+    line: z.string().trim().min(1).max(80),
+  })
+  .strict()
+  .optional();
+
 const performanceBeatSchema = z
   .object({
     id: z.string().trim().min(1).max(40),
@@ -67,6 +77,7 @@ const performanceBeatSchema = z
     prompt: z.string().max(80),
     href: z.string().trim().min(1).max(120),
     unlocks: unlocksSchema,
+    hail: hailSchema,
   })
   .strict();
 
@@ -138,6 +149,7 @@ const practiceBeatSchema = z
     prompt: z.string().trim().min(1).max(80),
     href: z.string().trim().min(1).max(120),
     unlocks: unlocksSchema,
+    hail: hailSchema,
     lesson: lessonIdSchema.optional(),
     // 破例一课：这一幕期间，身份不够的弟子也能进这间屋开一炉。
     classroom: z.enum(STORY_CLASSROOMS).optional(),
@@ -154,6 +166,7 @@ const lifeBeatSchema = z
     prompt: z.string().max(80),
     href: z.string().trim().min(1).max(120),
     unlocks: unlocksSchema,
+    hail: hailSchema,
     when: z
       .object({
         fact: factSchema,
@@ -175,6 +188,7 @@ const waitBeatSchema = z
     prompt: z.string().trim().min(1).max(80),
     href: z.string().trim().min(1).max(120),
     unlocks: unlocksSchema,
+    hail: hailSchema,
   })
   .strict();
 
@@ -198,6 +212,7 @@ const objectiveBeatSchema = z
     prompt: z.string().trim().min(1).max(80),
     href: z.string().trim().min(1).max(120),
     unlocks: unlocksSchema,
+    hail: hailSchema,
     grant: z.string().trim().min(1).max(40).optional(),
     reward: z.string().trim().min(1).max(40).optional(),
   })
@@ -352,8 +367,19 @@ export const StoryViewSchema = z
     scriptId: z.string().nullable(),
     guideLesson: z.string().nullable(),
     classroom: z.enum(STORY_CLASSROOMS).nullable(),
+    // 这一幕等着玩家的人和他的一句话。没写就为空。
+    hail: z
+      .object({
+        by: z.string(),
+        portrait: z.string().nullable(),
+        line: z.string(),
+      })
+      .strict()
+      .nullable(),
     // 眼下开放的场景入口。为空表示不设限。
     unlocked: z.array(z.string()).nullable(),
+    // 眼下这一幕刚开放的入口，界面上标成新的。
+    fresh: z.array(z.string()),
     // 演出里选下并记住的标记，跨章节都认。
     flags: z.array(z.string()),
     // 目标幕的各条目标。别的幕是空的。

@@ -28,7 +28,12 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "跟着采药的老人下山。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "hail": {
+        "by": "许伯",
+        "portrait": "icon:portrait-elder-m",
+        "line": "能走就跟上。天黑前要下到山弯。"
+      }
     },
     {
       "id": "fight",
@@ -55,7 +60,12 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "动静过去了，老人在等你。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "hail": {
+        "by": "许伯",
+        "portrait": "icon:portrait-elder-m",
+        "line": "没事了。过来。"
+      }
     },
     {
       "id": "cub",
@@ -64,19 +74,21 @@
         {
           "type": "guide",
           "lesson": "beast-pouch"
-        },
-        {
-          "type": "fact",
-          "fact": "starter_beast"
         }
       ],
       "scene": "beasts",
-      "prompt": "选一只幼兽带走。",
+      "prompt": "打开灵兽袋，看看咪咪。",
       "href": "/game/beasts?guide=beast-pouch",
-      "mode": "all",
       "unlocks": [
-        "beasts"
-      ]
+        "beasts",
+        "beast-room"
+      ],
+      "hail": {
+        "by": "许伯",
+        "portrait": "icon:portrait-elder-m",
+        "line": "它认你了。去看看它，别饿着。"
+      },
+      "grant": "starter-beast"
     },
     {
       "id": "soup",
@@ -85,7 +97,15 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "跟许伯回山弯里歇一歇。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "unlocks": [
+        "inn"
+      ],
+      "hail": {
+        "by": "许伯",
+        "portrait": "icon:portrait-elder-m",
+        "line": "回去喝口热的。"
+      }
     },
     {
       "id": "home",
@@ -98,7 +118,12 @@
       ],
       "scene": "cave",
       "prompt": "去洞府看看：认一认泉眼和出门的路。",
-      "href": "/game?guide=cave-layout"
+      "href": "/game?guide=cave-layout",
+      "hail": {
+        "by": "许伯",
+        "portrait": "icon:portrait-elder-m",
+        "line": "这洞往后归你住。里头有眼泉，自己去认认。"
+      }
     },
     {
       "id": "night",

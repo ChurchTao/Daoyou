@@ -58,14 +58,10 @@ export function generateStarterBeast(
   ownerCultivatorId: string,
   speciesId: string,
   seed: number,
+  /** 不给就按初始伙伴的等级出生。 */
+  level: number = BEAST_GENERATION.starterLevel,
 ): SummonedBeast {
-  return createIndividual(
-    id,
-    ownerCultivatorId,
-    speciesId,
-    BEAST_GENERATION.starterLevel,
-    seed,
-  );
+  return createIndividual(id, ownerCultivatorId, speciesId, level, seed);
 }
 
 export function generateCapturedBeast(

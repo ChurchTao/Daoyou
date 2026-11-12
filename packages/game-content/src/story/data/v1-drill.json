@@ -11,11 +11,17 @@
       "script": "v1-notice",
       "outcome": "done",
       "scene": "story",
-      "prompt": "事务堂门口贴了新告示。",
+      "prompt": "宗门里贴了新告示。",
       "href": "/game/story",
       "unlocks": [
-        "divination"
-      ]
+        "divination",
+        "retreat"
+      ],
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "贴告示了！走，去看看。"
+      }
     },
     {
       "id": "work",
@@ -47,7 +53,12 @@
       ],
       "scene": "sect-affairs",
       "prompt": "为入门考校做准备。",
-      "href": "/game/sect/affairs"
+      "href": "/game/sect/affairs",
+      "hail": {
+        "by": "林晚",
+        "portrait": "icon:portrait-disciple-f",
+        "line": "考校看的是平日的功课。差事和闭关，都算。"
+      }
     },
     {
       "id": "odd",
@@ -56,7 +67,12 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "这些日子的事，值得记一笔。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "哎，你来得正好，过来过来。"
+      }
     },
     {
       "id": "grow",
@@ -68,7 +84,11 @@
       },
       "scene": "retreat",
       "prompt": "修至炼气后期，考校就开始了。",
-      "href": "/game/retreat"
+      "href": "/game/retreat",
+      "hail": {
+        "by": "{instructor}",
+        "line": "炼气后期再来报名。不到的不收。"
+      }
     }
   ]
 }

@@ -4,7 +4,8 @@
   "requires": [],
   "cast": {
     "usher": {
-      "name": "山门接引人"
+      "name": "山门接引人",
+      "portrait": "icon:portrait-disciple-m"
     }
   },
   "cues": [

@@ -18,6 +18,7 @@ import {
   useSectCombatState,
 } from '@app/lib/resources/player';
 import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
+import { useStory } from '@app/lib/story/useStory';
 import { REALM_ORDER } from '@daoyou/constants/realms';
 import type {
   WildRegionView,
@@ -95,6 +96,15 @@ function WildRegion({ nodeId }: { nodeId: string }) {
     !!cultivator &&
     REALM_ORDER[cultivator.realm] < REALM_ORDER[region.realmRequirement];
   const [searching, setSearching] = useState(false);
+  // 新手期在野外办完主线的事，要有一句话把人领回剧情里。
+  const { story, reload: reloadStory } = useStory();
+  const arrived = Boolean(region);
+  const settlingBattle = region?.settlingBattleId;
+  useEffect(() => {
+    if (arrived && !settlingBattle) void reloadStory();
+  }, [arrived, reloadStory, settlingBattle]);
+  const storyWaits =
+    story?.unlocked && story.kind === 'performance' ? story : null;
   const alive = useRef(false);
   useEffect(() => {
     alive.current = true;
@@ -280,6 +290,17 @@ function WildRegion({ nodeId }: { nodeId: string }) {
                 role="status"
               >
                 上场战斗结算中，请稍候。
+              </p>
+            )}
+            {storyWaits && !region.settlingBattleId && (
+              <p
+                className="text-ink flex flex-wrap items-center justify-center gap-x-3 px-6 text-base leading-8"
+                role="status"
+              >
+                {storyWaits.prompt}
+                <InkButton href={storyWaits.href} variant="primary">
+                  过去
+                </InkButton>
               </p>
             )}
             {region.trainingSessionId && (

@@ -21,16 +21,16 @@
   "cues": [
     {
       "type": "scene",
-      "alt": "事务堂门口贴着一张新告示，围了不少人。"
+      "alt": "差事榜旁边贴着一张新告示，围了不少人。"
     },
     {
       "type": "title",
-      "kicker": "宗门 · 事务堂",
+      "kicker": "宗门 · 告示",
       "text": "告示"
     },
     {
       "type": "narration",
-      "text": "事务堂门口贴了新告示。"
+      "text": "差事榜旁边贴了新告示。"
     },
     {
       "type": "letter",

@@ -12,7 +12,15 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "教习在演武场点人。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "unlocks": [
+        "yield"
+      ],
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "教习在演武场点人了，快走快走！"
+      }
     },
     {
       "id": "seek",
@@ -23,7 +31,11 @@
       },
       "scene": "map",
       "prompt": "去青溪坡寻觅，遇上一次生灵。",
-      "href": "/game/map-v2"
+      "href": "/game/map-v2",
+      "hail": {
+        "by": "{instructor}",
+        "line": "青溪坡，去看一眼就回。别走深了。"
+      }
     },
     {
       "id": "fatter",
@@ -41,7 +53,11 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "回宗门向教习复命。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "hail": {
+        "by": "{instructor}",
+        "line": "青溪坡回来的？过来回话。"
+      }
     }
   ]
 }

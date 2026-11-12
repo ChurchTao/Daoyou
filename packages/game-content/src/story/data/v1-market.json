@@ -12,7 +12,12 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "有了腰牌，可以下山了。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "腰牌拿到手了吧？走，下山。"
+      }
     },
     {
       "id": "buy",
@@ -27,7 +32,12 @@
       "unlocks": [
         "market",
         "market-recycle"
-      ]
+      ],
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "百草集什么都有。你随便挑一样，我请……算了，你自己付。"
+      }
     },
     {
       "id": "word",

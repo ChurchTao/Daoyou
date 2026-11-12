@@ -14,7 +14,6 @@ import {
   beastFusionReason,
   fuseBeasts,
 } from '@daoyou/game-rules/beasts/fusion';
-import { generateStarterBeast } from '@daoyou/game-rules/beasts/generation';
 import {
   allocateBeast,
   BEAST_BAG_CAPACITY,
@@ -54,6 +53,7 @@ import { StoryService } from '@server/story/application/StoryService.js';
 import { and, eq, inArray } from 'drizzle-orm';
 import { createHash, randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
+import { giveStarterBeast } from './starterBeastGift.js';
 
 import {
   assertBeastIdle,
@@ -223,36 +223,8 @@ export async function claimStarterBeast(
   const claimed = await mutate(cultivatorId, async (tx) => {
     const roster = await readBeastRoster(cultivatorId, tx);
     if (roster.starterClaimed) return { roster, state: null };
-    if (
-      carriedBeastIds(roster.beasts, roster.lineup).length >= BEAST_BAG_CAPACITY
-    )
+    if (!(await giveStarterBeast(cultivatorId, speciesId, tx)))
       throw new BeastError('灵兽袋已满，请先空出空间');
-    const beast = generateStarterBeast(
-      randomUUID(),
-      cultivatorId,
-      speciesId,
-      randomInt(0, 0x7fffffff),
-    );
-    await tx.insert(cultivatorBeasts).values({
-      id: beast.id,
-      cultivatorId,
-      individual: beastIndividualData(beast),
-    });
-    const carried = carriedBeastIds(roster.beasts, roster.lineup);
-    const lineup = {
-      carriedBeastIds: [...carried, beast.id],
-      leadBeastId:
-        roster.lineup.leadBeastId ??
-        (canDeployBeast(beast, roster.ownerLevel) ? beast.id : undefined),
-      revision: roster.lineup.revision + 1,
-    };
-    await tx
-      .insert(cultivatorBeastLineups)
-      .values({ cultivatorId, lineup, starterClaimedAt: new Date() })
-      .onConflictDoUpdate({
-        target: cultivatorBeastLineups.cultivatorId,
-        set: { lineup, starterClaimedAt: new Date() },
-      });
     const story = await StoryService.reconcile(cultivatorId, tx);
     const state = story
       ? await new ResourceEventCommitter().commit(tx, {
