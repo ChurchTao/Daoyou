@@ -122,8 +122,7 @@ export function getPlantOpportunity(
     return {
       kind: 'mature',
       label: '可培育成株',
-      description:
-        '幼苗已长足，投入天地灵气即可成株，获得首批收成并开始持续生产。',
+      description: '获得首批收成，开始持续生产。',
       actionLabel: '培育成株',
     };
   if (plant.recoveryRemainingMs > 0)
@@ -131,24 +130,22 @@ export function getPlantOpportunity(
       kind: 'recovering',
       label: `${gardenRecoveryPresentation(plant).label}${plant.storageFull ? ' · 恢复计时暂停' : ''}`,
       description: plant.storageFull
-        ? `恢复还需约 ${formatGardenDuration(plant.recoveryRemainingMs)}。待领收成已满，恢复计时暂停；领取后继续。`
-        : `恢复还需约 ${formatGardenDuration(plant.recoveryRemainingMs)}。期间暂停生产，寿命照常消耗，无需照料。`,
+        ? '领取收成后继续恢复。'
+        : `约 ${formatGardenDuration(plant.recoveryRemainingMs)} 后自行恢复，无需照料。`,
       actionLabel: '查看长势',
     };
   if (plant.canBranch)
     return {
       kind: 'branch',
       label: '可选择培养方向',
-      description:
-        '已解锁培养方向。消耗天地灵气，可选择药材增产，或改产灵果、天材地宝；具体产物见选择页面。',
+      description: '药材增产，或改产灵果、天材地宝。',
       actionLabel: '选择培养方向',
     };
   if (plant.canEvolve)
     return {
       kind: 'evolve',
       label: '可尝试蜕变',
-      description:
-        '已满足蜕变条件。投入天地灵气、灵石与药材，有机会提升之后产物的品质。',
+      description: '有机会提升之后产物的品质。',
       actionLabel: '查看蜕变',
     };
   if (plant.storageFull)
@@ -162,7 +159,7 @@ export function getPlantOpportunity(
     return {
       kind: 'growing',
       label: '幼苗正在扎根',
-      description: `幼苗还需生长约 ${formatGardenDuration(plant.matureMs - plant.activeGrowthMs)}，之后可投入天地灵气使其成株。成株前不消耗生产寿命。`,
+      description: `再生长约 ${formatGardenDuration(plant.matureMs - plant.activeGrowthMs)}，即可培育成株。`,
       actionLabel: '查看长势',
     };
   if (plant.remainingHarvestCycles === 0)
@@ -176,7 +173,7 @@ export function getPlantOpportunity(
     return {
       kind: 'growing',
       label: '等待解锁培养方向',
-      description: `还需在田生长约 ${formatGardenDuration(plant.branchRemainingMs)}，之后可投入天地灵气选择培养方向。`,
+      description: `还需在田生长约 ${formatGardenDuration(plant.branchRemainingMs)}，期间照常生产。`,
       actionLabel: '查看培养进程',
     };
   if (
@@ -194,7 +191,7 @@ export function getPlantOpportunity(
     return {
       kind: 'growing',
       label: '蜕变冷却中',
-      description: `冷却还需在田生长约 ${formatGardenDuration(plant.evolveCooldownRemainingMs)}，期间照常生产；收成已满或灵植处于暂存区时暂停计时。`,
+      description: `还需在田生长约 ${formatGardenDuration(plant.evolveCooldownRemainingMs)}，期间照常生产。`,
       actionLabel: '查看培养进程',
     };
   if (
@@ -205,7 +202,7 @@ export function getPlantOpportunity(
     return {
       kind: 'growing',
       label: '等待蜕变',
-      description: `还需在田生长约 ${formatGardenDuration(plant.evolveRemainingMs)}，达到所需境界后便可尝试蜕变；期间照常生产。`,
+      description: `还需在田生长约 ${formatGardenDuration(plant.evolveRemainingMs)}，期间照常生产。`,
       actionLabel: '查看培养进程',
     };
   return {

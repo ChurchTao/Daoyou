@@ -80,20 +80,30 @@ function IncidentStatus({ entry }: { entry: ReportEntry }) {
       incident && plant.recoveryRemainingMs > 0;
   if (recovering)
     return (
-      <p className="text-ink-secondary text-sm leading-7">
-        {plotIndex === null
-          ? '已暂存，恢复计时暂停；尚需约 '
-          : plant.storageFull
-            ? '收成已满，恢复计时暂停；领取后还需约 '
-            : '暂停生产，恢复还需约 '}
-        <span className="font-mono">
-          {formatGardenDuration(plant.recoveryRemainingMs)}
-        </span>
-        。无需照料。不会扣除已有收成。
-        {plotIndex === null || plant.storageFull
-          ? '计时暂停期间不消耗寿命。'
-          : '恢复期间仍消耗生产寿命。'}
-      </p>
+      <div className="text-ink-secondary space-y-2 text-sm leading-7">
+        <p>
+          {plotIndex === null
+            ? '已暂存，恢复计时暂停；尚需约 '
+            : plant.storageFull
+              ? '收成已满，领取后继续恢复；尚需约 '
+              : '暂停生产，恢复还需约 '}
+          <span className="font-mono">
+            {formatGardenDuration(plant.recoveryRemainingMs)}
+          </span>
+          。无需照料。
+        </p>
+        <details className="text-xs">
+          <summary className="focus-visible:outline-crimson min-h-11 cursor-pointer content-center focus-visible:outline-2 focus-visible:outline-offset-2">
+            恢复说明
+          </summary>
+          <p>
+            不会扣除已有收成。
+            {plotIndex === null || plant.storageFull
+              ? '计时暂停期间不消耗寿命。'
+              : '恢复期间仍消耗生产寿命。'}
+          </p>
+        </details>
+      </div>
     );
   return (
     <p className="text-ink-secondary text-sm leading-7">
@@ -274,7 +284,7 @@ function CultivatorIncidentReport({
           onClick={(event) =>
             openEntry(entry, view === null ? event.currentTarget : undefined)
           }
-          className="text-ink hover:text-crimson flex min-h-8 w-full cursor-pointer items-baseline gap-2 py-1 text-left text-xs leading-5 disabled:cursor-not-allowed disabled:opacity-50"
+          className="text-ink hover:text-crimson focus-visible:outline-crimson flex min-h-11 w-full cursor-pointer items-center gap-2 py-2 text-left text-xs leading-5 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <time
             dateTime={new Date(entry.incident.occurredAt).toISOString()}

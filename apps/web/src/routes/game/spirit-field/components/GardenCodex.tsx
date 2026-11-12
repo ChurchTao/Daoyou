@@ -58,13 +58,13 @@ export function GardenCodex({
   ).length;
 
   return (
-    <section className="space-y-6" aria-label="灵植图录">
+    <section className="space-y-6" aria-label="灵植图鉴">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <p className="text-ink-secondary text-sm leading-6">
           养成记录会永久保留。
         </p>
         <p className="shrink-0 text-sm">
-          <span className="text-teal font-mono text-3xl">
+          <span className="text-teal font-mono text-2xl">
             {snapshot.profile.maturedSpeciesCount}
           </span>
           <span className="text-ink-secondary mx-1">/</span>
@@ -99,7 +99,7 @@ export function GardenCodex({
       <div
         className="grid grid-cols-4 gap-x-2 gap-y-4"
         role="group"
-        aria-label="选择图录物种"
+        aria-label="选择图鉴物种"
       >
         {speciesInQuality.map((species) => {
           const entry = snapshot.codex.find(
@@ -137,12 +137,8 @@ export function GardenCodex({
         })}
       </div>
       {selected ? (
-        <div className="space-y-5">
-          <div className="border-ink/15 flex items-center gap-4 border-t pt-5">
-            <BotanicalArt
-              speciesId={selected.id}
-              className="w-24 shrink-0 sm:w-28"
-            />
+        <div key={selected.id} className="space-y-5">
+          <div className="border-ink/15 border-t pt-5">
             <div className="min-w-0 space-y-2">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <h3 className="text-xl font-semibold">{selected.name}</h3>
@@ -166,41 +162,56 @@ export function GardenCodex({
               ) : null}
             </div>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2" aria-label="培养路线记载">
-            {(['abundance', 'essence'] as const).map((branch) => {
-              const route = selected.branches[branch];
-              const known = record?.branches.includes(branch);
-              const output = getSpiritGardenOutput({
-                speciesId: selected.id,
-                quality: selected.quality,
-                branch,
-              });
-              return (
-                <div
-                  key={branch}
-                  className={`border-l-2 pl-3 ${known ? 'border-teal/60' : 'border-ink/15'}`}
-                >
-                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                    <h4 className="text-sm font-semibold">{route.name}</h4>
-                    {known ? (
-                      <span className="text-teal text-xs">已记载</span>
-                    ) : null}
+          <details className="border-ink/15 border-t">
+            <summary className="text-ink-secondary focus-visible:outline-crimson min-h-11 cursor-pointer content-center text-sm focus-visible:outline-2 focus-visible:outline-offset-2">
+              培养路线
+              {record?.branches.length ? (
+                <span className="text-teal ml-2 text-xs">
+                  已记载{' '}
+                  <span className="font-mono">{record.branches.length}</span> 条
+                </span>
+              ) : null}
+            </summary>
+            <div
+              className="grid gap-4 pt-2 pb-3 sm:grid-cols-2"
+              aria-label="培养路线记载"
+            >
+              {(['abundance', 'essence'] as const).map((branch) => {
+                const route = selected.branches[branch];
+                const known = record?.branches.includes(branch);
+                const output = getSpiritGardenOutput({
+                  speciesId: selected.id,
+                  quality: selected.quality,
+                  branch,
+                });
+                return (
+                  <div
+                    key={branch}
+                    className={`border-l-2 pl-3 ${known ? 'border-teal/60' : 'border-ink/15'}`}
+                  >
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                      <h4 className="text-sm font-semibold">{route.name}</h4>
+                      {known ? (
+                        <span className="text-teal text-xs">已记载</span>
+                      ) : null}
+                    </div>
+                    <p className="mt-2 text-sm leading-6">{output.name}</p>
+                    <p className="text-ink-secondary mt-1 text-xs leading-5">
+                      每{' '}
+                      <span className="font-mono">
+                        {formatGardenDuration(output.cycleMs)}
+                      </span>{' '}
+                      产出 <span className="font-mono">{output.quantity}</span>{' '}
+                      份
+                    </p>
+                    <p className="text-ink-secondary mt-2 text-xs leading-6">
+                      {output.description}
+                    </p>
                   </div>
-                  <p className="mt-2 text-sm leading-6">{output.name}</p>
-                  <p className="text-ink-secondary mt-1 text-xs leading-5">
-                    每{' '}
-                    <span className="font-mono">
-                      {formatGardenDuration(output.cycleMs)}
-                    </span>{' '}
-                    产出 <span className="font-mono">{output.quantity}</span> 份
-                  </p>
-                  <p className="text-ink-secondary mt-2 text-xs leading-6">
-                    {output.description}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </details>
           <dl className="text-ink-secondary flex flex-wrap gap-x-6 gap-y-2 text-xs">
             <div className="flex gap-2">
               <dt>灵植蜕变</dt>

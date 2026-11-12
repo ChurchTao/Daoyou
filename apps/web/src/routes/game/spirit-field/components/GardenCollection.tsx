@@ -74,10 +74,18 @@ export function GardenCollection({
   ).length;
   return (
     <section className="space-y-6" aria-label="灵植暂存">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <p className="text-ink-secondary text-sm leading-6">
-          可将整株灵植放入暂存区，腾出田块。暂存期间，生长、生产、寿命、恢复和蜕变冷却计时均暂停；移回灵田后继续。
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="text-ink-secondary space-y-1 text-xs">
+          <p>生长已暂停，移回灵田后继续。</p>
+          <details>
+            <summary className="focus-visible:outline-crimson min-h-11 w-fit cursor-pointer content-center focus-visible:outline-2 focus-visible:outline-offset-2">
+              暂存说明
+            </summary>
+            <p className="max-w-sm pb-2 leading-6">
+              暂存整株灵植可腾出田块。生长、生产、寿命、恢复和蜕变冷却计时均暂停，已有收成保留。
+            </p>
+          </details>
+        </div>
         <p className="text-ink-secondary shrink-0 text-sm">
           <span className="text-ink font-mono text-2xl">
             {snapshot.collection.length}
@@ -185,19 +193,6 @@ export function GardenCollection({
                         {plant.outputQuality} · {stageLabel(plant)}
                       </span>
                     </div>
-                    <p className="text-ink-secondary text-sm">
-                      在田生长 <GrowthAge value={plant.activeGrowthMs} />
-                    </p>
-                    {!plant.firstYieldGranted ? (
-                      <p className="text-ink-secondary text-xs">
-                        幼苗尚未成株，生产寿命尚未开始。
-                      </p>
-                    ) : null}
-                    {plant.mutated ? (
-                      <p className="text-teal text-xs">
-                        产出速度 + <span className="font-mono">10%</span>
-                      </p>
-                    ) : null}
                     {plant.recoveryRemainingMs > 0 ? (
                       <p className="text-ink-secondary text-xs leading-6">
                         恢复还需约{' '}
@@ -230,61 +225,78 @@ export function GardenCollection({
                         <span className="font-mono">1</span> 枚
                       </p>
                     ) : null}
-                    {plant.incidents.length > 0 ? (
-                      <details className="text-xs">
-                        <summary className="text-ink-secondary cursor-pointer leading-6">
-                          灵植异事
-                        </summary>
-                        <div className="mt-2">
-                          <GardenIncidentHistory
-                            plants={[plant]}
-                            species={snapshot.species}
-                          />
-                        </div>
-                      </details>
-                    ) : null}
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                       <InkButton
-                        variant="primary"
+                        variant={plant.exhausted ? 'secondary' : 'primary'}
                         disabled={
                           locked ||
-                          emptyPlots === 0 ||
-                          plant.exhausted ||
-                          realmInsufficient
+                          (plant.exhausted
+                            ? quantity > 0
+                            : emptyPlots === 0 || realmInsufficient)
                         }
-                        onClick={() => onRestore(plant)}
+                        onClick={() =>
+                          plant.exhausted ? onRetire(plant) : onRestore(plant)
+                        }
                       >
-                        移回灵田
+                        {plant.exhausted ? '永久移除灵植' : '移回灵田'}
                       </InkButton>
-                      <details className="text-ink-secondary text-sm">
-                        <summary className="cursor-pointer py-1">
-                          管理此株
-                        </summary>
-                        <div className="mt-2 space-y-2 text-right">
-                          {quantity > 0 ? (
-                            <p className="max-w-44 text-xs leading-5">
-                              先领取全部产物和灵种，才能永久移除这株灵植。
-                            </p>
-                          ) : null}
-                          <InkButton
-                            disabled={locked || quantity > 0}
-                            variant="secondary"
-                            onClick={() => onRetire(plant)}
-                          >
-                            永久移除灵植
-                          </InkButton>
-                        </div>
-                      </details>
+                      {!plant.exhausted ? (
+                        <details className="text-ink-secondary text-sm">
+                          <summary className="focus-visible:outline-crimson min-h-11 cursor-pointer content-center focus-visible:outline-2 focus-visible:outline-offset-2">
+                            管理此株
+                          </summary>
+                          <div className="mt-2 space-y-2 text-right">
+                            {quantity > 0 ? (
+                              <p className="max-w-44 text-xs leading-5">
+                                先领取全部产物和灵种，才能永久移除这株灵植。
+                              </p>
+                            ) : null}
+                            <InkButton
+                              disabled={locked || quantity > 0}
+                              variant="secondary"
+                              onClick={() => onRetire(plant)}
+                            >
+                              永久移除灵植
+                            </InkButton>
+                          </div>
+                        </details>
+                      ) : null}
                     </div>
                     {plant.exhausted ? (
                       <p className="text-ink-secondary text-xs leading-5">
-                        这株灵植已停止产出，不能再移回灵田。
+                        {quantity > 0
+                          ? '已停止产出。先领取收成，再移除灵植腾出空位。'
+                          : '已停止产出，可移除灵植腾出空位。'}
                       </p>
                     ) : realmInsufficient ? (
                       <p className="text-ink-secondary text-xs leading-5">
                         移回需要达到{minRealm}。
                       </p>
                     ) : null}
+                    <details className="text-ink-secondary text-xs">
+                      <summary className="focus-visible:outline-crimson min-h-11 cursor-pointer content-center focus-visible:outline-2 focus-visible:outline-offset-2">
+                        生长记录
+                      </summary>
+                      <div className="space-y-2 pb-2 leading-6">
+                        <p>
+                          在田生长 <GrowthAge value={plant.activeGrowthMs} />
+                        </p>
+                        {!plant.firstYieldGranted ? (
+                          <p>幼苗尚未成株，生产寿命尚未开始。</p>
+                        ) : null}
+                        {plant.mutated ? (
+                          <p className="text-teal">
+                            产出速度 + <span className="font-mono">10%</span>
+                          </p>
+                        ) : null}
+                        {plant.incidents.length > 0 ? (
+                          <GardenIncidentHistory
+                            plants={[plant]}
+                            species={snapshot.species}
+                          />
+                        ) : null}
+                      </div>
+                    </details>
                   </div>
                 </li>
               );

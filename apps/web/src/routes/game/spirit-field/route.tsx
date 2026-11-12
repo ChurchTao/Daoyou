@@ -711,6 +711,59 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
         closeOnEscape={!garden.busy}
         closeOnOverlayClick={!garden.busy}
         className="spirit-garden garden-panel bg-paper"
+        footer={
+          panel?.view === 'evolve' &&
+          validPanelPlant &&
+          plantTarget &&
+          itemTarget ? (
+            <div className="space-y-2 text-xs">
+              <p className="text-crimson text-xs leading-6">
+                失败也会扣除全部费用与一次机会。
+                {validPanelPlant.evolutionAttemptsRemaining === 1
+                  ? '这是最后一次尝试。'
+                  : null}
+              </p>
+              <InkButton
+                variant="primary"
+                className="w-full justify-center"
+                pending={garden.busy}
+                disabled={
+                  locked ||
+                  !chosen ||
+                  !validPanelPlant.canEvolve ||
+                  !canChoose(itemTarget, chosen) ||
+                  currency.loading ||
+                  Boolean(currency.error) ||
+                  !currency.data ||
+                  currency.data.qi < validPanelPlant.evolveCost.qi ||
+                  snapshot.player.spiritStones <
+                    validPanelPlant.evolveCost.spiritStones
+                }
+                onClick={() => {
+                  if (chosen)
+                    void act({
+                      endpoint: 'evolve',
+                      input: {
+                        ...plantTarget,
+                        resourceId: chosen.id,
+                        resourceRevision: chosen.revision,
+                      },
+                    });
+                }}
+              >
+                投入并尝试蜕变
+              </InkButton>
+              {snapshot.player.spiritStones <
+              validPanelPlant.evolveCost.spiritStones ? (
+                <p className="text-crimson">当前灵石不足。</p>
+              ) : null}
+              {currency.data &&
+              currency.data.qi < validPanelPlant.evolveCost.qi ? (
+                <p className="text-crimson">当前天地灵气不足。</p>
+              ) : null}
+            </div>
+          ) : undefined
+        }
       >
         <div ref={contentRef} tabIndex={-1} className="outline-none">
           {notice}
@@ -745,7 +798,7 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
               <p className="text-ink-secondary">
                 {batchPanel.view === 'mature-batch'
                   ? '为下列幼苗一并投入灵气，使其成株。每株立即获得首批收成，并开始计算生产寿命。'
-                  : '为下列灵植选择同一培养方向，每株只能选择一次，确认后无法更改。'}
+                  : '为下列灵植选择同一培养方向。'}
               </p>
               {batchPanel.view === 'branch-batch' ? (
                 <div
@@ -788,15 +841,27 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
                       key={`${target.plotIndex}:${target.plantId}`}
                       className="space-y-1 py-3 first:pt-0"
                     >
-                      <p>
-                        <span className="text-ink-secondary">
-                          <span className="font-mono">
-                            {target.plotIndex + 1}
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <p>
+                          <span className="text-ink-secondary">
+                            <span className="font-mono">
+                              {target.plotIndex + 1}
+                            </span>
+                            号田 ·{' '}
                           </span>
-                          号田 ·{' '}
-                        </span>
-                        {target.speciesName}
-                      </p>
+                          {target.speciesName}
+                        </p>
+                        {plant ? (
+                          <span className="text-ink-secondary text-xs">
+                            <span className="font-mono">
+                              {batchPanel.view === 'mature-batch'
+                                ? plant.matureQiCost
+                                : plant.branchQiCost}
+                            </span>{' '}
+                            天地灵气
+                          </span>
+                        ) : null}
+                      </div>
                       <p className="text-ink-secondary text-xs">
                         {output ? (
                           <>
@@ -806,32 +871,18 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
                               ? `${species.branches[branch].name} · `
                               : '成株后 · '}
                             {output.name}
+                            {' · '}
+                            <span className="font-mono">
+                              {formatGardenDuration(output.cycleMs)}
+                            </span>{' '}
+                            /{' '}
+                            <span className="font-mono">{output.quantity}</span>{' '}
+                            份
                           </>
                         ) : (
                           '选定方向后查看产物'
                         )}
                       </p>
-                      {output ? (
-                        <p className="text-ink-secondary text-xs">
-                          每{' '}
-                          <span className="font-mono">
-                            {formatGardenDuration(output.cycleMs)}
-                          </span>{' '}
-                          产出{' '}
-                          <span className="font-mono">{output.quantity}</span>{' '}
-                          份
-                        </p>
-                      ) : null}
-                      {plant ? (
-                        <p className="text-ink-secondary text-xs">
-                          <span className="font-mono">
-                            {batchPanel.view === 'mature-batch'
-                              ? plant.matureQiCost
-                              : plant.branchQiCost}
-                          </span>{' '}
-                          天地灵气
-                        </p>
-                      ) : null}
                     </li>
                   );
                 })}
@@ -859,6 +910,11 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
               currency.data.qi < batchQi ? (
                 <p className="text-crimson">
                   当前天地灵气不足，需备足本批全部消耗后再试。
+                </p>
+              ) : null}
+              {batchPanel.view === 'branch-batch' ? (
+                <p className="text-crimson text-xs">
+                  每株只选一次，确定后无法更改。
                 </p>
               ) : null}
               <InkButton
@@ -997,14 +1053,33 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
                   <h3 className="text-xl font-semibold">
                     {validPanelPlant.speciesName}
                   </h3>
-                  <p className="text-ink-secondary mt-2">
-                    消耗天地灵气，将幼苗培育成株。
-                  </p>
+                  <p className="text-ink-secondary mt-1 text-xs">幼苗已长足</p>
                 </div>
               </div>
-              <p className="text-ink-secondary">
-                成株后立即获得首批收成，之后按周期生产。生产寿命从成株时开始计算，幼苗等待期间不消耗寿命。
-              </p>
+              <div className="space-y-2">
+                <p className="text-ink-secondary text-xs">成株后可收获</p>
+                <p className="text-teal text-lg">
+                  {validPanelPlant.output.name}{' '}
+                  <span className="font-mono">×1</span>
+                </p>
+                <p className="text-ink-secondary text-xs">
+                  之后每{' '}
+                  <span className="font-mono">
+                    {formatGardenDuration(validPanelPlant.output.cycleMs)}
+                  </span>{' '}
+                  产出{' '}
+                  <span className="font-mono">
+                    {validPanelPlant.output.quantity}
+                  </span>{' '}
+                  份，生产寿命{' '}
+                  <span className="font-mono">
+                    {formatGardenDuration(
+                      validPanelPlant.remainingProductionMs,
+                    )}
+                  </span>
+                  。
+                </p>
+              </div>
               <div className="border-ink/10 space-y-2 border-y py-4">
                 <p>
                   本次消耗{' '}
@@ -1077,7 +1152,7 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
           validPanelPlant &&
           plantTarget &&
           itemTarget ? (
-            <div className="space-y-6 text-sm leading-7">
+            <div className="space-y-4 text-sm leading-7">
               <InkButton
                 variant="secondary"
                 onClick={backToPlant}
@@ -1089,54 +1164,39 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
                 <BotanicalArt
                   speciesId={validPanelPlant.speciesId}
                   stage={validPanelPlant.stage}
-                  className="w-24 shrink-0"
+                  className="w-16 shrink-0 sm:w-24"
                 />
                 <div>
                   <h3 className="text-xl font-semibold">
                     {validPanelPlant.speciesName}
                   </h3>
                   <p className="text-teal mt-1">
-                    蜕变成功后，之后产物的品质提升一档。
+                    产物品质 · {validPanelPlant.outputQuality} →{' '}
+                    {evolvedPreview?.outputQuality ?? '提升一档'}
                   </p>
                 </div>
               </div>
-              <p className="text-ink-secondary">
-                成功后只提高之后产物的品质，原种品质不变。已积蓄的收成、当前生产进度与剩余寿命都会保留。
-              </p>
-              <div className="space-y-2 text-xs leading-6">
-                <p>
-                  本次成功率{' '}
-                  <span className="font-mono">
+              <dl className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <dt className="text-ink-secondary">成功率</dt>
+                  <dd className="text-ink mt-1 font-mono text-xl">
                     {Math.round(validPanelPlant.evolveSuccessChance * 100)}%
-                  </span>
-                  ，剩余尝试{' '}
-                  <span className="font-mono">
-                    {validPanelPlant.evolutionAttemptsRemaining}
-                  </span>{' '}
-                  次。
-                </p>
-                <p className="text-crimson">
-                  无论成功或失败，均消耗全部费用和一次机会。失败后仍按原培养方向产出。
-                  {validPanelPlant.evolutionAttemptsRemaining > 1 ? (
-                    <>
-                      再在田中生长{' '}
-                      <span className="font-mono">
-                        {formatGardenDuration(
-                          SPIRIT_GARDEN_EVOLUTION_COOLDOWN_MS,
-                        )}
-                      </span>{' '}
-                      后可重试；收成已满或灵植处于暂存区时暂停冷却计时。
-                    </>
-                  ) : (
-                    '这是最后一次尝试，失败后无法再次蜕变。'
-                  )}
-                  每株最多尝试{' '}
-                  <span className="font-mono">
-                    {SPIRIT_GARDEN_EVOLUTION_ATTEMPT_LIMIT}
-                  </span>{' '}
-                  次。
-                </p>
-              </div>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-ink-secondary">剩余机会</dt>
+                  <dd className="text-ink mt-1">
+                    <span className="font-mono text-xl">
+                      {validPanelPlant.evolutionAttemptsRemaining}
+                    </span>{' '}
+                    /{' '}
+                    <span className="font-mono">
+                      {SPIRIT_GARDEN_EVOLUTION_ATTEMPT_LIMIT}
+                    </span>{' '}
+                    次
+                  </dd>
+                </div>
+              </dl>
               <div className="border-ink/10 border-y py-4">
                 {evolvedPreview ? (
                   <div className="mb-4 space-y-1">
@@ -1164,7 +1224,7 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
                     ) : null}
                   </div>
                 ) : null}
-                <p>本次投入</p>
+                <p className="text-ink-secondary text-xs">本次投入</p>
                 <p className="mt-2">
                   <span className="font-mono">
                     {validPanelPlant.evolveCost.qi}
@@ -1206,43 +1266,18 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
               {!validPanelPlant.canEvolve ? (
                 <InkNotice>{validPanelPlant.evolveReason}</InkNotice>
               ) : null}
-              <InkButton
-                variant="primary"
-                className="w-full justify-center"
-                pending={garden.busy}
-                disabled={
-                  locked ||
-                  !chosen ||
-                  !canChoose(itemTarget, chosen) ||
-                  currency.loading ||
-                  Boolean(currency.error) ||
-                  !currency.data ||
-                  currency.data.qi < validPanelPlant.evolveCost.qi ||
-                  snapshot.player.spiritStones <
-                    validPanelPlant.evolveCost.spiritStones
-                }
-                onClick={() => {
-                  if (chosen)
-                    void act({
-                      endpoint: 'evolve',
-                      input: {
-                        ...plantTarget,
-                        resourceId: chosen.id,
-                        resourceRevision: chosen.revision,
-                      },
-                    });
-                }}
-              >
-                投入并尝试蜕变
-              </InkButton>
-              {snapshot.player.spiritStones <
-              validPanelPlant.evolveCost.spiritStones ? (
-                <p className="text-crimson">当前灵石不足。</p>
-              ) : null}
-              {currency.data &&
-              currency.data.qi < validPanelPlant.evolveCost.qi ? (
-                <p className="text-crimson">当前天地灵气不足。</p>
-              ) : null}
+              <details className="text-ink-secondary text-xs leading-6">
+                <summary className="min-h-11 cursor-pointer py-3">
+                  蜕变与冷却规则
+                </summary>
+                <p>
+                  只提升之后产物的品质，原种品质、已有收成、生产进度与剩余寿命保留。失败后仍按原培养方向生产，再在田生长{' '}
+                  <span className="font-mono">
+                    {formatGardenDuration(SPIRIT_GARDEN_EVOLUTION_COOLDOWN_MS)}
+                  </span>{' '}
+                  后可重试；收成已满或处于暂存区时暂停冷却。
+                </p>
+              </details>
             </div>
           ) : null}
           {panel?.view === 'sow' && itemTarget ? (
@@ -1266,9 +1301,6 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
                         <span className="font-mono">1</span> 枚
                       </p>
                     ) : null}
-                    <p className="text-ink-secondary mt-2">
-                      {seedSpecies.description}
-                    </p>
                   </div>
                 </div>
               ) : (
@@ -1326,25 +1358,27 @@ function CultivatorSpiritField({ cultivatorId }: { cultivatorId: string }) {
                   </p>
                 </div>
               ) : null}
-              <InkButton
-                variant="primary"
-                className="w-full justify-center"
-                pending={garden.busy}
-                disabled={locked || !chosen || !canChoose(itemTarget, chosen)}
-                onClick={() => {
-                  if (chosen)
-                    void act({
-                      endpoint: 'sow',
-                      input: {
-                        plotIndex: panel.plotIndex,
-                        seedMaterialId: chosen.id,
-                        revision: chosen.revision,
-                      },
-                    });
-                }}
-              >
-                {chosen ? `栽入${panel.plotIndex + 1}号田` : '先选择灵种'}
-              </InkButton>
+              {chosen ? (
+                <InkButton
+                  variant="primary"
+                  className="w-full justify-center"
+                  pending={garden.busy}
+                  disabled={locked || !chosen || !canChoose(itemTarget, chosen)}
+                  onClick={() => {
+                    if (chosen)
+                      void act({
+                        endpoint: 'sow',
+                        input: {
+                          plotIndex: panel.plotIndex,
+                          seedMaterialId: chosen.id,
+                          revision: chosen.revision,
+                        },
+                      });
+                  }}
+                >
+                  栽入{panel.plotIndex + 1}号田
+                </InkButton>
+              ) : null}
             </div>
           ) : null}
           {panel?.view === 'collection' ? (

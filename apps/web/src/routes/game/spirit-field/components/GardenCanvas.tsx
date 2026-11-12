@@ -373,34 +373,28 @@ export function GardenCanvas({
               );
             })}
           </div>
-          <p className="garden-ground-footer">
-            停止产出后，可清理田块并重新栽种。
-            <span>
-              最多暂存{' '}
-              <span className="font-mono">
-                {Math.round(snapshot.profile.offlineCapMs / 86_400_000)}
-              </span>{' '}
-              天的产出
-            </span>
-          </p>
           {matureReadyCount > 0 || branchReadyCount > 0 ? (
             <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
-              <InkButton
-                variant="secondary"
-                disabled={locked || matureReadyCount === 0}
-                onClick={onMatureBatch}
-              >
-                批量培育成株 (
-                <span className="font-mono">{matureReadyCount}</span>)
-              </InkButton>
-              <InkButton
-                variant="secondary"
-                disabled={locked || branchReadyCount === 0}
-                onClick={onBranchBatch}
-              >
-                批量选择培养方向 (
-                <span className="font-mono">{branchReadyCount}</span>)
-              </InkButton>
+              {matureReadyCount > 0 ? (
+                <InkButton
+                  variant="secondary"
+                  disabled={locked || matureReadyCount === 0}
+                  onClick={onMatureBatch}
+                >
+                  批量培育成株 (
+                  <span className="font-mono">{matureReadyCount}</span>)
+                </InkButton>
+              ) : null}
+              {branchReadyCount > 0 ? (
+                <InkButton
+                  variant="secondary"
+                  disabled={locked || branchReadyCount === 0}
+                  onClick={onBranchBatch}
+                >
+                  批量选择培养方向 (
+                  <span className="font-mono">{branchReadyCount}</span>)
+                </InkButton>
+              ) : null}
             </div>
           ) : null}
         </section>
@@ -490,28 +484,19 @@ export function GardenCanvas({
                 </div>
               ) : null}
             </>
-          ) : (
-            <div className="garden-notebook-empty">
-              <h2>留一方小天地</h2>
-              <p>
-                点选空田栽种。幼苗长足后，投入天地灵气使其成株，便会开始生产；之后还可选择培养方向、尝试蜕变。
-              </p>
-            </div>
-          )}
-          <div className="garden-codex-goal">
-            <span>百草研习</span>
-            <p>
-              记录 <span className="font-mono">{snapshot.species.length}</span>{' '}
-              种草木与各自的培养路线。
+          ) : null}
+          <details className="mt-4 text-xs max-md:col-span-full">
+            <summary className="text-ink-secondary min-h-11 cursor-pointer py-3">
+              灵田说明
+            </summary>
+            <p className="text-ink-secondary leading-6">
+              待领产出最多积蓄{' '}
+              <span className="font-mono">
+                {Math.round(snapshot.profile.offlineCapMs / 86_400_000)}
+              </span>{' '}
+              天，积满后暂停生长与生产。停止产出后可清理田块，重新栽种。
             </p>
-            <InkButton
-              variant="secondary"
-              disabled={locked}
-              onClick={onOpenCodex}
-            >
-              查看灵植图鉴
-            </InkButton>
-          </div>
+          </details>
         </aside>
       </div>
     </div>
