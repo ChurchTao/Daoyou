@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { SPIRIT_FIELD_CARE_ACTIONS } from '../spirit-field/types.js';
+import { LEGACY_SPIRIT_FIELD_CARE_ACTIONS } from '../legacy/spirit-field-types.js';
 
 import { QUALITY_VALUES } from '@daoyou/constants/qualities';
 
@@ -140,7 +140,7 @@ export function createDomainEventDataSchemas({
         spiritFieldId: z.uuid(),
         plotIndex: z.number().int().min(0).max(5),
         requestId: z.string().min(8).max(128),
-        action: z.enum(SPIRIT_FIELD_CARE_ACTIONS),
+        action: z.enum(LEGACY_SPIRIT_FIELD_CARE_ACTIONS),
         plantName: z.string().min(1).max(100),
         seedQuality: z.enum(QUALITY_VALUES),
         careGrade: z.enum(['excellent', 'good', 'neutral', 'strained']),

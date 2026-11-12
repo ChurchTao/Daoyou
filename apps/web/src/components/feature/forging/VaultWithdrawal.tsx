@@ -1,7 +1,7 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { apiFetch } from '@app/lib/api/fetch';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { usePlayerSession } from '@app/lib/resources/player';
 import type { VaultView } from '@daoyou/contracts/forging';
@@ -213,6 +213,11 @@ function VaultList({ onChanged }: { onChanged?: () => void }) {
             ) : null}
             {item.unavailableReason ? (
               <p className="text-ink-secondary">{item.unavailableReason}</p>
+            ) : null}
+            {item.type === 'seed' && item.unavailableReason ? (
+              <InkButton href="/game/seed-migration" variant="secondary">
+                旧灵种转化
+              </InkButton>
             ) : null}
           </div>
         ))}

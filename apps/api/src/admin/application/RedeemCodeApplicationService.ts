@@ -1,10 +1,11 @@
+import { assertCurrentRewardItem } from '@daoyou/game-rules/legacy/retired-draw';
+import { materializeRewardAttachments } from '@daoyou/game-rules/rewards/materials';
 import { redeemCodeClaims, redeemCodes } from '@server/lib/drizzle/schema.js';
 import { resolveRedeemCodeRewardAttachments } from '@server/lib/redeem/reward.js';
-import { materializeRewardAttachments } from '@daoyou/game-rules/rewards/materials';
+import { MailService } from '@server/mail/application/MailService.js';
+import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
 import { and, eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
-import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
-import { MailService } from '@server/mail/application/MailService.js';
 
 export class RedeemClaimError extends Error {
   constructor(
@@ -50,6 +51,12 @@ export function claimRedeemCode(args: {
       let attachments;
       try {
         attachments = resolveRedeemCodeRewardAttachments(redeemCode);
+        for (const attachment of attachments)
+          assertCurrentRewardItem(
+            attachment.type === 'inventory_v1'
+              ? attachment.inventory?.instanceData
+              : attachment.data,
+          );
       } catch (error) {
         throw new RedeemClaimError(
           error instanceof Error ? error.message : '兑换码已失效',
@@ -71,7 +78,7 @@ export function claimRedeemCode(args: {
       if (!reserved) {
         throw new RedeemClaimError('兑换码已被领完或失效');
       }
-      // Stored snapshots keep their original delivery protocol, including legacy rewards.
+      // Keep frozen delivery facts after checking retired production boundaries.
       const mail = await MailService.sendMail(
         args.cultivatorId,
         redeemCode.mailTitle,

@@ -1,4 +1,5 @@
 import { seedFactsOf } from '@daoyou/game-domain/inventory';
+import { isSpiritGardenSeed } from '../spirit-field/garden.js';
 
 /** Only migration eligibility; retired facts are never repaired or revealed. */
 export function legacyMaterialUnavailableReason(material: {
@@ -11,9 +12,11 @@ export function legacyMaterialUnavailableReason(material: {
     return '未鉴定材料已弃用，无法取出';
   if (material.type === 'seed') {
     try {
-      seedFactsOf(material);
+      const facts = seedFactsOf(material);
+      if (!isSpiritGardenSeed(facts.seedSpec.plant))
+        return '旧版灵种无法播种，请前往旧灵种转化';
     } catch {
-      return '缺少有效生长数据的历史灵种已弃用，无法取出';
+      return '旧版灵种无法直接取出，请前往旧灵种转化';
     }
   }
 }

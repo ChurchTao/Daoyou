@@ -519,6 +519,13 @@
       "when": 1794198200020,
       "tag": "0074_ai_usage_events",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1794295644387,
+      "tag": "0075_perennial_spirit_garden",
+      "breakpoints": true
     }
   ]
 }

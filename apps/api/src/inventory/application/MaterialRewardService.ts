@@ -1,14 +1,21 @@
-import type { DbExecutor } from '@server/lib/drizzle/db.js';
-import { MaterialGenerator } from '@server/lib/generation/MaterialGenerator.js';
-import { YieldCalculator } from '@daoyou/game-rules/yield';
-import { MATERIAL_TYPE_VALUES, type MaterialType } from '@daoyou/game-domain/inventory';
-import { QUALITY_ORDER, QUALITY_VALUES, type Quality } from '@daoyou/constants/qualities';
+import {
+  QUALITY_ORDER,
+  QUALITY_VALUES,
+  type Quality,
+} from '@daoyou/constants/qualities';
 import { type RealmType } from '@daoyou/constants/realms';
 import type { Material } from '@daoyou/game-domain/character';
+import {
+  INVENTORY_MATERIAL_TYPES,
+} from '@daoyou/game-domain/inventory';
+import type { GeneratedMaterialType } from '@daoyou/game-domain/materials/generation';
+import { YieldCalculator } from '@daoyou/game-rules/yield';
 import {
   materialLibraryEntryToMaterial,
   sampleMaterialLibraryEntryByPreferences,
 } from '@server/admin/application/MaterialLibraryService.js';
+import type { DbExecutor } from '@server/lib/drizzle/db.js';
+import { MaterialGenerator } from '@server/lib/generation/MaterialGenerator.js';
 import { computeItemLibrarySampleKey } from '@server/lib/utils/itemLibrarySampleKey.js';
 
 function createDeterministicRng(seed: string): () => number {
@@ -17,12 +24,12 @@ function createDeterministicRng(seed: string): () => number {
 }
 
 function buildMaterialTypePreferences(
-  target: MaterialType,
+  target: GeneratedMaterialType,
   seed: string,
-): MaterialType[] {
+): GeneratedMaterialType[] {
   return [
     target,
-    ...MATERIAL_TYPE_VALUES.filter((type) => type !== target).sort(
+    ...INVENTORY_MATERIAL_TYPES.filter((type) => type !== target).sort(
       (left, right) =>
         computeItemLibrarySampleKey(`${seed}:${left}`) -
         computeItemLibrarySampleKey(`${seed}:${right}`),

@@ -1,4 +1,16 @@
 import {
+  ExchangeArtifactSchema,
+  type ExchangeArtifact,
+} from '@daoyou/contracts/legacy/artifacts';
+import {
+  ExchangeManualSchema,
+  type ExchangeManual,
+} from '@daoyou/contracts/legacy/manuals';
+import {
+  ExchangeSeedSchema,
+  type ExchangeSeed,
+} from '@daoyou/contracts/legacy/seeds';
+import {
   Controller,
   Get,
   HttpCode,
@@ -7,14 +19,6 @@ import {
   UseFilters,
 } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
-import {
-  ExchangeArtifactSchema,
-  type ExchangeArtifact,
-} from '@daoyou/contracts/legacy/artifacts';
-import {
-  ExchangeManualSchema,
-  type ExchangeManual,
-} from '@daoyou/contracts/legacy/manuals';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
@@ -23,6 +27,30 @@ import { MigrationService } from './migration.service.js';
 
 const ManualErrors = migrationErrors('manual');
 const ArtifactErrors = migrationErrors('artifact');
+const SeedErrors = migrationErrors('seed');
+
+@Controller('api/seed-migration')
+@Access('active')
+@UseFilters(SeedErrors)
+export class SeedMigrationController {
+  constructor(
+    @Inject(MigrationService) private readonly migration: MigrationService,
+  ) {}
+
+  @Get()
+  read(@CurrentCultivator() actor: ActiveCultivatorRef) {
+    return this.migration.seeds(actor);
+  }
+
+  @Post('exchange')
+  @HttpCode(200)
+  exchange(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody(new ZodPipe(ExchangeSeedSchema)) input: ExchangeSeed,
+  ) {
+    return this.migration.exchangeSeed(actor, input);
+  }
+}
 
 @Controller('api/artifact-migration')
 @Access('active')

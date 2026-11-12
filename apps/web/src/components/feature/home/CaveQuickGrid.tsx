@@ -38,6 +38,7 @@ const CAVE_AREA_GROUPS: CaveQuickGroup[] = [
       { label: '旧藏宝库', icon: '📦', href: '/game/cave/storage' },
       { label: '旧功法传承', icon: '📜', href: '/game/manual-migration' },
       { label: '旧法宝焕新', icon: '⚒️', href: '/game/artifact-migration' },
+      { label: '旧灵种转化', icon: '🌱', href: '/game/seed-migration' },
     ],
   },
   {

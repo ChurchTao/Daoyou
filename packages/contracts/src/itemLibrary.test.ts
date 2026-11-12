@@ -1,7 +1,10 @@
 import { expect, it } from 'vitest';
-import { ItemLibraryMaterialGenerateSchema } from './itemLibrary.js';
-it('keeps supported material and seed generation while rejecting retired types', () => {
-  for (const materialType of ['herb', 'seed', 'gongfa_manual']) {
+import {
+  ItemLibraryMaterialGenerateSchema,
+  ItemLibrarySpiritSeedGenerateSchema,
+} from './itemLibrary.js';
+it('keeps seeds on the dedicated generator and rejects them from generic material generation', () => {
+  for (const materialType of ['herb', 'gongfa_manual']) {
     expect(
       ItemLibraryMaterialGenerateSchema.safeParse({
         materialType,
@@ -10,11 +13,16 @@ it('keeps supported material and seed generation while rejecting retired types',
       }).success,
     ).toBe(true);
   }
+  for (const materialType of ['seed', 'mystery'])
+    expect(
+      ItemLibraryMaterialGenerateSchema.safeParse({
+        materialType,
+        count: 1,
+        quality: '凡品',
+      }).success,
+    ).toBe(false);
   expect(
-    ItemLibraryMaterialGenerateSchema.safeParse({
-      materialType: 'mystery',
-      count: 1,
-      quality: '凡品',
-    }).success,
-  ).toBe(false);
+    ItemLibrarySpiritSeedGenerateSchema.safeParse({ count: 1, quality: '凡品' })
+      .success,
+  ).toBe(true);
 });

@@ -48,6 +48,7 @@ pnpm run db:migrate
 
 - `daoyou-backend-api-security`: Nest controllers/guards, auth, admin, cron/internal APIs, LLM/provider security, Redis/SMTP integration boundaries.
 - `daoyou-data-layer`: Drizzle schema/migrations, repositories, transactions, Better Auth schema, durable models.
+- `daoyou-game-ui-principles`: 所有玩家端玩法 UI 的设计、实现、重构与评审必须先遵守 [.agents/skills/daoyou-game-ui-principles/SKILL.md](.agents/skills/daoyou-game-ui-principles/SKILL.md) 的信息分级、视觉层次和按需披露原则，覆盖常规场景、战斗、地图、创角与弹层。
 - `daoyou-game-ui`: `GameViewportLayout` main-flow scene UI structure and review rules.
 - `daoyou-item-preview`: 新增道具或调整物品预览字段、文案、层级、交互与适配器时，遵循 [.agents/skills/daoyou-item-preview/SKILL.md](.agents/skills/daoyou-item-preview/SKILL.md) 的固定展示规范和分类基线，避免恢复已删除的冗余信息。
 - `daoyou-ink-portraits`: 玩家、NPC、BOSS 与灵兽写意墨像立绘的固定笔墨基准、物种设计方法、彩墨与视觉验收；见 `.agents/skills/daoyou-ink-portraits/SKILL.md`。
@@ -56,6 +57,7 @@ pnpm run db:migrate
 - `daoyou-scene-art`: 云游探秘按地貌共用的淡墨插画，覆盖题签、案情板和秘境介绍，规范透明底与实际容器中的裁切验收。见 [.agents/skills/daoyou-scene-art/SKILL.md](.agents/skills/daoyou-scene-art/SKILL.md)。
 - `daoyou-game-core-domain`: combat-v6 core/rules/projection, sects, equipment, manuals, beasts, and shared inventory/reward rules.
 - `daoyou-beast-design`: 灵兽物种、生灵层次、命名、资质成长及出生技能池设计与审查；扩充或调整物种前读取 `.agents/skills/daoyou-beast-design/SKILL.md`，实施同时遵守领域技能。
+- 新增、调整或评审灵田灵植与阶段立绘时，使用 [daoyou-spirit-garden-design](.agents/skills/daoyou-spirit-garden-design/SKILL.md)，对照物种和品阶基准、写意彩墨参考及透明图谱验收要求。
 - Only the skills present in `.agents/skills/` are project skill entrypoints. For runtime work, inspect `package.json`, `apps/api/src/main.ts`, Vite/Docker configs and `docs/local-development.md`; for condition/alchemy/market work, combine the domain, data and backend skills as applicable.
 
 ## Architecture Rules
@@ -90,6 +92,7 @@ pnpm run db:migrate
 - React routes are assembled in `apps/web/src/router.tsx` from `route-definitions/**` and loaded with `lazyRoute`. Preserve route nesting/order and implicit IDs when moving definitions.
 - Game scenes use `handle={scene(...)}`; the scene id must exist in `apps/web/src/components/game-shell/gameNavigation.ts`.
 - `/game` uses distinct genesis, narrative, viewport, activity, combat, map and dungeon layouts. V6 battles have `CombatV6Layout`; inspect `route-definitions/game.tsx` and its branches for the actual wrapper before changing a scene.
+- 所有玩法 UI 必须遵守 `daoyou-game-ui-principles`：突出当前任务和下一步，信息分级分层，未来机制按阶段、辅助资料按需披露；当前比较依据、费用、概率、失败损失与不可逆后果在决策前可见，不得将全部信息等权平铺，也不得以全部折叠代替设计。
 - Main-flow game UI must follow `daoyou-game-ui`: identity layer, task layer, and navigation layer stay separate.
 - `InkPageShell` and the duplicate path-based `gameShellRegistry` are retired; use the actual route-definition layout nesting.
 - Cross-route reusable UI belongs in `apps/web/src/components/feature/**`, `apps/web/src/components/ui/**`, or `apps/web/src/components/game-shell/**`; `apps/web/src/routes/game/**/components` is page-private.

@@ -127,6 +127,11 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '旧功法传承',
         href: '/game/manual-migration',
       },
+      {
+        id: 'seed-migration',
+        sceneLabel: '旧灵种转化',
+        href: '/game/seed-migration',
+      },
       { id: 'story', sceneLabel: '入世' },
       { id: 'story-preview', sceneLabel: '看演出' },
       { id: 'identity-reshape', sceneLabel: '改天换地' },

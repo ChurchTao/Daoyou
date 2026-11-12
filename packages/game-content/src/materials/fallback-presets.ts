@@ -1,6 +1,6 @@
 import type { ElementType } from '@daoyou/constants/elements';
-import type { MaterialType } from '@daoyou/game-domain/inventory';
 import type { Quality } from '@daoyou/constants/qualities';
+import type { GeneratedMaterialType } from '@daoyou/game-domain/materials/generation';
 
 export interface FallbackMaterialPreset {
   name: string;
@@ -17,17 +17,10 @@ const EMPTY_PRESET: FallbackMaterialPreset = {
   element: '土',
 };
 
-export const FALLBACK_MATERIAL_LIBRARY: Record<MaterialType, QualityPresets> = {
-  seed: {
-    凡品: [EMPTY_PRESET],
-    灵品: [EMPTY_PRESET],
-    玄品: [EMPTY_PRESET],
-    真品: [EMPTY_PRESET],
-    地品: [EMPTY_PRESET],
-    天品: [EMPTY_PRESET],
-    仙品: [EMPTY_PRESET],
-    神品: [EMPTY_PRESET],
-  },
+export const FALLBACK_MATERIAL_LIBRARY: Record<
+  GeneratedMaterialType,
+  QualityPresets
+> = {
   herb: {
     凡品: [
       {
@@ -493,7 +486,7 @@ export const FALLBACK_MATERIAL_LIBRARY: Record<MaterialType, QualityPresets> = {
 };
 
 export function getFallbackMaterialPreset(
-  type: MaterialType,
+  type: GeneratedMaterialType,
   quality: Quality,
 ): FallbackMaterialPreset {
   const pool = FALLBACK_MATERIAL_LIBRARY[type]?.[quality] ?? [];

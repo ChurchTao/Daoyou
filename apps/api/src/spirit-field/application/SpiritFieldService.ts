@@ -1,40 +1,58 @@
+import { QUALITY_ORDER } from '@daoyou/constants/qualities';
 import type { RealmType } from '@daoyou/constants/realms';
 import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import type {
-  SpiritFieldCultivateRequest,
+  SpiritFieldArchiveRequest,
+  SpiritFieldBranchBatchRequest,
+  SpiritFieldBranchRequest,
+  SpiritFieldEvolveRequest,
   SpiritFieldHarvestRequest,
+  SpiritFieldMatureBatchRequest,
+  SpiritFieldMatureRequest,
+  SpiritFieldRestoreRequest,
+  SpiritFieldRetireRequest,
+  SpiritFieldSnapshot,
   SpiritFieldSowRequest,
+  SpiritFieldStarterRequest,
+  SpiritFieldUprootRequest,
 } from '@daoyou/contracts/spirit-field';
-import type { Consumable, Material } from '@daoyou/game-domain/character';
-import type {
-  InventoryItem,
-  MaterialType,
-} from '@daoyou/game-domain/inventory';
+import type { Material } from '@daoyou/game-domain/character';
+import type { InventoryItem, ItemGrant } from '@daoyou/game-domain/inventory';
 import {
   consumableFactsOf,
   MaterialFactsSchema,
   seedFactsOf,
 } from '@daoyou/game-domain/inventory';
+import type {
+  SpiritGardenProduct,
+  SpiritGardenState,
+} from '@daoyou/game-domain/spirit-field';
 import {
-  advanceSpiritFieldPlotToDecision,
+  projectLegacySpiritGarden,
+  uprootLegacySpiritGardenPlant,
+} from '@daoyou/game-rules/legacy/spirit-field-plots';
+import {
+  archiveSpiritGardenPlant,
   buildSpiritFruitSpec,
-  canPlantSpiritFieldSeed,
-  getCultivationResourceCost,
-  getSpiritFieldMethod,
-  getSpiritFieldPlotRuntime,
-  getStageDurationMs,
-  resetSpiritFieldPlot,
-  settleSpiritFieldHarvest,
-  SPIRIT_FIELD_METHODS,
-  SPIRIT_FIELD_STARTER_BATCHES,
-  type SpiritFieldCultivationMethod,
-  type SpiritFieldPlotState,
+  buildSpiritGardenSeed,
+  chooseSpiritGardenBranch,
+  clearSpiritGardenPlot,
+  evolveSpiritGardenPlant,
+  getSpiritGardenMaturedCount,
+  getSpiritGardenPlantView,
+  getSpiritGardenSpecies,
+  harvestSpiritGarden,
+  matureSpiritGardenPlant,
+  plantSpiritGardenSeed,
+  resolveSpiritGardenSpecies,
+  restoreSpiritGardenPlant,
+  retireSpiritGardenPlant,
+  settleSpiritGarden,
+  SPIRIT_GARDEN_COLLECTION_LIMIT,
+  SPIRIT_GARDEN_OFFLINE_CAP_MS,
+  SPIRIT_GARDEN_SPECIES,
 } from '@daoyou/game-rules/spirit-field';
-import type { AiService } from '@nestjs/ai';
-import { ConditionService } from '@server/cultivator/application/ConditionService.js';
-import { qiCurrencyChange } from '@server/cultivator/application/QiResourceChanges.js';
 import { QiService } from '@server/cultivator/application/QiService.js';
-import { loadPlayerConsumableOperationFacts } from '@server/cultivator/application/readers/CultivatorConditionFactsReader.js';
 import { updateSpiritStones } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
 import { grantInventory } from '@server/inventory/operations.js';
 import {
@@ -43,39 +61,32 @@ import {
   type DbTransaction,
 } from '@server/lib/drizzle/db.js';
 import { cultivators } from '@server/lib/drizzle/schema.js';
-import { SpiritSeedGenerator } from '@server/lib/generation/SpiritSeedGenerator.js';
 import { createDomainEvent } from '@server/lib/mq/domainEventWriter.js';
-import { findPlayerMutationRequest } from '@server/lib/repositories/playerStateRepository.js';
 import {
   getOrCreateSpiritField,
   updateSpiritField,
+  type SpiritFieldRecord,
 } from '@server/lib/repositories/SpiritFieldRepository.js';
+import { describeJournal } from '@server/player/application/JournalSettlement.js';
 import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
-import { queueAchievementRumor } from '@server/social/application/achievementRumor.js';
-import { SpiritFieldServiceError } from '@server/spirit-field/application/SpiritFieldError.js';
+import { and, eq } from 'drizzle-orm';
+import { createHash, randomInt } from 'node:crypto';
+import { SpiritFieldServiceError } from './SpiritFieldError.js';
 import {
   consumeFieldItem,
   fieldResource,
   readFieldBag,
-} from '@server/spirit-field/application/SpiritFieldInventory.js';
-import {
-  finalizeSpiritFieldIdentity,
-  judgeSpiritFieldStage,
-  stageJudgmentScore,
-} from '@server/spirit-field/application/SpiritFieldLlmService.js';
-import { and, eq } from 'drizzle-orm';
+} from './SpiritFieldInventory.js';
 
 export type SpiritFieldActor = { userId: string; cultivatorId: string };
 
 async function loadCultivator(
   actor: SpiritFieldActor,
-  q: DbExecutor | DbTransaction = getExecutor(),
+  q: DbExecutor = getExecutor(),
 ) {
   const [row] = await q
     .select({
       id: cultivators.id,
-      userId: cultivators.userId,
-      name: cultivators.name,
       realm: cultivators.realm,
       spiritStones: cultivators.spirit_stones,
     })
@@ -89,265 +100,311 @@ async function loadCultivator(
     )
     .limit(1);
   if (!row) throw new SpiritFieldServiceError('当前没有可用的活跃角色', 404);
-  return row;
+  return { ...row, realm: row.realm as RealmType };
 }
 
-async function addMaterial(
-  tx: DbTransaction,
-  cultivatorId: string,
-  material: Omit<Material, 'id'>,
-) {
-  return grantInventory(
-    cultivatorId,
-    [
-      {
-        definitionId: material.type === 'seed' ? 'seed.v1' : 'material.v1',
-        quantity: material.quantity,
-        instanceData:
-          material.type === 'seed'
-            ? seedFactsOf(material)
-            : MaterialFactsSchema.parse({
-                name: material.name,
-                type: material.type,
-                rank: material.rank,
-                element: material.element ?? null,
-                description: material.description ?? '',
-              }),
-      },
-    ],
-    tx,
-  );
-}
-function itemResourceKind(
-  method: SpiritFieldCultivationMethod,
-): MaterialType | 'pill' | null {
-  const kind = getSpiritFieldMethod(method).resourceKind;
-  return ['herb', 'ore', 'monster', 'tcdb', 'aux', 'pill'].includes(kind)
-    ? (kind as MaterialType | 'pill')
-    : null;
-}
+type Cultivator = Awaited<ReturnType<typeof loadCultivator>>;
+type CommandInput = { requestId: string; expectedVersion: number };
+type CommandContext = {
+  tx: DbTransaction;
+  field: SpiritFieldRecord;
+  player: Cultivator;
+  garden: SpiritGardenState;
+  now: number;
+};
+type GardenCommandResult<TResult> = {
+  garden: SpiritGardenState;
+  result: TResult;
+  resourceChanges?: ResourceChangeDescriptor[];
+  harvestCount?: number;
+  starterClaimed?: boolean;
+  detail: string;
+};
 
-async function resolveResource(
-  actor: SpiritFieldActor,
-  method: SpiritFieldCultivationMethod,
-  resourceId?: string,
-  q: DbExecutor | DbTransaction = getExecutor(),
-): Promise<{ name?: string; revision?: number }> {
-  const kind = itemResourceKind(method);
-  if (!kind) {
-    if (getSpiritFieldMethod(method).resourceKind === 'mp') {
-      const facts = await loadPlayerConsumableOperationFacts(
-        actor.userId,
-        actor.cultivatorId,
-        q,
-      );
-      const root = facts?.spiritual_roots
-        .slice()
-        .sort((left, right) => right.strength - left.strength)[0];
-      if (!root)
-        throw new SpiritFieldServiceError('当前没有可用于本命灌注的灵根');
-      return { name: `${root.element}灵根` };
-    }
-    return {};
+function gardenRule<T>(run: () => T): T {
+  try {
+    return run();
+  } catch (error) {
+    if (error instanceof Error)
+      throw new SpiritFieldServiceError(error.message, 409);
+    throw error;
   }
-  if (!resourceId)
-    throw new SpiritFieldServiceError('请选择本次培育要消耗的物品');
-  const item = (await readFieldBag(actor.cultivatorId, q, resourceId)).find(
-    (row) => row.id === resourceId,
-  );
-  const resource = item ? fieldResource(item) : null;
-  if (!resource || resource.kind !== kind)
-    throw new SpiritFieldServiceError(
-      '请选择对应类型的储物袋或储藏室物品',
-      409,
-    );
-  return { name: resource.name, revision: resource.revision };
 }
 
-export async function getSpiritFieldSnapshot(actor: SpiritFieldActor) {
-  const row = await loadCultivator(actor);
-  const field = await getOrCreateSpiritField(actor.cultivatorId);
-  const realm = row.realm as RealmType;
-  const qi = await QiService.getQiState(actor.cultivatorId);
-  const facts = await loadPlayerConsumableOperationFacts(
-    actor.userId,
-    actor.cultivatorId,
+function stateOf(field: SpiritFieldRecord) {
+  return (
+    field.garden ??
+    gardenRule(() => projectLegacySpiritGarden(field.plots, field.id))
   );
-  const condition = facts
-    ? ConditionService.tickNaturalRecovery(facts, facts.condition)
-    : null;
-  const bag = await readFieldBag(actor.cultivatorId);
-  const available = bag.flatMap((item) => {
-    const resource = fieldResource(item);
-    return resource ? [resource] : [];
-  });
-  const seeds = available.flatMap((item) =>
-    item.kind === 'seed' && 'spec' in item && item.spec
-      ? [
-          {
-            materialId: item.id,
-            revision: item.revision,
-            name: item.name,
-            description: item.spec.plant.seedDescription,
-            quantity: item.quantity,
-            quality: item.quality,
-            element: item.spec.plant.element,
-            minRealm: item.spec.plant.minRealm,
-            canPlant: canPlantSpiritFieldSeed(realm, item.spec.plant),
-            clues: item.spec.plant.clueTexts,
-          },
-        ]
-      : [],
-  );
-  const resources = available
-    .filter((item) => item.kind !== 'seed')
-    .map(({ id, revision, name, kind, quality, quantity }) => ({
-      id,
-      revision,
-      name,
-      kind,
-      quality,
-      quantity,
-    }));
-  const now = Date.now();
-  const plots = field.plots.map((storedPlot) => {
-    const plot = advanceSpiritFieldPlotToDecision(storedPlot, now);
-    const runtime = getSpiritFieldPlotRuntime(plot, now);
-    const methods = runtime.stage
-      ? SPIRIT_FIELD_METHODS.filter(
-          (method) => method.stage === runtime.stage,
-        ).map((method) => ({
-          ...method,
-          cost: plot.plant
-            ? getCultivationResourceCost(method.id, plot.plant.quality)
-            : { amount: 0, spiritStones: 0 },
-        }))
-      : [];
-    return {
-      ...plot,
-      plant: plot.plant
-        ? {
-            seedName: plot.plant.seedName,
-            seedDescription: plot.plant.seedDescription,
-            clues: plot.plant.clueTexts,
-            quality: plot.plant.quality,
-            element: plot.plant.element,
-          }
-        : null,
-      unlocked: true,
-      ...runtime,
-      methods,
-    };
-  });
-  return {
-    profile: {
-      id: field.id,
-      successfulHarvestCount: field.selfHarvestCount,
-      starterClaimed: field.starterClaimed,
-    },
-    player: {
-      realm,
-      spiritStones: row.spiritStones,
-      qi: qi.current,
-      qiMax: qi.max,
-      mp: condition?.resources.mp.current ?? 0,
-      mpMax: condition?.resources.mp.max ?? 0,
-    },
-    plots,
-    seeds,
-    resources,
-  };
 }
 
-export async function claimSpiritFieldStarterSeeds(
-  ai: AiService,
+function runGardenCommand<T>(
   actor: SpiritFieldActor,
+  input: CommandInput,
+  source: string,
+  run: (context: CommandContext) => Promise<GardenCommandResult<T>>,
 ) {
-  const starterMaterials = await SpiritSeedGenerator.generateBatches(
-    ai,
-    SPIRIT_FIELD_STARTER_BATCHES,
-  );
   return playerCommandExecutor.executeWithLock({
     allowEmpty: true,
     userId: actor.userId,
     cultivatorId: actor.cultivatorId,
-    source: 'spirit_field_starter',
-    idempotency: { key: 'starter', fingerprint: 'starter' },
+    source,
+    requestId: input.requestId,
+    idempotency: { key: input.requestId, fingerprint: JSON.stringify(input) },
     command: async (tx) => {
-      await loadCultivator(actor, tx);
+      const player = await loadCultivator(actor, tx);
       const field = await getOrCreateSpiritField(actor.cultivatorId, tx);
-      if (field.starterClaimed)
-        throw new SpiritFieldServiceError('初始灵种已经领取过了', 409);
-      const delivered: InventoryItem[] = [];
-      for (const material of starterMaterials)
-        delivered.push(
-          ...(await addMaterial(tx, actor.cultivatorId, material)),
-        );
-      await updateSpiritField(tx, field.id, { starterClaimed: true });
+      if (field.version !== input.expectedVersion)
+        throw new SpiritFieldServiceError('灵圃已经变化，请刷新后再试', 409);
+      const now = Date.now();
+      const garden = gardenRule(() => settleSpiritGarden(stateOf(field), now));
+      const changed = await run({ tx, field, player, garden, now });
+      await updateSpiritField(tx, field.id, {
+        garden: changed.garden,
+        ...(changed.harvestCount !== undefined
+          ? { selfHarvestCount: changed.harvestCount }
+          : {}),
+        ...(changed.starterClaimed !== undefined
+          ? { starterClaimed: changed.starterClaimed }
+          : {}),
+      });
+      describeJournal(tx, actor.cultivatorId, changed.detail);
       return {
-        result: {
-          message: '已领取初始灵种',
-          locations: [...new Set(delivered.map((item) => item.location))],
-        },
-        resourceChanges: [
-          {
-            resourceTopic: 'inventory.bag',
-            eventType: 'inventory.spirit-field.starter',
-            operation: 'invalidate',
-          },
-        ],
+        result: { ...changed.result, version: field.version + 1 },
+        resourceChanges: changed.resourceChanges ?? [],
       };
     },
   });
 }
 
-export async function sowSpiritField(
+const bagChange = (action: string): ResourceChangeDescriptor => ({
+  resourceTopic: 'inventory.bag',
+  eventType: `inventory.spirit-field.${action}`,
+  operation: 'invalidate',
+});
+const currencyChange = (stage: string): ResourceChangeDescriptor => ({
+  resourceTopic: 'player.currency',
+  eventType: `currency.spirit_field.${stage}`,
+  operation: 'invalidate',
+});
+
+async function spendStageQi(
+  actor: SpiritFieldActor,
+  input: { requestId: string } & (
+    | { plantId: string; plotIndex: number }
+    | { targets: { plantId: string; plotIndex: number }[] }
+  ),
+  stage: 'mature' | 'branch' | 'evolve' | 'mature-batch' | 'branch-batch',
+  cost: number,
+  tx: DbTransaction,
+) {
+  const requestKey = createHash('sha256').update(input.requestId).digest('hex');
+  const actionInstanceId = `spirit-garden-${stage}:${actor.cultivatorId}:${requestKey}`;
+  await QiService.reserveQi({
+    cultivatorId: actor.cultivatorId,
+    action: 'spirit_field_care',
+    actionInstanceId,
+    cost,
+    metadata: {
+      stage,
+      ...('targets' in input
+        ? { targetCount: input.targets.length }
+        : { plantId: input.plantId, plotIndex: input.plotIndex }),
+    },
+    tx,
+  });
+  await QiService.commitReservation({ actionInstanceId, tx });
+}
+
+async function spendStones(
+  actor: SpiritFieldActor,
+  player: Cultivator,
+  amount: number,
+  tx: DbTransaction,
+) {
+  if (!Number.isSafeInteger(amount) || amount < 1 || amount > 99_990_000)
+    throw new SpiritFieldServiceError('灵石费用无效', 409);
+  if (player.spiritStones < amount)
+    throw new SpiritFieldServiceError(
+      `灵石不足，需要 ${amount}，当前拥有 ${player.spiritStones}`,
+      409,
+    );
+  return updateSpiritStones(actor.userId, actor.cultivatorId, -amount, tx);
+}
+
+function seedGrant(material: Omit<Material, 'id'>): ItemGrant {
+  return {
+    definitionId: 'seed.v1',
+    quantity: material.quantity,
+    instanceData: seedFactsOf(material),
+  };
+}
+function productGrant(product: SpiritGardenProduct): ItemGrant {
+  if (product.kind === 'spirit_fruit') {
+    if (!product.fruitFamily && !product.fruitEffects)
+      throw new SpiritFieldServiceError('灵果用途无效', 409);
+    return {
+      definitionId: 'consumable.v1',
+      quantity: product.quantity,
+      instanceData: consumableFactsOf({
+        name: product.name,
+        type: '灵果',
+        quality: product.quality,
+        quantity: product.quantity,
+        description: product.description,
+        score: 0,
+        spec: buildSpiritFruitSpec({
+          family: product.fruitFamily,
+          effects: product.fruitEffects,
+          quality: product.quality,
+        }),
+      }),
+    };
+  }
+  return {
+    definitionId: 'material.v1',
+    quantity: product.quantity,
+    instanceData: MaterialFactsSchema.parse({
+      name: product.name,
+      type: product.kind,
+      rank: product.quality,
+      element: product.element,
+      description: product.description,
+    }),
+  };
+}
+
+export async function getSpiritFieldSnapshot(
+  actor: SpiritFieldActor,
+): Promise<SpiritFieldSnapshot> {
+  const player = await loadCultivator(actor);
+  const field = await getOrCreateSpiritField(actor.cultivatorId);
+  const now = Date.now();
+  const garden = gardenRule(() => settleSpiritGarden(stateOf(field), now));
+  const plots = garden.plots.map((plot) => ({
+    index: plot.index,
+    ...(plot.unknownPlant
+      ? {
+          unknownPlant: {
+            id: plot.unknownPlant.id,
+            quality: plot.unknownPlant.quality,
+          },
+        }
+      : {}),
+    plant: plot.plant
+      ? getSpiritGardenPlantView(plot.plant, player.realm)
+      : null,
+  }));
+  const collection = garden.collection.map((plant) =>
+    getSpiritGardenPlantView(plant, player.realm),
+  );
+  return {
+    profile: {
+      version: field.version,
+      starterClaimed: field.starterClaimed,
+      successfulHarvestCount: field.selfHarvestCount,
+      maturedSpeciesCount: getSpiritGardenMaturedCount(garden),
+      offlineCapMs: SPIRIT_GARDEN_OFFLINE_CAP_MS,
+      collectionLimit: SPIRIT_GARDEN_COLLECTION_LIMIT,
+    },
+    player: { realm: player.realm, spiritStones: player.spiritStones },
+    plots,
+    collection,
+    codex: garden.codex,
+    species: [...SPIRIT_GARDEN_SPECIES],
+    pendingQuantity: [
+      ...garden.plots.flatMap((plot) => (plot.plant ? [plot.plant] : [])),
+      ...garden.collection,
+    ].reduce(
+      (sum, plant) =>
+        sum +
+        plant.pending.reduce(
+          (amount, product) => amount + product.quantity,
+          0,
+        ) +
+        (plant.pendingSeedSpeciesId ? 1 : 0),
+      0,
+    ),
+  };
+}
+
+export function claimSpiritFieldStarterSeeds(
+  actor: SpiritFieldActor,
+  input: SpiritFieldStarterRequest,
+) {
+  return runGardenCommand(
+    actor,
+    input,
+    'spirit_field_starter',
+    async ({ tx, field, garden }) => {
+      if (field.starterClaimed)
+        throw new SpiritFieldServiceError('初始灵种已经领取过了', 409);
+      const seeds = [
+        buildSpiritGardenSeed('licorice', '凡品', 2),
+        buildSpiritGardenSeed('wild_chrysanthemum', '凡品', 2),
+        buildSpiritGardenSeed('mountain_jujube', '凡品', 1),
+      ];
+      const delivered = await grantInventory(
+        actor.cultivatorId,
+        seeds.map(seedGrant),
+        tx,
+      );
+      return {
+        garden,
+        starterClaimed: true,
+        detail: '领取甘草、野菊与山枣灵种',
+        result: {
+          message: '已领取初始灵种',
+          locations: locationsOf(delivered),
+        },
+        resourceChanges: [bagChange('starter')],
+      };
+    },
+  );
+}
+
+export function sowSpiritField(
   actor: SpiritFieldActor,
   input: SpiritFieldSowRequest,
 ) {
-  return playerCommandExecutor.executeWithLock({
-    allowEmpty: true,
-    userId: actor.userId,
-    cultivatorId: actor.cultivatorId,
-    source: 'spirit_field_sow',
-    requestId: input.requestId,
-    idempotency: { key: input.requestId, fingerprint: JSON.stringify(input) },
-    command: async (tx) => {
-      const row = await loadCultivator(actor, tx);
-      const field = await getOrCreateSpiritField(actor.cultivatorId, tx);
-      const plot = field.plots[input.plotIndex];
-      if (!plot) throw new SpiritFieldServiceError('田块不存在', 404);
-      if (plot.plant)
-        throw new SpiritFieldServiceError('这块灵田已经种有灵植', 409);
-      const seed = (
+  return runGardenCommand(
+    actor,
+    input,
+    'spirit_field_sow',
+    async ({ tx, garden, player, field, now }) => {
+      const item = (
         await readFieldBag(actor.cultivatorId, tx, input.seedMaterialId)
-      ).find((item) => item.id === input.seedMaterialId);
-      const resource = seed ? fieldResource(seed) : null;
-      const spec = resource && 'spec' in resource ? resource.spec : null;
-      if (!seed || !spec)
+      ).find((row) => row.id === input.seedMaterialId);
+      const resource = item ? fieldResource(item) : null;
+      if (
+        !resource ||
+        resource.kind !== 'seed' ||
+        !('spec' in resource) ||
+        !resource.spec
+      )
         throw new SpiritFieldServiceError('没有找到可播种的灵种', 404);
-      if (!canPlantSpiritFieldSeed(row.realm as RealmType, spec.plant))
-        throw new SpiritFieldServiceError('当前境界还不足以驾驭这枚灵种', 409);
+      const seedName = gardenRule(
+        () =>
+          `${getSpiritGardenSpecies(resolveSpiritGardenSpecies(resource.spec.plant)).name}的种子`,
+      );
+      const plantId = globalThis.crypto.randomUUID();
+      const next = gardenRule(() =>
+        plantSpiritGardenSeed(
+          garden,
+          input.plotIndex,
+          resource.spec.plant,
+          plantId,
+          player.realm,
+          now,
+        ),
+      );
       await consumeFieldItem(
         actor.cultivatorId,
-        seed.id,
+        input.seedMaterialId,
         input.revision,
         1,
         tx,
       );
-      const plantedAt = new Date().toISOString();
-      const plots = [...field.plots];
-      plots[input.plotIndex] = {
-        index: input.plotIndex,
-        plantId: spec.plant.id,
-        plant: spec.plant,
-        plantedAt,
-        stageIndex: 0,
-        stageStartedAt: null,
-        stageEndsAt: null,
-        history: [],
-      };
-      await updateSpiritField(tx, field.id, { plots });
       await createDomainEvent(
         {
           type: 'spirit-field.sown',
@@ -356,504 +413,455 @@ export async function sowSpiritField(
             cultivatorId: actor.cultivatorId,
             spiritFieldId: field.id,
             plotIndex: input.plotIndex,
-            seedMaterialId: seed.id,
-            plantName: spec.plant.seedName,
-            seedQuality: spec.plant.quality,
+            seedMaterialId: input.seedMaterialId,
+            plantName: seedName,
+            seedQuality: resource.spec.plant.quality,
           },
-          deduplicationKey: `spirit-field-sow:${field.id}:${input.plotIndex}:${seed.id}:${plantedAt}`,
+          deduplicationKey: `spirit-garden-sow:${actor.cultivatorId}:${input.requestId}`,
         },
         tx,
       );
       return {
+        garden: next,
+        detail: `种下${seedName}，开始长期培育`,
         result: {
-          message: `已种下${spec.plant.seedName}`,
-          plotIndex: input.plotIndex,
+          message:
+            '已栽种，幼苗将自动生长；生长时间达到后，需消耗天地灵气培育成株',
+          plantId,
         },
-        resourceChanges: [
-          {
-            resourceTopic: 'inventory.bag',
-            eventType: 'inventory.spirit-field.sown',
-            operation: 'invalidate',
-          },
-        ],
+        resourceChanges: [bagChange('sown')],
       };
     },
-  });
-}
-
-async function consumeCultivationCost(
-  actor: SpiritFieldActor,
-  tx: DbTransaction,
-  plot: SpiritFieldPlotState,
-  method: SpiritFieldCultivationMethod,
-  resourceId: string | undefined,
-  requestId: string,
-  revision?: number,
-) {
-  const definition = getSpiritFieldMethod(method);
-  const cost = getCultivationResourceCost(method, plot.plant!.quality);
-  let qiChange: ReturnType<typeof qiCurrencyChange> | null = null;
-  let spiritStones: number | null = null;
-  let condition: ReturnType<
-    typeof ConditionService.applyExternalResourceLoss
-  > | null = null;
-  if (definition.resourceKind === 'qi') {
-    const actionInstanceId = `spirit-field-cultivate:${actor.cultivatorId}:${requestId}`;
-    const reservation = await QiService.reserveQi({
-      cultivatorId: actor.cultivatorId,
-      action: 'spirit_field_care',
-      actionInstanceId,
-      cost: cost.amount,
-      metadata: { plotIndex: plot.index, method },
-      tx,
-    });
-    await QiService.commitReservation({ actionInstanceId, tx });
-    qiChange = qiCurrencyChange('currency.spirit-field.care', reservation);
-  }
-  if (definition.resourceKind === 'spirit_stones')
-    spiritStones = await updateSpiritStones(
-      actor.userId,
-      actor.cultivatorId,
-      -cost.amount,
-      tx,
-    );
-  if (cost.spiritStones > 0)
-    spiritStones = await updateSpiritStones(
-      actor.userId,
-      actor.cultivatorId,
-      -cost.spiritStones,
-      tx,
-    );
-  if (itemResourceKind(method)) {
-    if (revision === undefined)
-      throw new SpiritFieldServiceError('请重新选择物品', 409);
-    await consumeFieldItem(
-      actor.cultivatorId,
-      resourceId!,
-      revision,
-      cost.amount,
-      tx,
-    );
-  }
-  if (definition.resourceKind === 'mp') {
-    const facts = await loadPlayerConsumableOperationFacts(
-      actor.userId,
-      actor.cultivatorId,
-      tx,
-    );
-    if (!facts) throw new SpiritFieldServiceError('角色状态不存在', 404);
-    const current = ConditionService.tickNaturalRecovery(
-      facts,
-      facts.condition,
-    );
-    if (current.resources.mp.current < cost.amount)
-      throw new SpiritFieldServiceError(
-        `法力不足，需要 ${cost.amount} 点`,
-        409,
-      );
-    condition = ConditionService.applyExternalResourceLoss(facts, current, {
-      mpFlat: cost.amount,
-    });
-    await tx
-      .update(cultivators)
-      .set({ condition })
-      .where(eq(cultivators.id, actor.cultivatorId));
-  }
-  return { cost, qiChange, spiritStones, condition };
-}
-
-async function assertCultivationAffordable(
-  actor: SpiritFieldActor,
-  plot: SpiritFieldPlotState,
-  method: SpiritFieldCultivationMethod,
-  resourceId: string | undefined,
-  revision: number | undefined,
-) {
-  const plant = plot.plant;
-  if (!plant)
-    throw new SpiritFieldServiceError('当前阶段不能使用这种培育方式', 409);
-  const definition = getSpiritFieldMethod(method);
-  const cost = getCultivationResourceCost(method, plant.quality);
-  if (definition.resourceKind === 'qi') {
-    await QiService.assertAffordable({
-      cultivatorId: actor.cultivatorId,
-      action: 'spirit_field_care',
-      cost: cost.amount,
-    });
-  }
-  const spiritStoneCost =
-    (definition.resourceKind === 'spirit_stones' ? cost.amount : 0) +
-    cost.spiritStones;
-  if (spiritStoneCost > 0) {
-    const row = await loadCultivator(actor);
-    if (row.spiritStones < spiritStoneCost) {
-      throw new Error(
-        `灵石不足，需要 ${spiritStoneCost}，当前拥有 ${row.spiritStones}`,
-      );
-    }
-  }
-  const itemKind = itemResourceKind(method);
-  if (itemKind) {
-    if (revision === undefined)
-      throw new SpiritFieldServiceError('请重新选择物品', 409);
-    const item = (
-      await readFieldBag(actor.cultivatorId, getExecutor(), resourceId)
-    ).find((row) => row.id === resourceId);
-    if (
-      !item ||
-      item.revision !== revision ||
-      item.quantity < cost.amount
-    ) {
-      throw new SpiritFieldServiceError(
-        '所选物品已变化或数量不足，请重新选择',
-        409,
-      );
-    }
-  }
-  if (definition.resourceKind === 'mp') {
-    const facts = await loadPlayerConsumableOperationFacts(
-      actor.userId,
-      actor.cultivatorId,
-    );
-    if (!facts) throw new SpiritFieldServiceError('角色状态不存在', 404);
-    const current = ConditionService.tickNaturalRecovery(
-      facts,
-      facts.condition,
-    );
-    if (current.resources.mp.current < cost.amount) {
-      throw new SpiritFieldServiceError(
-        `法力不足，需要 ${cost.amount} 点`,
-        409,
-      );
-    }
-  }
-}
-
-export async function cultivateSpiritField(
-  ai: AiService,
-  actor: SpiritFieldActor,
-  input: SpiritFieldCultivateRequest,
-  abortSignal?: AbortSignal,
-) {
-  await loadCultivator(actor);
-  const initialField = await getOrCreateSpiritField(actor.cultivatorId);
-  const initialPlot = advanceSpiritFieldPlotToDecision(
-    initialField.plots[input.plotIndex]!,
   );
-  const initialRuntime = getSpiritFieldPlotRuntime(initialPlot);
-  const definition = getSpiritFieldMethod(input.method);
-  const previous = await findPlayerMutationRequest(
-    actor.cultivatorId,
+}
+
+export function matureSpiritField(
+  actor: SpiritFieldActor,
+  input: SpiritFieldMatureRequest,
+) {
+  return runGardenCommand(
+    actor,
+    input,
     'spirit_field_cultivate',
-    input.requestId,
-  );
-  const preparation =
-    !previous &&
-    initialPlot?.plant &&
-    initialRuntime.status === 'awaiting_cultivation' &&
-    definition.stage === initialRuntime.stage
-      ? await (async () => {
-          const resource = await resolveResource(
-            actor,
-            input.method,
-            input.resourceId,
-          );
-          if (
-            itemResourceKind(input.method) &&
-            resource.revision !== input.resourceRevision
-          )
-            throw new SpiritFieldServiceError(
-              '随身物品已变化，请重新选择',
-              409,
-            );
-          await assertCultivationAffordable(
-            actor,
-            initialPlot,
-            input.method,
-            input.resourceId,
-            input.resourceRevision,
-          );
-          const judgment = await judgeSpiritFieldStage(ai, {
-            deduplicationKey: JSON.stringify([
-              actor.cultivatorId,
-              input.plotIndex,
-              initialPlot,
-            ]),
-            plant: initialPlot.plant!,
-            method: input.method,
-            history: initialPlot.history,
-            resourceName: resource.name,
-            abortSignal,
-          });
-          return { resource, judgment };
-        })()
-      : null;
-  const committed = await playerCommandExecutor.executeWithLock({
-    allowEmpty: true,
-    userId: actor.userId,
-    cultivatorId: actor.cultivatorId,
-    source: 'spirit_field_cultivate',
-    requestId: input.requestId,
-    idempotency: { key: input.requestId, fingerprint: JSON.stringify(input) },
-    command: async (tx) => {
-      if (!preparation)
-        throw new SpiritFieldServiceError('当前阶段不能使用这种培育方式', 409);
-      await loadCultivator(actor, tx);
-      const field = await getOrCreateSpiritField(actor.cultivatorId, tx);
-      const plot = advanceSpiritFieldPlotToDecision(
-        field.plots[input.plotIndex]!,
+    async ({ tx, garden, player, now }) => {
+      const plant = garden.plots[input.plotIndex]?.plant;
+      if (!plant || plant.id !== input.plantId)
+        throw new SpiritFieldServiceError('灵植已变化，请刷新后再试', 409);
+      const view = getSpiritGardenPlantView(plant, player.realm);
+      const next = gardenRule(() =>
+        matureSpiritGardenPlant(garden, input.plotIndex, input.plantId, now),
       );
-      const runtime = getSpiritFieldPlotRuntime(plot);
-      if (
-        !plot.plant ||
-        runtime.status !== 'awaiting_cultivation' ||
-        runtime.stage !== definition.stage ||
-        JSON.stringify(plot) !== JSON.stringify(initialPlot)
-      )
-        throw new SpiritFieldServiceError('这株灵植已经不在待培育状态', 409);
-      await resolveResource(actor, input.method, input.resourceId, tx);
-      const { cost, qiChange, spiritStones, condition } =
-        await consumeCultivationCost(
-          actor,
-          tx,
-          plot,
-          input.method,
-          input.resourceId,
-          input.requestId,
-          input.resourceRevision,
-        );
-      const startedAt = new Date();
-      const durationMs = getStageDurationMs(
-        plot.plant,
-        input.method,
-        preparation.judgment.affinity,
-      );
-      const history = [
-        ...plot.history,
-        {
-          stage: definition.stage,
-          method: input.method,
-          affinity: preparation.judgment.affinity,
-          score: stageJudgmentScore(preparation.judgment),
-          feedback: preparation.judgment.feedback,
-          resourceName: preparation.resource.name,
-          completedAt: startedAt.toISOString(),
-        },
-      ];
-      const plots = [...field.plots];
-      plots[input.plotIndex] = {
-        ...plot,
-        history,
-        stageStartedAt: startedAt.toISOString(),
-        stageEndsAt: new Date(startedAt.getTime() + durationMs).toISOString(),
-      };
-      await updateSpiritField(tx, field.id, {
-        plots,
-        totalCareCount: field.totalCareCount + 1,
-      });
-      await createDomainEvent(
-        {
-          type: 'spirit-field.care.performed',
-          aggregate: { type: 'spirit-field', id: field.id },
-          data: {
-            cultivatorId: actor.cultivatorId,
-            spiritFieldId: field.id,
-            plotIndex: input.plotIndex,
-            requestId: input.requestId,
-            action: input.method,
-            plantName: plot.plant.seedName,
-            seedQuality: plot.plant.quality,
-            careGrade: preparation.judgment.affinity,
-            careScore: stageJudgmentScore(preparation.judgment),
-            qiCost: definition.resourceKind === 'qi' ? cost.amount : 0,
-          },
-          deduplicationKey: `spirit-field-care:${actor.cultivatorId}:${input.requestId}`,
-        },
-        tx,
-      );
-      const resourceChanges: ResourceChangeDescriptor[] = [];
-      if (itemResourceKind(input.method))
-        resourceChanges.push({
-          resourceTopic: 'inventory.bag',
-          eventType: 'inventory.spirit-field.cultivated',
-          operation: 'invalidate',
-        });
-      if (qiChange) resourceChanges.push(qiChange);
-      if (condition)
-        resourceChanges.push({
-          resourceTopic: 'player.condition',
-          eventType: 'condition.spirit-field.cultivate',
-          operation: 'replace',
-          payload: condition,
-        });
-      if (spiritStones !== null)
-        resourceChanges.push({
-          resourceTopic: 'player.currency',
-          eventType: 'currency.spirit_stones.changed',
-          operation: 'merge',
-          payload: { spiritStones },
-        });
+      await spendStageQi(actor, input, 'mature', view.matureQiCost, tx);
       return {
-        result: {
-          stage: definition.stage,
-          method: input.method,
-          methodName: definition.name,
-          affinity: preparation.judgment.affinity,
-          feedback: preparation.judgment.feedback,
-          durationMs,
-          resourceName: preparation.resource.name,
-        },
-        resourceChanges,
+        garden: next,
+        result: { message: '已培育成株，首批收成已产生，之后按周期产出' },
+        detail: `将${view.speciesName}培育成株`,
+        resourceChanges: [currencyChange('mature')],
       };
     },
-  });
-  return committed;
+  );
 }
 
-export async function harvestSpiritField(
-  ai: AiService,
+export function matureSpiritFieldBatch(
   actor: SpiritFieldActor,
-  input: SpiritFieldHarvestRequest,
-  abortSignal?: AbortSignal,
+  input: SpiritFieldMatureBatchRequest,
 ) {
-  await loadCultivator(actor);
-  const initialField = await getOrCreateSpiritField(actor.cultivatorId);
-  const initialPlot = initialField.plots[input.plotIndex];
-  const previous = await findPlayerMutationRequest(
-    actor.cultivatorId,
-    'spirit_field_harvest',
-    input.requestId,
+  return runGardenCommand(
+    actor,
+    input,
+    'spirit_field_cultivate',
+    async ({ tx, garden, player, now }) => {
+      let next = garden;
+      let qiCost = 0;
+      for (const target of input.targets) {
+        const plant = next.plots[target.plotIndex]?.plant;
+        if (!plant || plant.id !== target.plantId)
+          throw new SpiritFieldServiceError('灵植已变化，请刷新后再试', 409);
+        qiCost += getSpiritGardenPlantView(plant, player.realm).matureQiCost;
+        next = gardenRule(() =>
+          matureSpiritGardenPlant(next, target.plotIndex, target.plantId, now),
+        );
+      }
+      await spendStageQi(actor, input, 'mature-batch', qiCost, tx);
+      return {
+        garden: next,
+        result: {
+          count: input.targets.length,
+          message: `已将${input.targets.length}株灵植培育成株`,
+        },
+        detail: `将${input.targets.length}株灵植培育成株`,
+        resourceChanges: [currencyChange('mature-batch')],
+      };
+    },
   );
-  const preparation =
-    !previous &&
-    initialPlot?.plant &&
-    getSpiritFieldPlotRuntime(initialPlot).status === 'ready_to_harvest'
-      ? await (async () => {
-          const settlementSeed = `${initialField.id}:${input.plotIndex}:${initialPlot.plantedAt}:${initialPlot.plant!.id}`;
-          const settlement = settleSpiritFieldHarvest(
-            initialPlot,
-            settlementSeed,
-          );
-          const identity = await finalizeSpiritFieldIdentity(ai, {
-            plant: initialPlot.plant!,
-            history: initialPlot.history,
-            settlement,
-            abortSignal,
-          });
-          return { settlement, identity };
-        })()
-      : null;
-  return playerCommandExecutor.executeWithLock({
-    allowEmpty: true,
-    userId: actor.userId,
-    cultivatorId: actor.cultivatorId,
-    source: 'spirit_field_harvest',
-    requestId: input.requestId,
-    idempotency: { key: input.requestId, fingerprint: JSON.stringify(input) },
-    command: async (tx) => {
-      if (!preparation)
-        throw new SpiritFieldServiceError('灵植尚未成型，暂不可采摘', 409);
-      const cultivator = await loadCultivator(actor, tx);
-      const field = await getOrCreateSpiritField(actor.cultivatorId, tx);
-      const plot = field.plots[input.plotIndex];
-      if (
-        !plot?.plant ||
-        getSpiritFieldPlotRuntime(plot).status !== 'ready_to_harvest'
-      )
-        throw new SpiritFieldServiceError('灵植尚未成型，暂不可采摘', 409);
-      const verified = settleSpiritFieldHarvest(
-        plot,
-        `${field.id}:${input.plotIndex}:${plot.plantedAt}:${plot.plant.id}`,
+}
+
+export function branchSpiritFieldBatch(
+  actor: SpiritFieldActor,
+  input: SpiritFieldBranchBatchRequest,
+) {
+  return runGardenCommand(
+    actor,
+    input,
+    'spirit_field_branch',
+    async ({ tx, garden, player, now }) => {
+      let next = garden;
+      let qiCost = 0;
+      for (const target of input.targets) {
+        const plant = next.plots[target.plotIndex]?.plant;
+        if (!plant || plant.id !== target.plantId)
+          throw new SpiritFieldServiceError('灵植已变化，请刷新后再试', 409);
+        qiCost += getSpiritGardenPlantView(plant, player.realm).branchQiCost;
+        next = gardenRule(() =>
+          chooseSpiritGardenBranch(
+            next,
+            target.plotIndex,
+            target.plantId,
+            input.branch,
+            now,
+          ),
+        );
+      }
+      await spendStageQi(actor, input, 'branch-batch', qiCost, tx);
+      return {
+        garden: next,
+        result: {
+          count: input.targets.length,
+          message: `已为${input.targets.length}株灵植选择培养方向`,
+        },
+        detail: `为${input.targets.length}株灵植选择培养方向`,
+        resourceChanges: [currencyChange('branch-batch')],
+      };
+    },
+  );
+}
+
+export function branchSpiritField(
+  actor: SpiritFieldActor,
+  input: SpiritFieldBranchRequest,
+) {
+  return runGardenCommand(
+    actor,
+    input,
+    'spirit_field_branch',
+    async ({ tx, garden, player, now }) => {
+      const plant = garden.plots[input.plotIndex]?.plant;
+      if (!plant || plant.id !== input.plantId)
+        throw new SpiritFieldServiceError('灵植已变化，请刷新后再试', 409);
+      const view = getSpiritGardenPlantView(plant, player.realm);
+      const next = gardenRule(() =>
+        chooseSpiritGardenBranch(
+          garden,
+          input.plotIndex,
+          input.plantId,
+          input.branch,
+          now,
+        ),
       );
-      if (JSON.stringify(verified) !== JSON.stringify(preparation.settlement))
+      await spendStageQi(actor, input, 'branch', view.branchQiCost, tx);
+      return {
+        garden: next,
+        result: { message: '培养方向已选定' },
+        detail: `为${view.speciesName}选择培养方向`,
+        resourceChanges: [currencyChange('branch')],
+      };
+    },
+  );
+}
+
+export function evolveSpiritField(
+  actor: SpiritFieldActor,
+  input: SpiritFieldEvolveRequest,
+) {
+  return runGardenCommand(
+    actor,
+    input,
+    'spirit_field_evolve',
+    async ({ tx, garden, player, now }) => {
+      const plant = garden.plots[input.plotIndex]?.plant;
+      if (!plant || plant.id !== input.plantId)
+        throw new SpiritFieldServiceError('灵植已变化，请刷新后再试', 409);
+      const view = getSpiritGardenPlantView(plant, player.realm);
+      const next = gardenRule(() =>
+        evolveSpiritGardenPlant(
+          garden,
+          input.plotIndex,
+          input.plantId,
+          player.realm,
+          now,
+          randomInt(1_000_000) / 1_000_000,
+        ),
+      );
+      const item = (
+        await readFieldBag(actor.cultivatorId, tx, input.resourceId)
+      ).find((row) => row.id === input.resourceId);
+      const resource = item ? fieldResource(item) : null;
+      if (
+        !resource ||
+        resource.kind !== 'herb' ||
+        QUALITY_ORDER[resource.quality] <
+          QUALITY_ORDER[view.evolveCost.materialQuality]
+      )
         throw new SpiritFieldServiceError(
-          '造化结果已经变化，请重新查看灵田',
+          `请选择${view.evolveCost.materialQuality}及以上的灵草材料`,
           409,
         );
-      let delivered: InventoryItem[];
-      if (preparation.settlement.outcomeKind === 'spirit_fruit') {
-        const fruit: Consumable = {
-          name: preparation.identity.name,
-          type: '灵果',
-          quality: preparation.settlement.quality,
-          quantity: preparation.settlement.quantity,
-          description: preparation.identity.description,
-          score: 0,
-          spec: buildSpiritFruitSpec({
-            family: preparation.settlement.fruitFamily!,
-            quality: preparation.settlement.quality,
-          }),
-        };
-        delivered = await grantInventory(
-          actor.cultivatorId,
-          [
-            {
-              definitionId: 'consumable.v1',
-              quantity: fruit.quantity,
-              instanceData: consumableFactsOf(fruit),
-            },
-          ],
-          tx,
-        );
-      } else {
-        delivered = await addMaterial(tx, actor.cultivatorId, {
-          name: preparation.identity.name,
-          type: preparation.settlement.outcomeKind,
-          rank: preparation.settlement.quality,
-          element: plot.plant.element,
-          description: preparation.identity.description,
-          details: { spiritFieldProduct: { source: 'spirit_field_v1' } },
-          quantity: preparation.settlement.quantity,
-        });
-      }
-      const plots = [...field.plots];
-      plots[input.plotIndex] = resetSpiritFieldPlot(input.plotIndex);
-      const successfulHarvestCount = field.selfHarvestCount + 1;
-      await updateSpiritField(tx, field.id, {
-        plots,
-        selfHarvestCount: successfulHarvestCount,
-      });
-      await createDomainEvent(
-        {
-          type: 'spirit-field.harvest.completed',
-          aggregate: { type: 'spirit-field', id: field.id },
-          data: {
-            cultivatorId: actor.cultivatorId,
-            spiritFieldId: field.id,
-            plotIndex: input.plotIndex,
-            requestId: input.requestId,
-            outcomeKind: preparation.settlement.outcomeKind,
-            plantName: preparation.identity.name,
-            seedQuality: plot.plant.quality,
-            highestQuality: preparation.settlement.quality,
-            careScore: preparation.settlement.score,
-            quantity: preparation.settlement.quantity,
-          },
-          deduplicationKey: `spirit-field-harvest:${actor.cultivatorId}:${input.requestId}`,
-        },
+      await spendStageQi(actor, input, 'evolve', view.evolveCost.qi, tx);
+      await consumeFieldItem(
+        actor.cultivatorId,
+        input.resourceId,
+        input.resourceRevision,
+        view.evolveCost.quantity,
         tx,
       );
-      if (plot.plant.quality === '仙品' && verified.quality === '神品') {
-        await queueAchievementRumor(tx, {
-          text: `道友「${cultivator.name}」的灵田生出异象，仙品灵种蜕变，收得神品「${preparation.identity.name}」。`,
-        });
-      }
+      await spendStones(actor, player, view.evolveCost.spiritStones, tx);
+      const evolvedPlant = next.plots[input.plotIndex]!.plant!;
+      const nextView = getSpiritGardenPlantView(evolvedPlant, player.realm);
+      const evolved = evolvedPlant.evolved;
+      const message = evolved
+        ? '灵植蜕变成功，之后产物的品质提升一档'
+        : nextView.evolutionAttemptsRemaining === 0
+          ? '蜕变失败，本次费用已消耗。本株蜕变次数已用完，仍按原培养方向产出'
+          : `蜕变失败，本次费用已消耗。仍按原培养方向产出，剩余${nextView.evolutionAttemptsRemaining}次尝试；在田生长${Math.ceil(nextView.evolveCooldownRemainingMs / 3_600_000)}小时、冷却结束后可重试，收成已满或灵植处于暂存区时暂停计时`;
       return {
+        garden: next,
+        detail: `${view.speciesName}：${message}`,
         result: {
-          name: preparation.identity.name,
-          description: preparation.identity.description,
-          ...preparation.settlement,
-          successfulHarvestCount,
-          locations: [...new Set(delivered.map((item) => item.location))],
+          message,
+          evolved,
+          attemptsRemaining: nextView.evolutionAttemptsRemaining,
+          chance: view.evolveSuccessChance,
+          cooldownRemainingMs: nextView.evolveCooldownRemainingMs,
         },
-        resourceChanges: [
-          {
-            resourceTopic: 'inventory.bag',
-            eventType: 'inventory.spirit-field.harvested',
-            operation: 'invalidate',
-          },
-        ],
+        resourceChanges: [bagChange('evolved'), currencyChange('evolve')],
       };
     },
-  });
+  );
+}
+
+export function archiveSpiritField(
+  actor: SpiritFieldActor,
+  input: SpiritFieldArchiveRequest,
+) {
+  return runGardenCommand(
+    actor,
+    input,
+    'spirit_field_archive',
+    async ({ garden, now }) => ({
+      garden: gardenRule(() =>
+        archiveSpiritGardenPlant(garden, input.plotIndex, input.plantId, now),
+      ),
+      detail: '暂存灵植，保留培养进度与待领收成',
+      result: { message: '已暂存灵植' },
+    }),
+  );
+}
+
+export function restoreSpiritField(
+  actor: SpiritFieldActor,
+  input: SpiritFieldRestoreRequest,
+) {
+  return runGardenCommand(
+    actor,
+    input,
+    'spirit_field_restore',
+    async ({ garden, player, now }) => ({
+      garden: gardenRule(() =>
+        restoreSpiritGardenPlant(
+          garden,
+          input.plotIndex,
+          input.plantId,
+          player.realm,
+          now,
+        ),
+      ),
+      detail: '将灵植从暂存区移回灵田，继续生长与生产',
+      result: { message: '灵植已移回灵田' },
+    }),
+  );
+}
+
+export function uprootSpiritField(
+  actor: SpiritFieldActor,
+  input: SpiritFieldUprootRequest,
+) {
+  return runGardenCommand(
+    actor,
+    input,
+    'spirit_field_uproot',
+    async ({ tx, garden }) => {
+      const cleared = gardenRule(() =>
+        uprootLegacySpiritGardenPlant(
+          garden,
+          input.plotIndex,
+          input.plantId,
+          () => randomInt(1_000_000) / 1_000_000,
+        ),
+      );
+      const seed = cleared.seed;
+      const delivered = await grantInventory(
+        actor.cultivatorId,
+        [seedGrant(buildSpiritGardenSeed(seed.speciesId, seed.quality, 1))],
+        tx,
+      );
+      return {
+        garden: cleared.state,
+        detail: `铲除未知灵植，获得1枚${seed.quality}新灵种`,
+        result: {
+          message: '已铲除未知灵植，获得1枚同品质新灵种',
+          seeds: [seed],
+          quantity: 1,
+          locations: locationsOf(delivered),
+        },
+        resourceChanges: [bagChange('uprooted')],
+      };
+    },
+  );
+}
+
+export function retireSpiritField(
+  actor: SpiritFieldActor,
+  input: SpiritFieldRetireRequest,
+) {
+  const clearingPlot = input.plotIndex !== undefined;
+  return runGardenCommand(
+    actor,
+    input,
+    'spirit_field_retire',
+    async ({ tx, garden, now }) => {
+      const cleared =
+        input.plotIndex !== undefined
+          ? gardenRule(() =>
+              clearSpiritGardenPlot(
+                garden,
+                input.plotIndex!,
+                input.plantId,
+                now,
+                randomInt(1_000_000) / 1_000_000,
+              ),
+            )
+          : {
+              state: gardenRule(() =>
+                retireSpiritGardenPlant(garden, input.plantId, now),
+              ),
+              seed: null,
+            };
+      const seeds = cleared.seed ? [cleared.seed] : [];
+      const delivered = seeds.length
+        ? await grantInventory(
+            actor.cultivatorId,
+            seeds.map((seed) =>
+              seedGrant(
+                buildSpiritGardenSeed(
+                  seed.speciesId,
+                  seed.quality,
+                  seed.quantity,
+                ),
+              ),
+            ),
+            tx,
+          )
+        : [];
+      return {
+        garden: cleared.state,
+        detail: clearingPlot
+          ? cleared.seed
+            ? '清理停止产出的灵植，获得1枚同物种、同原种品质的种子'
+            : '清理停止产出的灵植，保留养成记录'
+          : '永久移除暂存区中的一株灵植，保留养成记录',
+        result: {
+          message: clearingPlot
+            ? cleared.seed
+              ? '已清理田块，获得1枚同物种、同原种品质的种子'
+              : '已清理田块，可以重新播种'
+            : '已永久移除灵植，养成记录已保留',
+          seeds,
+          quantity: seeds.length,
+          locations: locationsOf(delivered),
+        },
+        resourceChanges: seeds.length ? [bagChange('cleared')] : [],
+      };
+    },
+  );
+}
+
+export function harvestSpiritField(
+  actor: SpiritFieldActor,
+  input: SpiritFieldHarvestRequest,
+) {
+  return runGardenCommand(
+    actor,
+    input,
+    'spirit_field_harvest',
+    async ({ tx, garden, field, now }) => {
+      const harvested = gardenRule(() => harvestSpiritGarden(garden, now));
+      if (!harvested.products.length && !harvested.seeds.length)
+        throw new SpiritFieldServiceError('当前没有可领取的产物', 409);
+      const delivered = await grantInventory(
+        actor.cultivatorId,
+        [
+          ...harvested.products.map(productGrant),
+          ...harvested.seeds.map((seed) =>
+            seedGrant(
+              buildSpiritGardenSeed(
+                seed.speciesId,
+                seed.quality,
+                seed.quantity,
+              ),
+            ),
+          ),
+        ],
+        tx,
+      );
+      for (let index = 0; index < harvested.products.length; index += 1) {
+        const product = harvested.products[index]!;
+        const plotIndex =
+          garden.plots.find(
+            (plot) => plot.plant?.speciesId === product.speciesId,
+          )?.index ?? 0;
+        await createDomainEvent(
+          {
+            type: 'spirit-field.harvest.completed',
+            aggregate: { type: 'spirit-field', id: field.id },
+            data: {
+              cultivatorId: actor.cultivatorId,
+              spiritFieldId: field.id,
+              plotIndex,
+              requestId: input.requestId,
+              outcomeKind: product.kind,
+              plantName: product.name,
+              seedQuality: product.quality,
+              highestQuality: product.quality,
+              // Kept for the historical event envelope; care scoring is retired.
+              careScore: 0,
+              quantity: product.quantity,
+            },
+            deduplicationKey: `spirit-garden-harvest:${actor.cultivatorId}:${input.requestId}:${index}`,
+          },
+          tx,
+        );
+      }
+      return {
+        garden: harvested.state,
+        detail: '一键领取灵圃待领产物',
+        harvestCount: field.selfHarvestCount + 1,
+        result: {
+          message: '已领取全部产物',
+          products: harvested.products,
+          seeds: harvested.seeds,
+          quantity:
+            harvested.products.reduce(
+              (sum, product) => sum + product.quantity,
+              0,
+            ) + harvested.seeds.reduce((sum, seed) => sum + seed.quantity, 0),
+          locations: locationsOf(delivered),
+        },
+        resourceChanges: [bagChange('harvested')],
+      };
+    },
+  );
+}
+
+function locationsOf(items: InventoryItem[]) {
+  return [...new Set(items.map((item) => item.location))];
 }

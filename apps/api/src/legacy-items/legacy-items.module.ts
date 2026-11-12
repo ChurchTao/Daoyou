@@ -11,6 +11,7 @@ import { LegacyInventoryService } from './inventory.service.js';
 import {
   ArtifactMigrationController,
   ManualMigrationController,
+  SeedMigrationController,
 } from './migration.controller.js';
 import { MigrationService } from './migration.service.js';
 
@@ -20,6 +21,7 @@ import { MigrationService } from './migration.service.js';
     LegacyInventoryController,
     ArtifactMigrationController,
     ManualMigrationController,
+    SeedMigrationController,
   ],
   providers: [MigrationService, LegacyInventoryService],
 })
@@ -34,6 +36,7 @@ export class LegacyItemsModule implements NestModule {
       .forRoutes(
         { path: 'api/artifact-migration{/*path}', method: RequestMethod.ALL },
         { path: 'api/manual-migration{/*path}', method: RequestMethod.ALL },
+        { path: 'api/seed-migration{/*path}', method: RequestMethod.ALL },
       );
   }
 }

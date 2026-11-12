@@ -32,7 +32,9 @@ import {
 } from '@daoyou/game-rules/equipment/forging';
 import { addItems, itemDefinition } from '@daoyou/game-rules/inventory';
 import { legacyMaterialUnavailableReason } from '@daoyou/game-rules/items/legacy-material';
+import { assertCurrentRewardItem } from '@daoyou/game-rules/legacy/retired-draw';
 import { parseMailAttachments } from '@daoyou/game-rules/mail';
+import { isSpiritGardenSeed } from '@daoyou/game-rules/spirit-field';
 import { storyMarkForSignal } from '@daoyou/game-rules/story';
 import type { AiService } from '@nestjs/ai';
 import { QiService } from '@server/cultivator/application/QiService.js';
@@ -541,9 +543,10 @@ export async function grantDevResources(input: DevGrant) {
   return mutate(input.cultivatorId, async (tx) => {
     const ids: string[] = [];
     for (const grant of input.grants) {
-      if (grant.type === 'item')
+      if (grant.type === 'item') {
+        assertCurrentRewardItem(grant.item.instanceData);
         await grantInventory(input.cultivatorId, [grant.item], tx, false);
-      else if (grant.type === 'mail') {
+      } else if (grant.type === 'mail') {
         const send =
           grant.format === 'historical'
             ? MailService.sendMail
@@ -617,6 +620,8 @@ export async function grantDevResources(input: DevGrant) {
         );
         ids.push(id);
       } else if (grant.type === 'vault-seed') {
+        if (!isSpiritGardenSeed(grant.facts.seedSpec.plant))
+          throw new InventoryError('旧版灵种已停止发放，请使用新版灵种');
         const granted = await grantInventory(
           input.cultivatorId,
           [

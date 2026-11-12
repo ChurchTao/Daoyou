@@ -1,12 +1,13 @@
-import type { DbTransaction } from '@server/lib/drizzle/db.js';
+import type { Material } from '@daoyou/game-domain/character';
 import {
   MaterialFactsSchema,
   seedFactsOf,
 } from '@daoyou/game-domain/inventory';
-import type { Material } from '@daoyou/game-domain/character';
+import { isSpiritGardenSeed } from '@daoyou/game-rules/spirit-field';
 import { grantInventory } from '@server/inventory/operations.js';
+import type { DbTransaction } from '@server/lib/drizzle/db.js';
 
-/** Market materials enter the same inventory as crafting output. Seeds preserve their growing facts. */
+/** New market seed stock must belong to the current garden catalog. */
 export async function deliverMarketMaterial(
   owner: string,
   material: Pick<
@@ -26,6 +27,11 @@ export async function deliverMarketMaterial(
           element: material.element ?? null,
           description: material.description ?? '',
         });
+  if (
+    material.type === 'seed' &&
+    !isSpiritGardenSeed(seedFactsOf(material).seedSpec.plant)
+  )
+    throw new Error('旧版灵种已停止出售，请刷新货架');
   const [item] = await grantInventory(
     owner,
     [

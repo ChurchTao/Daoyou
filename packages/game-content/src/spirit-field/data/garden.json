@@ -1,0 +1,1562 @@
+{
+  "$schema": "./garden.schema.json",
+  "schemaVersion": 1,
+  "offlineCapMs": 604800000,
+  "collectionLimit": 6,
+  "productionByQuality": {
+    "凡品": {
+      "herbCycleMs": 28800000,
+      "fruitCycleMs": 57600000,
+      "treasureCycleMs": 43200000
+    },
+    "灵品": {
+      "herbCycleMs": 43200000,
+      "fruitCycleMs": 64800000,
+      "treasureCycleMs": 64800000
+    },
+    "玄品": {
+      "herbCycleMs": 86400000,
+      "fruitCycleMs": 64800000,
+      "treasureCycleMs": 108000000
+    },
+    "真品": {
+      "herbCycleMs": 129600000,
+      "fruitCycleMs": 86400000,
+      "treasureCycleMs": 172800000
+    },
+    "地品": {
+      "herbCycleMs": 172800000,
+      "fruitCycleMs": 86400000,
+      "treasureCycleMs": 216000000
+    },
+    "天品": {
+      "herbCycleMs": 216000000,
+      "fruitCycleMs": 64800000,
+      "treasureCycleMs": 259200000
+    },
+    "仙品": {
+      "herbCycleMs": 259200000,
+      "fruitCycleMs": 50400000,
+      "treasureCycleMs": 345600000
+    },
+    "神品": {
+      "herbCycleMs": 338400000,
+      "fruitCycleMs": 43200000,
+      "treasureCycleMs": 475200000
+    }
+  },
+  "species": [
+    {
+      "id": "licorice",
+      "name": "甘草",
+      "description": "矮丛开细花，最有用的是土下那截甘甜的根。",
+      "quality": "凡品",
+      "element": "木",
+      "growthForm": "herb",
+      "harvestPart": "root",
+      "portrait": {
+        "atlas": "botanical-garden-fan",
+        "index": 0
+      },
+      "matureMs": 300000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "甘草根",
+        "description": "细花落后取须根，洗去浮土即可入药。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "甘草根",
+            "description": "细花落后取须根，洗去浮土即可入药。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "甘草根养足后析出的清露，可减轻丹毒。",
+          "output": {
+            "name": "甘草露",
+            "description": "甘草根养足后析出的清露，可减轻丹毒。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "detox",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "wild_chrysanthemum",
+      "name": "野菊",
+      "description": "一丛细茎顶起小黄花，开足时从远处就能看见。",
+      "quality": "凡品",
+      "element": "风",
+      "growthForm": "flower",
+      "harvestPart": "flower",
+      "portrait": {
+        "atlas": "botanical-garden-fan",
+        "index": 1
+      },
+      "matureMs": 300000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "野菊花",
+        "description": "挑初开的黄花整朵采下，花心适合配药。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "野菊花",
+            "description": "挑初开的黄花整朵采下，花心适合配药。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "盛开的花心凝出的清露，可恢复法力。",
+          "output": {
+            "name": "野菊花露",
+            "description": "盛开的花心凝出的清露，可恢复法力。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "mana",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "poria",
+      "name": "茯苓",
+      "description": "松根旁先鼓起一包土，拨开才看见圆团。",
+      "quality": "凡品",
+      "element": "土",
+      "growthForm": "fungus",
+      "harvestPart": "whole",
+      "portrait": {
+        "atlas": "botanical-garden-fan",
+        "index": 2
+      },
+      "matureMs": 300000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "茯苓块",
+        "description": "顺松根挖出，再把圆团切成晒干的药块。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "茯苓块",
+            "description": "顺松根挖出，再把圆团切成晒干的药块。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "团心凝出的白色药膏，可提高下次闭关获得的修为。",
+          "output": {
+            "name": "茯苓膏",
+            "description": "团心凝出的白色药膏，可提高下次闭关获得的修为。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "cultivation",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "mountain_jujube",
+      "name": "山枣",
+      "description": "枝上长刺，熟枣红得早，秋叶落尽后枝上还有果。",
+      "quality": "凡品",
+      "element": "火",
+      "growthForm": "shrub",
+      "harvestPart": "fruit",
+      "portrait": {
+        "atlas": "botanical-garden-fan",
+        "index": 3
+      },
+      "matureMs": 300000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "山枣青果",
+        "description": "挑去带刺的果梗，青果可供配药。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "山枣青果",
+            "description": "挑去带刺的果梗，青果可供配药。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "枣皮转红后肉厚汁足，食用可恢复气血。",
+          "output": {
+            "name": "山枣",
+            "description": "枣皮转红后肉厚汁足，食用可恢复气血。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "healing",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "vermilion_fruit",
+      "name": "朱果",
+      "description": "低矮的果丛只托起一颗红果，果熟后叶片向外翻开。",
+      "quality": "灵品",
+      "element": "火",
+      "growthForm": "shrub",
+      "harvestPart": "fruit",
+      "portrait": {
+        "atlas": "botanical-garden-ling",
+        "index": 0
+      },
+      "matureMs": 900000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "朱果嫩叶",
+        "description": "摘外围嫩叶配药，留下托果的内叶。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "朱果嫩叶",
+            "description": "摘外围嫩叶配药，留下托果的内叶。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "叶片翻开后取红果，服下可恢复气血。",
+          "output": {
+            "name": "朱果",
+            "description": "叶片翻开后取红果，服下可恢复气血。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "healing",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "evening_primrose",
+      "name": "月见草",
+      "description": "白天只有闭合的花苞，入夜舒展，花心结露。",
+      "quality": "灵品",
+      "element": "水",
+      "growthForm": "flower",
+      "harvestPart": "flower",
+      "portrait": {
+        "atlas": "botanical-garden-ling",
+        "index": 1
+      },
+      "matureMs": 900000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "月见草花",
+        "description": "将初开的花采下阴干，留作药引。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "月见草花",
+            "description": "将初开的花采下阴干，留作药引。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "盛放时聚在花心的清露，可恢复法力。",
+          "output": {
+            "name": "月见花露",
+            "description": "盛放时聚在花心的清露，可恢复法力。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "mana",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "spirit_rice",
+      "name": "灵稻",
+      "description": "细秧成熟后垂下一串沉甸甸的金穗。",
+      "quality": "灵品",
+      "element": "木",
+      "growthForm": "herb",
+      "harvestPart": "seedpod",
+      "portrait": {
+        "atlas": "botanical-garden-ling",
+        "index": 2
+      },
+      "matureMs": 900000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "灵稻穗",
+        "description": "将稻穗连壳晒干，再取谷粒配药。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "灵稻穗",
+            "description": "将稻穗连壳晒干，再取谷粒配药。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "沉穗脱壳后留下的饱满米粒，可提高下次闭关获得的修为。",
+          "output": {
+            "name": "灵米",
+            "description": "沉穗脱壳后留下的饱满米粒，可提高下次闭关获得的修为。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "cultivation",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "rainbow_skirt_grass",
+      "name": "霓裳草",
+      "description": "卷叶一片片展开，最后像一把打开的扇子，散出灵兽爱闻的香气。",
+      "quality": "灵品",
+      "element": "风",
+      "growthForm": "herb",
+      "harvestPart": "leaf",
+      "portrait": {
+        "atlas": "botanical-garden-ling",
+        "index": 3
+      },
+      "matureMs": 900000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "霓裳草叶",
+        "description": "外层卷叶适合采作药材，内层仍可继续舒展。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "霓裳草叶",
+            "description": "外层卷叶适合采作药材，内层仍可继续舒展。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "香气聚在全展的内叶上，灵兽食用可增长修为。",
+          "output": {
+            "name": "霓裳香叶",
+            "description": "香气聚在全展的内叶上，灵兽食用可增长修为。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "beast_cultivation",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "jade_marrow_lingzhi",
+      "name": "玉髓芝",
+      "description": "芝盖像一把小勺，成熟时在中心凝出一滴白髓。",
+      "quality": "玄品",
+      "element": "土",
+      "growthForm": "fungus",
+      "harvestPart": "whole",
+      "portrait": {
+        "atlas": "botanical-garden-xuan",
+        "index": 0
+      },
+      "matureMs": 1800000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "玉髓",
+        "description": "从芝盖中央取下的白髓，相传是筑基三药之一。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "玉髓",
+            "description": "从芝盖中央取下的白髓，相传是筑基三药之一。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "厚实的白髓凝成软膏，可辅助突破与洗髓。",
+          "output": {
+            "name": "玉髓灵膏",
+            "description": "厚实的白髓凝成软膏，可辅助突破与洗髓。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "breakthrough",
+                "share": 0.65
+              },
+              {
+                "family": "marrow_wash",
+                "share": 0.35
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "purple_monkey_flower",
+      "name": "紫猴花",
+      "description": "两片长瓣像猴耳，开足后花心才显出一张小脸。",
+      "quality": "玄品",
+      "element": "风",
+      "growthForm": "flower",
+      "harvestPart": "flower",
+      "portrait": {
+        "atlas": "botanical-garden-xuan",
+        "index": 1
+      },
+      "matureMs": 1800000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "紫猴花心",
+        "description": "花心露出猴面时可采，相传是筑基三药之一。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "紫猴花心",
+            "description": "花心露出猴面时可采，相传是筑基三药之一。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "取猴面花心凝出的露，可辅助突破并恢复气血。",
+          "output": {
+            "name": "紫猴花露",
+            "description": "取猴面花心凝出的露，可辅助突破并恢复气血。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "breakthrough",
+                "share": 0.6
+              },
+              {
+                "family": "healing",
+                "share": 0.4
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "heaven_spirit_fruit",
+      "name": "天灵果",
+      "description": "枝头空出一圈，托着一颗青果。熟后外壳自行裂开。",
+      "quality": "玄品",
+      "element": "木",
+      "growthForm": "shrub",
+      "harvestPart": "fruit",
+      "portrait": {
+        "atlas": "botanical-garden-xuan",
+        "index": 2
+      },
+      "matureMs": 1800000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "天灵果仁",
+        "description": "裂壳后可取果仁，相传是筑基三药之一。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "天灵果仁",
+            "description": "裂壳后可取果仁，相传是筑基三药之一。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "果皮完全张开后收取的清浆，可辅助突破并恢复法力。",
+          "output": {
+            "name": "天灵果浆",
+            "description": "果皮完全张开后收取的清浆，可辅助突破并恢复法力。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "breakthrough",
+                "share": 0.6
+              },
+              {
+                "family": "mana",
+                "share": 0.4
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "dragon_blood_grass",
+      "name": "龙血草",
+      "description": "叶脉起初浅淡，成株后一条红线从叶根贯到叶尖。",
+      "quality": "玄品",
+      "element": "火",
+      "growthForm": "herb",
+      "harvestPart": "leaf",
+      "portrait": {
+        "atlas": "botanical-garden-xuan",
+        "index": 3
+      },
+      "matureMs": 1800000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "龙血草叶",
+        "description": "采下通脉的红叶，留作炼体类药材。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "龙血草叶",
+            "description": "采下通脉的红叶，留作炼体类药材。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "从通红叶脉收取的浓汁，可辅助炼体。",
+          "output": {
+            "name": "龙血草汁",
+            "description": "从通红叶脉收取的浓汁，可辅助炼体。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "tempering",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "nine_bend_spirit_ginseng",
+      "name": "九曲灵参",
+      "description": "根须盘曲，选择培养方向后能探出一道小兔般的虚影。",
+      "quality": "真品",
+      "element": "土",
+      "growthForm": "root",
+      "harvestPart": "root",
+      "portrait": {
+        "atlas": "botanical-garden-zhen",
+        "index": 0
+      },
+      "matureMs": 3600000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "灵参根须",
+        "description": "参根自行褪下的须丝，干燥后可配药。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "灵参根须",
+            "description": "参根自行褪下的须丝，干燥后可配药。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "在盘曲根须间积下的清露，可辅助突破。",
+          "output": {
+            "name": "灵参露",
+            "description": "在盘曲根须间积下的清露，可辅助突破。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "breakthrough",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "soul_nurturing_wood",
+      "name": "养魂木",
+      "description": "枝上落叶无声，树下能聚住将散的神魂。",
+      "quality": "真品",
+      "element": "木",
+      "growthForm": "tree",
+      "harvestPart": "whole",
+      "portrait": {
+        "atlas": "botanical-garden-zhen",
+        "index": 1
+      },
+      "matureMs": 3600000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "养魂木皮",
+        "description": "只采自然脱落的薄皮，以免惊散聚来的神魂。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "养魂木皮",
+            "description": "只采自然脱落的薄皮，以免惊散聚来的神魂。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "轻轻拢在枝根下的细屑，使用后可增加感悟。",
+          "output": {
+            "name": "养魂木屑",
+            "description": "轻轻拢在枝根下的细屑，使用后可增加感悟。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "insight",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "shy_vine",
+      "name": "含羞藤",
+      "description": "有人近前便把嫩梢卷成一团，安静后再慢慢松开。",
+      "quality": "真品",
+      "element": "水",
+      "growthForm": "vine",
+      "harvestPart": "flower",
+      "portrait": {
+        "atlas": "botanical-garden-zhen",
+        "index": 2
+      },
+      "matureMs": 3600000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "含羞藤须",
+        "description": "嫩梢舒展后可采外须，余下藤梢会继续生长。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "含羞藤须",
+            "description": "嫩梢舒展后可采外须，余下藤梢会继续生长。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "藤梢尽展后才能采的花，可恢复气血与法力。",
+          "output": {
+            "name": "含羞藤花",
+            "description": "藤梢尽展后才能采的花，可恢复气血与法力。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "healing",
+                "share": 0.5
+              },
+              {
+                "family": "mana",
+                "share": 0.5
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "iron_eating_flower",
+      "name": "食铁花",
+      "description": "花苞咬住碎铁，开花时只剩花托里一粒圆铁珠。",
+      "quality": "真品",
+      "element": "金",
+      "growthForm": "flower",
+      "harvestPart": "flower",
+      "portrait": {
+        "atlas": "botanical-garden-zhen",
+        "index": 3
+      },
+      "matureMs": 3600000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "食铁花瓣",
+        "description": "花开后可采外围硬瓣，晒干配药。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "食铁花瓣",
+            "description": "花开后可采外围硬瓣，晒干配药。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "凝珍 · 天材地宝",
+          "description": "将碎铁咬合打磨而成的珠，可供炼器。",
+          "output": {
+            "name": "铁心珠",
+            "description": "将碎铁咬合打磨而成的珠，可供炼器。",
+            "kind": "tcdb"
+          }
+        }
+      }
+    },
+    {
+      "id": "thousand_year_snow_lotus",
+      "name": "千年雪莲",
+      "description": "从雪线之上的冻岩缝里开花，宽大的白瓣紧贴岩面。",
+      "quality": "地品",
+      "element": "冰",
+      "growthForm": "flower",
+      "harvestPart": "flower",
+      "portrait": {
+        "atlas": "botanical-garden-di",
+        "index": 0
+      },
+      "matureMs": 7200000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "雪莲花瓣",
+        "description": "雪莲伏在冻岩上的外瓣，采下可作药引。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "雪莲花瓣",
+            "description": "雪莲伏在冻岩上的外瓣，采下可作药引。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "整株开足后才露出的嫩心，可恢复气血并减轻丹毒。",
+          "output": {
+            "name": "雪莲心",
+            "description": "整株开足后才露出的嫩心，可恢复气血并减轻丹毒。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "healing",
+                "share": 0.6
+              },
+              {
+                "family": "detox",
+                "share": 0.4
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "earth_fire_lingzhi",
+      "name": "地火芝",
+      "description": "生在地火口的背面，菌盖翻起时，底下是一圈像炭火的红纹。",
+      "quality": "地品",
+      "element": "火",
+      "growthForm": "fungus",
+      "harvestPart": "whole",
+      "portrait": {
+        "atlas": "botanical-garden-di",
+        "index": 1
+      },
+      "matureMs": 7200000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "地火芝片",
+        "description": "剥取翻起的芝边，待热气散尽便可配药。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "地火芝片",
+            "description": "剥取翻起的芝边，待热气散尽便可配药。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "从芝盖翻口露出的红髓，可辅助炼体。",
+          "output": {
+            "name": "火芝心",
+            "description": "从芝盖翻口露出的红髓，可辅助炼体。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "tempering",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "sea_heart_grass",
+      "name": "海心草",
+      "description": "根扎在海底泉眼边，长叶像一条透水的带子，梢头藏着清露。",
+      "quality": "地品",
+      "element": "水",
+      "growthForm": "aquatic",
+      "harvestPart": "leaf",
+      "portrait": {
+        "atlas": "botanical-garden-di",
+        "index": 2
+      },
+      "matureMs": 7200000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "海心草叶",
+        "description": "从水中捞起的透叶，可沥干后入药。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "海心草叶",
+            "description": "从水中捞起的透叶，可沥干后入药。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "长叶梢头凝出的露珠，可恢复法力。",
+          "output": {
+            "name": "海心露",
+            "description": "长叶梢头凝出的露珠，可恢复法力。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "mana",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "stone_flower",
+      "name": "石中花",
+      "description": "幼时像一块圆石，长成后石壳裂开，花从缝里探出来。",
+      "quality": "地品",
+      "element": "土",
+      "growthForm": "flower",
+      "harvestPart": "flower",
+      "portrait": {
+        "atlas": "botanical-garden-di",
+        "index": 3
+      },
+      "matureMs": 7200000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "石中花瓣",
+        "description": "最早探出石壳的花瓣，可采来配药。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "石中花瓣",
+            "description": "最早探出石壳的花瓣，可采来配药。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "石壳尽裂后露出的花芯，可辅助洗髓。",
+          "output": {
+            "name": "石中花芯",
+            "description": "石壳尽裂后露出的花芯，可辅助洗髓。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "marrow_wash",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "gold_thunder_bamboo",
+      "name": "金雷竹",
+      "description": "竹节藏雷，养到老熟，节心才从青白转为淡金。",
+      "quality": "天品",
+      "element": "雷",
+      "growthForm": "herb",
+      "harvestPart": "whole",
+      "portrait": {
+        "atlas": "botanical-garden-tian",
+        "index": 0
+      },
+      "matureMs": 10800000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "雷竹细枝",
+        "description": "从竹节侧面抽出的小枝，收干后可配药。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "雷竹细枝",
+            "description": "从竹节侧面抽出的小枝，收干后可配药。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "凝珍 · 天材地宝",
+          "description": "竹节蕴着淡金色的雷气，可供炼器。",
+          "output": {
+            "name": "金雷竹节",
+            "description": "竹节蕴着淡金色的雷气，可供炼器。",
+            "kind": "tcdb"
+          }
+        }
+      }
+    },
+    {
+      "id": "fusang",
+      "name": "扶桑",
+      "description": "两干相倚，向阳一侧先抽出赤叶，再从叶间结实。",
+      "quality": "天品",
+      "element": "火",
+      "growthForm": "tree",
+      "harvestPart": "leaf",
+      "portrait": {
+        "atlas": "botanical-garden-tian",
+        "index": 1
+      },
+      "matureMs": 10800000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "扶桑赤叶",
+        "description": "从向阳一侧取下的赤叶，配药时常作火性引子。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "扶桑赤叶",
+            "description": "从向阳一侧取下的赤叶，配药时常作火性引子。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "生于赤叶簇间的熟果，可辅助炼体。",
+          "output": {
+            "name": "扶桑果",
+            "description": "生于赤叶簇间的熟果，可辅助炼体。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "tempering",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "lunar_laurel",
+      "name": "月桂",
+      "description": "细枝垂成弧形，花苞从枝头依次打开，满树如一弯月。",
+      "quality": "天品",
+      "element": "冰",
+      "growthForm": "tree",
+      "harvestPart": "flower",
+      "portrait": {
+        "atlas": "botanical-garden-tian",
+        "index": 2
+      },
+      "matureMs": 10800000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "月桂花",
+        "description": "自最早开放的枝头采花，阴干后配药。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "月桂花",
+            "description": "自最早开放的枝头采花，阴干后配药。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "整弯枝条开足时可取的花露，可恢复法力，并提高下次闭关获得的修为。",
+          "output": {
+            "name": "月桂花露",
+            "description": "整弯枝条开足时可取的花露，可恢复法力，并提高下次闭关获得的修为。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "mana",
+                "share": 0.6
+              },
+              {
+                "family": "cultivation",
+                "share": 0.4
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "star_fruit",
+      "name": "星辰果",
+      "description": "小树枝梢向上散开，每根枝尖只结一颗带星点的果。",
+      "quality": "天品",
+      "element": "金",
+      "growthForm": "shrub",
+      "harvestPart": "fruit",
+      "portrait": {
+        "atlas": "botanical-garden-tian",
+        "index": 3
+      },
+      "matureMs": 10800000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "星辰果皮",
+        "description": "果熟时自然剥落的带星果皮，可收起配药。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "星辰果皮",
+            "description": "果熟时自然剥落的带星果皮，可收起配药。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "枝尖透出星点的果子，服用后可增加感悟。",
+          "output": {
+            "name": "星辰果",
+            "description": "枝尖透出星点的果子，服用后可增加感悟。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "insight",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "enlightenment_tea_tree",
+      "name": "悟道古茶树",
+      "description": "老干弯曲，叶子有的像小钟，有的像山峰，每片都能单独辨认。",
+      "quality": "仙品",
+      "element": "木",
+      "growthForm": "tree",
+      "harvestPart": "leaf",
+      "portrait": {
+        "atlas": "botanical-garden-xian",
+        "index": 0
+      },
+      "matureMs": 16200000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "古茶芽",
+        "description": "春梢新发时采下的茶芽，可入药。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "古茶芽",
+            "description": "春梢新发时采下的茶芽，可入药。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "叶片完全展平后可辨叶形与道纹，服用后可增加感悟。",
+          "output": {
+            "name": "悟道茶叶",
+            "description": "叶片完全展平后可辨叶形与道纹，服用后可增加感悟。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "insight",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "ginseng_fruit",
+      "name": "人参果",
+      "description": "果实初成时像合抱的花苞，熟后才长出小人模样。",
+      "quality": "仙品",
+      "element": "土",
+      "growthForm": "tree",
+      "harvestPart": "fruit",
+      "portrait": {
+        "atlas": "botanical-garden-xian",
+        "index": 1
+      },
+      "matureMs": 16200000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "参果花",
+        "description": "从幼果外脱落的花可留作药引。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "参果花",
+            "description": "从幼果外脱落的花可留作药引。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "果肉长足后呈小人模样，服用可延寿。",
+          "output": {
+            "name": "人参果",
+            "description": "果肉长足后呈小人模样，服用可延寿。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "longevity",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "nine_leaf_sword_grass",
+      "name": "九叶剑草",
+      "description": "九片长叶从根部直立，成熟时像一束打开的剑。",
+      "quality": "仙品",
+      "element": "金",
+      "growthForm": "herb",
+      "harvestPart": "leaf",
+      "portrait": {
+        "atlas": "botanical-garden-xian",
+        "index": 2
+      },
+      "matureMs": 16200000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "剑草尖",
+        "description": "从长叶上分离的薄尖，磨成细末可配药。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "剑草尖",
+            "description": "从长叶上分离的薄尖，磨成细末可配药。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "凝珍 · 天材地宝",
+          "description": "九叶展齐后采下的厚叶，可供炼器。",
+          "output": {
+            "name": "剑草叶",
+            "description": "九叶展齐后采下的厚叶，可供炼器。",
+            "kind": "tcdb"
+          }
+        }
+      }
+    },
+    {
+      "id": "resurrection_grass",
+      "name": "还魂草",
+      "description": "成株先枯成一团，随后从枯叶中心钻出一茎新绿。",
+      "quality": "仙品",
+      "element": "水",
+      "growthForm": "herb",
+      "harvestPart": "whole",
+      "portrait": {
+        "atlas": "botanical-garden-xian",
+        "index": 3
+      },
+      "matureMs": 16200000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "还魂草嫩茎",
+        "description": "从干叶簇间钻出的嫩茎，可配作疗伤药材。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "还魂草嫩茎",
+            "description": "从干叶簇间钻出的嫩茎，可配作疗伤药材。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "新茎抽出后蓄在叶根的草露，可恢复气血。",
+          "output": {
+            "name": "还魂草露",
+            "description": "新茎抽出后蓄在叶根的草露，可恢复气血。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "healing",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "qilin_elixir",
+      "name": "麒麟神药",
+      "description": "幼时团成伏卧的小麒麟，长成后从背上舒出角状枝叶。",
+      "quality": "神品",
+      "element": "雷",
+      "growthForm": "herb",
+      "harvestPart": "fruit",
+      "portrait": {
+        "atlas": "botanical-garden-shen",
+        "index": 0
+      },
+      "matureMs": 21600000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "麒麟芽",
+        "description": "从角状枝叶之间探出的软芽，可收作药材。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "麒麟芽",
+            "description": "从角状枝叶之间探出的软芽，可收作药材。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "角枝尽展时托出的果，灵兽食用可增长修为。",
+          "output": {
+            "name": "麒麟神果",
+            "description": "角枝尽展时托出的果，灵兽食用可增长修为。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "beast_cultivation",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "nine_wonder_elixir",
+      "name": "九妙不死药",
+      "description": "同根生出形态各异的枝，最后向中央合拢，共托一枚果。",
+      "quality": "神品",
+      "element": "土",
+      "growthForm": "shrub",
+      "harvestPart": "fruit",
+      "portrait": {
+        "atlas": "botanical-garden-shen",
+        "index": 1
+      },
+      "matureMs": 21600000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "九妙灵叶",
+        "description": "同根异枝吐出的薄叶，各有纹样，可配药。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "九妙灵叶",
+            "description": "同根异枝吐出的薄叶，各有纹样，可配药。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "枝梢合拢后共托的熟果，可延寿并辅助洗髓。",
+          "output": {
+            "name": "九妙圣果",
+            "description": "枝梢合拢后共托的熟果，可延寿并辅助洗髓。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "longevity",
+                "share": 0.6
+              },
+              {
+                "family": "marrow_wash",
+                "share": 0.4
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "world_tree",
+      "name": "建木",
+      "description": "主干笔直，横枝层层伸出，像一架从地面伸向天穹的长梯。",
+      "quality": "神品",
+      "element": "木",
+      "growthForm": "tree",
+      "harvestPart": "whole",
+      "portrait": {
+        "atlas": "botanical-garden-shen",
+        "index": 2
+      },
+      "matureMs": 21600000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "建木薄皮",
+        "description": "从横枝基部蜕下的薄皮，可留作药材。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "建木薄皮",
+            "description": "从横枝基部蜕下的薄皮，可留作药材。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "凝珍 · 天材地宝",
+          "description": "枝层长齐后可自老枝采得硬木，可供炼器。",
+          "output": {
+            "name": "建木心",
+            "description": "枝层长齐后可自老枝采得硬木，可供炼器。",
+            "kind": "tcdb"
+          }
+        }
+      }
+    },
+    {
+      "id": "chaos_blue_lotus",
+      "name": "混沌青莲",
+      "description": "一茎撑起宽阔莲叶，选定培养方向后层层青瓣打开，中央才露出莲子。",
+      "quality": "神品",
+      "element": "水",
+      "growthForm": "aquatic",
+      "harvestPart": "seedpod",
+      "portrait": {
+        "atlas": "botanical-garden-shen",
+        "index": 3
+      },
+      "matureMs": 21600000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "青莲花瓣",
+        "description": "青莲外圈自行脱落的老瓣，可以配药。",
+        "kind": "herb"
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂 · 药材增产",
+          "description": "继续产出原有药材，每轮收成由1份增加至2份。",
+          "output": {
+            "name": "青莲花瓣",
+            "description": "青莲外圈自行脱落的老瓣，可以配药。",
+            "kind": "herb"
+          }
+        },
+        "essence": {
+          "name": "改产灵果",
+          "description": "青瓣全开后从莲房中央采下，可提高下次闭关获得的修为，并提供突破增益。",
+          "output": {
+            "name": "青莲子",
+            "description": "青瓣全开后从莲房中央采下，可提高下次闭关获得的修为，并提供突破增益。",
+            "kind": "spirit_fruit",
+            "fruitEffects": [
+              {
+                "family": "cultivation",
+                "share": 0.6
+              },
+              {
+                "family": "breakthrough",
+                "share": 0.4
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
