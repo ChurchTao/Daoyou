@@ -47,6 +47,11 @@ export function MailAttachmentSlot({
     attachment.type,
   );
   const facts = isVault ? attachment.data : undefined;
+  const legacySeed =
+    attachment.type === 'material' &&
+    facts &&
+    'type' in facts &&
+    facts.type === 'seed';
   const tier = facts && ('rank' in facts ? facts.rank : facts.quality);
   const icon = getGameConceptIcon(attachment.type) || '🎁';
   const color = tier ? tierColorMap[tier] : 'text-ink';
@@ -54,10 +59,29 @@ export function MailAttachmentSlot({
     title: attachment.name,
     icon,
     titleColor: color,
-    header: isVault
-      ? [{ kind: 'field', label: '领取去向', value: '洞府宝库' }]
+    header: legacySeed
+      ? [
+          { kind: 'field', label: '类型', value: `${tier} · 旧灵种` },
+          { kind: 'field', label: '功能', value: '材料转化' },
+          { kind: 'field', label: '领取去向', value: '储物袋／储藏室' },
+        ]
+      : isVault
+        ? [{ kind: 'field', label: '领取去向', value: '洞府宝库' }]
+        : [],
+    sections: legacySeed
+      ? [
+          {
+            title: '转化用途',
+            entries: [
+              {
+                kind: 'line',
+                value:
+                  '旧灵种无法播种，领取后可在旧灵种转化中等量换取同品质的新种子。',
+              },
+            ],
+          },
+        ]
       : [],
-    sections: [],
     description: facts?.description,
   };
 

@@ -50,6 +50,7 @@
     "./items/library": "./dist/itemLibrary.js",
     "./legacy/artifacts": "./dist/artifactMigration.js",
     "./legacy/manuals": "./dist/manualMigration.js",
+    "./legacy/seeds": "./dist/seedMigration.js",
     "./llm/config": "./dist/llm/config.js",
     "./mail": "./dist/mail.js",
     "./manuals": "./dist/combatV6Manuals.js",

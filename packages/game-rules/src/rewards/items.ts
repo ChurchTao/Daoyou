@@ -1,25 +1,38 @@
 import type { RewardDisplayItem } from '@daoyou/game-domain/rewards';
-import { createRewardSchemas, type RewardSelection } from '@daoyou/game-domain/rewards';
-export const { RewardItemSchema, RewardSelectionsSchema } = createRewardSchemas({ ItemGrantSchema, InventoryItemSchema, InventoryEquipmentSchema, findItemDefinition });
+import {
+  createRewardSchemas,
+  type RewardSelection,
+} from '@daoyou/game-domain/rewards';
+import { assertCurrentRewardItem } from '../legacy/retired-draw.js';
 
-
-
-
+const NewRewardGrantSchema = ItemGrantSchema.superRefine((grant, ctx) => {
+  try {
+    assertCurrentRewardItem(grant.instanceData);
+  } catch (error) {
+    ctx.addIssue({
+      code: 'custom',
+      message: error instanceof Error ? error.message : '奖励物品已停用',
+    });
+  }
+});
+export const { RewardItemSchema, RewardSelectionsSchema } = createRewardSchemas(
+  {
+    ItemGrantSchema: NewRewardGrantSchema,
+    InventoryItemSchema,
+    InventoryEquipmentSchema,
+    findItemDefinition,
+  },
+);
 
 import { type ItemGrant } from '@daoyou/game-domain/inventory';
 
-
 import { InventoryItemSchema, ItemGrantSchema } from '../inventory/index.js';
-
 
 import { InventoryEquipmentSchema } from '../inventory/equipment.js';
 
-
 import { findItemDefinition } from '@daoyou/game-content/items';
 
-
 import type { MailAttachment } from '@daoyou/game-domain/mail';
-
 
 export function rewardItemName(grant: ItemGrant): string {
   return (
@@ -29,7 +42,6 @@ export function rewardItemName(grant: ItemGrant): string {
   );
 }
 
-
 export function rewardDisplayItem(grant: ItemGrant): RewardDisplayItem {
   return {
     ...grant,
@@ -37,7 +49,6 @@ export function rewardDisplayItem(grant: ItemGrant): RewardDisplayItem {
     instanceData: grant.instanceData ?? null,
   };
 }
-
 
 /** Frozen facts are copied, never rolled again. The host supplies each delivery's identity. */
 export function materializeRewardItem(
@@ -53,7 +64,6 @@ export function materializeRewardItem(
     },
   };
 }
-
 
 export function rewardAttachments(
   selections: RewardSelection[],
@@ -72,7 +82,6 @@ export function rewardAttachments(
         },
   );
 }
-
 
 export function materializeRewardAttachments(
   attachments: MailAttachment[],

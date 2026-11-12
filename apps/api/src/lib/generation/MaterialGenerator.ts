@@ -1,17 +1,18 @@
+import { type Quality } from '@daoyou/constants/qualities';
 import {
   BASE_PRICES,
   TYPE_MULTIPLIERS,
   getFallbackMaterialPreset,
 } from '@daoyou/game-content/materials';
-import { MaterialGenerator as MaterialSkeletonGenerator } from '@daoyou/game-rules/materials/generator';
+import { INVENTORY_MATERIAL_TYPES } from '@daoyou/game-domain/inventory';
 import {
   MaterialAISchema,
   type GeneratedMaterial,
+  type GeneratedMaterialType,
   type MaterialRandomOptions,
   type MaterialSkeleton,
 } from '@daoyou/game-domain/materials/generation';
-import { type MaterialType } from '@daoyou/game-domain/inventory';
-import { type Quality } from '@daoyou/constants/qualities';
+import { MaterialGenerator as MaterialSkeletonGenerator } from '@daoyou/game-rules/materials/generator';
 import type { AiService } from '@nestjs/ai';
 import { aiDeadlineSignal } from '@server/llm/call-options.js';
 import { z } from 'zod';
@@ -46,9 +47,6 @@ export class MaterialGenerator extends MaterialSkeletonGenerator {
     ai: AiService,
     skeletons: MaterialSkeleton[],
   ): Promise<GeneratedMaterial[]> {
-    if (skeletons.some((skeleton) => skeleton.type === 'seed')) {
-      throw new Error('灵植种子必须使用 SpiritSeedGenerator 生成');
-    }
     return this.fillMaterialDetails(ai, skeletons);
   }
 
@@ -62,6 +60,12 @@ export class MaterialGenerator extends MaterialSkeletonGenerator {
     skeletons: MaterialSkeleton[],
   ): Promise<GeneratedMaterial[]> {
     if (skeletons.length === 0) return [];
+    if (
+      skeletons.some(
+        (skeleton) => !INVENTORY_MATERIAL_TYPES.includes(skeleton.type),
+      )
+    )
+      throw new Error('材料文本生成只接受常规材料类型');
 
     const prompt = getMaterialGenerationPrompt();
     const userPrompt = getMaterialGenerationUserPrompt(skeletons);
@@ -125,7 +129,10 @@ export class MaterialGenerator extends MaterialSkeletonGenerator {
     });
   }
 
-  private static calculatePrice(rank: Quality, type: MaterialType): number {
+  private static calculatePrice(
+    rank: Quality,
+    type: GeneratedMaterialType,
+  ): number {
     const base = BASE_PRICES[rank];
     const multiplier = TYPE_MULTIPLIERS[type] || 1.0;
     const variation = 0.8 + Math.random() * 0.4; // +/- 20%

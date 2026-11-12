@@ -4,6 +4,18 @@ import { scene } from '../handles';
 
 export const cultivationRoutes = [
   <Route
+    path="seed-migration"
+    lazy={lazyRoute(() => import('@app/routes/game/seed-migration/route'))}
+    handle={scene(
+      {
+        id: 'seed-migration',
+        presentation: 'workflow',
+        summary: '将旧灵种等量转为同品质的新种子。',
+      },
+      '旧灵种转化',
+    )}
+  />,
+  <Route
     path="artifact-migration"
     lazy={lazyRoute(() => import('@app/routes/game/artifact-migration/route'))}
     handle={scene(

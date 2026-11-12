@@ -38,9 +38,6 @@ const promptSources = [
   'identity-reshape.md',
   'lifespan-exhausted.md',
   'material-generation.md',
-  'spirit-field-finalization.md',
-  'spirit-field-stage-judgment.md',
-  'spirit-seed-generation.md',
   'yield-story.md',
 ];
 

@@ -38,6 +38,7 @@
     "./journal/changes": "./dist/journal/changes.js",
     "./legacy/migrations": "./dist/public/legacy/migrations.js",
     "./legacy/products": "./dist/legacy/products.js",
+    "./legacy/spirit-field": "./dist/legacy/spirit-field.js",
     "./legacy/tags": "./dist/public/legacy/tags.js",
     "./mail": "./dist/public/mail.js",
     "./manuals": "./dist/public/manuals.js",
@@ -69,12 +70,12 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run --root ../.. packages/game-domain/src"
+    "test": "vitest run --root ../.. packages/game-domain/src",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@daoyou/combat-core": "workspace:*",
     "@daoyou/constants": "workspace:*",
-    "zod": "^4.6.7",
-    "@daoyou/combat-core": "workspace:*"
+    "zod": "^4.6.7"
   }
 }

@@ -1,0 +1,30 @@
+Paper texture assets
+
+Sources: the two paper photographs supplied by the user in this chat.
+Original image rights remain with their respective rights holders.
+
+xuan-fine.webp — first photograph, fine white paper relief
+Source: codex-clipboard-0dfc8702-b065-4240-bf3e-9a3bd205b871.png
+Source SHA-256: 1b0ce4984a01273e8dfce3c129434c1e1f2b5182ce4667bd4c25b37a2f4c9e99
+
+xuan-classic-soft.webp — second photograph, softened handmade paper relief
+Source: codex-clipboard-92db4d80-cff0-4c78-9f6b-b67405e45f8b.png
+Source SHA-256: 00139338545aec1d1ab360306fe9e239cbf1308bcd2dc4cc5942726a7e4fca72
+
+Processing (direct pixel extraction, 2026-11-11):
+- Keep the photographed grain, fibers and color details.
+- Subtract broad illumination with a 96-source-pixel Gaussian blur.
+- Reconcile opposite edges by periodic-plus-smooth decomposition.
+- Scale local shadow/highlight relief (fine: 1.0/0.6; classic: 0.85/0.6).
+- Soften the classic relief with a periodic Gaussian filter (sigma 1 source
+  pixel), then reduce contrast while preserving each pixel's color direction:
+  M = max(abs(R), abs(G), abs(B)); scale = 10 * tanh(0.5 * M / 10) / M.
+  Recenter the softened relief before converting it back to RGBA. This limits
+  prominent dark fibers and fragments as well as raised white fiber highlights.
+- Center the local relief on the existing game paper color #f3efe7.
+- Convert that relief into per-pixel RGBA using the minimum alpha needed to
+  reconstruct it over #f3efe7; the paper substrate becomes transparent.
+- Original-resolution PNG masters: 2048 x 1365.
+- Runtime tiles: 1024 x 683, Lanczos reduction and lossless RGBA WebP.
+
+Use normal compositing at opacity 1 and the tile's intrinsic dimensions.

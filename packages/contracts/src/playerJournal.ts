@@ -1,8 +1,8 @@
-import { JournalChangeSchema } from '@daoyou/game-domain/journal/changes';
 import type {
   BreakthroughResult,
   CultivationResult,
 } from '@daoyou/game-domain/cultivation';
+import { JournalChangeSchema } from '@daoyou/game-domain/journal/changes';
 
 import { REALM_STAGE_VALUES, REALM_VALUES } from '@daoyou/constants/realms';
 
@@ -79,8 +79,15 @@ export const JOURNAL_ACTIVITIES = {
   manual_enlightenment: '功法参悟',
   spirit_field_starter: '领取灵种',
   spirit_field_sow: '灵田播种',
-  spirit_field_cultivate: '灵田培育',
+  spirit_field_cultivate: '培育成株',
   spirit_field_harvest: '灵田收获',
+  spirit_field_branch: '选择培养方向',
+  spirit_field_evolve: '灵植蜕变',
+  spirit_field_archive: '暂存灵植',
+  spirit_field_restore: '移回灵田',
+  spirit_field_redeem: '兑换灵种',
+  spirit_field_retire: '移除灵植',
+  spirit_field_uproot: '铲除未知灵植',
   sect_task_action: '宗门任务',
   sect_battle_settlement: '宗门任务战斗',
   sect_shop_purchase: '宗门兑换',

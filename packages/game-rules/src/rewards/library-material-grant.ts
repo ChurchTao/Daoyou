@@ -1,14 +1,16 @@
 import type { ItemGrant } from '@daoyou/game-domain/inventory';
-import type { ItemLibraryEntry } from '@daoyou/game-domain/items/catalog';
 import {
   MaterialFactsSchema,
   seedFactsOf,
 } from '@daoyou/game-domain/inventory';
+import type { ItemLibraryEntry } from '@daoyou/game-domain/items/catalog';
+import { assertCurrentRewardItem } from '../legacy/retired-draw.js';
 
 /** The library is only a source: the selected facts are frozen in the reward. */
 export function libraryMaterialGrant(entry: ItemLibraryEntry): ItemGrant {
   if (entry.type !== 'material') throw new Error('仅支持材料库来源');
   const p = entry.payload;
+  assertCurrentRewardItem(p);
   if (p.type === 'seed')
     return {
       definitionId: 'seed.v1',

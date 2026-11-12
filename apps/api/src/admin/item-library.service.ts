@@ -18,6 +18,7 @@ import {
 } from '@server/admin/application/MaterialLibraryService.js';
 import { ItemLibraryDailyMaterialGenerationSettingsSchema } from '@daoyou/contracts/application-settings';
 import { CreateItemLibraryEntrySchema, ItemLibraryListQuerySchema, ItemLibraryMaterialGenerateSchema, ItemLibrarySpiritSeedGenerateSchema, UpdateItemLibraryEntrySchema } from '@daoyou/contracts/items/library';
+import { getSpiritGardenSeedCandidates } from '@daoyou/game-rules/spirit-field';
 
 function isUniqueViolation(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
@@ -83,8 +84,15 @@ export class AdminItemLibraryService {
         400,
       );
     }
+    const { quality, element } = parsed.data;
+    if (getSpiritGardenSeedCandidates(quality, element).length === 0) {
+      throw new HttpException(
+        { error: '当前灵种目录没有符合品阶与五行条件的物种' },
+        400,
+      );
+    }
     try {
-      const items = await generateSpiritSeedLibraryEntries(this.ai, {
+      const items = await generateSpiritSeedLibraryEntries({
         request: parsed.data,
         userId: userId,
       });

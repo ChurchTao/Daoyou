@@ -4,6 +4,7 @@ import { InkSwitch } from '@app/components/ui/InkSwitch';
 import { updateGameSettings, useGameSettings } from '@app/lib/game-setting';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
 import { useState } from 'react';
+import { PaperTextureChoices } from './PaperTextureChoices';
 import {
   SettingsField,
   SettingsMessage,
@@ -76,21 +77,10 @@ export function GameSettingsTab() {
         </label>
       </SettingsSection>
       <SettingsSection>
-        <label className="flex items-center justify-between gap-3">
-          <span className="min-w-0">
-            <span className="text-ink block text-sm leading-6">纸底纹理</span>
-            <span className="text-ink-secondary block text-xs leading-5">
-              关闭后使用纯宣纸色背景。
-            </span>
-          </span>
-          <InkSwitch
-            checked={paperTexture}
-            onCheckedChange={(checked) =>
-              updateGameSettings({ paperTexture: checked })
-            }
-            aria-label="纸底纹理"
-          />
-        </label>
+        <PaperTextureChoices
+          value={paperTexture}
+          onChange={(texture) => updateGameSettings({ paperTexture: texture })}
+        />
       </SettingsSection>
       <SettingsSection>
         <div className="flex flex-wrap items-center justify-between gap-3">

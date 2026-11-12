@@ -1,48 +1,18 @@
+import { seedFactsOf, SeedFactsSchema } from '@daoyou/game-domain/inventory';
+import { readLegacySpiritFieldSeedSpec } from '@daoyou/game-domain/legacy/spirit-field';
 import { describe, expect, it } from 'vitest';
 import { addItems, InventoryItemSchema } from '../inventory/index.js';
 import { inventoryStackIdentity } from '../inventory/stack-key.js';
 import {
-  seedFactsOf,
-  SeedFactsSchema,
-} from '@daoyou/game-domain/inventory';
-import {
-  buildSpiritFieldSeedMaterialFromPlant,
-  readSpiritFieldSeedSpec,
-} from '@daoyou/game-domain/spirit-field';
-import type { SpiritFieldPlantSnapshot } from '@daoyou/game-domain/spirit-field';
+  legacySeedMaterial,
+  legacySeedPlant as plant,
+} from './seed-fixtures.js';
 
-const plant: SpiritFieldPlantSnapshot = {
-  id: 'fingerprint-seed',
-  seedName: '霜纹芽核',
-  seedDescription: '淡白芽核表面有一圈霜纹。',
-  clueTexts: ['靠近清露时霜纹会变亮', '暖意过盛时灵机略显沉寂'],
-  quality: '玄品',
-  element: '冰',
-  minRealm: '金丹',
-  growthForm: 'shrub',
-  harvestPart: 'fruit',
-  preferredMethods: ['shade_dew', 'flower_fruit'],
-  avoidedMethods: ['sun_wake'],
-  preferredHabitats: ['cold', 'shaded'],
-  avoidedHabitats: ['volcanic'],
-  growthTraits: ['dew-seeking'],
-  useTags: ['qi-restoration'],
-  outcomeBiases: ['spirit_fruit'],
-  creationTags: ['Material.Semantic.Freeze'],
-  stageDurationMs: {
-    germination: 100_000,
-    nourishing: 100_000,
-    forming: 100_000,
-  },
-  baseYieldMin: 2,
-  baseYieldMax: 4,
-};
-
-describe('spirit seed material', () => {
+describe('historical seed asset reading', () => {
   it('keeps distinct growing facts apart while identical seeds stack', () => {
-    const facts = seedFactsOf(buildSpiritFieldSeedMaterialFromPlant(plant));
+    const facts = seedFactsOf(legacySeedMaterial(plant));
     const changed = seedFactsOf(
-      buildSpiritFieldSeedMaterialFromPlant({ ...plant, baseYieldMax: 8 }),
+      legacySeedMaterial({ ...plant, baseYieldMax: 8 }),
     );
     expect(inventoryStackIdentity('seed.v1', facts)).not.toBe(
       inventoryStackIdentity('seed.v1', changed),
@@ -77,17 +47,16 @@ describe('spirit seed material', () => {
     );
     expect(separate).toHaveLength(2);
     expect(
-      SeedFactsSchema.parse(separate[1].instanceData).seedSpec.plant
-        .baseYieldMax,
-    ).toBe(8);
+      SeedFactsSchema.parse(separate[1].instanceData).seedSpec.plant,
+    ).toMatchObject({ baseYieldMax: 8 });
   });
   it('rejects invalid seed snapshots instead of inventing growing facts', () => {
-    const material = buildSpiritFieldSeedMaterialFromPlant(plant);
+    const material = legacySeedMaterial(plant);
     expect(() => seedFactsOf({ ...material, rank: '凡品' })).toThrow();
     expect(() => seedFactsOf({ ...material, details: {} })).toThrow();
   });
   it('stacks identical seeds up to 999 per slot', () => {
-    const facts = seedFactsOf(buildSpiritFieldSeedMaterialFromPlant(plant));
+    const facts = seedFactsOf(legacySeedMaterial(plant));
     let id = 0;
     const items = addItems(
       [],
@@ -104,19 +73,19 @@ describe('spirit seed material', () => {
     ).toBe(false);
   });
   it('uses the global seed type and round-trips a stable fingerprint', () => {
-    const material = buildSpiritFieldSeedMaterialFromPlant(plant, 2);
+    const material = legacySeedMaterial(plant, 2);
     expect(material.type).toBe('seed');
-    const spec = readSpiritFieldSeedSpec(material.details);
+    const spec = readLegacySpiritFieldSeedSpec(material.details);
     expect(spec?.plant.seedName).toBe(plant.seedName);
     expect(spec?.fingerprint).toMatch(/^seed-v1-/);
   });
 
   it('rejects tampered hidden traits', () => {
-    const material = buildSpiritFieldSeedMaterialFromPlant(plant);
+    const material = legacySeedMaterial(plant);
     const details = structuredClone(material.details) as {
       seedSpec: { plant: { outcomeBiases: string[] } };
     };
     details.seedSpec.plant.outcomeBiases = ['tcdb'];
-    expect(readSpiritFieldSeedSpec(details)).toBeNull();
+    expect(readLegacySpiritFieldSeedSpec(details)).toBeNull();
   });
 });
