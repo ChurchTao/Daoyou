@@ -5,6 +5,8 @@ description: 万界道友常规游戏场景的 UI 规范。用于实现、重构
 
 # 主流程场景 UI
 
+先遵守适用于所有玩法的 [UI 设计原则](../daoyou-game-ui-principles/SKILL.md)，确定信息优先级、当前操作重心与披露时机。本技能补充常规场景的布局、控件和职责约束。
+
 先查 `apps/web/src/route-definitions/` 的布局嵌套和 `handle={scene(...)}`。在 `GameViewportLayout` 下，`chrome: 'immersive'` 走 `GameMapLayout`，返回入口由对应场景负责。下面的三层规则适用于常规壳。其他布局及 HUD、底栏、世界聊天的归属见 [布局规范](../../../docs/game-layout-ownership.md)。V6 战斗与回放另查 [战斗 UI](../../../docs/combat-v6-battle-ui.md)，展示使用服务端权威结果。
 
 ## 场景结构
