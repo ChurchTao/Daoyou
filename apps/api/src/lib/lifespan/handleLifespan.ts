@@ -1,3 +1,4 @@
+import { endSocialRelationsForCharacter } from '@server/social/social-lifecycle.js';
 import { cultivators } from '@server/lib/drizzle/schema.js';
 import type { DbTransaction } from '@server/lib/drizzle/db.js';
 import { invalidateActiveCultivatorRef } from '@server/lib/auth/activeCultivator.js';
@@ -69,6 +70,7 @@ export async function consumeLifespanAndHandleDepletion(
         },
         options.tx,
       );
+      await endSocialRelationsForCharacter(options.tx, cultivatorId, 'death');
       if (ownerId) {
         afterCommit = () => invalidateActiveCultivatorRef(ownerId);
       }

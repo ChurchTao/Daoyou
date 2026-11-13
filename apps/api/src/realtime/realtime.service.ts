@@ -21,6 +21,7 @@ import {
 import { subscribeResourceEvents } from '@server/realtime/infrastructure/playerStateBroadcaster.js';
 import { subscribeSectChatMessages } from '@server/realtime/infrastructure/sectChatBroadcaster.js';
 import { subscribeWorldChatMessages } from '@server/realtime/infrastructure/worldChatBroadcaster.js';
+import { subscribeSocialNotifications } from '@server/social/social-notifications.js';
 import { fromNodeHeaders } from 'better-auth/node';
 import { and, eq } from 'drizzle-orm';
 import type { IncomingMessage } from 'node:http';
@@ -220,6 +221,28 @@ export class RealtimeService {
         send(event);
       })().catch(() => close(1011, 'sect identity check failed'));
     };
+    const verifySocialIdentity = async () => {
+      if (closed) return false;
+      const session = await this.sessions.getSession(
+        fromNodeHeaders(request.headers),
+      );
+      if (session.response?.user.id !== reservation.userId) {
+        close(4001, 'session changed');
+        return false;
+      }
+      const current = await this.database.query.cultivators.findFirst({
+        columns: { id: true },
+        where: and(
+          eq(cultivators.userId, reservation.userId),
+          eq(cultivators.status, 'active'),
+        ),
+      });
+      if ((current?.id ?? null) !== cultivatorId) {
+        close(4001, 'character changed');
+        return false;
+      }
+      return true;
+    };
     socket.once('close', cleanup);
     socket.once('error', cleanup);
     socket.on('message', (data, binary) => {
@@ -244,6 +267,22 @@ export class RealtimeService {
           subscribeResourceEvents(resourceScopes, (changes) =>
             send({ type: 'player-state.events', payload: { changes } }),
           ),
+        );
+      }
+      if (channels.includes('social')) {
+        unsubscribers.push(
+          subscribeSocialNotifications(reservation.userId, (payload) => {
+            if (
+              payload.cultivatorId !== null &&
+              payload.cultivatorId !== cultivatorId
+            )
+              return;
+            void verifySocialIdentity()
+              .then((valid) => {
+                if (valid) send({ type: 'social.changed', payload });
+              })
+              .catch(() => close(1011, 'social identity check failed'));
+          }),
         );
       }
       if (channels.includes('world-chat')) {
@@ -281,6 +320,11 @@ export class RealtimeService {
           return;
         }
         if (cultivatorId) recordRealtimeConnectionHeartbeat(cultivatorId);
+        if (channels.includes('social')) {
+          void verifySocialIdentity().catch(() =>
+            close(1011, 'social identity check failed'),
+          );
+        }
         send({
           type: 'ping',
           payload: { serverTime: new Date().toISOString() },

@@ -2,6 +2,8 @@ import {
   isDomainEventType,
   type DomainEventEnvelope,
 } from '@daoyou/contracts/events';
+import { DOMAIN_EVENT_TYPES } from '@daoyou/game-domain/events';
+import { isAchievementEvent, projectAchievementDomainEvent } from '@server/achievements/AchievementDomainEventProjector.js';
 import { projectCombatV6Condition } from '@server/combat/application/CombatV6ConditionProjector.js';
 import type { CombatV6TrainingSessionService } from '@server/combat/application/CombatV6TrainingSessionService.js';
 import {
@@ -65,6 +67,12 @@ export async function registerMessageInfrastructure(
     await ensureMessageTopology();
     const starts = await Promise.allSettled([
       startBackgroundCommandConsumer(backgroundCommands),
+      startDomainEventConsumer({
+        consumerName: DOMAIN_EVENT_CONSUMERS.achievementProjector.name,
+        concurrency: DOMAIN_EVENT_CONSUMERS.achievementProjector.concurrency,
+        acceptedTypes: DOMAIN_EVENT_TYPES,
+        handle: handleAchievementEvent,
+      }),
       startDomainEventConsumer({
         consumerName: DOMAIN_EVENT_CONSUMERS.systemMailProjector.name,
         concurrency: DOMAIN_EVENT_CONSUMERS.systemMailProjector.concurrency,
@@ -180,6 +188,16 @@ async function handleSectConstructionEvent(event: DomainEventEnvelope) {
     source: 'sect_facility_domain_event',
     event,
     handle: projectSectConstructionDonation,
+  });
+}
+
+async function handleAchievementEvent(event: DomainEventEnvelope) {
+  if (!isAchievementEvent(event)) return;
+  await executeDomainEvent({
+    consumerName: DOMAIN_EVENT_CONSUMERS.achievementProjector.name,
+    source: 'achievement_domain_event',
+    event,
+    handle: projectAchievementDomainEvent,
   });
 }
 

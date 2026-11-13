@@ -1,5 +1,6 @@
 import { InkModal } from '@app/components/layout';
 import { GameIcon } from '@app/components/ui/GameIcon';
+import { InkBadge } from '@app/components/ui/InkBadge';
 import { tierColorMap } from '@app/components/ui/inkBadgeTiers';
 import { InkButton } from '@app/components/ui/InkButton';
 import { cn } from '@app/lib/cn';
@@ -218,6 +219,24 @@ export function CharacterCardView({
               </div>
             </div>
           </header>
+          {card.achievements?.length ? (
+            <div
+              className="flex min-w-0 flex-wrap gap-x-2 gap-y-1"
+              aria-label="展示成就"
+            >
+              {card.achievements.map((achievement) => (
+                <span
+                  key={achievement.id}
+                  title={achievement.description}
+                  className="min-w-0 max-w-full"
+                >
+                  <InkBadge className="text-teal max-w-full wrap-anywhere">
+                    {achievement.name}
+                  </InkBadge>
+                </span>
+              ))}
+            </div>
+          ) : null}
           {card.background ? <CardBackground text={card.background} /> : null}
           {card.equipment.length || card.beasts.length ? (
             <div className="space-y-2">

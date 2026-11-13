@@ -8,9 +8,14 @@ export function getCoreDockItemBadge(
   itemId: string,
   input: {
     unreadMailCount: number;
+    unreadDirectMessages?: number;
+    pendingFriendRequests?: number;
     hasUnallocatedAttributePoints: boolean;
   },
 ): GameDockBadge {
+  if (itemId === 'friends') {
+    return input.unreadDirectMessages || Boolean(input.pendingFriendRequests);
+  }
   if (itemId === 'mail') {
     return input.unreadMailCount;
   }

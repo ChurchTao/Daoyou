@@ -1,13 +1,15 @@
-import { createDomainEventDataSchemas } from '@daoyou/game-domain/events';
 import {
   createBeastSchema,
   createBeastTradeSchemas,
 } from '@daoyou/game-domain/beasts';
 import { createInventoryEquipmentSchema } from '@daoyou/game-domain/equipment';
+import { createDomainEventDataSchemas } from '@daoyou/game-domain/events';
 import { createInventorySchemas } from '@daoyou/game-domain/inventory';
 
-import { createDomainEventParser } from './domainEvents.js';
-import { DOMAIN_EVENT_DEFINITIONS } from './domainEvents.js';
+import {
+  createDomainEventParser,
+  DOMAIN_EVENT_DEFINITIONS,
+} from './domainEvents.js';
 
 const EVENT_ID = '11111111-1111-4111-8111-111111111111';
 const CULTIVATOR_ID = '22222222-2222-4222-8222-222222222222';
@@ -80,6 +82,30 @@ describe('domain event contracts', () => {
   });
 
   it.each([
+    {
+      type: 'cultivator.growth.observed' as const,
+      data: { cultivatorId: CULTIVATOR_ID, discipline: 'manuals', value: 6 },
+    },
+    {
+      type: 'yield.collection.completed' as const,
+      data: { cultivatorId: CULTIVATOR_ID, actionInstanceId: EVENT_ID },
+    },
+    {
+      type: 'mentorship.bound' as const,
+      data: {
+        relationId: EVENT_ID,
+        mentorCultivatorId: CULTIVATOR_ID,
+        discipleCultivatorId: USER_ID,
+      },
+    },
+    {
+      type: 'mentorship.disciple.graduated' as const,
+      data: {
+        relationId: EVENT_ID,
+        mentorCultivatorId: CULTIVATOR_ID,
+        discipleCultivatorId: USER_ID,
+      },
+    },
     {
       type: 'yield.claimed' as const,
       data: {
@@ -162,6 +188,28 @@ describe('domain event contracts', () => {
     });
     expect(event.type).toBe(type);
   });
+
+  it.each([
+    { discipline: 'manuals', value: -1 },
+    { discipline: 'manuals', value: 0.5 },
+    { discipline: 'manuals', value: 2_147_483_648 },
+    { discipline: 'unknown', value: 1 },
+    { discipline: 'manuals', value: 1, achievementId: 'mentorship.apprentice' },
+  ])(
+    'rejects invalid or client-authored growth facts: $discipline/$value',
+    (data) => {
+      expect(() =>
+        parseDomainEventEnvelope({
+          id: EVENT_ID,
+          type: 'cultivator.growth.observed',
+          ...DOMAIN_EVENT_DEFINITIONS['cultivator.growth.observed'],
+          occurredAt: '2026-08-03T08:00:00.000Z',
+          aggregate: { type: 'cultivator', id: CULTIVATOR_ID },
+          data: { cultivatorId: CULTIVATOR_ID, ...data },
+        }),
+      ).toThrow();
+    },
+  );
 });
 
 // Transport fixtures use a local catalog; actual gameplay validation is covered in game-rules.

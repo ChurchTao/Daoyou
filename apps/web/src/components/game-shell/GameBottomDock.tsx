@@ -1,27 +1,36 @@
+import { useSocialQuery } from '@app/components/feature/friends/socialApi';
 import Link from '@app/components/router/AppLink';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { cn } from '@app/lib/cn';
+import type { SocialSummary } from '@daoyou/contracts/social';
 import {
   getCoreDockItemBadge,
   shouldShowGameDockBadge,
   type GameDockBadge,
 } from './gameBottomDockBadge';
-import { getCoreDockItems, getExpandedDockColumns } from './gameNavigation';
+import {
+  getActiveCoreDockSceneId,
+  getCoreDockItems,
+  getExpandedDockColumns,
+} from './gameNavigation';
 
 function DockLink({
   href,
   label,
   active,
   badge,
+  attention,
 }: {
   href: string;
   label: string;
   active?: boolean;
   badge?: GameDockBadge;
+  attention?: string;
 }) {
   return (
     <Link
       href={href}
+      aria-label={attention ? `${label}，${attention}` : label}
       className={cn(
         'hover:text-crimson inline-flex px-1 py-1.5 leading-5 whitespace-nowrap transition',
         active ? 'text-crimson' : 'text-ink',
@@ -55,6 +64,19 @@ export function GameBottomDock({
   onToggleExpanded: () => void;
   dockMode?: 'core' | 'expanded' | 'hidden';
 }) {
+  const summary = useSocialQuery<SocialSummary>('/api/social/summary').data;
+  const unreadDirectMessages = summary?.unreadMessages ?? 0;
+  const mentorAttention = Boolean(
+    summary?.mentorshipRequests || summary?.mentorshipReadyToGraduate,
+  );
+  const hiddenAttention = unreadMailCount > 0 || mentorAttention;
+  const activeCoreScene = getActiveCoreDockSceneId(sceneId);
+  const badgeInput = {
+    unreadMailCount,
+    hasUnallocatedAttributePoints,
+    unreadDirectMessages,
+    pendingFriendRequests: summary?.friendRequests,
+  };
   const drawerOpen = dockMode === 'expanded' || isExpanded;
   const coreDockItems = getCoreDockItems();
   const expandedDockColumns = getExpandedDockColumns();
@@ -75,11 +97,13 @@ export function GameBottomDock({
               key={item.id}
               href={item.href}
               label={item.label}
-              active={sceneId === item.id}
-              badge={getCoreDockItemBadge(item.id, {
-                unreadMailCount,
-                hasUnallocatedAttributePoints,
-              })}
+              active={activeCoreScene === item.id}
+              attention={
+                item.id === 'friends'
+                  ? `${unreadDirectMessages} 条未读私聊，${summary?.friendRequests ?? 0} 条待处理申请`
+                  : undefined
+              }
+              badge={getCoreDockItemBadge(item.id, badgeInput)}
             />
           ))}
           <button
@@ -88,6 +112,13 @@ export function GameBottomDock({
             className="hover:text-crimson shrink-0 px-1.5 py-1.5 text-center tracking-[0.08em] whitespace-nowrap transition"
           >
             [{drawerOpen ? '收起' : '展开'}]
+            {hiddenAttention ? (
+              <span
+                className="bg-crimson ml-1 inline-block h-2 w-2 rounded-full"
+                role="status"
+                aria-label="展开导航中有待处理事项"
+              />
+            ) : null}
           </button>
         </nav>
       </div>
@@ -125,10 +156,22 @@ export function GameBottomDock({
                         }
                         className={cn(
                           'hover:text-crimson min-w-0 leading-6 transition',
-                          sceneId === action.id ? 'text-crimson' : '',
+                          sceneId === action.id || activeCoreScene === action.id
+                            ? 'text-crimson'
+                            : '',
                         )}
                       >
                         [{action.label}]
+                        {shouldShowGameDockBadge(
+                          action.id === 'mentorship'
+                            ? mentorAttention
+                            : getCoreDockItemBadge(action.id, badgeInput),
+                        ) ? (
+                          <span
+                            className="bg-crimson ml-1 inline-block h-2 w-2 rounded-full"
+                            aria-label="有待处理事项"
+                          />
+                        ) : null}
                       </Link>
                     ))}
                   </div>

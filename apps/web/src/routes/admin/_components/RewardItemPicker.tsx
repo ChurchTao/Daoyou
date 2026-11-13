@@ -1,30 +1,41 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import {
   InventoryGrid,
   ItemSlot,
 } from '@app/components/feature/items/ItemSlot';
 import { InkButton, InkInput, InkNotice, InkSelect } from '@app/components/ui';
-import { TALISMAN_SCENARIO_OPTIONS } from '@daoyou/game-domain/consumables';
-import {
-  rewardDisplayItem,
-  RewardItemSchema,
-  libraryMaterialGrant,
-} from '@daoyou/game-rules/rewards/materials';
+import { apiFetch } from '@app/lib/api/fetch';
+import { QUALITY_VALUES } from '@daoyou/constants/qualities';
 import { DAO_EQUIPMENT_TEMPLATES_V1 } from '@daoyou/game-content/equipment/base';
-import { OPEN_EQUIPMENT_LEVELS } from '@daoyou/game-domain/equipment';
-import { equipmentRealm } from '@daoyou/game-rules/equipment/forging';
 import { DAO_WEAPONS } from '@daoyou/game-content/equipment/weapons';
+import { ITEM_DEFINITIONS } from '@daoyou/game-content/items';
+import { TALISMAN_SCENARIO_OPTIONS } from '@daoyou/game-domain/consumables';
+import { OPEN_EQUIPMENT_LEVELS } from '@daoyou/game-domain/equipment';
 import type { ItemGrant } from '@daoyou/game-domain/inventory';
 import {
   INVENTORY_MATERIAL_TYPES,
   MATERIAL_TYPE_NAMES,
+  seedFactsOf,
 } from '@daoyou/game-domain/inventory';
-import { ITEM_DEFINITIONS } from '@daoyou/game-content/items';
-import { ALCHEMY_PROPERTY_LABELS } from '@daoyou/game-rules/alchemy';
 import type { ItemLibraryEntry } from '@daoyou/game-domain/items/catalog';
-import { QUALITY_VALUES } from '@daoyou/constants/qualities';
+import { ALCHEMY_PROPERTY_LABELS } from '@daoyou/game-rules/alchemy';
+import { equipmentRealm } from '@daoyou/game-rules/equipment/forging';
+import {
+  libraryMaterialGrant,
+  rewardDisplayItem,
+  RewardItemSchema,
+} from '@daoyou/game-rules/rewards/materials';
+import {
+  buildSpiritGardenSeed,
+  SPIRIT_GARDEN_SPECIES,
+} from '@daoyou/game-rules/spirit-field';
 import { useEffect, useState } from 'react';
 import { AdminDialog } from './AdminDialog';
+
+const spiritGardenSeeds: ItemGrant[] = SPIRIT_GARDEN_SPECIES.map((species) => ({
+  definitionId: 'seed.v1',
+  quantity: 1,
+  instanceData: seedFactsOf(buildSpiritGardenSeed(species.id, species.quality)),
+}));
 
 const kinds = {
   beast_book: '传承灵印',
@@ -98,7 +109,7 @@ export function RewardItemPicker({
     'talisman',
     'equipment',
   ].includes(kind);
-  const isLibrary = kind === 'material' || kind === 'seed';
+  const isLibrary = kind === 'material';
   useEffect(() => {
     if (!open || !isLibrary) return;
     const controller = new AbortController();
@@ -113,7 +124,7 @@ export function RewardItemPicker({
           page: String(page),
           pageSize: '24',
           q: query,
-          materialType: kind === 'seed' ? 'seed' : materialType,
+          materialType,
         });
         const response = await apiFetch(`/api/admin/item-library?${params}`, {
           signal: controller.signal,
@@ -124,8 +135,7 @@ export function RewardItemPicker({
         for (const entry of data.items as ItemLibraryEntry[]) {
           try {
             const grant = libraryMaterialGrant(entry);
-            if ((grant.definitionId === 'seed.v1') === (kind === 'seed'))
-              grants.push(grant);
+            if (grant.definitionId === 'material.v1') grants.push(grant);
           } catch {
             /* Historical unsupported materials are not selectable. */
           }
@@ -146,14 +156,17 @@ export function RewardItemPicker({
       controller.abort();
     };
   }, [open, isLibrary, kind, query, page, materialType]);
-  const catalogue: ItemGrant[] = isGenerator
-    ? generated
-        .filter((entry) => entry.kind === kind)
-        .map((entry) => entry.item)
-    : ITEM_DEFINITIONS.filter((d) => d.kind === kind).map((d) => ({
-        definitionId: d.id,
-        quantity: 1,
-      }));
+  const catalogue: ItemGrant[] =
+    kind === 'seed'
+      ? spiritGardenSeeds
+      : isGenerator
+        ? generated
+            .filter((entry) => entry.kind === kind)
+            .map((entry) => entry.item)
+        : ITEM_DEFINITIONS.filter((d) => d.kind === kind).map((d) => ({
+            definitionId: d.id,
+            quantity: 1,
+          }));
   const filtered = catalogue.filter((item) =>
     rewardDisplayItem(item).name.includes(query),
   );

@@ -1,3 +1,4 @@
+import { realtimeClient } from '@app/lib/realtime/realtimeClient';
 import { GuideOverlay } from '@app/components/feature/guide/GuideOverlay';
 import { HuntTeamBar } from '@app/components/feature/hunts/HuntTeamBar';
 import { WorldChatPreviewBar } from '@app/components/feature/world-chat/WorldChatPreviewBar';
@@ -99,6 +100,10 @@ export function GameViewportLayout() {
 }
 
 function GameViewportBody({ scene }: { scene: GameSceneHandle | null }) {
+  useEffect(() => {
+    realtimeClient.enableChannel('social');
+    return () => realtimeClient.disableChannel('social');
+  }, []);
   const location = useLocation();
   const hud = useGameHudModel();
   const routeKey = `${location.pathname}${location.search}`;

@@ -33,6 +33,10 @@ export async function recordPendingAccountDeletion(
           status: 'pending',
           requestedAt,
           completedAt: null,
+          socialCleanupStatus: 'pending',
+          socialCleanupAttempts: 0,
+          socialCleanupError: null,
+          socialCleanupCompletedAt: null,
         },
       });
   });

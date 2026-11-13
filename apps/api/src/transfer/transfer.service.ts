@@ -1,3 +1,4 @@
+import { endSocialRelationsForCharacter } from '@server/social/social-lifecycle.js';
 import { REALM_STAGE_VALUES, REALM_VALUES } from '@daoyou/constants/realms';
 import { TRANSFER_FORMAT_VERSION, TransferPackageHeaderSchema, type TransferChallenge } from '@daoyou/contracts/transfer';
 import { HttpException, Inject, Injectable } from '@nestjs/common';
@@ -175,6 +176,10 @@ export class TransferService {
       await tx.update(schema.transferExports).set({ status: result.status }).where(eq(schema.transferExports.id, exportId));
       await tx.update(schema.cultivators).set({ status: result.status === 'imported' ? 'transferred' : 'active' })
         .where(eq(schema.cultivators.id, row.export.cultivatorId));
+      if (result.status === 'imported') {
+        await endSocialRelationsForCharacter(tx, row.export.cultivatorId, 'transferred');
+        await invalidateActiveCultivatorRef(userId);
+      }
       if (result.status === 'rejected') {
         await recordBoundaryCrossing(tx, {
           direction: 'returned',

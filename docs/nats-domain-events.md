@@ -8,11 +8,11 @@
 - `DAOYOU_BACKGROUND_COMMAND_DLQ` 保存后台 command 的终止失败消息，最大占用 128 MiB。
 - `DAOYOU_COMBAT_V6_REPLAY_ARCHIVES` 使用 WorkQueue retention 保存回放指针（battle ID），最大占用 64 MiB、单条上限 4 KiB；`combat-v6-replay-postgres-archiver-v1` 从 Redis 读取完整回放并归档后 ACK。
 - 五个 Stream 的上限合计约 3.8 GiB；生产 NATS 配置应能容纳这些持久化数据。
-- `daoyou.realtime.>` 使用 NATS Core，不进入 JetStream；用于资源变更、世界聊天和宗门聊天的跨实例实时广播。
+- `daoyou.realtime.>` 使用 NATS Core，不进入 JetStream；用于资源变更、公开聊天和账号定向社交通知的跨实例实时提示。
 - 应用启动时以幂等方式校验并创建 Stream 和 durable consumer。
 - 业务事务将待发布消息写入通用 PostgreSQL 事务消息表 `wanjiedaoyou_transactional_messages`；领域事件只是当前消息类型之一。
 - 事务消息表只保存通用的 `message_key`、`destination`、`payload` 与发布状态，不持有 aggregate、event type 等领域事件专属列。
-- 收到 JetStream PubAck 后标记 `published_at`；此后消息的持久化、投递状态、重试与消费进度由 JetStream 负责。
+- 持久消息收到 JetStream PubAck 后标记 `published_at`；此后消息的持久化、投递状态、重试与消费进度由 JetStream 负责。`chat.notification`、`social.notification` 是例外：事务消息发布器使用 NATS Core，连接 flush 后标记已发布，不代表在线客户端已经收到。
 - 消费者在同一 PostgreSQL 事务中写入通用消费幂等记录并更新业务数据，提交后才 ACK JetStream。
 - 单条事件处理失败 10 次后转入 DLQ；DLQ 发布失败时继续重试原事件。
 
@@ -39,6 +39,12 @@ Redis 是当前 V6 战斗运行态和回放 outbox 的权威。`CombatV6RuntimeS
 | `market.material.revealed` | `daoyou.domain.gameplay.market-material-revealed.v1` | `world-rumor-projector-v1` |
 | `ranking.position.changed` | `daoyou.domain.gameplay.ranking-position-changed.v1` | `world-rumor-projector-v1` |
 | `cultivator.boundary.crossed` | `daoyou.domain.gameplay.cultivator-boundary-crossed.v1` | `world-rumor-projector-v1`（跨界飞升：离界、降临、折返） |
+| `cultivator.growth.observed` | `daoyou.domain.progression.growth-observed.v1` | `achievement-projector-v1` |
+| `yield.collection.completed` | `daoyou.domain.progression.yield-collection-completed.v1` | `achievement-projector-v1` |
+| `mentorship.bound` | `daoyou.domain.mentorship.bound.v1` | `achievement-projector-v1` |
+| `mentorship.disciple.graduated` | `daoyou.domain.mentorship.disciple-graduated.v1` | `achievement-projector-v1` |
+
+`achievement-projector-v1`还消费既有炼丹完成、装备锻造、秘境结算、境界突破与灵田收获事实，统一投影角色指标和永久解锁。无关事件不写消费回执；成就回执长期保留，避免通用清理后重投导致累计重复。指标、解锁及账号定向`social.notification(kind=achievements)`在消费事务中一并提交。目录/名片读取补认有变化时也写通知，无变化不写；详见[角色成就簿](achievements.md)。
 
 `ranking.challenge.completed` 仍保留为战斗完成事实，但当前任务定义没有对应计数目标，任务投影器会显式忽略它。
 
@@ -63,8 +69,11 @@ JetStream 只能保证“已经发布成功”的 command 持久化；如果所�
 - `daoyou.realtime.resource-state.<scope-kind>.<base64url-scope-id>`
 - `daoyou.realtime.world-chat`
 - `daoyou.realtime.sect-chat.<base64url-sect-id>`
+- `daoyou.realtime.social.user.<base64url-user-id>`
 
-这些消息只负责唤醒当前在线连接。聊天历史仍由原 Redis list 保存，玩家资源变化仍以 PostgreSQL resource event/replay log 为权威数据，因此 NATS Core 丢失一条实时消息不会造成业务数据丢失。
+这些消息只负责提示当前在线连接更新。世界、宗门和系统聊天历史以 PostgreSQL `wanjiedaoyou_chat_messages` 为权威；私聊本体独立存于 `wanjiedaoyou_direct_conversations`、`wanjiedaoyou_direct_conversation_members`、`wanjiedaoyou_direct_messages`，不进入公开聊天查询。玩家资源变化仍以 PostgreSQL resource event/replay log 为权威数据，NATS Core 丢失实时提示不使已提交业务数据丢失。
+
+好友、私聊和师徒在原业务事务中写入 `social.notification` outbox。账号主题由服务端根据已认证身份订阅，再经统一 WS 的 `social` 通道发送 `social.changed`；提示只含角色、变更种类、可选会话 ID 与序号，不广播私聊正文。客户端通过 HTTP 摘要与历史补读，在进入、重连、重新聚焦及可见页面的 30 秒轮询时恢复；提示中的最大序号不能直接作为连续补读水位。实现入口为 `social/social-notifications.ts`、`realtime/realtime.service.ts` 和 `lib/mq/transactionalMessagePublisher.ts`。
 
 ## 必需环境变量
 
@@ -102,7 +111,7 @@ pnpm run services ps
 - 毒消息：查看 `DAOYOU_DOMAIN_EVENT_DLQ`，subject 为 `daoyou.dead-letter.<consumer-name>`。
 - 后台命令失败：查看 `DAOYOU_BACKGROUND_COMMAND_DLQ`，subject 为 `daoyou.command-dead-letter.background-command-worker-v1`。
 - 回放归档积压：查看 `DAOYOU_COMBAT_V6_REPLAY_ARCHIVES` 的 `combat-v6-replay-postgres-archiver-v1` consumer，并核对 Redis replay outbox 与归档日志。
-- 手工重放前必须确认 `wanjiedaoyou_message_consumptions` 中对应消费记录是否仍存在；消费记录保留 30 天，长于主 Stream 的 14 天保留期。
+- 手工重放前必须确认 `wanjiedaoyou_message_consumptions` 中对应消费记录是否仍存在；普通消费记录保留30天，长于主Stream的14天保留期。成就累计、战斗condition和hunt奖励消费者回执不随通用清理删除。
 
 ## 事件演进规则
 

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./achievements": "./dist/public/achievements.js",
     "./alchemy": "./dist/public/alchemy.js",
     "./auction": "./dist/public/auction.js",
     "./beasts/fusion": "./dist/beasts/fusion.js",
@@ -68,6 +69,7 @@
     "./legacy/retired-draw": "./dist/legacy/retired-draw.js",
     "./mail": "./dist/public/mail.js",
     "./manuals": "./dist/public/manuals.js",
+    "./mentorship": "./dist/mentorship.js",
     "./manuals/presentation": "./dist/manuals/presentation.js",
     "./manuals/projection": "./dist/public/manuals/projection.js",
     "./market/beast-stock": "./dist/market/beast-stock.js",

@@ -526,6 +526,27 @@
       "when": 1794295644387,
       "tag": "0075_perennial_spirit_garden",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1794545072246,
+      "tag": "0076_social_mentorship",
+      "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1794559576609,
+      "tag": "0077_achievements_and_graduation",
+      "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1794562399944,
+      "tag": "0078_achievement_progress",
+      "breakpoints": true
     }
   ]
 }

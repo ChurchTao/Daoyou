@@ -10,6 +10,7 @@ export function RealtimeConnectionToasts() {
     'world-chat': false,
     'player-state': false,
     'arena-room': false,
+    social: false,
   });
   const disconnectToastActive = useRef(false);
   const restoreToastActive = useRef(false);

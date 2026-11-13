@@ -56,7 +56,8 @@ import type {
   BattleSession,
   DungeonState,
 } from '@server/dungeon/application/flow/types.js';
-import { db, type DbExecutor } from '@server/lib/drizzle/db.js';
+import { db, type DbExecutor, type DbTransaction } from '@server/lib/drizzle/db.js';
+import { recordGrowthObserved } from '@server/cultivator/application/GrowthDomainEvents.js';
 import {
   cultivatorBeasts,
   cultivators,
@@ -580,13 +581,14 @@ export async function changeDungeonBattle(
 
 export async function grantDungeonBeastExperience(
   state: DungeonState,
-  tx: DbExecutor,
+  tx: DbTransaction,
 ) {
   const { player } = await dungeonPlayer(state.cultivatorId, tx);
   const level = combatCharacterLevel(
     player.cultivator.realm,
     player.cultivator.realm_stage,
   );
+  let observedLevel = 0;
   for (const reward of state.v6Rewards ?? []) {
     if (!reward.beastExperience) continue;
     const { beastId, amount } = reward.beastExperience;
@@ -600,13 +602,16 @@ export async function grantDungeonBeastExperience(
         ),
       );
     if (!row) throw new Error('经验接收灵兽不存在');
+    const progressed = gainBeastExp(beastFromRow(row), amount, level);
+    observedLevel = Math.max(observedLevel, progressed.level);
     await tx
       .update(cultivatorBeasts)
       .set({
-        individual: beastIndividualData(
-          gainBeastExp(beastFromRow(row), amount, level),
-        ),
+        individual: beastIndividualData(progressed),
       })
       .where(eq(cultivatorBeasts.id, beastId));
   }
+  if (observedLevel > 0) await recordGrowthObserved(tx, {
+    cultivatorId: state.cultivatorId, discipline: 'beasts', value: observedLevel,
+  });
 }

@@ -1,7 +1,10 @@
+import { useSocialQuery } from '@app/components/feature/friends/socialApi';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkInput } from '@app/components/ui/InkInput';
+import { InkNotice } from '@app/components/ui/InkNotice';
 import { apiFetch } from '@app/lib/api/fetch';
 import {
   fetchJsonCached,
@@ -10,7 +13,8 @@ import {
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { useCraftStorage } from '@app/lib/resources/craftStorage';
 import { useResourceMutation } from '@app/lib/resources/mutations';
-import { useCultivatorIdentity } from '@app/lib/resources/player';
+import { usePlayerSession } from '@app/lib/resources/player';
+import type { AchievementView } from '@daoyou/contracts/achievements';
 import type { ApiSuccess } from '@daoyou/contracts/http';
 import type { InventoryView } from '@daoyou/contracts/inventory';
 import {
@@ -22,6 +26,8 @@ import {
   type SummonedBeast,
 } from '@daoyou/game-domain/beasts';
 import { useEffect, useState } from 'react';
+import { useBeforeUnload, useBlocker } from 'react-router';
+import { achievementIcon } from '../achievements/achievementIcons';
 import { BeastRosterEntry } from '../beasts/BeastRosterEntry';
 import { BeastPickerPager } from '../beasts/beastPicker';
 import { useBeastPicker } from '../beasts/useBeastPicker';
@@ -29,19 +35,44 @@ import { CraftInventoryPanel } from '../items/CraftInventoryPanel';
 import { InventoryItems } from '../items/InventoryItems';
 import { ItemSlot } from '../items/ItemSlot';
 import { matchesInventoryFilters } from '../items/inventoryFilterModel';
+import { AchievementPicker } from './AchievementPicker';
 import { CharacterCardBeastSlot, CharacterCardView } from './CharacterCardView';
 
 const equipmentFilter = { kind: 'equipment' } as const;
 
 export function CharacterCardSettings() {
-  const id = useCultivatorIdentity().data?.cultivator.id;
+  const id = usePlayerSession().data?.activeCultivator?.id;
+  if (!id)
+    return (
+      <p role="status" className="text-ink-secondary text-sm">
+        正在读取当前角色……
+      </p>
+    );
+  return <CharacterCardSettingsEditor key={id} cultivatorId={id} />;
+}
+
+function CharacterCardSettingsEditor({
+  cultivatorId: id,
+}: {
+  cultivatorId: string;
+}) {
   const { mutate } = useResourceMutation();
   const { pushToast } = useInkUI();
   const [view, setView] = useState<CharacterCardSettingsView | null>(null);
+  const [savedView, setSavedView] = useState<CharacterCardSettingsView | null>(
+    null,
+  );
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [conflict, setConflict] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [drawer, setDrawer] = useState<'equipment' | 'beasts' | null>(null);
+  const [drawer, setDrawer] = useState<
+    'equipment' | 'beasts' | 'achievements' | 'preview' | null
+  >(null);
+  const achievementsQuery = useSocialQuery<{ achievements: AchievementView[] }>(
+    '/api/achievements',
+  );
   const [source, setSource] = useState<'bag' | 'storage'>('bag');
   const bag = useInventoryBag(drawer === 'equipment');
   const storage = useCraftStorage(
@@ -53,31 +84,60 @@ export function CharacterCardSettings() {
   const inventoryError = source === 'bag' ? bag.error : storage.error;
   const inventoryLoading =
     source === 'bag' ? bag.loading || bag.isRefreshing : storage.loading;
+  const busy = saving || loading;
+  const normalizedTitle = view?.settings.title?.trim() || null;
+  const titleError = CharacterCardSettingsSchema.shape.title.safeParse(
+    normalizedTitle,
+  ).success
+    ? undefined
+    : '名号需填写2–8字，或留空清除。';
+  const dirty = Boolean(
+    view &&
+    savedView &&
+    JSON.stringify({ ...view.settings, title: normalizedTitle }) !==
+      JSON.stringify({
+        ...savedView.settings,
+        title: savedView.settings.title?.trim() || null,
+      }),
+  );
+  const blocker = useBlocker(dirty && !saving);
+  useBeforeUnload((event) => {
+    if (dirty || saving) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+  });
 
   useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
+    const controller = new AbortController();
     fetchJsonCached<ApiSuccess<CharacterCardSettingsView>>(
       '/api/cultivator/card/settings',
-      { key: `card-settings:${id}` },
+      { key: `card-settings:${id}`, signal: controller.signal },
     )
       .then(({ data }) => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
+          if (data.card.id !== id)
+            throw new Error('角色已变化，请重新载入名片。');
           setView(data);
+          setSavedView(data);
           setError('');
+          setConflict(false);
         }
       })
       .catch((reason: unknown) => {
-        if (!cancelled)
+        if (!controller.signal.aborted)
           setError(reason instanceof Error ? reason.message : '读取名片失败');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [id, attempt]);
 
   async function save() {
-    if (!view) return;
+    if (!view || busy || !dirty || titleError || conflict) return;
     const parsed = CharacterCardSettingsSchema.safeParse({
       ...view.settings,
       title: view.settings.title?.trim() || null,
@@ -89,15 +149,24 @@ export function CharacterCardSettings() {
     setSaving(true);
     setError('');
     try {
+      const response = await apiFetch('/api/cultivator/card/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(parsed.data),
+      });
+      if (response.status === 409) setConflict(true);
       const next = await mutate<CharacterCardSettingsView['settings']>(
-        apiFetch('/api/cultivator/card/settings', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(parsed.data),
-        }),
+        Promise.resolve(response),
       );
       invalidateCachedRequest(`character-card:${id}`);
-      setView({ ...view, settings: next });
+      invalidateCachedRequest(`card-settings:${id}`);
+      const saved = {
+        ...view,
+        settings: next,
+        card: { ...view.card, title: next.title },
+      };
+      setView(saved);
+      setSavedView(saved);
       pushToast({ message: '名片已保存', tone: 'success' });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '保存失败');
@@ -106,7 +175,22 @@ export function CharacterCardSettings() {
     }
   }
 
+  function reloadLatest() {
+    if (busy) return;
+    setLoading(true);
+    setError('');
+    invalidateCachedRequest(`card-settings:${id}`);
+    setAttempt((value) => value + 1);
+  }
+
+  function restore() {
+    if (busy || !savedView) return;
+    setView(savedView);
+    setError('');
+  }
+
   function toggleEquipment(item: InventoryView['items'][number]) {
+    if (busy) return;
     setView((current) => {
       if (!current) return current;
       const selected = current.settings.equipmentIds;
@@ -145,6 +229,7 @@ export function CharacterCardSettings() {
     });
   }
   function toggleBeast(beast: SummonedBeast) {
+    if (busy) return;
     setView((current) => {
       if (!current) return current;
       const selected = current.settings.beastIds;
@@ -176,7 +261,42 @@ export function CharacterCardSettings() {
       };
     });
   }
+  function toggleAchievement(achievement: AchievementView) {
+    setView((current) => {
+      if (!current || busy) return current;
+      const selected = current.settings.achievementIds ?? [];
+      const isSelected = selected.includes(achievement.id);
+      if (!isSelected && (!achievement.unlocked || selected.length >= 3))
+        return current;
+      return {
+        ...current,
+        settings: {
+          ...current.settings,
+          achievementIds: isSelected
+            ? selected.filter((id) => id !== achievement.id)
+            : [...selected, achievement.id],
+        },
+      };
+    });
+  }
+  function removeAchievement(id: string) {
+    if (busy) return;
+    setView((current) =>
+      current
+        ? {
+            ...current,
+            settings: {
+              ...current.settings,
+              achievementIds: (current.settings.achievementIds ?? []).filter(
+                (entry) => entry !== id,
+              ),
+            },
+          }
+        : current,
+    );
+  }
   function remove(key: 'equipmentIds' | 'beastIds', id: string) {
+    if (busy) return;
     setView((current) =>
       current
         ? {
@@ -209,20 +329,47 @@ export function CharacterCardSettings() {
       <div className="space-y-3 text-sm">
         <p role={error ? 'alert' : 'status'}>{error || '正在读取名片……'}</p>
         {error ? (
-          <InkButton onClick={() => setAttempt((value) => value + 1)}>
+          <InkButton onClick={reloadLatest} pending={loading}>
             重新载入
           </InkButton>
         ) : null}
       </div>
     );
   const settings = view.settings;
-  const preview = { ...view.card, title: settings.title };
+  const selectedAchievementIds = settings.achievementIds ?? [];
+  const achievementCatalog =
+    achievementsQuery.data?.achievements ?? view.achievements ?? [];
+  const selectedAchievements = selectedAchievementIds.flatMap((id) => {
+    const achievement = achievementCatalog.find(
+      (entry) => entry.id === id && entry.unlocked,
+    );
+    return achievement
+      ? [
+          {
+            id: achievement.id,
+            name: achievement.name,
+            description: achievement.description,
+          },
+        ]
+      : [];
+  });
+  const preview = {
+    ...view.card,
+    title: normalizedTitle,
+    achievements: selectedAchievements,
+  };
+  const drawerSelectedCount =
+    drawer === 'equipment'
+      ? settings.equipmentIds.length
+      : drawer === 'beasts'
+        ? settings.beastIds.length
+        : selectedAchievementIds.length;
   const equipmentSlotProps = (
     item: InventoryView['items'][number] | undefined,
   ) => {
     const selected = !!item && settings.equipmentIds.includes(item.id);
     const disabled =
-      saving ||
+      busy ||
       inventoryLoading ||
       !!inventoryError ||
       (!selected && settings.equipmentIds.length >= 3);
@@ -230,7 +377,7 @@ export function CharacterCardSettings() {
       selected,
       disabled,
       quickOnTouch: true,
-      badge: selected ? '已展示' : undefined,
+      badge: selected ? '已选择' : undefined,
       onQuickAction: item ? () => toggleEquipment(item) : undefined,
       children: item
         ? (close: () => void) => (
@@ -248,27 +395,101 @@ export function CharacterCardSettings() {
     };
   };
   return (
-    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
       <div className="space-y-5">
+        <div className="flex items-center justify-between gap-3 lg:hidden">
+          <p className="text-ink-secondary text-xs">编辑对外展示的内容</p>
+          <InkButton className="min-h-11" onClick={() => setDrawer('preview')}>
+            预览名片
+          </InkButton>
+        </div>
         <InkInput
           label="名号"
           value={settings.title ?? ''}
           maxLength={8}
           hint="2–8 字，留空可清除名号。"
-          disabled={saving}
+          error={titleError}
+          disabled={busy}
           onChange={(title) =>
             setView({ ...view, settings: { ...settings, title } })
           }
         />
-        <section className="space-y-2" aria-label="道装展示设置">
+        <section
+          className="border-ink/10 space-y-2 border-t pt-3"
+          aria-label="成就展示设置"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-base font-semibold">
+              展示成就{' '}
+              <span className="text-ink-secondary font-mono">
+                {selectedAchievementIds.length}/3
+              </span>
+            </h3>
+            <InkButton
+              className="min-h-11"
+              disabled={busy}
+              onClick={() => setDrawer('achievements')}
+            >
+              选择成就
+            </InkButton>
+          </div>
+          {selectedAchievementIds.length ? (
+            <div className="space-y-1">
+              {selectedAchievementIds.map((id) => {
+                const achievement = achievementCatalog.find(
+                  (entry) => entry.id === id,
+                );
+                return (
+                  <div
+                    key={id}
+                    className="flex min-w-0 items-center justify-between gap-2"
+                  >
+                    <span className="flex min-w-0 items-center gap-2 text-sm">
+                      <GameIcon
+                        value={
+                          achievement ? achievementIcon(achievement) : '🏅'
+                        }
+                        className="text-xl"
+                      />
+                      <span className="min-w-0 wrap-anywhere">
+                        {achievement?.name ?? '此成就暂不可展示'}
+                      </span>
+                    </span>
+                    <InkButton
+                      variant="secondary"
+                      className="min-h-11 shrink-0"
+                      disabled={busy}
+                      onClick={() => removeAchievement(id)}
+                    >
+                      移除
+                      <span className="sr-only">
+                        成就{achievement?.name ?? id}
+                      </span>
+                    </InkButton>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-ink-secondary text-xs">未设置，不展示成就。</p>
+          )}
+        </section>
+        <section
+          className="border-ink/10 space-y-2 border-t pt-3"
+          aria-label="道装展示设置"
+        >
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm">
+            <h3 className="text-base font-semibold">
               展示道装{' '}
               <span className="text-ink-secondary font-mono">
                 {settings.equipmentIds.length}/3
               </span>
             </h3>
-            <InkButton disabled={saving} onClick={() => setDrawer('equipment')}>
+            <InkButton
+              className="min-h-11"
+              disabled={busy}
+              onClick={() => setDrawer('equipment')}
+            >
               选择道装
             </InkButton>
           </div>
@@ -278,12 +499,12 @@ export function CharacterCardSettings() {
                 <div key={item.id} className="grid min-w-0 content-start gap-1">
                   <ItemSlot item={item} />
                   <InkButton
-                    className="px-0 text-xs"
-                    aria-label={`移除展示道装${item.name}`}
-                    disabled={saving}
+                    className="min-h-11 px-0"
+                    variant="secondary"
+                    disabled={busy}
                     onClick={() => remove('equipmentIds', item.id)}
                   >
-                    移除
+                    移除<span className="sr-only">道装{item.name}</span>
                   </InkButton>
                 </div>
               ))}
@@ -292,15 +513,22 @@ export function CharacterCardSettings() {
             <p className="text-ink-secondary text-xs">未设置，不展示道装。</p>
           )}
         </section>
-        <section className="space-y-2" aria-label="灵兽展示设置">
+        <section
+          className="border-ink/10 space-y-2 border-t pt-3"
+          aria-label="灵兽展示设置"
+        >
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm">
+            <h3 className="text-base font-semibold">
               展示灵兽{' '}
               <span className="text-ink-secondary font-mono">
                 {settings.beastIds.length}/3
               </span>
             </h3>
-            <InkButton disabled={saving} onClick={() => setDrawer('beasts')}>
+            <InkButton
+              className="min-h-11"
+              disabled={busy}
+              onClick={() => setDrawer('beasts')}
+            >
               选择灵兽
             </InkButton>
           </div>
@@ -313,12 +541,12 @@ export function CharacterCardSettings() {
                 >
                   <CharacterCardBeastSlot beast={beast} />
                   <InkButton
-                    className="px-0 text-xs"
-                    aria-label={`移除展示灵兽${beast.name}`}
-                    disabled={saving}
+                    className="min-h-11 px-0"
+                    variant="secondary"
+                    disabled={busy}
                     onClick={() => remove('beastIds', beast.id)}
                   >
-                    移除
+                    移除<span className="sr-only">灵兽{beast.name}</span>
                   </InkButton>
                 </div>
               ))}
@@ -327,48 +555,137 @@ export function CharacterCardSettings() {
             <p className="text-ink-secondary text-xs">未设置，不展示灵兽。</p>
           )}
         </section>
-        {error ? (
-          <p role="alert" className="text-crimson text-sm">
-            {error}
-          </p>
-        ) : null}
-        <div className="flex gap-3">
-          <InkButton
-            variant="primary"
-            pending={saving}
-            pendingLabel="保存中……"
-            onClick={() => void save()}
-          >
-            保存名片
-          </InkButton>
-          <InkButton
-            disabled={saving}
-            onClick={() => setAttempt((value) => value + 1)}
-          >
-            重新载入
-          </InkButton>
-        </div>
       </div>
       <section
         aria-label="名片预览"
-        className="border-ink/15 min-w-0 space-y-3 border-t pt-4 xl:border-t-0 xl:border-l xl:pt-0 xl:pl-5"
+        className="border-ink/15 sticky top-3 hidden min-w-0 space-y-3 border-l pl-5 lg:block"
       >
         <h3 className="text-ink-secondary text-sm">名片预览</h3>
         <CharacterCardView card={preview} />
       </section>
+      <footer className="bg-paper border-ink/20 sticky bottom-(--game-bottom-offset) z-20 space-y-2 border-t py-3 lg:col-span-2">
+        {error ? (
+          <p role="alert" className="text-crimson text-sm leading-6">
+            {error}
+          </p>
+        ) : null}
+        {conflict ? (
+          <div className="text-ink-secondary space-y-1 text-sm leading-6">
+            <p>载入最新设置会放弃本次修改。</p>
+            <InkButton
+              onClick={reloadLatest}
+              pending={loading}
+              disabled={saving}
+              className="min-h-11"
+            >
+              载入最新设置
+            </InkButton>
+          </div>
+        ) : null}
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <p role="status" className="text-ink-secondary text-xs leading-6">
+            {loading
+              ? '正在同步名片……'
+              : saving
+                ? '正在保存……'
+                : conflict
+                  ? '名片已有更新，请载入最新设置'
+                  : dirty
+                    ? '有未保存的修改'
+                    : '当前设置已保存'}
+          </p>
+          <div className="ml-auto flex gap-2">
+            {dirty ? (
+              <InkButton
+                variant="secondary"
+                disabled={busy}
+                className="min-h-11"
+                onClick={restore}
+              >
+                还原修改
+              </InkButton>
+            ) : null}
+            <InkButton
+              variant="primary"
+              pending={saving}
+              pendingLabel="保存中……"
+              disabled={!dirty || busy || !!titleError || conflict}
+              className="min-h-11"
+              onClick={() => void save()}
+            >
+              保存名片
+            </InkButton>
+          </div>
+        </div>
+      </footer>
       <InkDetailDrawer
-        isOpen={drawer !== null}
+        isOpen={drawer !== null && blocker.state !== 'blocked'}
         onClose={() => setDrawer(null)}
-        title={drawer === 'equipment' ? '选择展示道装' : '选择展示灵兽'}
+        title={
+          drawer === 'equipment'
+            ? '选择展示道装'
+            : drawer === 'beasts'
+              ? '选择展示灵兽'
+              : drawer === 'achievements'
+                ? '选择展示成就'
+                : '名片预览'
+        }
         size="md"
-        description={`已选择 ${drawer === 'equipment' ? settings.equipmentIds.length : settings.beastIds.length}/3，轻点选择，再次轻点可取消。`}
+        description={
+          drawer !== 'preview' ? (
+            <div>
+              <p>
+                已选择{' '}
+                <span className="font-mono">{drawerSelectedCount}/3</span>
+                ，每类最多展示3项。
+              </p>
+              {drawer === 'equipment' && drawerSelectedCount >= 3 ? (
+                <p className="mt-1">已选满，请先取消一项再替换。</p>
+              ) : null}
+            </div>
+          ) : (
+            <span>这是本次编辑的预览，保存后对外生效。</span>
+          )
+        }
         footer={
-          <InkButton variant="primary" onClick={() => setDrawer(null)}>
-            完成选择
-          </InkButton>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-ink-secondary text-xs">
+              {drawer !== 'preview'
+                ? '选择已加入草稿，保存名片后生效。'
+                : dirty
+                  ? '有未保存的修改'
+                  : '当前设置已保存'}
+            </p>
+            <InkButton
+              variant="primary"
+              className="min-h-11"
+              onClick={() => setDrawer(null)}
+            >
+              {drawer === 'preview' ? '返回设置' : '完成选择'}
+            </InkButton>
+          </div>
         }
       >
-        {drawer === 'equipment' ? (
+        {drawer === 'achievements' ? (
+          <>
+            {achievementsQuery.error ? (
+              <InkNotice tone="warning">
+                {achievementsQuery.error}{' '}
+                <InkButton onClick={() => void achievementsQuery.reload()}>
+                  重试
+                </InkButton>
+              </InkNotice>
+            ) : null}
+            <AchievementPicker
+              achievements={achievementCatalog}
+              selectedIds={selectedAchievementIds}
+              disabled={busy}
+              onToggle={toggleAchievement}
+            />
+          </>
+        ) : drawer === 'preview' ? (
+          <CharacterCardView card={preview} />
+        ) : drawer === 'equipment' ? (
           <CraftInventoryPanel
             source={source}
             onSource={setSource}
@@ -428,6 +745,7 @@ export function CharacterCardSettings() {
                   selected={settings.beastIds.includes(beast.id)}
                   isLead={beasts.data?.lineup.leadBeastId === beast.id}
                   disabled={
+                    busy ||
                     beasts.loading ||
                     (!settings.beastIds.includes(beast.id) &&
                       settings.beastIds.length >= 3)
@@ -436,6 +754,11 @@ export function CharacterCardSettings() {
                 />
               ))}
             </div>
+            {settings.beastIds.length >= 3 ? (
+              <p role="status" className="text-ink-secondary text-sm">
+                已选满3项，请先取消一项再替换。
+              </p>
+            ) : null}
             {beasts.data ? (
               <>
                 <BeastPickerPager
@@ -451,6 +774,40 @@ export function CharacterCardSettings() {
             ) : null}
           </div>
         ) : null}
+      </InkDetailDrawer>
+      <InkDetailDrawer
+        isOpen={blocker.state === 'blocked'}
+        title="名片尚未保存"
+        size="sm"
+        onClose={() => {
+          if (blocker.state === 'blocked') blocker.reset();
+        }}
+        footer={
+          <div className="flex flex-wrap justify-end gap-3">
+            <InkButton
+              variant="secondary"
+              className="min-h-11"
+              onClick={() => {
+                if (blocker.state === 'blocked') blocker.proceed();
+              }}
+            >
+              放弃修改并离开
+            </InkButton>
+            <InkButton
+              variant="primary"
+              className="min-h-11"
+              onClick={() => {
+                if (blocker.state === 'blocked') blocker.reset();
+              }}
+            >
+              继续编辑
+            </InkButton>
+          </div>
+        }
+      >
+        <p className="text-ink-secondary text-sm leading-7">
+          离开会丢失本次选择。可返回保存名片，或放弃修改后离开。
+        </p>
       </InkDetailDrawer>
     </div>
   );

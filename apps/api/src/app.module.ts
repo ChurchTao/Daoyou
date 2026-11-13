@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { getRuntimeEnvironment } from '@server/lib/config/environment.js';
 import { AccountModule } from './account/account.module.js';
+import { AchievementsModule } from './achievements/achievements.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { AlchemyModule } from './alchemy/alchemy.module.js';
 import { ArenaModule } from './arena/arena.module.js';
@@ -33,6 +34,7 @@ import { LegacyItemsModule } from './legacy-items/legacy-items.module.js';
 import { MailModule } from './mail/mail.module.js';
 import { ManualsModule } from './manuals/manuals.module.js';
 import { MarketModule } from './market/market.module.js';
+import { MentorshipModule } from './mentorship/mentorship.module.js';
 import { PlayerModule } from './player/player.module.js';
 import { RankingsModule } from './rankings/rankings.module.js';
 import { RealtimeModule } from './realtime/realtime.module.js';
@@ -67,6 +69,7 @@ import { WandererModule } from './wanderer/wanderer.module.js';
     EnemiesModule,
     RankingsModule,
     AccountModule,
+    AchievementsModule,
     AdminModule,
     AuctionModule,
     BlackMarketModule,
@@ -84,6 +87,7 @@ import { WandererModule } from './wanderer/wanderer.module.js';
     RealtimeModule,
     PlayerModule,
     SocialModule,
+    MentorshipModule,
     StoryModule,
     TasksModule,
     MailModule,

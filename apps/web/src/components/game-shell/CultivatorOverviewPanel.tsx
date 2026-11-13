@@ -1,5 +1,11 @@
 import { CharacterAttributesPanel } from '@app/components/feature/cultivator/CharacterAttributesPanel';
-import { lazy, Suspense, useRef, useSyncExternalStore } from 'react';
+import {
+  lazy,
+  Suspense,
+  useLayoutEffect,
+  useRef,
+  useSyncExternalStore,
+} from 'react';
 import { useSearchParams } from 'react-router';
 import { GameSceneLoading } from './GameSceneFrame';
 
@@ -53,15 +59,39 @@ export function CultivatorOverviewPanel() {
     () => false,
   );
   const [params, setParams] = useSearchParams();
+  const tabList = useRef<HTMLDivElement>(null);
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   const selected = tabs.findIndex((tab) => tab.value === params.get('tab'));
   const activeIndex = selected < 0 ? 0 : selected;
   const active = tabs[activeIndex];
+  useLayoutEffect(() => {
+    const container = tabList.current;
+    const button = buttons.current[activeIndex];
+    if (!container || !button) return;
+    const revealActiveTab = () => {
+      if (isDesktop) {
+        container.scrollLeft = 0;
+        return;
+      }
+      const visible = container.getBoundingClientRect();
+      const selectedTab = button.getBoundingClientRect();
+      if (selectedTab.left < visible.left)
+        container.scrollLeft -= visible.left - selectedTab.left;
+      else if (selectedTab.right > visible.right)
+        container.scrollLeft += selectedTab.right - visible.right;
+    };
+    revealActiveTab();
+    const observer = new ResizeObserver(revealActiveTab);
+    observer.observe(container);
+    observer.observe(button);
+    return () => observer.disconnect();
+  }, [activeIndex, isDesktop]);
   const select = (index: number) =>
     setParams(index === 0 ? {} : { tab: tabs[index].value });
   return (
     <div className="grid items-start gap-4 md:grid-cols-[6.5rem_minmax(0,1fr)] md:gap-5">
       <div
+        ref={tabList}
         role="tablist"
         aria-label="角色面板"
         aria-orientation={isDesktop ? 'vertical' : 'horizontal'}

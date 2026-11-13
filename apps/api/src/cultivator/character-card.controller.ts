@@ -21,9 +21,21 @@ import { ZodPipe } from '../http/zod.pipe.js';
 import { CharacterCardService } from './character-card.service.js';
 
 const CardErrors = apiErrorFilter((error) => {
-  if (error instanceof z.ZodError)
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    error.name === 'ZodError' &&
+    'issues' in error &&
+    Array.isArray(error.issues)
+  )
     return Response.json(
-      { success: false, error: error.issues[0]?.message ?? '名片设置无效' },
+      {
+        success: false,
+        error:
+          (error.issues[0] as { message?: string } | undefined)?.message ??
+          '名片设置无效',
+      },
       { status: 400 },
     );
 });

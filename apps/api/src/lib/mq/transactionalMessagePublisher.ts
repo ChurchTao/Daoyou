@@ -20,7 +20,10 @@ export async function publishTransactionalMessage(
 
   await recordTransactionalMessagePublishAttempt(row.id);
   try {
-    if (row.messageKey === 'chat.notification') {
+    if (
+      row.messageKey === 'chat.notification' ||
+      row.messageKey === 'social.notification'
+    ) {
       const connection = await getNatsConnection();
       connection.publish(row.destination, codec.encode(row.payload));
       await connection.flush();

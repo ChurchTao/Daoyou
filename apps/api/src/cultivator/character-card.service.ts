@@ -1,4 +1,5 @@
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
+import type { AchievementView } from '@daoyou/contracts/achievements';
 import {
   CharacterCardSelectionSchema,
   type CharacterCard,
@@ -11,6 +12,10 @@ import { getSectOrganizationDefinition } from '@daoyou/game-content/sect-organiz
 import { beastTradePreview } from '@daoyou/game-domain/beasts';
 import { InventoryEquipmentSchema } from '@daoyou/game-rules/inventory/equipment';
 import { HttpException, Inject, Injectable } from '@nestjs/common';
+import {
+  readAchievementCatalogue,
+  syncAchievements,
+} from '@server/achievements/achievement-ledger.js';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import type { DbClient, DbExecutor } from '@server/lib/drizzle/db.js';
@@ -24,6 +29,11 @@ import {
 import { beastFromRow } from '@server/lib/repositories/combatV6BeastRepository.js';
 import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
 import { toPlayerStateMutationResponse } from '@server/player/application/state/ResourceMutationResponse.js';
+import {
+  assertSocialAccountsAvailable,
+  lockSocialAccounts,
+} from '@server/social/application/SocialTransaction.js';
+import { enqueueSocialNotification } from '@server/social/social-notifications.js';
 import { and, eq, inArray } from 'drizzle-orm';
 
 function selectionOf(settings: unknown): CharacterCardSelection {
@@ -116,8 +126,11 @@ export class CharacterCardService {
   private async build(
     row: Awaited<ReturnType<CharacterCardService['read']>>,
     q: DbExecutor,
+    catalogue?: readonly AchievementView[],
   ): Promise<CharacterCard> {
     const selected = selectionOf(row.gameSettings);
+    const achievements =
+      catalogue ?? (await readAchievementCatalogue(q, row.id));
     const equipment = await this.equipment(row.id, q, selected.equipmentIds);
     const beasts = await this.beasts(row.id, q, selected.beastIds);
     const [membership] = await q
@@ -158,6 +171,17 @@ export class CharacterCardService {
       beasts: selected.beastIds.flatMap((id) =>
         beasts.filter((beast) => beast.id === id),
       ),
+      achievements: selected.achievementIds.flatMap((id) =>
+        achievements
+          .filter(
+            (achievement) => achievement.id === id && achievement.unlocked,
+          )
+          .map(({ id: achievementId, name, description }) => ({
+            id: achievementId,
+            name,
+            description,
+          })),
+      ),
     };
   }
 
@@ -170,10 +194,15 @@ export class CharacterCardService {
   }
 
   async settings(actor: ActiveCultivatorRef) {
+    await this.syncAchievements(actor);
     const data = await this.database.transaction(
       async (tx): Promise<CharacterCardSettingsView> => {
         const row = await this.read(actor.cultivatorId, tx, actor.userId);
-        const card = await this.build(row, tx);
+        const achievements = await readAchievementCatalogue(
+          tx,
+          actor.cultivatorId,
+        );
+        const card = await this.build(row, tx, achievements);
         const selected = selectionOf(row.gameSettings);
         return {
           settings: {
@@ -181,8 +210,12 @@ export class CharacterCardService {
             title: row.title,
             equipmentIds: card.equipment.map((item) => item.id),
             beastIds: card.beasts.map((beast) => beast.id),
+            achievementIds: card.achievements.map(
+              (achievement) => achievement.id,
+            ),
           },
           card,
+          achievements,
         };
       },
       { isolationLevel: 'repeatable read', accessMode: 'read only' },
@@ -191,6 +224,7 @@ export class CharacterCardService {
   }
 
   async save(actor: ActiveCultivatorRef, input: CharacterCardSettings) {
+    await this.syncAchievements(actor);
     return toPlayerStateMutationResponse(
       await playerCommandExecutor.execute({
         userId: actor.userId,
@@ -210,6 +244,10 @@ export class CharacterCardService {
             input.equipmentIds,
           );
           const beasts = await this.beasts(row.id, tx, input.beastIds);
+          const achievements = await readAchievementCatalogue(
+            tx,
+            actor.cultivatorId,
+          );
           if (
             equipment.length !== input.equipmentIds.length ||
             beasts.length !== input.beastIds.length
@@ -218,9 +256,23 @@ export class CharacterCardService {
               { error: '只能展示自己当前持有的道装与灵兽，请重新选择' },
               400,
             );
+          if (
+            input.achievementIds.some(
+              (id) =>
+                !achievements.some(
+                  (achievement) =>
+                    achievement.id === id && achievement.unlocked,
+                ),
+            )
+          )
+            throw new HttpException(
+              { error: '只能展示已解锁的成就，请重新选择' },
+              400,
+            );
           const profileCard: CharacterCardSelection = {
             equipmentIds: input.equipmentIds,
             beastIds: input.beastIds,
+            achievementIds: input.achievementIds,
             revision: input.revision + 1,
           };
           await tx
@@ -253,5 +305,19 @@ export class CharacterCardService {
         },
       }),
     );
+  }
+
+  private async syncAchievements(actor: ActiveCultivatorRef) {
+    await this.database.transaction(async (tx) => {
+      await lockSocialAccounts(tx, [actor.userId]);
+      await assertSocialAccountsAvailable(tx, [actor.userId]);
+      await this.read(actor.cultivatorId, tx, actor.userId);
+      const changes = await syncAchievements(tx, actor.cultivatorId);
+      if (changes.progressChanged || changes.unlockedIds.length)
+        await enqueueSocialNotification(tx, actor.userId, {
+          cultivatorId: actor.cultivatorId,
+          kind: 'achievements',
+        });
+    });
   }
 }

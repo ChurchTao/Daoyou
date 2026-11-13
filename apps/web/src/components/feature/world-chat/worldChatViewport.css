@@ -1,4 +1,4 @@
-.world-chat-workspace {
+:is(.world-chat-workspace, .direct-chat-workspace) {
   height: 100%;
   display: flex;
   min-height: 0;
@@ -6,7 +6,7 @@
   overflow: hidden;
 }
 
-.world-chat-timeline {
+:is(.world-chat-timeline, .direct-chat-timeline) {
   overflow-anchor: none;
   overscroll-behavior-y: contain;
   scrollbar-gutter: stable;
@@ -18,14 +18,14 @@
 }
 
 @media (min-width: 768px) {
-  .world-chat-workspace {
+  :is(.world-chat-workspace, .direct-chat-workspace) {
     flex-direction: row;
   }
 }
 
 /* A fixed surface uses visualViewport coordinates; its slot keeps document
    geometry stable while the browser scrolls the focused field into view. */
-.world-chat-workspace[data-keyboard] {
+:is(.world-chat-workspace, .direct-chat-workspace)[data-keyboard] {
   position: fixed;
   z-index: 40;
   right: 0;
@@ -38,6 +38,7 @@
 }
 
 /* An entrance transform would make the scene the fixed containing block. */
-[data-chat-keyboard] .animate-fade-in:has(.world-chat-workspace) {
+[data-chat-keyboard]
+  .animate-fade-in:has(:is(.world-chat-workspace, .direct-chat-workspace)) {
   transform: none !important;
 }

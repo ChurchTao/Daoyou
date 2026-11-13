@@ -366,14 +366,6 @@ function WorldChatChannelBody({
     stickToBottom,
   ]);
 
-  useLayoutEffect(() => {
-    const input = inputRef.current;
-    if (input) {
-      input.style.height = 'auto';
-      input.style.height = `${Math.min(128, Math.max(44, input.scrollHeight))}px`;
-    }
-  }, [view.draft]);
-
   function changeDraft(draft: string) {
     setViews((current) => ({
       ...current,

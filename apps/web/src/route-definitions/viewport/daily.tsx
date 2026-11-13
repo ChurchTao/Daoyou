@@ -81,7 +81,7 @@ export const dailyRoutes = [
       {
         id: 'mail',
         presentation: 'service',
-        summary: '查看传音玉简、领取附件，也可联系好友。',
+        summary: '查看传音玉简、领取附件，向好友投递物品。',
       },
       '道友传音',
     )}
