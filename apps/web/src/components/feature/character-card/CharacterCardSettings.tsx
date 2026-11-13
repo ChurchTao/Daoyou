@@ -1,7 +1,10 @@
+import { useSocialQuery } from '@app/components/feature/friends/socialApi';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
+import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkInput } from '@app/components/ui/InkInput';
+import { InkNotice } from '@app/components/ui/InkNotice';
 import { apiFetch } from '@app/lib/api/fetch';
 import {
   fetchJsonCached,
@@ -10,7 +13,8 @@ import {
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { useCraftStorage } from '@app/lib/resources/craftStorage';
 import { useResourceMutation } from '@app/lib/resources/mutations';
-import { useCultivatorIdentity } from '@app/lib/resources/player';
+import { usePlayerSession } from '@app/lib/resources/player';
+import type { AchievementView } from '@daoyou/contracts/achievements';
 import type { ApiSuccess } from '@daoyou/contracts/http';
 import type { InventoryView } from '@daoyou/contracts/inventory';
 import {
@@ -29,19 +33,39 @@ import { CraftInventoryPanel } from '../items/CraftInventoryPanel';
 import { InventoryItems } from '../items/InventoryItems';
 import { ItemSlot } from '../items/ItemSlot';
 import { matchesInventoryFilters } from '../items/inventoryFilterModel';
+import { AchievementPicker } from './AchievementPicker';
 import { CharacterCardBeastSlot, CharacterCardView } from './CharacterCardView';
 
 const equipmentFilter = { kind: 'equipment' } as const;
 
 export function CharacterCardSettings() {
-  const id = useCultivatorIdentity().data?.cultivator.id;
+  const id = usePlayerSession().data?.activeCultivator?.id;
+  if (!id)
+    return (
+      <p role="status" className="text-ink-secondary text-sm">
+        正在读取当前角色……
+      </p>
+    );
+  return <CharacterCardSettingsEditor key={id} cultivatorId={id} />;
+}
+
+function CharacterCardSettingsEditor({
+  cultivatorId: id,
+}: {
+  cultivatorId: string;
+}) {
   const { mutate } = useResourceMutation();
   const { pushToast } = useInkUI();
   const [view, setView] = useState<CharacterCardSettingsView | null>(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [drawer, setDrawer] = useState<'equipment' | 'beasts' | null>(null);
+  const [drawer, setDrawer] = useState<
+    'equipment' | 'beasts' | 'achievements' | null
+  >(null);
+  const achievementsQuery = useSocialQuery<{ achievements: AchievementView[] }>(
+    '/api/achievements',
+  );
   const [source, setSource] = useState<'bag' | 'storage'>('bag');
   const bag = useInventoryBag(drawer === 'equipment');
   const storage = useCraftStorage(
@@ -55,24 +79,25 @@ export function CharacterCardSettings() {
     source === 'bag' ? bag.loading || bag.isRefreshing : storage.loading;
 
   useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
+    const controller = new AbortController();
     fetchJsonCached<ApiSuccess<CharacterCardSettingsView>>(
       '/api/cultivator/card/settings',
-      { key: `card-settings:${id}` },
+      { key: `card-settings:${id}`, signal: controller.signal },
     )
       .then(({ data }) => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
+          if (data.card.id !== id)
+            throw new Error('角色已变化，请重新载入名片。');
           setView(data);
           setError('');
         }
       })
       .catch((reason: unknown) => {
-        if (!cancelled)
+        if (!controller.signal.aborted)
           setError(reason instanceof Error ? reason.message : '读取名片失败');
       });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [id, attempt]);
 
@@ -176,6 +201,39 @@ export function CharacterCardSettings() {
       };
     });
   }
+  function toggleAchievement(achievement: AchievementView) {
+    setView((current) => {
+      if (!current || saving) return current;
+      const selected = current.settings.achievementIds ?? [];
+      const isSelected = selected.includes(achievement.id);
+      if (!isSelected && (!achievement.unlocked || selected.length >= 3))
+        return current;
+      return {
+        ...current,
+        settings: {
+          ...current.settings,
+          achievementIds: isSelected
+            ? selected.filter((id) => id !== achievement.id)
+            : [...selected, achievement.id],
+        },
+      };
+    });
+  }
+  function removeAchievement(id: string) {
+    setView((current) =>
+      current
+        ? {
+            ...current,
+            settings: {
+              ...current.settings,
+              achievementIds: (current.settings.achievementIds ?? []).filter(
+                (entry) => entry !== id,
+              ),
+            },
+          }
+        : current,
+    );
+  }
   function remove(key: 'equipmentIds' | 'beastIds', id: string) {
     setView((current) =>
       current
@@ -216,7 +274,34 @@ export function CharacterCardSettings() {
       </div>
     );
   const settings = view.settings;
-  const preview = { ...view.card, title: settings.title };
+  const selectedAchievementIds = settings.achievementIds ?? [];
+  const achievementCatalog =
+    achievementsQuery.data?.achievements ?? view.achievements ?? [];
+  const selectedAchievements = selectedAchievementIds.flatMap((id) => {
+    const achievement = achievementCatalog.find(
+      (entry) => entry.id === id && entry.unlocked,
+    );
+    return achievement
+      ? [
+          {
+            id: achievement.id,
+            name: achievement.name,
+            description: achievement.description,
+          },
+        ]
+      : [];
+  });
+  const preview = {
+    ...view.card,
+    title: settings.title,
+    achievements: selectedAchievements,
+  };
+  const drawerSelectedCount =
+    drawer === 'equipment'
+      ? settings.equipmentIds.length
+      : drawer === 'beasts'
+        ? settings.beastIds.length
+        : selectedAchievementIds.length;
   const equipmentSlotProps = (
     item: InventoryView['items'][number] | undefined,
   ) => {
@@ -260,6 +345,50 @@ export function CharacterCardSettings() {
             setView({ ...view, settings: { ...settings, title } })
           }
         />
+        <section className="space-y-2" aria-label="成就展示设置">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm">
+              展示成就{' '}
+              <span className="text-ink-secondary font-mono">
+                {selectedAchievementIds.length}/3
+              </span>
+            </h3>
+            <InkButton
+              disabled={saving}
+              onClick={() => setDrawer('achievements')}
+            >
+              选择成就
+            </InkButton>
+          </div>
+          {selectedAchievementIds.length ? (
+            <div className="space-y-1">
+              {selectedAchievementIds.map((id) => {
+                const achievement = selectedAchievements.find(
+                  (entry) => entry.id === id,
+                );
+                return (
+                  <div
+                    key={id}
+                    className="flex min-w-0 items-start justify-between gap-2"
+                  >
+                    <InkBadge className="text-teal min-w-0 wrap-anywhere">
+                      {achievement?.name ?? '此成就暂不可展示'}
+                    </InkBadge>
+                    <InkButton
+                      variant="secondary"
+                      disabled={saving}
+                      onClick={() => removeAchievement(id)}
+                    >
+                      取消展示
+                    </InkButton>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-ink-secondary text-xs">未设置，不展示成就。</p>
+          )}
+        </section>
         <section className="space-y-2" aria-label="道装展示设置">
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-sm">
@@ -359,16 +488,44 @@ export function CharacterCardSettings() {
       <InkDetailDrawer
         isOpen={drawer !== null}
         onClose={() => setDrawer(null)}
-        title={drawer === 'equipment' ? '选择展示道装' : '选择展示灵兽'}
+        title={
+          drawer === 'equipment'
+            ? '选择展示道装'
+            : drawer === 'beasts'
+              ? '选择展示灵兽'
+              : '选择展示成就'
+        }
         size="md"
-        description={`已选择 ${drawer === 'equipment' ? settings.equipmentIds.length : settings.beastIds.length}/3，轻点选择，再次轻点可取消。`}
+        description={
+          <span>
+            已选择 <span className="font-mono">{drawerSelectedCount}/3</span>
+            ，可随时取消展示；完成选择后保存名片生效。
+          </span>
+        }
         footer={
           <InkButton variant="primary" onClick={() => setDrawer(null)}>
             完成选择
           </InkButton>
         }
       >
-        {drawer === 'equipment' ? (
+        {drawer === 'achievements' ? (
+          <>
+            {achievementsQuery.error ? (
+              <InkNotice tone="warning">
+                {achievementsQuery.error}{' '}
+                <InkButton onClick={() => void achievementsQuery.reload()}>
+                  重试
+                </InkButton>
+              </InkNotice>
+            ) : null}
+            <AchievementPicker
+              achievements={achievementCatalog}
+              selectedIds={selectedAchievementIds}
+              disabled={saving}
+              onToggle={toggleAchievement}
+            />
+          </>
+        ) : drawer === 'equipment' ? (
           <CraftInventoryPanel
             source={source}
             onSource={setSource}

@@ -1,3 +1,4 @@
+import { clearDirectChatStorage } from '@app/lib/social/drafts';
 import type { ReactNode } from 'react';
 import {
   AuthContext,
@@ -39,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (!error) {
+      clearDirectChatStorage();
       await syncSessionState();
     }
 
@@ -60,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (!error) {
+      clearDirectChatStorage();
       await syncSessionState();
     }
 
@@ -93,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (!error) {
+      clearDirectChatStorage();
       await syncSessionState();
     }
 
@@ -149,6 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await authClient.signOut();
 
     if (!error) {
+      clearDirectChatStorage();
       await syncSessionState();
     }
 

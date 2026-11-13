@@ -10,12 +10,20 @@ export const REALTIME_CHANNELS = [
   'world-chat',
   'player-state',
   'arena-room',
+  'social',
 ] as const;
 
 export type RealtimeChannel = (typeof REALTIME_CHANNELS)[number];
 
 export type RealtimePlayerStatePayload = {
   changes: ResourceChange[];
+};
+
+export type SocialChangedPayload = {
+  cultivatorId: string | null;
+  kind: 'friends' | 'direct-chat' | 'mentorship';
+  conversationId?: string;
+  sequence?: number;
 };
 
 export type ArenaRoomChangedPayloadV1 = {
@@ -27,6 +35,7 @@ export type ArenaRoomChangedPayloadV1 = {
 };
 
 export type RealtimeServerEvent =
+  | { type: 'social.changed'; payload: SocialChangedPayload }
   | {
       type: 'ready';
       payload: {

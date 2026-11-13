@@ -19,6 +19,7 @@ export type GameSceneGroup =
   | 'combat'
   | 'trade'
   | 'message'
+  | 'social'
   | 'service';
 
 export type GameSceneChrome = 'standard' | 'immersive';

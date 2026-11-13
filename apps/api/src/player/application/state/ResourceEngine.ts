@@ -1,3 +1,4 @@
+import { endSocialRelationsForCharacter } from '@server/social/social-lifecycle.js';
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db.js';
 import * as schema from '@server/lib/drizzle/schema.js';
 import {
@@ -191,6 +192,7 @@ export class ResourceEngine {
               .update(schema.cultivators)
               .set({ status: 'dead' })
               .where(eq(schema.cultivators.id, args.cultivatorId));
+            await endSocialRelationsForCharacter(args.tx, args.cultivatorId, 'death');
             depleted = true;
           }
           break;

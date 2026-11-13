@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./achievements": "./dist/public/achievements.js",
     "./alchemy": "./dist/public/alchemy.js",
     "./auction/config": "./dist/auction/config.js",
     "./authoring/beasts": "./dist/public/authoring/beasts.js",
@@ -56,6 +57,7 @@
     "./legacy/manual-migration": "./dist/legacy/manual-migration.js",
     "./manuals": "./dist/public/manuals.js",
     "./market": "./dist/market.js",
+    "./mentorship": "./dist/mentorship.js",
     "./market/beast-pack": "./dist/market/beast-pack.js",
     "./materials": "./dist/public/materials.js",
     "./performance/breakthrough": "./dist/performance/breakthrough.js",

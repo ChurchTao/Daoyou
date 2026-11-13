@@ -2,7 +2,9 @@ import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import type { BeastTradePreview } from '@daoyou/game-domain/beasts';
 import type { SponsorshipTierId } from '@daoyou/game-domain/sponsorship';
 import { z } from 'zod';
+import type { AchievementDisplay, AchievementView } from './achievements.js';
 import type { InventoryView } from './inventory.js';
+export type { AchievementDisplay, AchievementView } from './achievements.js';
 
 const selection = (id: z.ZodType<string>) =>
   z
@@ -13,6 +15,7 @@ const selection = (id: z.ZodType<string>) =>
 export const CharacterCardSelectionSchema = z.strictObject({
   equipmentIds: selection(z.string().min(1).max(160)),
   beastIds: selection(z.uuid()),
+  achievementIds: selection(z.string().min(1).max(160)).default([]),
   revision: z.number().int().nonnegative(),
 });
 
@@ -42,9 +45,11 @@ export type CharacterCard = {
   sponsorshipTier: SponsorshipTierId | null;
   equipment: CharacterCardEquipment[];
   beasts: CharacterCardBeast[];
+  achievements: AchievementDisplay[];
 };
 
 export type CharacterCardSettingsView = {
   settings: CharacterCardSettings;
   card: CharacterCard;
+  achievements: AchievementView[];
 };

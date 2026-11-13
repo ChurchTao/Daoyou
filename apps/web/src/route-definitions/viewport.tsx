@@ -4,6 +4,7 @@ import { cultivationRoutes } from './viewport/cultivation';
 import { dailyRoutes } from './viewport/daily';
 import { sectRoutes } from './viewport/sect';
 import { servicesRoutes } from './viewport/services';
+import { socialRoutes } from './viewport/social';
 
 export const viewportRoutes = (
   <Route
@@ -17,6 +18,7 @@ export const viewportRoutes = (
       ...sectRoutes,
       ...cultivationRoutes,
       ...servicesRoutes,
+      ...socialRoutes,
     ]}
   </Route>
 );

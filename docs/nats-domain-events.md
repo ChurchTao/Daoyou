@@ -8,11 +8,11 @@
 - `DAOYOU_BACKGROUND_COMMAND_DLQ` 保存后台 command 的终止失败消息，最大占用 128 MiB。
 - `DAOYOU_COMBAT_V6_REPLAY_ARCHIVES` 使用 WorkQueue retention 保存回放指针（battle ID），最大占用 64 MiB、单条上限 4 KiB；`combat-v6-replay-postgres-archiver-v1` 从 Redis 读取完整回放并归档后 ACK。
 - 五个 Stream 的上限合计约 3.8 GiB；生产 NATS 配置应能容纳这些持久化数据。
-- `daoyou.realtime.>` 使用 NATS Core，不进入 JetStream；用于资源变更、世界聊天和宗门聊天的跨实例实时广播。
+- `daoyou.realtime.>` 使用 NATS Core，不进入 JetStream；用于资源变更、公开聊天和账号定向社交通知的跨实例实时提示。
 - 应用启动时以幂等方式校验并创建 Stream 和 durable consumer。
 - 业务事务将待发布消息写入通用 PostgreSQL 事务消息表 `wanjiedaoyou_transactional_messages`；领域事件只是当前消息类型之一。
 - 事务消息表只保存通用的 `message_key`、`destination`、`payload` 与发布状态，不持有 aggregate、event type 等领域事件专属列。
-- 收到 JetStream PubAck 后标记 `published_at`；此后消息的持久化、投递状态、重试与消费进度由 JetStream 负责。
+- 持久消息收到 JetStream PubAck 后标记 `published_at`；此后消息的持久化、投递状态、重试与消费进度由 JetStream 负责。`chat.notification`、`social.notification` 是例外：事务消息发布器使用 NATS Core，连接 flush 后标记已发布，不代表在线客户端已经收到。
 - 消费者在同一 PostgreSQL 事务中写入通用消费幂等记录并更新业务数据，提交后才 ACK JetStream。
 - 单条事件处理失败 10 次后转入 DLQ；DLQ 发布失败时继续重试原事件。
 
@@ -63,8 +63,11 @@ JetStream 只能保证“已经发布成功”的 command 持久化；如果所�
 - `daoyou.realtime.resource-state.<scope-kind>.<base64url-scope-id>`
 - `daoyou.realtime.world-chat`
 - `daoyou.realtime.sect-chat.<base64url-sect-id>`
+- `daoyou.realtime.social.user.<base64url-user-id>`
 
-这些消息只负责唤醒当前在线连接。聊天历史仍由原 Redis list 保存，玩家资源变化仍以 PostgreSQL resource event/replay log 为权威数据，因此 NATS Core 丢失一条实时消息不会造成业务数据丢失。
+这些消息只负责提示当前在线连接更新。世界、宗门和系统聊天历史以 PostgreSQL `wanjiedaoyou_chat_messages` 为权威；私聊本体独立存于 `wanjiedaoyou_direct_conversations`、`wanjiedaoyou_direct_conversation_members`、`wanjiedaoyou_direct_messages`，不进入公开聊天查询。玩家资源变化仍以 PostgreSQL resource event/replay log 为权威数据，NATS Core 丢失实时提示不使已提交业务数据丢失。
+
+好友、私聊和师徒在原业务事务中写入 `social.notification` outbox。账号主题由服务端根据已认证身份订阅，再经统一 WS 的 `social` 通道发送 `social.changed`；提示只含角色、变更种类、可选会话 ID 与序号，不广播私聊正文。客户端通过 HTTP 摘要与历史补读，在进入、重连、重新聚焦及可见页面的 30 秒轮询时恢复；提示中的最大序号不能直接作为连续补读水位。实现入口为 `social/social-notifications.ts`、`realtime/realtime.service.ts` 和 `lib/mq/transactionalMessagePublisher.ts`。
 
 ## 必需环境变量
 

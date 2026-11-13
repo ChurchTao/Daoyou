@@ -55,6 +55,7 @@ function cloneStatus(status: RealtimeStatusSnapshot): RealtimeStatusSnapshot {
       'world-chat': { ...status.channels['world-chat'] },
       'player-state': { ...status.channels['player-state'] },
       'arena-room': { ...status.channels['arena-room'] },
+      social: { ...status.channels.social },
     },
   };
 }
@@ -76,6 +77,7 @@ export class RealtimeClient {
       'world-chat': createChannelStatus(),
       'player-state': createChannelStatus(),
       'arena-room': createChannelStatus(),
+      social: createChannelStatus(),
     },
   };
   private onlineListener: (() => void) | null = null;
@@ -425,6 +427,7 @@ export class RealtimeClient {
         'world-chat': this.nextChannelStatus('world-chat', connection, patch),
         'player-state': this.nextChannelStatus('player-state', connection, patch),
         'arena-room': this.nextChannelStatus('arena-room', connection, patch),
+        social: this.nextChannelStatus('social', connection, patch),
       },
     };
     this.emitStatus();
