@@ -14,7 +14,7 @@ import { InventoryEquipmentSchema } from '@daoyou/game-rules/inventory/equipment
 import { HttpException, Inject, Injectable } from '@nestjs/common';
 import {
   readAchievementCatalogue,
-  syncMentorshipAchievements,
+  syncAchievements,
 } from '@server/achievements/achievement-ledger.js';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
@@ -33,6 +33,7 @@ import {
   assertSocialAccountsAvailable,
   lockSocialAccounts,
 } from '@server/social/application/SocialTransaction.js';
+import { enqueueSocialNotification } from '@server/social/social-notifications.js';
 import { and, eq, inArray } from 'drizzle-orm';
 
 function selectionOf(settings: unknown): CharacterCardSelection {
@@ -311,7 +312,12 @@ export class CharacterCardService {
       await lockSocialAccounts(tx, [actor.userId]);
       await assertSocialAccountsAvailable(tx, [actor.userId]);
       await this.read(actor.cultivatorId, tx, actor.userId);
-      await syncMentorshipAchievements(tx, actor.cultivatorId);
+      const changes = await syncAchievements(tx, actor.cultivatorId);
+      if (changes.progressChanged || changes.unlockedIds.length)
+        await enqueueSocialNotification(tx, actor.userId, {
+          cultivatorId: actor.cultivatorId,
+          kind: 'achievements',
+        });
     });
   }
 }

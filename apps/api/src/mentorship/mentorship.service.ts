@@ -15,7 +15,7 @@ import {
   canMentor,
 } from '@daoyou/game-rules/mentorship';
 import { HttpException, Inject, Injectable } from '@nestjs/common';
-import { syncMentorshipAchievements } from '@server/achievements/achievement-ledger.js';
+import { createDomainEvent } from '@server/lib/mq/domainEventWriter.js';
 import { updateReputation } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import type {
@@ -720,7 +720,7 @@ export class MentorshipService {
             disciple,
           );
           await ensureFriendPairInTransaction(tx, mentor, disciple);
-          await tx.insert(schema.mentorshipRelations).values({
+          const [boundRelation] = await tx.insert(schema.mentorshipRelations).values({
             mentorUserId: mentor.userId,
             discipleUserId: disciple.userId,
             mentorCultivatorId: mentor.cultivatorId,
@@ -730,7 +730,17 @@ export class MentorshipService {
             mentorName: teacher.name,
             discipleName: student.name,
             mentorSeat: seat,
-          });
+          }).returning({ id: schema.mentorshipRelations.id });
+          await createDomainEvent({
+            type: 'mentorship.bound',
+            aggregate: { type: 'mentorship', id: boundRelation.id },
+            data: {
+              relationId: boundRelation.id,
+              mentorCultivatorId: mentor.cultivatorId,
+              discipleCultivatorId: disciple.cultivatorId,
+            },
+            deduplicationKey: `mentorship-bound:${boundRelation.id}`,
+          }, tx);
           await tx
             .update(schema.mentorshipAccountStates)
             .set({
@@ -771,10 +781,6 @@ export class MentorshipService {
             revision: row.revision + 1,
           })
           .where(eq(schema.mentorshipRequests.id, id));
-        if (action === 'accept') {
-          await syncMentorshipAchievements(tx, row.mentorCultivatorId);
-          await syncMentorshipAchievements(tx, row.discipleCultivatorId);
-        }
         await this.notify(tx, row);
         return success;
       },
@@ -887,14 +893,16 @@ export class MentorshipService {
             revision: relation.revision + 1,
           })
           .where(eq(schema.mentorshipRelations.id, id));
-        await syncMentorshipAchievements(
-          tx,
-          relation.mentorOriginalCultivatorId,
-        );
-        await syncMentorshipAchievements(
-          tx,
-          relation.discipleOriginalCultivatorId,
-        );
+        await createDomainEvent({
+          type: 'mentorship.disciple.graduated',
+          aggregate: { type: 'mentorship', id: relation.id },
+          data: {
+            relationId: relation.id,
+            mentorCultivatorId: relation.mentorOriginalCultivatorId,
+            discipleCultivatorId: relation.discipleOriginalCultivatorId,
+          },
+          deduplicationKey: `mentorship-graduated:${relation.id}`,
+        }, tx);
         const committer = new ResourceEventCommitter();
         const mentorState = await committer.commit(tx, {
           actor: { userId: relation.mentorUserId, cultivatorId: mentor.id },

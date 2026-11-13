@@ -19,7 +19,8 @@ import {
   splitCapturedBeasts,
 } from '@daoyou/game-rules/beasts/growth';
 import { BeastSchema } from '@daoyou/game-rules/beasts/validation';
-import type { DbExecutor } from '@server/lib/drizzle/db.js';
+import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db.js';
+import { recordGrowthObserved } from '@server/cultivator/application/GrowthDomainEvents.js';
 import {
   cultivatorBeastLineups,
   cultivatorBeasts,
@@ -199,7 +200,7 @@ export async function saveBeastLineup(
 /** Caller claims the battle settlement and holds the character lock in this transaction. */
 export async function settleBeastProgress(
   summary: WildSettlement,
-  tx: DbExecutor,
+  tx: DbTransaction,
 ) {
   const roster = await readBeastRoster(summary.cultivatorId, tx);
   const captured = (summary.capturedBeasts ?? []).map((individual) => {
@@ -229,17 +230,22 @@ export async function settleBeastProgress(
       },
       tx,
     );
+  let observedLevel = Math.max(0, ...captured.map((beast) => beast.level));
   if (summary.beastExperience) {
     const reward = summary.beastExperience;
     const beast = roster.beasts.find((b) => b.id === reward.beastId);
     if (!beast) throw new Error('经验接收灵兽不存在');
     const next = gainBeastExp(beast, reward.amount, roster.ownerLevel);
+    observedLevel = Math.max(observedLevel, next.level);
     if (next !== beast)
       await tx
         .update(cultivatorBeasts)
         .set({ individual: beastIndividualData(next) })
         .where(eq(cultivatorBeasts.id, beast.id));
   }
+  if (observedLevel > 0) await recordGrowthObserved(tx, {
+    cultivatorId: summary.cultivatorId, discipline: 'beasts', value: observedLevel,
+  });
 }
 
 /** Caller holds the character lock and claims the battle settlement in the same transaction. */

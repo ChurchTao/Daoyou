@@ -205,6 +205,9 @@ async function eraseSocialAccount(
     await tx
       .delete(s.achievementUnlocks)
       .where(inArray(s.achievementUnlocks.cultivatorId, characterIds));
+  if (characterIds.length)
+    await tx.delete(s.achievementMetrics)
+      .where(inArray(s.achievementMetrics.cultivatorId, characterIds));
   await tx.delete(s.socialAccounts).where(eq(s.socialAccounts.userId, userId));
   // Notifications carry no text, but their destination is still an account identifier.
   await tx

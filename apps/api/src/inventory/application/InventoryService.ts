@@ -1,4 +1,5 @@
 import { QUALITY_VALUES } from '@daoyou/constants/qualities';
+import { recordGrowthObserved } from '@server/cultivator/application/GrowthDomainEvents.js';
 import type {
   InventoryAction,
   InventoryQuerySchema,
@@ -909,6 +910,11 @@ export async function mutateInventory(
                   eq(cultivatorBeasts.cultivatorId, owner),
                 ),
               );
+            await recordGrowthObserved(tx, {
+              cultivatorId: owner,
+              discipline: 'beasts',
+              value: fed.beast.level,
+            });
             result = {
               gained: fed.gained,
               wasted: fed.wasted,

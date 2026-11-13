@@ -1,4 +1,8 @@
-import { ACHIEVEMENT_DEFINITIONS } from '@daoyou/game-content/achievements';
+import {
+  ACHIEVEMENT_CATEGORIES,
+  ACHIEVEMENT_DEFINITIONS,
+  ACHIEVEMENT_SERIES,
+} from '@daoyou/game-content/achievements';
 import type { AchievementFacts } from '@daoyou/game-domain/achievements';
 import { describe, expect, it } from 'vitest';
 import {
@@ -16,6 +20,98 @@ const facts = (graduates: number, bound = false): AchievementFacts => ({
 });
 
 describe('achievement rules', () => {
+  it.each(ACHIEVEMENT_DEFINITIONS)(
+    'requires the registered metric boundary for $id',
+    (definition) => {
+      const { metric, target } = definition.requirement;
+      expect(
+        eligibleAchievementIds({ metrics: { [metric]: target - 1 } }),
+      ).not.toContain(definition.id);
+      expect(
+        eligibleAchievementIds({ metrics: { [metric]: target } }),
+      ).toContain(definition.id);
+      expect(
+        achievementProgress(definition, { metrics: { [metric]: target + 1 } }),
+      ).toEqual({ current: target, target });
+    },
+  );
+
+  it('keeps content identities unique and series tiers internally consistent', () => {
+    expect(new Set(ACHIEVEMENT_DEFINITIONS.map((item) => item.id)).size).toBe(
+      ACHIEVEMENT_DEFINITIONS.length,
+    );
+    expect(new Set(ACHIEVEMENT_SERIES.map((item) => item.id)).size).toBe(
+      ACHIEVEMENT_SERIES.length,
+    );
+    const categories = new Set(ACHIEVEMENT_CATEGORIES.map((item) => item.id));
+    for (const series of ACHIEVEMENT_SERIES) {
+      expect(categories.has(series.category)).toBe(true);
+      expect(series.action?.href.startsWith('/game')).toBe(true);
+      const definitions = ACHIEVEMENT_DEFINITIONS.filter(
+        (definition) => definition.seriesId === series.id,
+      );
+      expect(definitions.length).toBeGreaterThan(0);
+      expect(definitions.map((definition) => definition.tier)).toEqual(
+        definitions.map((_, index) => index + 1),
+      );
+      expect(
+        new Set(definitions.map((item) => item.requirement.metric)).size,
+      ).toBe(1);
+      for (let index = 0; index < definitions.length; index++) {
+        const definition = definitions[index]!;
+        expect(Number.isSafeInteger(definition.requirement.target)).toBe(true);
+        expect(definition.requirement.target).toBeGreaterThan(
+          definitions[index - 1]?.requirement.target ?? 0,
+        );
+      }
+    }
+    for (const definition of ACHIEVEMENT_DEFINITIONS)
+      expect(
+        ACHIEVEMENT_SERIES.some((series) => series.id === definition.seriesId),
+      ).toBe(true);
+  });
+
+  it('projects self-contained series metadata without changing trusted unlock rules', () => {
+    const item = achievementCatalogue(
+      { metrics: { 'alchemy.crafts': 9 } },
+      [],
+    ).find((achievement) => achievement.id === 'alchemy.crafts.10');
+    expect(item).toMatchObject({
+      category: 'craft',
+      categoryLabel: '丹器',
+      seriesId: 'alchemy.crafts',
+      seriesName: '丹火不息',
+      tier: 2,
+      unit: '次',
+      action: { label: '前往炼丹', href: '/game/craft/alchemy' },
+      trackingHint: '按本角色已记录的玩法次数累计，无法确认的历史不补计。',
+      unlocked: false,
+      progress: { current: 9, target: 10 },
+    });
+  });
+
+  it('gives realm stages a textual condition instead of a fabricated count unit', () => {
+    const item = achievementCatalogue(
+      { metrics: { 'cultivation.realm_rank': 3 } },
+      [],
+    ).find((achievement) => achievement.id === 'cultivation.realm.4');
+    expect(item).toMatchObject({
+      unit: '',
+      condition: '境界达到化神期',
+      progress: { current: 3, target: 4 },
+    });
+  });
+
+  it('keeps snapshots and counters separate in the authored tracking explanation', () => {
+    const byId = new Map(
+      ACHIEVEMENT_SERIES.map((series) => [series.id, series]),
+    );
+    expect(byId.get('spirit_field.harvests')?.tracking).toBe('snapshot');
+    expect(byId.get('beasts.fusions')?.tracking).toBe('snapshot');
+    expect(byId.get('alchemy.crafts')?.tracking).toBe('counter');
+    expect(byId.get('dungeon.completions')?.tracking).toBe('counter');
+  });
+
   it.each([2, 6, 12, 20, 30])(
     'requires the exact graduation boundary %i',
     (target) => {
@@ -74,6 +170,50 @@ describe('achievement rules', () => {
     ]).find((entry) => entry.id === 'mentorship.graduates.2');
     expect(item?.unlocked).toBe(true);
     expect(item?.progress).toEqual({ current: 2, target: 2 });
+  });
+
+  it('exposes a specific blocking reason only on its locked achievement', () => {
+    const catalogue = achievementCatalogue(
+      {
+        metrics: {},
+        blockedAchievements: {
+          'mentorship.apprentice': '当前境界已无法拜师',
+        },
+      },
+      [],
+    );
+    expect(
+      catalogue.find((item) => item.id === 'mentorship.apprentice'),
+    ).toMatchObject({
+      unlocked: false,
+      blockedReason: '当前境界已无法拜师',
+      progress: { current: 0, target: 1 },
+    });
+    expect(
+      catalogue.find((item) => item.id === 'mentorship.graduates.2'),
+    ).not.toHaveProperty('blockedReason');
+  });
+
+  it('keeps an unlocked achievement free of later blocking reasons', () => {
+    const item = achievementCatalogue(
+      {
+        metrics: {},
+        blockedAchievements: {
+          'mentorship.apprentice': '当前境界已无法拜师',
+        },
+      },
+      [
+        {
+          achievementId: 'mentorship.apprentice',
+          unlockedAt: '2026-11-13T00:00:00.000Z',
+        },
+      ],
+    ).find((achievement) => achievement.id === 'mentorship.apprentice');
+    expect(item).toMatchObject({
+      unlocked: true,
+      progress: { current: 1, target: 1 },
+    });
+    expect(item).not.toHaveProperty('blockedReason');
   });
 
   it('derives the apprentice display name from current authoritative labels', () => {

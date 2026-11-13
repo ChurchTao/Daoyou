@@ -1,4 +1,5 @@
 import { Route } from 'react-router';
+import { achievementRoutes } from './viewport/achievements';
 import { characterRoutes } from './viewport/character';
 import { cultivationRoutes } from './viewport/cultivation';
 import { dailyRoutes } from './viewport/daily';
@@ -19,6 +20,7 @@ export const viewportRoutes = (
       ...cultivationRoutes,
       ...servicesRoutes,
       ...socialRoutes,
+      ...achievementRoutes,
     ]}
   </Route>
 );

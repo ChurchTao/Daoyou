@@ -540,6 +540,13 @@
       "when": 1794559576609,
       "tag": "0077_achievements_and_graduation",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1794562399944,
+      "tag": "0078_achievement_progress",
+      "breakpoints": true
     }
   ]
 }

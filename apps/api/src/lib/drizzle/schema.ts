@@ -2838,3 +2838,17 @@ export const achievementUnlocks = pgTable(
     index('achievement_unlocks_character_time_idx').on(t.cultivatorId, t.unlockedAt),
   ],
 );
+
+export const achievementMetrics = pgTable(
+  'wanjiedaoyou_achievement_metrics',
+  {
+    cultivatorId: uuid('cultivator_id').notNull().references(() => cultivators.id, { onDelete: 'cascade' }),
+    metric: varchar('metric', { length: 160 }).notNull(),
+    value: integer('value').notNull().default(0),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.cultivatorId, t.metric] }),
+    check('achievement_metrics_value_valid', sql`${t.value} >= 0`),
+  ],
+);

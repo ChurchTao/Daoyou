@@ -7,10 +7,11 @@ import {
   assertSocialAccountsAvailable,
   lockSocialAccounts,
 } from '@server/social/application/SocialTransaction.js';
+import { enqueueSocialNotification } from '@server/social/social-notifications.js';
 import { and, eq } from 'drizzle-orm';
 import {
   readAchievementCatalogue,
-  syncMentorshipAchievements,
+  syncAchievements,
 } from './achievement-ledger.js';
 
 @Injectable()
@@ -34,7 +35,13 @@ export class AchievementsService {
         .limit(1);
       if (!owned)
         throw new HttpException({ error: '当前角色已无法查看成就' }, 409);
-      await syncMentorshipAchievements(tx, actor.cultivatorId);
+      const synchronized = await syncAchievements(tx, actor.cultivatorId);
+      if (synchronized.progressChanged || synchronized.unlockedIds.length) {
+        await enqueueSocialNotification(tx, actor.userId, {
+          cultivatorId: actor.cultivatorId,
+          kind: 'achievements',
+        });
+      }
       return {
         achievements: await readAchievementCatalogue(tx, actor.cultivatorId),
       };

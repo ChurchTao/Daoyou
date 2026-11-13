@@ -56,6 +56,22 @@ export const DOMAIN_EVENT_DEFINITIONS = {
     version: 1,
     subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.gameplay.cultivator-realm-changed.v1`,
   },
+  'cultivator.growth.observed': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.progression.growth-observed.v1`,
+  },
+  'yield.collection.completed': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.progression.yield-collection-completed.v1`,
+  },
+  'mentorship.bound': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.mentorship.bound.v1`,
+  },
+  'mentorship.disciple.graduated': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.mentorship.disciple-graduated.v1`,
+  },
   'mail.created': {
     version: 1,
     subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.communication.mail-created.v1`,

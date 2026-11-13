@@ -29,6 +29,10 @@ export const DOMAIN_EVENT_TYPES = [
   'spirit-field.harvest.completed',
   'spirit-field.upgraded',
   'cultivator.realm.changed',
+  'cultivator.growth.observed',
+  'yield.collection.completed',
+  'mentorship.bound',
+  'mentorship.disciple.graduated',
   'mail.created',
   'cultivator.mail-audience.observed',
   'craft.item.created',
@@ -185,6 +189,25 @@ export function createDomainEventDataSchemas({
         major: z.boolean(),
       })
       .strict(),
+    'cultivator.growth.observed': z.strictObject({
+      cultivatorId: z.uuid(),
+      discipline: z.enum(['manuals', 'sect_methods', 'body', 'beasts', 'beast_fusions']),
+      value: z.number().int().min(0).max(2_147_483_647),
+    }),
+    'yield.collection.completed': z.strictObject({
+      cultivatorId: z.uuid(),
+      actionInstanceId: z.uuid(),
+    }),
+    'mentorship.bound': z.strictObject({
+      relationId: z.uuid(),
+      mentorCultivatorId: z.uuid(),
+      discipleCultivatorId: z.uuid(),
+    }),
+    'mentorship.disciple.graduated': z.strictObject({
+      relationId: z.uuid(),
+      mentorCultivatorId: z.uuid(),
+      discipleCultivatorId: z.uuid(),
+    }),
     'mail.created': z
       .object({
         mailId: z.uuid(),

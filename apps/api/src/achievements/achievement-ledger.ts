@@ -1,8 +1,5 @@
 import { findAchievementDefinition } from '@daoyou/game-content/achievements';
-import type {
-  AchievementFacts,
-  AchievementView,
-} from '@daoyou/game-domain/achievements';
+import type { AchievementView } from '@daoyou/game-domain/achievements';
 import {
   achievementCatalogue,
   eligibleAchievementIds,
@@ -10,10 +7,11 @@ import {
 import { HttpException } from '@nestjs/common';
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db.js';
 import {
+  achievementMetrics,
   achievementUnlocks,
-  mentorshipRelations,
 } from '@server/lib/drizzle/schema.js';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
+import { readAchievementFacts } from './achievement-facts.js';
 
 /** Trusted business services grant registered IDs; request bodies never reach this API. */
 export async function grantAchievement(
@@ -47,62 +45,54 @@ export async function grantAchievement(
   return rows.length > 0;
 }
 
-async function mentorshipFacts(
-  q: DbExecutor,
-  cultivatorId: string,
-  apprenticeSource?: string,
-) {
-  const [firstRelation] = await q
-    .select({
-      id: mentorshipRelations.id,
-      mentorName: mentorshipRelations.mentorName,
-    })
-    .from(mentorshipRelations)
-    .where(
-      and(
-        eq(mentorshipRelations.discipleOriginalCultivatorId, cultivatorId),
-        apprenticeSource
-          ? eq(mentorshipRelations.id, apprenticeSource)
-          : undefined,
-      ),
-    )
-    .orderBy(asc(mentorshipRelations.startedAt), asc(mentorshipRelations.id))
-    .limit(1);
-  const [graduates] = await q
-    .select({ count: sql<number>`count(*)::int` })
-    .from(mentorshipRelations)
-    .where(
-      and(
-        eq(mentorshipRelations.mentorOriginalCultivatorId, cultivatorId),
-        eq(mentorshipRelations.status, 'graduated'),
-      ),
-    );
-  const facts: AchievementFacts = {
-    metrics: {
-      'mentorship.bound': firstRelation ? 1 : 0,
-      'mentorship.graduated_disciples': graduates?.count ?? 0,
-    },
-    labels: { mentorName: firstRelation?.mentorName ?? '已注销道友' },
-  };
-  return { facts, firstRelation };
-}
-
-/** Caller shares its transaction and social identity lock; no resource rewards are granted. */
-export async function syncMentorshipAchievements(
+/** Preserve observed peaks; an expired membership or consumed asset cannot revoke progress. */
+export async function recordAchievementMaximum(
   tx: DbTransaction,
   cultivatorId: string,
-): Promise<void> {
-  const { facts, firstRelation } = await mentorshipFacts(tx, cultivatorId);
+  metric: string,
+  value: number,
+): Promise<boolean> {
+  if (!Number.isSafeInteger(value) || value < 0 || value > 2_147_483_647)
+    throw new Error('成就进度超出合法范围');
+  const rows = await tx
+    .insert(achievementMetrics)
+    .values({ cultivatorId, metric, value })
+    .onConflictDoUpdate({
+      target: [achievementMetrics.cultivatorId, achievementMetrics.metric],
+      set: {
+        value: sql`greatest(${achievementMetrics.value}, excluded.value)`,
+        updatedAt: new Date(),
+      },
+      setWhere: sql`${achievementMetrics.value} < excluded.value`,
+    })
+    .returning({ metric: achievementMetrics.metric });
+  return rows.length > 0;
+}
+
+/** Caller owns its transaction and identity lock; progress and permanent unlocks commit together. */
+export async function syncAchievements(
+  tx: DbTransaction,
+  cultivatorId: string,
+): Promise<{ unlockedIds: string[]; progressChanged: boolean }> {
+  const { facts, firstRelation } = await readAchievementFacts(tx, cultivatorId);
+  let progressChanged = false;
+  for (const [metric, value] of Object.entries(facts.metrics)) {
+    if (await recordAchievementMaximum(tx, cultivatorId, metric, value))
+      progressChanged = true;
+  }
+  const unlockedIds: string[] = [];
   for (const achievementId of eligibleAchievementIds(facts)) {
-    await grantAchievement(tx, {
+    const granted = await grantAchievement(tx, {
       cultivatorId,
       achievementId,
       sourceKey:
         achievementId === 'mentorship.apprentice' && firstRelation
           ? firstRelation.id
-          : `mentorship:graduates:${facts.metrics['mentorship.graduated_disciples']}`,
+          : 'snapshot:' + achievementId,
     });
+    if (granted) unlockedIds.push(achievementId);
   }
+  return { unlockedIds, progressChanged };
 }
 
 /** Read-only: public cards expose selected display fields, never ledger metadata. */
@@ -121,7 +111,7 @@ export async function readAchievementCatalogue(
   const source = unlocks.find(
     (unlock) => unlock.achievementId === 'mentorship.apprentice',
   )?.sourceKey;
-  const { facts } = await mentorshipFacts(q, cultivatorId, source);
+  const { facts } = await readAchievementFacts(q, cultivatorId, source);
   return achievementCatalogue(
     facts,
     unlocks.map((unlock) => ({

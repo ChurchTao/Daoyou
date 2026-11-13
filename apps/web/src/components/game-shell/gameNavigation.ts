@@ -73,6 +73,13 @@ export const gameDockGroups: GameNavGroup[] = [
         coreDockLabel: '角色',
       },
       {
+        id: 'achievements',
+        sceneLabel: '成就',
+        href: '/game/achievements',
+        expandedDockLabel: '成就',
+        coreDockParentId: 'cultivator',
+      },
+      {
         id: 'cultivator-attributes',
         sceneLabel: '根基属性',
       },

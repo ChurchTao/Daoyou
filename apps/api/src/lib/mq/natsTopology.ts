@@ -41,6 +41,11 @@ export const BACKGROUND_COMMAND_CONSUMER = {
 } as const;
 
 export const DOMAIN_EVENT_CONSUMERS = {
+  achievementProjector: {
+    name: 'achievement-projector-v1',
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.>`,
+    concurrency: 4,
+  },
   systemMailProjector: {
     name: 'system-mail-projector-v1',
     filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.system-mail.audience-observed.v1`,

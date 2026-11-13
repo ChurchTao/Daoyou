@@ -39,6 +39,12 @@ Redis 是当前 V6 战斗运行态和回放 outbox 的权威。`CombatV6RuntimeS
 | `market.material.revealed` | `daoyou.domain.gameplay.market-material-revealed.v1` | `world-rumor-projector-v1` |
 | `ranking.position.changed` | `daoyou.domain.gameplay.ranking-position-changed.v1` | `world-rumor-projector-v1` |
 | `cultivator.boundary.crossed` | `daoyou.domain.gameplay.cultivator-boundary-crossed.v1` | `world-rumor-projector-v1`（跨界飞升：离界、降临、折返） |
+| `cultivator.growth.observed` | `daoyou.domain.progression.growth-observed.v1` | `achievement-projector-v1` |
+| `yield.collection.completed` | `daoyou.domain.progression.yield-collection-completed.v1` | `achievement-projector-v1` |
+| `mentorship.bound` | `daoyou.domain.mentorship.bound.v1` | `achievement-projector-v1` |
+| `mentorship.disciple.graduated` | `daoyou.domain.mentorship.disciple-graduated.v1` | `achievement-projector-v1` |
+
+`achievement-projector-v1`还消费既有炼丹完成、装备锻造、秘境结算、境界突破与灵田收获事实，统一投影角色指标和永久解锁。无关事件不写消费回执；成就回执长期保留，避免通用清理后重投导致累计重复。指标、解锁及账号定向`social.notification(kind=achievements)`在消费事务中一并提交。目录/名片读取补认有变化时也写通知，无变化不写；详见[角色成就簿](achievements.md)。
 
 `ranking.challenge.completed` 仍保留为战斗完成事实，但当前任务定义没有对应计数目标，任务投影器会显式忽略它。
 
@@ -105,7 +111,7 @@ pnpm run services ps
 - 毒消息：查看 `DAOYOU_DOMAIN_EVENT_DLQ`，subject 为 `daoyou.dead-letter.<consumer-name>`。
 - 后台命令失败：查看 `DAOYOU_BACKGROUND_COMMAND_DLQ`，subject 为 `daoyou.command-dead-letter.background-command-worker-v1`。
 - 回放归档积压：查看 `DAOYOU_COMBAT_V6_REPLAY_ARCHIVES` 的 `combat-v6-replay-postgres-archiver-v1` consumer，并核对 Redis replay outbox 与归档日志。
-- 手工重放前必须确认 `wanjiedaoyou_message_consumptions` 中对应消费记录是否仍存在；消费记录保留 30 天，长于主 Stream 的 14 天保留期。
+- 手工重放前必须确认 `wanjiedaoyou_message_consumptions` 中对应消费记录是否仍存在；普通消费记录保留30天，长于主Stream的14天保留期。成就累计、战斗condition和hunt奖励消费者回执不随通用清理删除。
 
 ## 事件演进规则
 

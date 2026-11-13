@@ -21,7 +21,7 @@ export type RealtimePlayerStatePayload = {
 
 export type SocialChangedPayload = {
   cultivatorId: string | null;
-  kind: 'friends' | 'direct-chat' | 'mentorship';
+  kind: 'friends' | 'direct-chat' | 'mentorship' | 'achievements';
   conversationId?: string;
   sequence?: number;
 };

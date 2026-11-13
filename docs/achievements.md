@@ -1,62 +1,125 @@
-# 成就系统
+# 角色成就簿
 
-成就归属于本服角色，按角色ID独立解锁、统计和展示；名片可选零至三项。同一账号的其他角色、转世新角色不继承旧角色成就或桃李人数。角色物理删除时级联删除其解锁记录，账号注销同时清理全部角色的成就。跨服档案不携带可供客户端声明的解锁账本。
+成就归属于本服角色，按角色ID独立累计、解锁和展示。转世新角色从零开始，账号既有师承限制保持原规则。独立页面为`/game/achievements`，修行导航和名片设置均可进入；名片仍允许展示零至三项已获成就。当前成就提供荣誉与名片展示。
 
-## 分层与入口
+## 目录与页面
 
-| 层 | 入口 | 职责 |
+首批44项、13个系列、7类玩法：修行、宗门、灵兽、丹器、灵田、历练、师承。原师承6项ID保留。
+
+| 系列 | 档位 | 事实口径 |
 | --- | --- | --- |
-| 领域模型 | `packages/game-domain/src/achievements.ts` | 定义、metric条件、可信事实、解锁事实和展示模型 |
-| 内容目录 | `packages/game-content/src/achievements.ts` | 稳定成就ID、名称、条件、阈值和可选动态名称模板 |
-| 纯规则 | `packages/game-rules/src/achievements.ts` | 进度计算、达标判定、永久解锁投影和文本模板 |
-| 持久化 | `apps/api/src/achievements/achievement-ledger.ts` | 事务解锁、当前师徒事实和目录读取 |
-| API | `apps/api/src/achievements/achievements.controller.ts` | 活跃角色读取自己的目录；没有客户端发放接口 |
-| 名片 | `apps/api/src/cultivator/character-card.service.ts` | 只允许本人选择已解锁项，公开返回选定展示字段 |
-| UI | `apps/web/src/components/feature/character-card/AchievementPicker.tsx` | 搜索、状态筛选、条件进度与选择操作 |
+| 破境问道 | 筑基至渡劫8档 | 当前或已记录达到的最高境界 |
+| 功法精进 | 1/6/9层 | 本角色功法的已记录最高层数 |
+| 宗门根基 | 20/60/100级 | 当前宗门合法心法与已记录峰值 |
+| 百炼之躯 | 10/20/30级 | 任一炼体轨的已记录最高等级 |
+| 灵兽相伴 | 10/30/60级 | 本角色灵兽的已记录最高等级 |
+| 融灵新生 | 1/10/30次 | 本角色持久融合记录 |
+| 丹火不息 | 1/10/50次 | 完成炼丹次数，不将完成等同炼丹成功 |
+| 锻器成章 | 1/10/50件 | 正式锻造出的道装件数 |
+| 耕云种月 | 1/10/50批 | 灵田持久收获批次，不按产物数量倍增 |
+| 行路有得 | 1/20/100次 | 正式领取历练收获次数，包含无物资的领取 |
+| 洞天寻踪 | 1/10/50次 | 秘境结果为completed的完整结算次数 |
+| 一脉师承 | 正式拜师1次 | 原徒弟角色的关系事实，显示「师父道号之徒」 |
+| 桃李成蹊 | 2/6/12/20/30人 | 原师父角色成功培养的出师人数 |
 
-四个包通过明确的`achievements`子路径和命名导出提供API。应用不绕过包exports导入源文件。
+确切ID、称号和数字以`packages/game-content/src/achievements.ts`为准。定义注册稳定`seriesId`与`tier`，系列集中提供分类、单位与统计说明；协议View保留服务端投影的`action`等字段，但成就页面不使用玩法跳转，也不提供名片设置。公开名片Display仍只暴露`id/name/description`。
 
-## 当前成就
+首屏以紧凑的已获总数和分类目录组织内容，分类固定为修行、宗门、灵兽、丹器、灵田、历练、师承，默认打开修行。桌面左侧目录、右侧只展示当前分类；360px窄屏将全部分类换行显示。分类内按系列分组，完整列出各阶成就，每条仅展示emoji、名称、达成条件及状态或进度；仅系列中最近未获的一阶使用小进度条。获得日期、统计口径与不可达原因在条目原地展开，已获记录永久保留。URL只保留分类与详情上下文，不再设当前目标、已经获得、全部系列三大视图，也不提供搜索、跨玩法链接或名片设置入口。
 
-| ID | 显示名称 | 可信条件 |
-| --- | --- | --- |
-| `mentorship.apprentice` | `{mentorName}之徒` | 已正式建立过师徒关系 |
-| `mentorship.graduates.2` | 为人师表 | 累计培养2位弟子成功出师 |
-| `mentorship.graduates.6` | 循循善诱 | 累计培养6位弟子成功出师 |
-| `mentorship.graduates.12` | 诲人不倦 | 累计培养12位弟子成功出师 |
-| `mentorship.graduates.20` | 厚德树人 | 累计培养20位弟子成功出师 |
-| `mentorship.graduates.30` | 桃李天下 | 累计培养30位弟子成功出师 |
+## 权威事实与累计
 
-师承条件对应`mentorship.bound`，桃李人数对应`mentorship.graduated_disciples`。桃李仅按`mentorOriginalCultivatorId`等于当前角色的`graduated`关系计数，不使用私聊、旧指导或声望余额计数。既有可信事实可以补齐成就；不会因此补发声望或世界公告。
+`apps/api/src/achievements/achievement-facts.ts`只读取指定角色的成长数据、当前宗门归属、灵田、融合与原角色师徒记录。等级类读取当前可证明的快照，与`achievement_metrics`中已观察峰值取最大值；遗忘功法、转宗或消耗灵兽不会撤销已经记录的进度与成就。无法证明的旧成长不凭账号或余额推算。
 
-## 扩展新成就
+次数类通过可信事件递增，旧数据仅在留存事件能够证明时补认，不承诺回溯全部历史。页面详情明确「按本角色已记录的玩法次数累计，无法确认的历史不补计」。没有客户端申领、发放或提交进度接口。
 
-拜师事实仅属于原徒弟角色，角色目录从不按账号合并旧角色的拜师、毕业进度或解锁记录。
+`achievement_metrics`以`(cultivatorId,metric)`为主键，数值非负；解锁账本以`(cultivatorId,achievementId)`唯一。两表均以角色外键级联删除，账号注销也显式清理全部角色进度。已有0077直接创建角色解锁表；0078仅新增通用角色进度表，没有旧账号成就过渡机制。
 
-新增普通计数成就时，在内容目录注册唯一稳定ID与`requirement: { metric, target }`，并在所属服务提供该metric的权威事实。共享计算核心无需按玩法增加条件分支；目标必须是正安全整数，缺失metric按零处理，非有限或负进度不会解锁。
+## MQ解耦
 
-业务服务可在自己的事务中调用`grantAchievement(tx, { cultivatorId, achievementId, sourceKey, metadata? })`。调用方负责认证、业务完成校验与一致的账号锁顺序，不能把请求中的成就ID、数量或metric直接当作已完成事实。账本以`(cultivatorId, achievementId)`唯一，合法重试不改写首次解锁时间。
+玩法服务只记录已完成事实，成就逻辑由`achievement-projector-v1`统一投影。沿用现有PostgreSQL事务Outbox、NATS JetStream、重试/DLQ与进程排空流程。
 
-当前师徒接入通过`syncMentorshipAchievements(tx, cultivatorId)`读取原角色的关系事实：在接受拜师和出师的同一事务中同步；登录者读取目录及名片设置时也可补齐。增加其他玩法时，接入所属服务的结算事务，并扩展目录事实provider以提供锁定项的当前进度。通用函数不负责发放货币。
+| 来源 | 成就处理 |
+| --- | --- |
+| `cultivator.realm.changed` | 境界峰值 |
+| `cultivator.growth.observed` | 功法、宗门心法、炼体、灵兽、融合的确定数值快照 |
+| `alchemy.craft.completed` | 炼丹完成次数+1 |
+| `equipment.forged` | 道装锻造件数+1 |
+| `yield.collection.completed` | 历练领取次数+1 |
+| `dungeon.run.settled` | 仅completed时通关次数+1 |
+| `spirit-field.harvest.completed` | 回读持久收获批次，取峰值 |
+| `mentorship.bound` / `mentorship.disciple.graduated` | 原双方角色的师承事实补认 |
 
-动态名称通过`nameTemplate`替换服务端`labels`，不执行表达式；缺失模板字段时使用基础名称。拜师成就的来源键是原师徒关系ID，账本不复制导师账号ID或道号；展示时读取关系的权威名称。导师注销后关系已匿名化，成就同步展示匿名名称，不重新泄漏旧身份。
+旧`yield.claimed`只服务含物资奖励投递，不用于领取次数，以免遗漏无物资领取或重复计数。新事件subject不放入旧玩法消费者的宽泛activity/gameplay过滤范围。
 
-## 名片协议
+消费者在同一事务中确认消费回执、更新指标、写入永久解锁并追加账号定向`social.notification(kind=achievements)`，提交后才ACK。对应message_consumptions回执不随通用30天清理删除，防止人工重放旧事件重复计数。重复峰值、目录读取及已获记录不会再次增加计数或改写首次解锁时间。
 
-- `GET /api/achievements`：当前登录活跃角色的完整目录，含锁定状态、条件、当前进度和首次解锁时间。
-- `GET /api/cultivator/card/settings`：当前角色名片设置及成就目录；补齐操作在普通事务中进行，公开名片构建保持只读。
-- `PUT /api/cultivator/card/settings`：完整载荷包含`title`、`equipmentIds`、`beastIds`、`achievementIds`和`revision`。成就最多三项、不能重复；服务端重新验证解锁归属及revision。
-- `GET /api/cultivator/:id/card`：只返回选定成就的`id/name/description`，保留选择顺序，不返回metadata、来源键、账号ID、未选项目或完整目录。
+始终使用事件中的原角色ID。锁定现有账号/角色并复核归属与注销记录；尚存旧角色可补记，物理删角或账号注销后忽略消息，不重建社交身份，也不转投当前新角色。无关领域事件直接忽略，不为它们保留永久回执。
 
-旧`profileCard`没有`achievementIds`时按空列表读取。名片设置内可搜索名称/条件及筛选解锁状态；实时社交通知和前台补拉只刷新成就目录，不覆盖尚未保存的名片选择。编辑器以活跃角色ID重建，切角色时清除旧角色的目录回退、未保存选择与抽屉；读取校验响应角色ID。
+目录和名片设置读取时仍可补认当前可证明的成长事实，作为进入页面时的兜底；补认有变化时也在同事务追加通知，避免HTTP先补认、MQ后消费时其他端错过刷新。无变化的重复读取不发通知。业务写路径通过事件解锁，师徒服务不再直接调用成就发放。在线页面使用已有定向实时通知刷新，离线/重连/前台恢复重新读取HTTP权威目录。
 
-## 验证
+## 扩展与验证
 
-纯规则测试在`packages/game-rules/src/achievements.test.ts`，覆盖五档阈值、未来metric、非法或缺失进度、动态名、永久解锁及未知旧定义。API、数据库和Web遵守项目验证规范，不增加模拟集成单元测试。
+新增成就优先复用现有metric和系列；新玩法在自己的结算事务发领域事实，投影器显式映射计数或峰值，事实读取器提供可信存量快照。禁止直接把请求metric、数量或LLM生成内容作为已完成事实。
 
-角色隔离的真实运行证据见[师徒设计第20节](mentorship-and-friends-design.md#20-成就角色隔离)；此前玩法验收保留在第19节。
+纯规则测试位于`packages/game-rules/src/achievements.test.ts`，事件契约测试位于`packages/contracts/src/domainEvents.test.ts`。API、数据库、MQ与Web按`docs/testing.md`通过本地真实流程与浏览器模拟验证，不增加服务模拟单元测试。
 
+## 首次独立成就簿验收
 
-## 持久化结构
+本地使用`env/local.env`，后台LLM任务关闭。0078已在本地应用，新增角色指标表、复合主键、非负约束和删除级联外键；再次生成返回No schema changes。未访问预发布或生产。
 
-成就功能尚未发布，`0077_achievements_and_graduation.sql`直接创建角色成就表，以`cultivator_id`关联角色，并以角色+成就定义建立唯一键。开发期间的旧账号成就数据只在本地整理，不保留专门的过渡迁移或账号成就归档表。
+`pnpm run lint`、`pnpm run typecheck`、`pnpm run build`和`git diff --check`通过。`pnpm run test`通过302个文件、3416个用例，涵盖44项阈值/元数据、不可达目标、永久解锁与新增事件协议。未新增API/Web单元测试或临时测试脚本。日志为`/tmp/daoyou-achievement-book-{lint,typecheck,build,tests}.log`，迁移日志为`/tmp/daoyou-achievement-book-migration-{generate,apply,check}.log`。
+
+### 真实玩法、接口和MQ
+
+| 项目 | 实际结果 |
+| --- | --- |
+| 独立目录 | local1读取44项、13系列；已有功法/灵兽/灵田等事实正确补认；local2有独立目录与不同已获项 |
+| 历练领取 | local1通过正常页面提交完整requestId载荷200，结果显示3876灵石、386修为、48感悟（受资源上限约束）；8件物资由原邮件流程异步处理 |
+| 资源提交 | 灵石213958→217834，currency版本502→503；声望667、天地灵气240未因成就变化，角色资源读取与已提交结果一致 |
+| MQ解锁 | 源yield.collection.completed经Outbox发布，消费回执1、exploration.claims=1，自动解锁初涉山川 |
+| 真实重投 | 保留同事件ID、使用不同NATS msgID重发并确认消费完成；回执1→1、指标1→1、已获16→16、通知26→26，内容和时间均未改写 |
+| 成长快照 | local1真实研习心法3次，从11→12→13→14级，完整客户端payload及revision16/17/18通过正式接口；持久峰值14、三条成长消息均已发布和消费 |
+| 喂养入口 | local2使用一颗按标准规则生成的凡品灵果喂养：完整载荷200，灵兽10→11级、获得470修为且无浪费；数量0返回400、旧物品/灵兽revision重试409，未重复消耗 |
+| 喂养MQ | 喂养成长事件已发布、消费回执1，原角色灵兽峰值更新为11；临时腾位的原灵印已回背包，数量1不变 |
+| 多端补认 | 第三次成长后由另一HTTP请求先补认，成就页保持可见；约5秒收到真实social.changed(kind=achievements)并自行更新为14/20，无手动刷新 |
+| 无反馈循环 | 随后连续3次目录GET均200，通知28→28、无待发布/错误，指标与更新时间、16项解锁均未变化 |
+| 名片展示 | 从成就详情进入名片，选择初涉山川并保存200；公开名片只返回id/name/description；旧revision409、选择另一角色独有境界成就400 |
+| 身份与不可达 | 未登录401；local2元婴角色未获得拜师成就，全部/详情显示原因且不提供行动，当前目标排除该项 |
+
+MQ去重证据位于`/tmp/daoyou-achievement-mq-dedupe-evidence.json`，通知循环证据位于`/tmp/daoyou-achievements-notification-loop-evidence.json`。真实领取、正常研习与喂养所得按测试规范保留，未直接改表撤销玩法进度。仅通过本地调试入口准备一颗标准凡品灵果，已正式消耗，无残留样本；为腾空背包暂存的原灵印已通过正式接口放回，数量与位置恢复。没有境界准备或新永久师徒关系。名片成就选择恢复为空，原3件道装、3只灵兽与称号保留。
+
+### 页面与交互
+
+人工查看桌面1280×900和360×800截图，无横向溢出。筛选、搜索、系列详情在URL保留；关闭和返回不丢条件，Esc后焦点回到触发按钮，详情行动区在窄屏完整可见。已验证不同角色目录隔离、已获/当前/全部切换、完整三阶与八阶目录、无匹配清筛选、失效详情ID、名片入口。通过浏览器响应模拟验证503失败/重试和全部达成空态；模拟不发放成就、不产生玩法写入。
+
+截图为`.playwright-mcp/achievement-book-desktop.png`、`achievement-book-mobile.png`与`achievement-book-series-mobile.png`。本轮未实际转世、删角或注销；高阶阈值通过纯规则测试覆盖，未批量制造高阶角色或重复50/100次玩法。真机软键盘与原生IME尚未验收。无部署或提交推送。
+
+新建local2会话已正常退出200并关闭，临时研习标签页关闭，主会话保留，视口恢复1280×900，成就详情和筛选清空。运行检查确认health-check的Redis/NATS/messaging正常。
+
+临时API/Web服务已停止，API日志确认排空请求、停止消息设施并释放数据库/Redis连接；本地基础容器保留。
+
+## 分类列表重构验收（2026-11-13）
+
+本轮仅重构成就页展示，不改变成就定义、进度、解锁或名片保存规则。删除三大视图、搜索筛选、最近所得区与系列抽屉，采用固定分类目录和按系列完整排列的成就行。44项均使用明确配置的emoji，并经`GameIcon`渲染；新增条目缺少配置时按系列、分类回退。
+
+首屏保留紧凑收集进度、七分类和当前分类的系列列表。每行常驻名称、条件及已获/进度/待记入/无法达成状态；点击原地查看获得日期、说明和统计口径，不提供任何跨玩法链接或名片设置。仅最近可推进的一阶显示小进度条。分类和展开项保留在URL，旧`view/q`不再影响展示。
+
+本地真实目录验证七类共13系列、44项完整可见；桌面1280×900与360×800均无横向溢出，移动端全部分类直接换行展示。分类切换、原地展开/收起、浏览器返回、深链接、无效详情ID、旧参数、Enter/Space展开与Esc收起后焦点均通过；成就正文链接数量为0，浏览器无页面错误。另以只读响应模拟验证加载、503失败/重试、空目录、44项全部达成、长师父名、不可达与等待记入/刷新，未写入或制造这些角色状态。
+
+`pnpm run lint`、`pnpm run typecheck`、`pnpm run build`、`git diff --check`通过，日志为`/tmp/daoyou-achievement-ui-{lint,typecheck,build}.log`。本轮没有共享规则或后端修改，未重复运行纯规则测试，也未复测MQ、真实解锁、转世和删除角色；未进行真机触屏/系统键盘验证。本地检查未调用模型，后台LLM任务关闭，无部署或提交推送。
+
+本轮截图为`.playwright-mcp/achievement-redesign-desktop.png`、`achievement-redesign-mobile.png`与`achievement-redesign-detail-mobile.png`。浏览器模拟已全部移除，主会话恢复默认修行分类、无展开项，视口1280×900。
+
+本轮自行启动的API/Web服务已停止，API完成请求排空与数据库/Redis释放；原有其他项目服务及本地基础容器保留。
+
+## 名片设置交互优化与验收（2026-11-13）
+
+名片编辑将服务端基准与本次草稿分离，显示未保存状态，可本地还原；名号输入时校验，留空表示清除。保存区使用既有`--game-bottom-offset`避让世界聊天与底栏；桌面侧栏实时预览，移动端按需打开预览抽屉。切换角色面板或其他场景前保护未保存修改，刷新/关闭窗口注册原生离开提醒。角色面板只在标签容器内滚动，使窄屏活动标签可见。
+
+成就选择只列当前角色已获项，按分类与系列分组；顶部回显最多三项当前选择并可直接取消，满额候选解释限制。抽屉完成/收起保留草稿，保存名片后才对外生效。展示设置的道装、灵兽和成就移除操作均有完整触控区与区分对象的可访问名称。成就emoji映射移至共享`components/feature/achievements/achievementIcons.ts`，成就簿和名片设置共用。
+
+真实本地验证三项选择、满额替换、预览返回、还原、未保存导航的继续编辑与放弃离开。用完整客户端载荷通过真实端点保存200，设置与公开名片读取均返回三项相同成就，公开字段仍为`id/name/description`；保存期间名号、选择器、还原均禁用，只发一次PUT。另一同源请求推进revision后，旧revision9提交返回409且保留草稿；还原后仍提示需要同步，载入最新期间冻结编辑，随后revision10成功保存为11。最终通过正式UI恢复原成就选择为空、原名号与原3道装/3灵兽，revision正常推进至12，读取结果一致。
+
+503保存失败与初始读取失败/重试使用浏览器只读响应模拟，失败保留草稿；无已获成就的模拟目录不渲染未获候选。名号不足2字阻止保存，纯空白预览清除名号。道装/灵兽满额提示、灵兽取消与还原、抽屉Esc/焦点返回、活动标签露出、1280×900和360×800布局均已检查，无横向溢出或页面脚本错误。全部模拟已移除，主会话恢复名片设置、无草稿/抽屉，视口1280×900。
+
+`pnpm run lint`、`pnpm run typecheck`、`pnpm run build`和`git diff --check`通过，日志为`/tmp/daoyou-namecard-{lint,typecheck,build}.log`。本轮只改前端交互，未重跑纯领域测试或MQ验收；真机触屏与系统键盘、真实刷新/关窗提示尚未验收。未调用模型，后台LLM关闭，无部署或提交推送。截图为`.playwright-mcp/namecard-settings-desktop.png`、`namecard-settings-mobile.png`、`namecard-achievement-picker-mobile.png`和`namecard-preview-mobile.png`；截图中的三项成就为本地草稿展示示例，最终持久设置已还原。自建API/Web服务已停止，API完成请求排空和连接释放，其他原有服务与基础容器保留。

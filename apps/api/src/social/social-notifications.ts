@@ -38,7 +38,7 @@ export function subscribeSocialNotifications(
       const value = payload as Partial<SocialChangedPayload>;
       if (value.cultivatorId !== null && typeof value.cultivatorId !== 'string')
         return;
-      if (!['friends', 'direct-chat', 'mentorship'].includes(value.kind ?? ''))
+      if (!['friends', 'direct-chat', 'mentorship', 'achievements'].includes(value.kind ?? ''))
         return;
       if (
         value.conversationId !== undefined &&
