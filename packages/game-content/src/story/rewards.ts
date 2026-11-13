@@ -1,15 +1,6 @@
-import {
-  STORY_REWARD_PACK,
-  STORY_STARTER_BEAST_GRANT,
-  type StoryRewardPack,
-} from '../rewards/story-pack.js';
+import { hasStoryGift } from './gifts.js';
 
-export function hasStoryReward(
-  id: string,
-  pack: StoryRewardPack = STORY_REWARD_PACK,
-): boolean {
-  return (
-    id === STORY_STARTER_BEAST_GRANT ||
-    pack.payouts.some((payout) => payout.id === id)
-  );
+/** 主线里写的奖励、赠礼编号有没有着落。 */
+export function hasStoryReward(id: string): boolean {
+  return hasStoryGift(id);
 }

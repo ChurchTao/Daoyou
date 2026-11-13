@@ -25,6 +25,10 @@ import {
   getBreakthroughNextStep,
 } from '@app/lib/tasks/taskClient';
 import { getNextMajorRealm } from '@daoyou/game-rules/consumables/breakthrough';
+import {
+  storyGateOpen,
+  storySceneOpen,
+} from '@daoyou/game-domain/story/gates';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 function calculateYieldHours(lastYieldAt: Date | string | undefined) {
@@ -147,15 +151,17 @@ export function HomeView() {
 
   const unlocked = story.story?.unlocked ?? null;
   const fresh = story.story?.fresh ?? [];
-  const opened = (id: string) => !unlocked || unlocked.includes(id);
+  const opened = (id: string) => storySceneOpen(unlocked, id);
   const percent = body.cultivationPercent;
   const hurt = body.hpLow || body.mpLow;
   const isMajorBreakthroughCandidate = Boolean(
     cultivator.realm_stage === '圆满' && getNextMajorRealm(cultivator.realm),
   );
   const unallocated = cultivator.unallocated_attribute_points ?? 0;
-  const pouch = (yieldHours >= 1 || yieldInteractionActive) && opened('yield');
-  const scroll = Boolean(currentMajorTask) && opened('tasks');
+  const pouch =
+    (yieldHours >= 1 || yieldInteractionActive) &&
+    storyGateOpen(unlocked, 'yield');
+  const scroll = Boolean(currentMajorTask) && opened('retreat');
 
   // 手边：屋里摆着的、伸手就能办的事。
   const athand: ReactNode[] = [];
@@ -204,12 +210,12 @@ export function HomeView() {
     athand.push(
       <HomeAct
         key="breakthrough"
-        href={ready ? '/game/retreat' : '/game/tasks'}
+        href="/game/retreat"
         lead={ready ? '去静室冲关' : '翻开破境的卷宗'}
         note={getBreakthroughNextStep(currentMajorTask)}
       />,
     );
-  } else if (taskError && isMajorBreakthroughCandidate && opened('tasks')) {
+  } else if (taskError && isMajorBreakthroughCandidate && opened('retreat')) {
     athand.push(
       <HomeAct
         key="breakthrough-reload"

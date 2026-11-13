@@ -1,11 +1,14 @@
 import {
   baseMark,
+  battleFlag,
+  battleMark,
   chapterUnlocks,
   flagMark,
   readBaseMark,
   standingReaches,
   storyFlags,
   STORY_MARK_FACT_IDS,
+  type StoryBattleOutcome,
   type StoryBeat,
   type StoryChapter,
   type StoryCondition,
@@ -73,6 +76,9 @@ function satisfied(
 ): boolean {
   if (beat.kind === 'performance') {
     return progress.acks.includes(`${beat.script}:${beat.outcome}`);
+  }
+  if (beat.kind === 'battle') {
+    return progress.acks.includes(battleMark(beat.battle));
   }
   if (beat.kind === 'practice') {
     const ready = beat.accept.map((acceptance) =>
@@ -217,6 +223,7 @@ export function resolveStory(
     if (beat.kind === 'practice' || beat.kind === 'objective') {
       issuePayout(grants, issued, beat.reward);
     }
+    issuePayout(grants, issued, beat.gift);
     const index = chapter.beats.findIndex((entry) => entry.id === beatId);
     const next = chapter.beats[index + 1];
     if (!next) {
@@ -279,6 +286,34 @@ export function acknowledgePerformance(
   );
 }
 
+/** 剧情战打完了。结果记成标记，后面的演出可以照着分支。 */
+export function acknowledgeBattle(
+  chapter: StoryChapter,
+  progress: StoryProgress,
+  facts: StoryFacts,
+  battleId: string,
+  outcome: StoryBattleOutcome,
+): StoryResolution {
+  const key = battleMark(battleId);
+  if (progress.acks.includes(key)) return resolveStory(chapter, progress, facts);
+  const beat = beatAt(chapter, progress.beatId);
+  if (beat.kind !== 'battle' || beat.battle !== battleId) {
+    throw new Error('当前没有这场剧情战');
+  }
+  const mark = flagMark(battleFlag(battleId, outcome));
+  return resolveStory(
+    chapter,
+    {
+      ...progress,
+      acks: [...progress.acks, key],
+      marks: progress.marks.includes(mark)
+        ? progress.marks
+        : [...progress.marks, mark],
+    },
+    facts,
+  );
+}
+
 export function noteStoryFact(
   chapter: StoryChapter,
   progress: StoryProgress,
@@ -308,11 +343,12 @@ export function acknowledgeGuide(
   progress = normalizeArrivalProgress(chapter, progress, facts);
   const beat = beatAt(chapter, progress.beatId);
   const wanted =
-    beat.kind === 'practice' &&
-    (beat.lesson === lesson ||
-      beat.accept.some(
-        (entry) => entry.type === 'guide' && entry.lesson === lesson,
-      ));
+    (beat.kind === 'battle' && beat.lesson === lesson) ||
+    (beat.kind === 'practice' &&
+      (beat.lesson === lesson ||
+        beat.accept.some(
+          (entry) => entry.type === 'guide' && entry.lesson === lesson,
+        )));
   if (!wanted) throw new Error('当前没有这场教学');
   const key = guideMark(lesson);
   if (progress.marks.includes(key))
@@ -383,6 +419,7 @@ export function presentStory(
     prompt: shifted.prompt,
     href: shifted.href,
     scriptId: beat.kind === 'performance' ? beat.script : null,
+    battleId: beat.kind === 'battle' ? beat.battle : null,
     hail: beat.hail
       ? {
           by: beat.hail.by,
@@ -416,10 +453,12 @@ export function presentStory(
 }
 
 function pendingGuide(beat: StoryBeat, progress: StoryProgress): string | null {
-  if (beat.kind !== 'practice') return null;
+  if (beat.kind !== 'practice' && beat.kind !== 'battle') return null;
   const lesson =
-    beat.lesson ??
-    beat.accept.find((acceptance) => acceptance.type === 'guide')?.lesson;
+    beat.kind === 'battle'
+      ? beat.lesson
+      : (beat.lesson ??
+        beat.accept.find((acceptance) => acceptance.type === 'guide')?.lesson);
   if (!lesson || progress.marks.includes(guideMark(lesson))) return null;
   return lesson;
 }

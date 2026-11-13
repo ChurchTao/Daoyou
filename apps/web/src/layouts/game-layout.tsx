@@ -1,5 +1,6 @@
 import { GuideOverlay } from '@app/components/feature/guide/GuideOverlay';
-import { StoryNudge } from '@app/components/feature/story/StoryNudge';
+import { SceneGate } from '@app/components/feature/story/SceneGate';
+import { StoryTracker } from '@app/components/feature/story/StoryTracker';
 import { HuntTeamBar } from '@app/components/feature/hunts/HuntTeamBar';
 import { WorldChatPreviewBar } from '@app/components/feature/world-chat/WorldChatPreviewBar';
 import { WorldChatFeedProvider } from '@app/components/feature/world-chat/useWorldChatFeedModel';
@@ -161,7 +162,9 @@ function GameViewportBody({ scene }: { scene: GameSceneHandle | null }) {
               scrollPaddingBottom: 'var(--game-bottom-offset)',
             }}
           >
-            <Outlet />
+            <SceneGate>
+              <Outlet />
+            </SceneGate>
           </main>
         </div>
         <RealtimeConnectionToasts />
@@ -193,7 +196,9 @@ export function GameCombatLayout() {
   return (
     <PaperSurface className="h-dvh overflow-hidden">
       <main className="h-full overflow-hidden">
-        <Outlet />
+        <SceneGate>
+          <Outlet />
+        </SceneGate>
       </main>
     </PaperSurface>
   );
@@ -203,7 +208,9 @@ export function GameActivityLayout() {
   return (
     <div className="bg-scene h-[100dvh] touch-none overflow-hidden overscroll-none">
       <main className="h-full overflow-hidden">
-        <Outlet />
+        <SceneGate>
+          <Outlet />
+        </SceneGate>
       </main>
     </div>
   );
@@ -231,9 +238,11 @@ export function GameMapLayout({
             : 'h-full overflow-hidden'
         }
       >
-        <Outlet />
+        <SceneGate>
+          <Outlet />
+        </SceneGate>
       </main>
-      <StoryNudge />
+      <StoryTracker placement="slip" />
       <GuideOverlay />
     </div>
   );
@@ -421,7 +430,9 @@ function GameDungeonLayoutBody() {
               : 'battle-scroll h-full overflow-y-auto'
           }
         >
-          <Outlet />
+          <SceneGate>
+            <Outlet />
+          </SceneGate>
         </main>
       </div>
     </PaperSurface>

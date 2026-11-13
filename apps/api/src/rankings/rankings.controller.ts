@@ -24,6 +24,7 @@ import {
   WealthRankingErrors,
 } from './rankings-errors.js';
 import { RankingsService } from './rankings.service.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 
 // Hono's named query reads return the first value for repeated parameters.
 function first(value: string | string[] | undefined) {
@@ -31,6 +32,7 @@ function first(value: string | string[] | undefined) {
 }
 
 @Controller('api/rankings')
+@StoryGate('rankings')
 @Access('active')
 export class RankingsController {
   constructor(

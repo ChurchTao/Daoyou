@@ -15,16 +15,62 @@
     },
     {
       "type": "narration",
-      "text": "动静过去了。"
+      "text": "山豕倒在路边，不动了。",
+      "when": {
+        "flag": "battle.v1-ambush.won"
+      }
     },
     {
       "type": "narration",
-      "text": "你低头看自己的手。还在抖。"
+      "text": "你低头看自己的手。还在抖。",
+      "when": {
+        "flag": "battle.v1-ambush.won"
+      }
     },
     {
       "type": "line",
       "speaker": "elder",
-      "text": "手脚倒快。学过？"
+      "text": "手脚倒快。学过？",
+      "when": {
+        "flag": "battle.v1-ambush.won"
+      }
+    },
+    {
+      "type": "narration",
+      "text": "你被撞得坐在地上，眼前发黑。等看清的时候，山豕已经横在路边，许伯正把柴刀在草上蹭干净。",
+      "when": {
+        "flag": "battle.v1-ambush.lost"
+      }
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "敢迎上去，倒是没想到。学过？",
+      "when": {
+        "flag": "battle.v1-ambush.lost"
+      }
+    },
+    {
+      "type": "narration",
+      "text": "山豕又一次撞过来的时候，一把柴刀从你身侧递出去，正砍在它颈上。",
+      "when": {
+        "flag": "battle.v1-ambush.rescued"
+      }
+    },
+    {
+      "type": "narration",
+      "text": "你低头看自己的手。还在抖。",
+      "when": {
+        "flag": "battle.v1-ambush.rescued"
+      }
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "撑了这么久。学过？",
+      "when": {
+        "flag": "battle.v1-ambush.rescued"
+      }
     },
     {
       "type": "choice",
@@ -128,8 +174,9 @@
       "text": "咪咪顺着你的袖子爬上肩头，尾巴绕过来，搭在你脖子上。"
     },
     {
-      "type": "aside",
-      "text": "咪咪跟了你。往后在灵兽袋里能看到它。"
+      "type": "letter",
+      "title": "所得",
+      "text": "咪咪　灵猫 · 5 级 · 宝宝\n已经在你的灵兽袋里了。"
     },
     {
       "type": "end",

@@ -7,8 +7,6 @@ import { formatContentPackErrors } from '@daoyou/game-domain/content-pack-errors
 import raw from './data/story.json' with { type: 'json' };
 
 export const STORY_SPIRIT_STONE_REWARD = 'currency.spirit-stones';
-/** 不走掉落池的一份开幕赠礼：把初始灵兽放进灵兽袋。 */
-export const STORY_STARTER_BEAST_GRANT = 'starter-beast';
 
 const entrySchema = z
   .object({

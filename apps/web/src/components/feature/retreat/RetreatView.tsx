@@ -555,7 +555,7 @@ export function RetreatView({ sectContext }: RetreatViewProps) {
                     </InkButton>
                   </InkNotice>
                 ) : currentMajorTask ? (
-                  <BreakthroughTaskCard task={currentMajorTask} compact />
+                  <BreakthroughTaskCard task={currentMajorTask} />
                 ) : !tasksLoading ? (
                   <InkButton onClick={() => void reloadTasks()}>
                     重新核对准备

@@ -57,6 +57,9 @@ const unlocksSchema = z
   .max(12)
   .optional();
 
+// 这一幕演完、做完、打完时给玩家的一份东西，写赠礼编号。
+const giftSchema = z.string().trim().min(1).max(40).optional();
+
 // 招呼：洞府里，这一幕等着玩家的那个人说的一句话。名字里可以带演出的占位符。
 const hailSchema = z
   .object({
@@ -78,6 +81,7 @@ const performanceBeatSchema = z
     href: z.string().trim().min(1).max(120),
     unlocks: unlocksSchema,
     hail: hailSchema,
+    gift: giftSchema,
   })
   .strict();
 
@@ -150,6 +154,7 @@ const practiceBeatSchema = z
     href: z.string().trim().min(1).max(120),
     unlocks: unlocksSchema,
     hail: hailSchema,
+    gift: giftSchema,
     lesson: lessonIdSchema.optional(),
     // 破例一课：这一幕期间，身份不够的弟子也能进这间屋开一炉。
     classroom: z.enum(STORY_CLASSROOMS).optional(),
@@ -167,6 +172,7 @@ const lifeBeatSchema = z
     href: z.string().trim().min(1).max(120),
     unlocks: unlocksSchema,
     hail: hailSchema,
+    gift: giftSchema,
     when: z
       .object({
         fact: factSchema,
@@ -189,6 +195,7 @@ const waitBeatSchema = z
     href: z.string().trim().min(1).max(120),
     unlocks: unlocksSchema,
     hail: hailSchema,
+    gift: giftSchema,
   })
   .strict();
 
@@ -213,13 +220,32 @@ const objectiveBeatSchema = z
     href: z.string().trim().min(1).max(120),
     unlocks: unlocksSchema,
     hail: hailSchema,
+    gift: giftSchema,
     grant: z.string().trim().min(1).max(40).optional(),
     reward: z.string().trim().min(1).max(40).optional(),
   })
   .strict();
 
+// 剧情战：对手和胜负规则由主线指定，打完才往下走。
+const battleBeatSchema = z
+  .object({
+    id: z.string().trim().min(1).max(40),
+    kind: z.literal('battle'),
+    battle: z.string().trim().min(1).max(40),
+    // 头一回打架时带的那场教学。看不看都不耽误往下走。
+    lesson: lessonIdSchema.optional(),
+    scene: z.string().trim().min(1).max(40),
+    prompt: z.string().trim().min(1).max(80),
+    href: z.string().trim().min(1).max(120),
+    unlocks: unlocksSchema,
+    hail: hailSchema,
+    gift: giftSchema,
+  })
+  .strict();
+
 export const StoryBeatSchema = z.discriminatedUnion('kind', [
   performanceBeatSchema,
+  battleBeatSchema,
   practiceBeatSchema,
   objectiveBeatSchema,
   waitBeatSchema,
@@ -229,9 +255,11 @@ export const StoryBeatSchema = z.discriminatedUnion('kind', [
 export function createStoryChapterSchema({
   getGuideLesson,
   hasStoryReward,
+  hasStoryBattle,
 }: {
   getGuideLesson: (id: string) => unknown;
   hasStoryReward: (id: string) => boolean;
+  hasStoryBattle: (id: string) => boolean;
 }) {
   const StoryChapterSchema = z
     .object({
@@ -262,6 +290,21 @@ export function createStoryChapterSchema({
           });
         }
         ids.add(beat.id);
+        if (beat.kind === 'battle' && !hasStoryBattle(beat.battle)) {
+          context.addIssue({
+            code: 'custom',
+            message: `没有这场剧情战：${beat.battle}`,
+          });
+        }
+        if (beat.gift) {
+          if (!hasStoryReward(beat.gift) || payouts.has(beat.gift)) {
+            context.addIssue({
+              code: 'custom',
+              message: `赠礼不存在或重复：${beat.gift}`,
+            });
+          }
+          payouts.add(beat.gift);
+        }
         if (beat.kind === 'objective') {
           for (const payout of [beat.grant, beat.reward]) {
             if (!payout) continue;
@@ -346,6 +389,7 @@ export const StoryProgressSchema = z
             (STORY_MARK_FACT_IDS as readonly string[]).includes(value) ||
             (progressMarkIds as readonly string[]).includes(value) ||
             /^flag:[a-z0-9]+(?:[-.:][a-z0-9]+)*$/.test(value) ||
+            /^battle:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value) ||
             /^base:[a-z0-9-]+:[a-z_]+=\d+$/.test(value) ||
             /^guide:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value),
           '剧情标记无法识别',
@@ -360,11 +404,20 @@ export const StoryViewSchema = z
     chapterId: z.string(),
     chapterTitle: z.string(),
     beatId: z.string(),
-    kind: z.enum(['performance', 'practice', 'objective', 'wait', 'life']),
+    kind: z.enum([
+      'performance',
+      'battle',
+      'practice',
+      'objective',
+      'wait',
+      'life',
+    ]),
     scene: z.string(),
     prompt: z.string(),
     href: z.string(),
     scriptId: z.string().nullable(),
+    // 眼下是剧情战的话，是哪一场。
+    battleId: z.string().nullable(),
     guideLesson: z.string().nullable(),
     classroom: z.enum(STORY_CLASSROOMS).nullable(),
     // 这一幕等着玩家的人和他的一句话。没写就为空。
@@ -487,4 +540,53 @@ export function emptyStoryFacts(): StoryFacts {
     market_bought: false,
     sect_trained: false,
   };
+}
+
+export const STORY_BATTLE_OUTCOMES = ['won', 'lost', 'rescued'] as const;
+
+export type StoryBattleOutcome = (typeof STORY_BATTLE_OUTCOMES)[number];
+
+/** 一场剧情战：对手是谁、多强，输了怎么办，要不要有人出手收场。 */
+export const StoryBattleSchema = z
+  .object({
+    id: z
+      .string()
+      .trim()
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+      .max(40),
+    title: z.string().trim().min(1).max(20),
+    opponents: z
+      .array(
+        z
+          .object({
+            name: z.string().trim().min(1).max(12),
+            icon: z.string().trim().min(1).max(60).optional(),
+            level: z.number().int().min(1).max(180),
+            kind: z.enum(['normal', 'elite', 'boss']),
+            // 在同级预设敌人的基础上乘多少。
+            hp: z.number().min(0.05).max(5),
+            attack: z.number().min(0.05).max(5),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(3),
+    // 输了怎么办：pass 照样往下演，retry 要再打一次。
+    defeat: z.enum(['pass', 'retry']),
+    // 打满这么多回合还没分出胜负，就有人出手收场，算过关。
+    rescueAfter: z.number().int().min(1).max(20).optional(),
+    // 不管玩家眼下带着多少伤，都按满气血满法力上场。
+    fresh: z.boolean(),
+  })
+  .strict();
+
+export type StoryBattle = z.infer<typeof StoryBattleSchema>;
+
+/** 剧情战打出的结果记成标记，后面的演出可以据此分支。 */
+export function battleFlag(battleId: string, outcome: StoryBattleOutcome) {
+  return `battle.${battleId}.${outcome}`;
+}
+
+export function battleMark(battleId: string) {
+  return `battle:${battleId}`;
 }

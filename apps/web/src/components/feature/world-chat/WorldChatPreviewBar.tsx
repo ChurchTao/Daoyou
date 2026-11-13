@@ -1,3 +1,4 @@
+import { storyGateOpen } from '@daoyou/game-domain/story/gates';
 import Link from '@app/components/router/AppLink';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { useStory } from '@app/lib/story/useStory';
@@ -12,7 +13,7 @@ export function WorldChatPreviewBar() {
   const story = useStory();
   const unlocked = story.story?.unlocked;
 
-  if (isWorldChatRoute || (unlocked && !unlocked.includes('world-chat'))) {
+  if (isWorldChatRoute || !storyGateOpen(unlocked, 'world-chat')) {
     return null;
   }
 

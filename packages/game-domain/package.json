@@ -59,6 +59,7 @@
     "./spirit-field": "./dist/public/spirit-field.js",
     "./sponsorship": "./dist/sponsorship.js",
     "./story": "./dist/story/schema.js",
+    "./story/gates": "./dist/story/gates.js",
     "./tasks": "./dist/public/tasks.js",
     "./tower": "./dist/public/tower.js",
     "./wild": "./dist/public/wild.js",

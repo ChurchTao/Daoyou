@@ -271,8 +271,8 @@
       "href": "/game/sect/affairs",
       "when": {
         "fact": "breakthrough_available",
-        "prompt": "境界已至圆满，可以去任务中心查看破境卷宗。",
-        "href": "/game/tasks"
+        "prompt": "境界已至圆满，可以回静室看破境的准备。",
+        "href": "/game/retreat"
       }
     }
   ]

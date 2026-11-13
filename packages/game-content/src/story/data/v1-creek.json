@@ -37,21 +37,12 @@
     },
     {
       "id": "fight",
-      "kind": "practice",
-      "accept": [
-        {
-          "type": "guide",
-          "lesson": "battle-basics"
-        },
-        {
-          "type": "fact",
-          "fact": "qingxi_met"
-        }
-      ],
-      "scene": "wild",
-      "prompt": "有东西冲过来了。打、捉、退都行，先应付过去。",
-      "href": "/game/wild?nodeId=SAT_TN_08&guide=battle-basics",
-      "mode": "all"
+      "kind": "battle",
+      "battle": "v1-ambush",
+      "lesson": "story-battle-basics",
+      "scene": "story-battle",
+      "prompt": "有东西冲过来了。先应付过去。",
+      "href": "/game/story/battle?guide=story-battle-basics"
     },
     {
       "id": "cubs",
@@ -65,7 +56,8 @@
         "by": "许伯",
         "portrait": "icon:portrait-elder-m",
         "line": "没事了。过来。"
-      }
+      },
+      "gift": "starter-beast"
     },
     {
       "id": "cub",
@@ -87,8 +79,7 @@
         "by": "许伯",
         "portrait": "icon:portrait-elder-m",
         "line": "它认你了。去看看它，别饿着。"
-      },
-      "grant": "starter-beast"
+      }
     },
     {
       "id": "soup",

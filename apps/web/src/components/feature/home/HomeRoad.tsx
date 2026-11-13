@@ -1,3 +1,4 @@
+import { storySceneOpen } from '@daoyou/game-domain/story/gates';
 import Link from '@app/components/router/AppLink';
 import type { ReactNode } from 'react';
 
@@ -26,7 +27,7 @@ export function HomeRoad({
     .map((stop) => ({
       ...stop,
       places: unlocked
-        ? stop.places.filter((place) => unlocked.includes(place.id))
+        ? stop.places.filter((place) => storySceneOpen(unlocked, place.id))
         : stop.places,
     }))
     .filter((stop) => stop.places.length > 0);

@@ -15,7 +15,8 @@ import v1After from './data/v1-after.json' with { type: 'json' };
 
 import { getPerformanceScript } from '../performance/catalog.js';
 
-import { type StoryChapter } from '@daoyou/game-domain/story';
+import { chapterUnlocks, type StoryChapter } from '@daoyou/game-domain/story';
+import { isStoryGate, storySceneOpen } from '@daoyou/game-domain/story/gates';
 
 function parseChapter(input: unknown): StoryChapter {
   const chapter = StoryChapterSchema.parse(input);
@@ -58,6 +59,28 @@ const chapters = new Map<string, StoryChapter>([
 for (const chapter of chapters.values()) {
   if (chapter.next && !chapters.has(chapter.next)) {
     throw new Error(`剧情章节接不上：${chapter.id} → ${chapter.next}`);
+  }
+}
+
+// 入口开放要对得上总表：门的编号都认得；新手期每一幕要去的地方，走到那一幕时已经开了。
+{
+  const opened: string[] = [];
+  let chapter = chapters.get('v1-creek');
+  const seen = new Set<string>();
+  while (chapter && !seen.has(chapter.id)) {
+    seen.add(chapter.id);
+    for (const beat of chapter.beats) {
+      for (const gate of beat.unlocks ?? []) {
+        if (!isStoryGate(gate))
+          throw new Error(`入口总表里没有这道门：${chapter.id}/${beat.id} → ${gate}`);
+      }
+      if (!chapter.gated) continue;
+      const unlocked = [...opened, ...chapterUnlocks(chapter, beat.id)];
+      if (!storySceneOpen(unlocked, beat.scene))
+        throw new Error(`这一幕要去的地方还没开放：${chapter.id}/${beat.id} → ${beat.scene}`);
+    }
+    opened.push(...chapterUnlocks(chapter));
+    chapter = chapter.next ? chapters.get(chapter.next) : undefined;
   }
 }
 

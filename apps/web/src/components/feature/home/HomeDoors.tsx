@@ -1,3 +1,4 @@
+import { storySceneOpen } from '@daoyou/game-domain/story/gates';
 import Link from '@app/components/router/AppLink';
 import { cn } from '@app/lib/cn';
 import type { ReactNode } from 'react';
@@ -32,7 +33,7 @@ export function HomeDoors({
   fresh: readonly string[];
 }) {
   const open = unlocked
-    ? doors.filter((door) => unlocked.includes(door.id))
+    ? doors.filter((door) => storySceneOpen(unlocked, door.id))
     : doors;
   const shut = doors.length - open.length;
   // 一扇都没开时多摆几块空牌，看得出往里还有地方。

@@ -25,8 +25,10 @@ import { SseResponseService } from '../http/sse-response.service.js';
 import { ZodPipe } from '../http/zod.pipe.js';
 import { DivinationExceptionFilter } from './divination-exception.filter.js';
 import { DivinationService } from './divination.service.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 
 @Controller('api/divination')
+@StoryGate('divination')
 @Access('active')
 @UseFilters(DivinationExceptionFilter)
 export class DivinationController {
@@ -52,6 +54,7 @@ export class DivinationController {
 
 // `/api/divination/interpret` stays until the Pages build that calls `/api/stream` is deployed.
 @Controller(['api/divination', 'api/stream/divination'])
+@StoryGate('divination')
 @Access('active')
 @UseFilters(DivinationExceptionFilter)
 export class DivinationStreamController {

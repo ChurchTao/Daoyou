@@ -2,6 +2,7 @@ import type { MapNodeAction } from '@app/components/feature/map/mapActions';
 import { WildNodePreview } from '@app/components/feature/map/WildNodePreview';
 import { InkButton } from '@app/components/ui/InkButton';
 import { useStory } from '@app/lib/story/useStory';
+import { storyGateOpen } from '@daoyou/game-domain/story/gates';
 import { type WorldMapLocation } from '@daoyou/game-domain/world/map';
 import { getAtlasCategory } from '@daoyou/game-rules/world/atlas';
 import { resolveDungeonMapConfig } from '@daoyou/game-rules/world/dungeon';
@@ -21,9 +22,8 @@ export function AtlasNodePanel({
   // 新手期舆图上什么都看得见，但主线还没带到的秘境和坊市先不让进。
   const unlocked = useStory().story?.unlocked;
   const shut =
-    Boolean(unlocked) &&
     (category === 'dungeon' || category === 'market') &&
-    !unlocked?.includes(category);
+    !storyGateOpen(unlocked, category);
   const dungeon =
     category === 'dungeon' && !('sect_id' in location)
       ? resolveDungeonMapConfig(location)

@@ -16,9 +16,6 @@
       "scene": "retreat",
       "prompt": "修至炼气圆满。",
       "href": "/game/retreat",
-      "unlocks": [
-        "tasks"
-      ],
       "hail": {
         "by": "陈放",
         "portrait": "icon:portrait-disciple-m",
@@ -46,9 +43,9 @@
         "type": "realm",
         "realm": "筑基"
       },
-      "scene": "tasks",
-      "prompt": "去任务中心查看破境卷宗：备丹、过试炼，再回静室冲关。",
-      "href": "/game/tasks",
+      "scene": "retreat",
+      "prompt": "回静室看破境的准备：备丹、过试炼，再冲关。",
+      "href": "/game/retreat",
       "hail": {
         "by": "陈放",
         "portrait": "icon:portrait-disciple-m",

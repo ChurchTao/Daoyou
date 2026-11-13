@@ -1,11 +1,8 @@
-import { InkButton } from '@app/components/ui';
+import { StoryTracker } from '@app/components/feature/story/StoryTracker';
 import { cn } from '@app/lib/cn';
 import { resolveGameScene } from '@app/lib/router/routeTitle';
-import { storyCueSummary } from '@app/lib/story/cueSummary';
-import { storyLeadsElsewhere } from '@app/lib/story/elsewhere';
-import { useStory } from '@app/lib/story/useStory';
 import type { ReactNode } from 'react';
-import { useLocation, useMatches } from 'react-router';
+import { useMatches } from 'react-router';
 import { GameLoadingState } from './GameLoadingState';
 import { getGameSceneGroupTitle } from './gameNavigation';
 import { resolveGameSceneFrameHeader } from './gameSceneFrameHeader';
@@ -196,15 +193,6 @@ export function GameSceneFrame({
 }: GameSceneFrameProps) {
   const matches = useMatches();
   const scene = resolveGameScene(matches);
-  const story = useStory();
-  const { pathname } = useLocation();
-  // 新手期主线的下一步在别的页面时也提一句，免得办完事不知道往哪走。
-  const storyCue =
-    story.story?.prompt &&
-    (scene?.id === story.story.scene ||
-      storyLeadsElsewhere(story.story, pathname))
-      ? story.story
-      : null;
   const sceneGroup = scene?.group ? getGameSceneGroupTitle(scene.group) : null;
   const header = resolveGameSceneFrameHeader({
     sceneLabel: identityOverride?.label ?? scene?.label,
@@ -238,14 +226,7 @@ export function GameSceneFrame({
             {headerMeta ? <div className="mt-4">{headerMeta}</div> : null}
 
             <SceneBody className={contentClassName}>
-              {storyCue ? (
-                <p className="text-ink-secondary mb-4 flex flex-wrap items-center gap-x-3 text-sm leading-7">
-                  <span>{storyCueSummary(storyCue)}</span>
-                  <InkButton href={storyCue.href} variant="primary">
-                    前往
-                  </InkButton>
-                </p>
-              ) : null}
+              <StoryTracker placement="page" sceneId={scene?.id} />
               {children}
             </SceneBody>
           </SceneSurface>

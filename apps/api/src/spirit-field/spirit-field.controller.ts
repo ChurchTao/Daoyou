@@ -29,6 +29,7 @@ import { JsonBody } from '../http/json-body.js';
 import { withRequestAbort } from '../http/request-abort.js';
 import { ZodPipe } from '../http/zod.pipe.js';
 import { SpiritFieldService } from './spirit-field.service.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 
 const SpiritFieldErrors = apiErrorFilter((error) => {
   const lock = redisLockErrorResponse(error);
@@ -80,6 +81,7 @@ const SpiritFieldErrors = apiErrorFilter((error) => {
 });
 
 @Controller('api/spirit-field')
+@StoryGate('spirit-field')
 @Access('active')
 @UseFilters(SpiritFieldErrors)
 export class SpiritFieldController {

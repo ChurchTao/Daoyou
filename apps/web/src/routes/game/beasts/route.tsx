@@ -8,6 +8,7 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
 import { useStory } from '@app/lib/story/useStory';
+import { storySceneOpen } from '@daoyou/game-domain/story/gates';
 import type { BeastManagementView } from '@daoyou/contracts/beasts';
 import {} from '@daoyou/game-content/beasts';
 import {
@@ -218,9 +219,9 @@ export default function BeastsPage() {
             {/* 新手期先只认袋里这一只，图鉴、融合、仓库等主线走完再摆出来。 */}
             <span
               className={
-                story.story?.unlocked
-                  ? 'hidden'
-                  : 'flex flex-wrap items-center justify-end gap-1'
+                storySceneOpen(story.story?.unlocked, 'beast-codex')
+                  ? 'flex flex-wrap items-center justify-end gap-1'
+                  : 'hidden'
               }
             >
               <InkButton disabled={pending} href="/game/beasts/codex">

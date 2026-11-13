@@ -1,3 +1,4 @@
+import { storySceneOpen } from '@daoyou/game-domain/story/gates';
 import type { GameSceneGroup } from '@app/lib/router/routeTitle';
 
 export interface GameSceneNavItem {
@@ -248,17 +249,12 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '🪞 蜃楼幻境',
       },
       {
-        id: 'tasks',
-        sceneLabel: '任务中心',
-        href: '/game/tasks',
-        expandedDockLabel: '📜 任务中心',
-      },
-      {
         id: 'inquiry',
         sceneLabel: '秘境探查',
         href: '/game/inquiry',
       },
       { id: 'wild', sceneLabel: '野外寻觅', href: '/game/map-v2' },
+      { id: 'story-battle', sceneLabel: '交手' },
       {
         id: 'hunt',
         sceneLabel: '结伴讨伐',
@@ -510,7 +506,7 @@ export function getExpandedDockGroups(
         if (!scene.href || !scene.expandedDockLabel) {
           return [];
         }
-        if (unlocked && !unlocked.includes(scene.id)) {
+        if (!storySceneOpen(unlocked, scene.id)) {
           return [];
         }
 

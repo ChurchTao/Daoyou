@@ -21,6 +21,7 @@ import { FirstQuery } from '../http/first-query.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
 import { MarketService } from './market.service.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 
 const RecycleErrors = apiErrorFilter((error) => {
   const lock = redisLockErrorResponse(error);
@@ -61,6 +62,7 @@ const MarketBuyErrors = apiErrorFilter((error) => {
 });
 
 @Controller('api/market')
+@StoryGate('market')
 @Access('active')
 export class MarketController {
   constructor(@Inject(MarketService) private readonly market: MarketService) {}

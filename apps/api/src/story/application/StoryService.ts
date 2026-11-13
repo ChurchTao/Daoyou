@@ -1,4 +1,8 @@
-import { runDbTasks, type DbTransaction } from '@server/lib/drizzle/db.js';
+import {
+  runDbTasks,
+  type DbExecutor,
+  type DbTransaction,
+} from '@server/lib/drizzle/db.js';
 import {
   cultivatorBeasts,
   cultivatorEquipmentSlots,
@@ -21,6 +25,7 @@ import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import {
   storyReward,
   restingStoryProgress,
+  acknowledgeBattle,
   acknowledgeGuide,
   acknowledgePerformance,
   noteStoryFact,
@@ -30,8 +35,7 @@ import {
   rewindToUnwatchedPerformance,
   type StoryResolution,
 } from '@daoyou/game-rules/story';
-import { BEAST_STARTER_SPECIES } from '@daoyou/game-content/beasts';
-import { STORY_STARTER_BEAST_GRANT } from '@daoyou/game-content/rewards/story';
+import { storyGiftParts } from '@daoyou/game-content/story/gifts';
 import { getStoryChapter } from '@daoyou/game-content/story/catalog';
 import { giveStarterBeast } from '@server/combat/application/starterBeastGift.js';
 import {
@@ -39,6 +43,7 @@ import {
   chapterUnlocks,
   storyFlags,
   STORY_MARK_FACT_IDS,
+  type StoryBattleOutcome,
   type StoryChapter,
   type StoryFactId,
   type StoryFacts,
@@ -196,14 +201,15 @@ async function applyRewards(
   ids: readonly string[],
   tx: DbTransaction,
 ): Promise<{ items: boolean; spiritStones: boolean }> {
-  // 初始灵兽不是掉落池里的东西，单独放进灵兽袋。
-  if (ids.includes(STORY_STARTER_BEAST_GRANT)) {
-    const species = BEAST_STARTER_SPECIES[0];
-    if (species) await giveStarterBeast(cultivatorId, species.id, tx);
+  // 一份赠礼可以由几样拼成：掉落包里的东西，或者一只灵兽。
+  const parts = ids.flatMap((id) => storyGiftParts(id));
+  for (const part of parts) {
+    if (part.type === 'beast')
+      await giveStarterBeast(cultivatorId, part.species, tx);
   }
-  const rewards = ids
-    .filter((id) => id !== STORY_STARTER_BEAST_GRANT)
-    .map((id) => storyReward(id, cultivatorId));
+  const rewards = parts.flatMap((part) =>
+    part.type === 'payout' ? [storyReward(part.payout, cultivatorId)] : [],
+  );
   const items = rewards.flatMap((reward) => reward.items);
   const stones = rewards.reduce((sum, reward) => sum + reward.spiritStones, 0);
   if (items.length > 0) await grantInventory(cultivatorId, items, tx);
@@ -225,7 +231,10 @@ async function applyRewards(
 }
 
 // 主线眼下演到的那一章：还没演完的优先，否则取最近的一章。
-async function currentStory(cultivatorId: string, tx: DbTransaction) {
+async function currentStory(
+  cultivatorId: string,
+  tx: DbExecutor | DbTransaction,
+) {
   const rows = await listCultivatorStories(cultivatorId, 'main', tx);
   const stored = rows.find((row) => row.status === 'active') ?? rows[0] ?? null;
   const past = rows.filter((row) => row !== stored);
@@ -303,6 +312,18 @@ async function settle(
 }
 
 export const StoryService = {
+  /** 主线眼下开了哪些门。为空表示不设限。只读进度，不推进剧情。 */
+  async unlocked(
+    cultivatorId: string,
+    q: DbExecutor | DbTransaction,
+  ): Promise<string[] | null> {
+    const { stored, opened } = await currentStory(cultivatorId, q);
+    if (!stored) return null;
+    const chapter = getStoryChapter(stored.storyId);
+    if (!chapter.gated) return null;
+    return [...new Set([...opened, ...chapterUnlocks(chapter, stored.beatId)])];
+  },
+
   async read(cultivatorId: string, tx: DbTransaction): Promise<StoryView> {
     const { stored, carried, opened } = await currentStory(cultivatorId, tx);
     const base = stored ?? restingStoryProgress();
@@ -326,6 +347,23 @@ export const StoryService = {
         flags: chosen,
         allowed,
       }),
+    );
+    return {
+      view: settled.view,
+      changes: storyChanges(cultivatorId, settled.view, settled.effect),
+    };
+  },
+
+  /** 剧情战打完了，把结果记进主线。 */
+  async completeBattle(
+    cultivatorId: string,
+    battleId: string,
+    outcome: StoryBattleOutcome,
+    tx: DbTransaction,
+  ): Promise<{ view: StoryView; changes: ResourceChangeDescriptor[] }> {
+    await lockCultivatorForStateMutation(tx, cultivatorId);
+    const settled = await settle(cultivatorId, tx, (chapter, progress, facts) =>
+      acknowledgeBattle(chapter, progress, facts, battleId, outcome),
     );
     return {
       view: settled.view,
