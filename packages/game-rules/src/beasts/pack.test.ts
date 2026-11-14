@@ -310,7 +310,7 @@ it('uses edited points, experience, lifespan and panel parameters consistently',
   const { gainBeastExp, nextBeastExp, beastRestCost, loseBeastLifespan } =
     await import('./progression.js');
   const id = '00000000-0000-4000-8000-000000000001';
-  const born = generate(id, id, species.species[0].id, 42);
+  const born = generate(id, id, species.species[0].id, 42, 10);
   expect(born.allocatedAttributes.magic).toBe(0);
   expect(born.unallocatedPoints).toBe(110);
   expect(nextBeastExp(10)).toBe(150);

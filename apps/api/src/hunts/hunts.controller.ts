@@ -26,6 +26,7 @@ import { apiErrorFilter } from '../http/error-filter.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
 import { HuntsService } from './hunts.service.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 
 const HuntsErrors = apiErrorFilter((error) => {
   let status = 500;
@@ -53,6 +54,7 @@ const HuntsErrors = apiErrorFilter((error) => {
 const JoinSchema = z.object({ teamId: z.uuid().optional() }).strict();
 
 @Controller('api/hunts')
+@StoryGate('hunt-team')
 @Access('active')
 @UseFilters(HuntsErrors)
 export class HuntsController {

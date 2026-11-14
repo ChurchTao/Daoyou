@@ -64,7 +64,7 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
         links: [
           { label: '去炼丹房', kind: 'alchemy' },
           { label: '去修仙坊市', kind: 'market' },
-          { label: '看任务中心', kind: 'tasks' },
+          { label: '返回静室', kind: 'retreat' },
         ],
         objectives: [
           {
@@ -115,7 +115,7 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
         links: [
           { label: '去炼丹房', kind: 'alchemy' },
           { label: '去修仙坊市', kind: 'market' },
-          { label: '看任务中心', kind: 'tasks' },
+          { label: '返回静室', kind: 'retreat' },
         ],
         objectives: [
           {
@@ -166,7 +166,7 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
         links: [
           { label: '去炼丹房', kind: 'alchemy' },
           { label: '去修仙坊市', kind: 'market' },
-          { label: '看任务中心', kind: 'tasks' },
+          { label: '返回静室', kind: 'retreat' },
         ],
         objectives: [
           {
@@ -272,7 +272,7 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
         completionText: '感悟已足，可试着碰触法则边缘。',
         links: [
           { label: '返回静室', kind: 'retreat' },
-          { label: '看任务中心', kind: 'tasks' },
+          { label: '返回静室', kind: 'retreat' },
         ],
         objectives: [
           {

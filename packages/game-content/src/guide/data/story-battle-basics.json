@@ -1,0 +1,24 @@
+{
+  "id": "story-battle-basics",
+  "title": "交手",
+  "steps": [
+    {
+      "type": "look",
+      "anchor": "combat.field",
+      "text": "这里是交手的双方。红条是气血，蓝条是法力；气血见底，这一场就输了。每一回合发生的事都记在战报里。"
+    },
+    {
+      "type": "look",
+      "anchor": "combat.actions",
+      "text": "每回合在这里选一个行动。攻击是出手，防御能少挨些打。"
+    },
+    {
+      "type": "press",
+      "anchor": "combat.attack",
+      "text": "先出一招试试。选了攻击，再点对手。"
+    },
+    {
+      "type": "end"
+    }
+  ]
+}

@@ -124,7 +124,11 @@ export function BreakthroughTaskCard({
 
       <div className="flex flex-wrap gap-2">
         {currentStage.links
-          .filter((link) => link.href !== '/game/tasks')
+          // 卷宗现在就摆在静室里，回静室、看任务中心的链接不用再给。
+          .filter(
+            (link) =>
+              link.href !== '/game/tasks' && link.href !== '/game/retreat',
+          )
           .map((link) => (
             <InkButton
               key={`${task.id}:${link.href}:${link.label}`}

@@ -9,6 +9,7 @@ export type { StorySignal } from '../story/signals.js';
 export { storyReward } from '../story/grants.js';
 export type { PlannedStoryReward } from '../story/grants.js';
 export {
+  acknowledgeBattle,
   acknowledgeGuide,
   acknowledgePerformance,
   noteStoryFact,
@@ -17,3 +18,8 @@ export {
   rewindToUnwatchedPerformance,
 } from '../story/resolve.js';
 export type { StoryResolution } from '../story/resolve.js';
+export {
+  createStoryBattleHost,
+  StoryBattleHost,
+  storyBattleOutcome,
+} from '../story/battle-host.js';

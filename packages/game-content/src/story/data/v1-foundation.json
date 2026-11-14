@@ -1,0 +1,70 @@
+{
+  "id": "v1-foundation",
+  "track": "main",
+  "title": "筑基",
+  "next": "v1-kin",
+  "gated": true,
+  "beats": [
+    {
+      "id": "ripen",
+      "kind": "wait",
+      "until": {
+        "type": "realm",
+        "realm": "炼气",
+        "stage": "圆满"
+      },
+      "scene": "retreat",
+      "prompt": "修至炼气圆满。",
+      "href": "/game/retreat",
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "你离圆满就差一口气了吧？我可不等你啊。"
+      }
+    },
+    {
+      "id": "guard",
+      "kind": "performance",
+      "script": "v1-guard",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "陈放在静室门口等你。",
+      "href": "/game/story",
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "来静室一趟。有话当面说。"
+      }
+    },
+    {
+      "id": "rise",
+      "kind": "wait",
+      "until": {
+        "type": "realm",
+        "realm": "筑基"
+      },
+      "scene": "retreat",
+      "prompt": "回静室看破境的准备：备丹、过试炼，再冲关。",
+      "href": "/game/retreat",
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "丹备好，试炼过了，就进去。门口有我。"
+      }
+    },
+    {
+      "id": "risen",
+      "kind": "performance",
+      "script": "v1-risen",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "冲关已成。",
+      "href": "/game/story",
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "出来了？！让我看看——"
+      }
+    }
+  ]
+}

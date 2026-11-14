@@ -122,7 +122,8 @@
       "prompt": "将备好的4份翠芽草一起入炉，完成炼丹后查看药性与用法。",
       "href": "/game/sect/alchemy?workspace=craft&guide=alchemy-first-furnace",
       "mode": "all",
-      "grant": "first-furnace-lesson"
+      "grant": "first-furnace-lesson",
+      "classroom": "alchemy"
     },
     {
       "id": "empty-hand",
@@ -150,7 +151,8 @@
       "prompt": "选好图纸和青石，核对消耗，再开炉铸出第一件兵器。",
       "href": "/game/sect/refinery?workspace=craft&guide=forge-first-weapon",
       "mode": "all",
-      "grant": "first-weapon"
+      "grant": "first-weapon",
+      "classroom": "refinery"
     },
     {
       "id": "equip",
@@ -224,9 +226,10 @@
         }
       ],
       "scene": "beasts",
-      "prompt": "选择一位初始灵兽伙伴，确认携带出战与首发，看看它的本领。",
+      "prompt": "打开灵兽袋，看看跟着你的咪咪，确认携带出战与首发。",
       "href": "/game/beasts?guide=beast-pouch",
-      "mode": "all"
+      "mode": "all",
+      "grant": "starter-beast"
     },
     {
       "id": "tracks",
@@ -248,7 +251,8 @@
       ],
       "scene": "wild",
       "prompt": "到青溪坡寻觅，留意遭遇的生灵；战斗、捕捉或退开后回来复命。",
-      "href": "/game/wild?nodeId=SAT_TN_08"
+      "href": "/game/wild?nodeId=SAT_TN_08&guide=battle-basics",
+      "lesson": "battle-basics"
     },
     {
       "id": "remain",
@@ -267,8 +271,8 @@
       "href": "/game/sect/affairs",
       "when": {
         "fact": "breakthrough_available",
-        "prompt": "境界已至圆满，可以去任务中心查看破境卷宗。",
-        "href": "/game/tasks"
+        "prompt": "境界已至圆满，可以回静室看破境的准备。",
+        "href": "/game/retreat"
       }
     }
   ]

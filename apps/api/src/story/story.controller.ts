@@ -18,7 +18,21 @@ import { ZodPipe } from '../http/zod.pipe.js';
 import { StoryService } from './story.service.js';
 
 const CompleteSchema = z
-  .object({ outcome: z.string().trim().min(1).max(40) })
+  .object({
+    outcome: z.string().trim().min(1).max(40),
+    // 这一场里选下、要记住的标记。
+    chosen: z
+      .array(
+        z
+          .string()
+          .trim()
+          .min(1)
+          .max(60)
+          .regex(/^[a-z0-9]+(?:[-.:][a-z0-9]+)*$/),
+      )
+      .max(8)
+      .default([]),
+  })
   .strict();
 const PerformanceErrors = apiErrorFilter((error) => {
   const message =
@@ -79,7 +93,12 @@ export class StoryController {
     @JsonBody({ fallback: null }, new ZodPipe(CompleteSchema))
     input: z.infer<typeof CompleteSchema>,
   ) {
-    return this.story.performance(actor, scriptId, input.outcome);
+    return this.story.performance(
+      actor,
+      scriptId,
+      input.outcome,
+      input.chosen,
+    );
   }
 
   @Post('guides/:lessonId/complete')

@@ -26,6 +26,7 @@ export class StoryService {
     actor: ActiveCultivatorRef,
     scriptId: string,
     outcome: string,
+    chosen: readonly string[],
   ) {
     return toPlayerStateMutationResponse(
       await completeStoryPerformanceCommand({
@@ -33,6 +34,7 @@ export class StoryService {
         cultivatorId: actor.cultivatorId,
         scriptId,
         outcome,
+        chosen,
       }),
     );
   }

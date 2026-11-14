@@ -1,0 +1,126 @@
+{
+  "id": "v1-soup",
+  "title": "一碗汤",
+  "requires": [
+    "name"
+  ],
+  "cast": {
+    "elder": {
+      "name": "许伯",
+      "portrait": "icon:portrait-elder-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "山弯里的一间小屋，屋角堆着晒干的草药。"
+    },
+    {
+      "type": "title",
+      "kicker": "山弯",
+      "text": "一碗汤"
+    },
+    {
+      "type": "narration",
+      "text": "你伸手过去的时候，它闻了闻你的手指，自己爬进了你怀里。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "倒是不认生。"
+    },
+    {
+      "type": "narration",
+      "text": "许伯的屋子在山弯里。只有一间，漏风。"
+    },
+    {
+      "type": "narration",
+      "text": "他给你盛了碗热汤，看着你喝完。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "你怀里掉出块牌子，我给晾干了。"
+    },
+    {
+      "type": "narration",
+      "text": "木牌，巴掌大，刻着一个名字：{name}。"
+    },
+    {
+      "type": "aside",
+      "text": "从今往后，这是我的名字了。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "我这屋就一张铺。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "往上半里地有个旧洞府。前头住的人走了好些年，没人要。你先住着。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "前头的人是谁？",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "elder",
+              "text": "一个住客。"
+            },
+            {
+              "type": "narration",
+              "text": "他想了想。"
+            },
+            {
+              "type": "line",
+              "speaker": "elder",
+              "text": "走的时候没打招呼。"
+            }
+          ]
+        },
+        {
+          "label": "我没有钱。",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "elder",
+              "text": "谁收你的。山又不是谁家的。"
+            }
+          ]
+        },
+        {
+          "label": "为什么帮我？",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "elder",
+              "text": "水边躺着个大活人，我能当没看见？"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "narration",
+      "text": "他把药篓里的干粮分出一半，用布包好，塞到你手里。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "洞里有眼泉，水是暖的。乏了就去泡一泡。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "我隔三差五上山采药，顺道瞧你一眼。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

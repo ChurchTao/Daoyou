@@ -1,0 +1,46 @@
+{
+  "id": "v1-ambush",
+  "title": "窄路",
+  "requires": [],
+  "cast": {
+    "elder": {
+      "name": "许伯",
+      "portrait": "icon:portrait-elder-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "下山的窄路，一侧是陡坡。"
+    },
+    {
+      "type": "narration",
+      "text": "下山的路很窄。走到一半，许伯忽然停住，抬手拦住你。"
+    },
+    {
+      "type": "narration",
+      "text": "坡上的灌木在抖。"
+    },
+    {
+      "type": "narration",
+      "text": "有东西从坡上冲了下来，眼睛是红的。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "往后站。"
+    },
+    {
+      "type": "narration",
+      "text": "你没有往后站。"
+    },
+    {
+      "type": "narration",
+      "text": "手比你先动了。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

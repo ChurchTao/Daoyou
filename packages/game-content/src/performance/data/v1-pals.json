@@ -1,0 +1,64 @@
+{
+  "id": "v1-pals",
+  "title": "跟你混",
+  "requires": [
+    "alchemy_teacher"
+  ],
+  "cast": {
+    "alchemy_teacher": {
+      "name": "{alchemy_teacher}"
+    },
+    "chen": {
+      "name": "陈放",
+      "portrait": "icon:portrait-disciple-m"
+    },
+    "lin": {
+      "name": "林晚",
+      "portrait": "icon:portrait-disciple-f"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "丹房，一张桌上并排摆着一枚丹和一堆黑炭。"
+    },
+    {
+      "type": "line",
+      "speaker": "alchemy_teacher",
+      "text": "成了。"
+    },
+    {
+      "type": "line",
+      "speaker": "alchemy_teacher",
+      "text": "头一炉就成丹的不多。药性和用法都写在丹上，自己看。"
+    },
+    {
+      "type": "line",
+      "speaker": "alchemy_teacher",
+      "text": "往后想炼，自己找地方开炉。这间丹房不是给记名弟子用的。"
+    },
+    {
+      "type": "narration",
+      "text": "陈放把你的丹和他那炉黑炭并排摆在桌上，看了很久。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "我决定了。以后我跟你混。"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "他上个月也是这么跟我说的。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "那不一样。她不带我。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

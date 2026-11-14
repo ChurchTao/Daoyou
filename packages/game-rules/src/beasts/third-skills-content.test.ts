@@ -127,10 +127,10 @@ it.each([0, 60, 180])(
     expect(b.allocatedAttributes.magic).toBe(80);
   },
 );
-it('低阶稀有的咪咪保留携带门槛且不能初领', () => {
+it('低阶稀有的咪咪保留携带门槛，并且是唯一的初始伙伴', () => {
   const mimi = BEAST_SPECIES.find((species) => species.id === 'combat.wild.species.mimi')!;
   expect(mimi.realm).toBe('炼气');
   expect(mimi.carryLevel).toBe(5);
   expect(BEAST_RARE_SPECIES_IDS.has(mimi.id)).toBe(true);
-  expect(BEAST_STARTER_SPECIES.some((species) => species.id === mimi.id)).toBe(false);
+  expect(BEAST_STARTER_SPECIES.map((species) => species.id)).toEqual([mimi.id]);
 });

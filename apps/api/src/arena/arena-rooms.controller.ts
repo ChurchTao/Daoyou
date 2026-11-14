@@ -20,6 +20,7 @@ import { Access, CurrentCultivator } from '../auth/access.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
 import { ArenaRoomsService } from './arena-rooms.service.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 
 const RoomIdSchema = z
   .string()
@@ -29,6 +30,7 @@ const RoomIdSchema = z
 const EmptySchema = z.object({}).strict();
 
 @Controller('api/arena')
+@StoryGate('rankings')
 @Access('active')
 export class ArenaRoomsController {
   constructor(

@@ -1,0 +1,203 @@
+{
+  "id": "v1-fever",
+  "title": "同乡",
+  "requires": [
+    "alchemy_teacher"
+  ],
+  "cast": {
+    "chen": {
+      "name": "陈放",
+      "portrait": "icon:portrait-disciple-m"
+    },
+    "lin": {
+      "name": "林晚",
+      "portrait": "icon:portrait-disciple-f"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "弟子房，一盏油灯。床上的人额头上搭着湿布。"
+    },
+    {
+      "type": "title",
+      "kicker": "弟子房 · 后半夜",
+      "text": "同乡"
+    },
+    {
+      "type": "narration",
+      "text": "伤口包好了。{alchemy_teacher}说死不了，只是夜里得有人守着。"
+    },
+    {
+      "type": "narration",
+      "text": "后半夜，陈放烧起来了。"
+    },
+    {
+      "type": "narration",
+      "text": "他闭着眼，眉头拧着，嘴里含含糊糊地念。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "……奇变偶不变……"
+    },
+    {
+      "type": "narration",
+      "text": "你愣住了。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "符号看象限。",
+          "then": [
+            {
+              "type": "narration",
+              "text": "话出了口，你才发觉自己的声音在抖。"
+            }
+          ],
+          "set": "kin.answered"
+        },
+        {
+          "label": "（不作声）",
+          "then": [
+            {
+              "type": "narration",
+              "text": "你没有出声。可你的手一下攥紧了被角。"
+            }
+          ],
+          "set": "kin.silent"
+        }
+      ]
+    },
+    {
+      "type": "narration",
+      "text": "他睁开一只眼。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "我就知道。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "我说「几块钱」那天，你没问我什么叫「块」。"
+    },
+    {
+      "type": "recall",
+      "lines": [
+        "「你月例领了几块钱？」",
+        "她的账本上，记号弯弯曲曲，不是字。",
+        "搭在腕上的手指多停了一息。",
+        "「这几年的新人，一届比一届怪。」",
+        "「这不就是……」"
+      ]
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "别哭啊。我都没哭。"
+    },
+    {
+      "type": "narration",
+      "text": "门开了。林晚端着药进来，看看他，又看看你。"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "说了？"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "说了。"
+    },
+    {
+      "type": "narration",
+      "text": "她放下药碗，从怀里取出账本，翻开，推到你面前。"
+    },
+    {
+      "type": "narration",
+      "text": "那些弯弯曲曲的记号，你从小就认得。"
+    },
+    {
+      "type": "narration",
+      "text": "是数字。人间的数字。"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "我们三个是同一年来的。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "还有别人吗？",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "lin",
+              "text": "有。同批的名册上，有些名字旁边多一笔。我数过，十一个。"
+            }
+          ]
+        },
+        {
+          "label": "你们想回去吗？",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "chen",
+              "text": "想啊。"
+            },
+            {
+              "type": "narration",
+              "text": "他看着房梁。"
+            },
+            {
+              "type": "line",
+              "speaker": "chen",
+              "text": "天天想。"
+            },
+            {
+              "type": "narration",
+              "text": "林晚没有说话。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "你的名字旁边也有那一笔。入门那天添的。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "所以宗门是知道的。知道，也不说。"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "不说也好。我们也别说。"
+    },
+    {
+      "type": "narration",
+      "text": "药凉了一些。你扶陈放坐起来，看他皱着脸把药喝完。"
+    },
+    {
+      "type": "narration",
+      "text": "窗外天快亮了。"
+    },
+    {
+      "type": "narration",
+      "text": "你很久没有这样和人坐着，什么都不用瞒。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

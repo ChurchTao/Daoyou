@@ -24,6 +24,7 @@ import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
 import { TowerErrors } from './tower-errors.js';
 import { TowerService } from './tower.service.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 
 const ActionSchema = z.object({
   runId: z.uuid(),
@@ -34,6 +35,7 @@ const ActionSchema = z.object({
 const RealmSchema = z.enum(TOWER_ELIGIBLE_REALMS);
 
 @Controller('api/tower')
+@StoryGate('tower')
 @Access('active')
 @UseFilters(TowerErrors)
 export class TowerController {

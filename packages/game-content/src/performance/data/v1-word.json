@@ -1,0 +1,140 @@
+{
+  "id": "v1-word",
+  "title": "记得名字的人",
+  "requires": [
+    "name"
+  ],
+  "cast": {
+    "chen": {
+      "name": "陈放",
+      "portrait": "icon:portrait-disciple-m"
+    },
+    "lin": {
+      "name": "林晚",
+      "portrait": "icon:portrait-disciple-f"
+    },
+    "porter": {
+      "name": "门房",
+      "portrait": "icon:portrait-servant-m"
+    },
+    "shen": {
+      "name": "沈长老",
+      "portrait": "icon:portrait-elder-f"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "宗门的门房，窗台上晾着几双草鞋。"
+    },
+    {
+      "type": "title",
+      "kicker": "宗门 · 傍晚",
+      "text": "捎来的话"
+    },
+    {
+      "type": "narration",
+      "text": "转了一下午，筑基丹的材料还差一味。问了七八家，都说这个时节没有。"
+    },
+    {
+      "type": "narration",
+      "text": "回山的时候，门房叫住你。"
+    },
+    {
+      "type": "line",
+      "speaker": "porter",
+      "text": "{name}？山下有个采药的老头托人带话。"
+    },
+    {
+      "type": "line",
+      "speaker": "porter",
+      "text": "说你要找的那味药，百草集东头第三家有。这时节只有他家有。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "神了。他怎么知道你缺这个？"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "要筑基的人都缺这个。采药的知道，不奇怪。"
+    },
+    {
+      "type": "scene",
+      "alt": "回廊，一位年长的女修站在廊柱边。"
+    },
+    {
+      "type": "title",
+      "kicker": "宗门 · 回廊",
+      "text": "记得名字的人"
+    },
+    {
+      "type": "narration",
+      "text": "穿过回廊的时候，有人叫你的名字。"
+    },
+    {
+      "type": "line",
+      "speaker": "shen",
+      "text": "{name}。是你吧。"
+    },
+    {
+      "type": "narration",
+      "text": "陈放和林晚立刻低了头。你也跟着低头。"
+    },
+    {
+      "type": "line",
+      "speaker": "shen",
+      "text": "考校那日我在。药园的事，你说得很清楚。"
+    },
+    {
+      "type": "line",
+      "speaker": "shen",
+      "text": "听说你快要冲关了？"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "是。"
+        },
+        {
+          "label": "还没准备好。"
+        }
+      ]
+    },
+    {
+      "type": "line",
+      "speaker": "shen",
+      "text": "头一回都这样。心里静不下来，杂念多。"
+    },
+    {
+      "type": "line",
+      "speaker": "shen",
+      "text": "等你筑了基，来我这里坐坐。我给你备些清心的丹药。"
+    },
+    {
+      "type": "line",
+      "speaker": "shen",
+      "text": "去吧。好好的。"
+    },
+    {
+      "type": "narration",
+      "text": "她走远了，陈放才敢抬头。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "那是沈长老！她居然记得你的名字！"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "她记得所有人的名字。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

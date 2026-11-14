@@ -1,0 +1,32 @@
+{
+  "id": "v1-night",
+  "title": "头一夜",
+  "requires": [],
+  "cast": {},
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "石洞不大，石床上铺着干草。"
+    },
+    {
+      "type": "narration",
+      "text": "洞里很干净，不像空了很久的样子。"
+    },
+    {
+      "type": "narration",
+      "text": "石床上铺着干草，是新的。"
+    },
+    {
+      "type": "aside",
+      "text": "不是梦。梦里不会这么冷，汤也不会那么烫。"
+    },
+    {
+      "type": "narration",
+      "text": "小东西在你脚边团成一团，睡着了。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

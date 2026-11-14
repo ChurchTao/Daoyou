@@ -1,0 +1,137 @@
+{
+  "id": "v1-soot",
+  "title": "一炉黑炭",
+  "requires": [
+    "alchemy_teacher",
+    "name"
+  ],
+  "cast": {
+    "alchemy_teacher": {
+      "name": "{alchemy_teacher}"
+    },
+    "chen": {
+      "name": "陈放",
+      "portrait": "icon:portrait-disciple-m"
+    },
+    "lin": {
+      "name": "林晚",
+      "portrait": "icon:portrait-disciple-f"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "丹房里一排丹炉，其中一只冒着黑烟。"
+    },
+    {
+      "type": "title",
+      "kicker": "宗门 · 丹房",
+      "text": "一炉黑炭"
+    },
+    {
+      "type": "narration",
+      "text": "第二天的差事是去丹房打杂。牌子又是贺钧给的。"
+    },
+    {
+      "type": "narration",
+      "text": "丹房里一股焦糊味。"
+    },
+    {
+      "type": "narration",
+      "text": "一个记名弟子蹲在炉前，对着一炉黑炭发愁。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "别看了。是我炼的。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "我叫陈放，放心的放。你呢？"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "（报上名字）"
+        }
+      ]
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "{name}。行，记住了。你也是被姓贺的发配来的？"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "哎，问你个事。你月例领了几块钱？"
+    },
+    {
+      "type": "narration",
+      "text": "墙边记账的人头也没抬。"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "灵石。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "灵石，灵石。我老家管这个叫钱，改不过来。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "那是林晚。别惹她，丹房的账全在她脑子里。"
+    },
+    {
+      "type": "narration",
+      "text": "你瞥了一眼她的账本。上面的记号弯弯曲曲，不是字。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "看不懂吧？我也看不懂。"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "家里传下来的记法。"
+    },
+    {
+      "type": "narration",
+      "text": "她把账本合上了。"
+    },
+    {
+      "type": "narration",
+      "text": "{alchemy_teacher}从里间出来，看见你，皱了皱眉。"
+    },
+    {
+      "type": "line",
+      "speaker": "alchemy_teacher",
+      "text": "新来打杂的？先别碰东西。"
+    },
+    {
+      "type": "line",
+      "speaker": "alchemy_teacher",
+      "text": "……算了。连火候都不懂的人在这屋里转，迟早把我的炉子炸了。"
+    },
+    {
+      "type": "line",
+      "speaker": "alchemy_teacher",
+      "text": "过来。教你一炉，就一炉。"
+    },
+    {
+      "type": "line",
+      "speaker": "alchemy_teacher",
+      "text": "翠芽草四份，一起下。看着火，别走神。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

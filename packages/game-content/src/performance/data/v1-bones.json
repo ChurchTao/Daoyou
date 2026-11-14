@@ -1,0 +1,86 @@
+{
+  "id": "v1-bones",
+  "title": "验根骨",
+  "requires": [
+    "instructor",
+    "name",
+    "origin",
+    "receptionist"
+  ],
+  "cast": {
+    "instructor": {
+      "name": "{instructor}"
+    },
+    "receptionist": {
+      "name": "{receptionist}"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "大殿侧廊，一张长案，案上摊着名册。"
+    },
+    {
+      "type": "title",
+      "kicker": "宗门",
+      "text": "验根骨"
+    },
+    {
+      "type": "narration",
+      "text": "名册上已经落了你的名字。还差一道：验根骨。"
+    },
+    {
+      "type": "narration",
+      "text": "{receptionist}让你伸出手，两根手指搭在你腕上。"
+    },
+    {
+      "type": "line",
+      "speaker": "receptionist",
+      "text": "腰牌。"
+    },
+    {
+      "type": "narration",
+      "text": "你把木牌递过去。"
+    },
+    {
+      "type": "line",
+      "speaker": "receptionist",
+      "text": "{name}。{origin}。"
+    },
+    {
+      "type": "narration",
+      "text": "他照着牌子背面念出你的来历。你是头一回听说。"
+    },
+    {
+      "type": "narration",
+      "text": "搭在腕上的手指多停了一息。"
+    },
+    {
+      "type": "narration",
+      "text": "他低下头，在你的名字旁边添了一笔。"
+    },
+    {
+      "type": "line",
+      "speaker": "receptionist",
+      "text": "记名弟子。月例去大殿领，功课找{instructor}。下一个。"
+    },
+    {
+      "type": "scene",
+      "alt": "演武场边，几个新弟子站成一排。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "新来的？先定一条路子，再谈练功。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "选错了也死不了人。练过才知道合不合手。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

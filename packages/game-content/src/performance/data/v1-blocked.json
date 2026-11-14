@@ -1,0 +1,118 @@
+{
+  "id": "v1-blocked",
+  "title": "替你带回去",
+  "requires": [
+    "name"
+  ],
+  "cast": {
+    "chen": {
+      "name": "陈放",
+      "portrait": "icon:portrait-disciple-m"
+    },
+    "lackey": {
+      "name": "跟班",
+      "portrait": "icon:portrait-servant-m"
+    },
+    "lin": {
+      "name": "林晚",
+      "portrait": "icon:portrait-disciple-f"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "出园的小路，两边是密林。路中间站着两个人。"
+    },
+    {
+      "type": "title",
+      "kicker": "落日森林",
+      "text": "替你带回去"
+    },
+    {
+      "type": "narration",
+      "text": "出园的小路上站着两个人。"
+    },
+    {
+      "type": "narration",
+      "text": "你认得。是常跟在贺钧身后的那两个。"
+    },
+    {
+      "type": "line",
+      "speaker": "lackey",
+      "text": "{name}师弟，查完了？"
+    },
+    {
+      "type": "line",
+      "speaker": "lackey",
+      "text": "贺师兄说，师弟落过水，记性不好。怕你路上把查到的东西忘了，让我们替你带回去。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "不给。"
+        },
+        {
+          "label": "贺师兄想得真周到。"
+        }
+      ]
+    },
+    {
+      "type": "narration",
+      "text": "林子里飞出一把锄头，砸在其中一人脚边。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "来啊！有本事追我！"
+    },
+    {
+      "type": "narration",
+      "text": "他转身就跑。那人骂了一声，追了上去。"
+    },
+    {
+      "type": "narration",
+      "text": "剩下的一个，站在你和下山的路中间。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "硬闯过去。",
+          "then": [
+            {
+              "type": "narration",
+              "text": "你撞开他的肩膀。他没料到你真敢动手，踉跄了一步。"
+            },
+            {
+              "type": "narration",
+              "text": "你没有回头。走出很远，才发觉手心里全是汗。"
+            }
+          ]
+        },
+        {
+          "label": "站着不动。",
+          "then": [
+            {
+              "type": "narration",
+              "text": "你站着没有动。他也没有动。"
+            },
+            {
+              "type": "line",
+              "speaker": "lin",
+              "text": "教习，在这边。"
+            },
+            {
+              "type": "narration",
+              "text": "声音是从坡下传来的。那人脸色变了，让开了路。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

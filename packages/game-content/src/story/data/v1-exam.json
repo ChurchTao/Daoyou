@@ -1,0 +1,65 @@
+{
+  "id": "v1-exam",
+  "track": "main",
+  "title": "考校",
+  "next": "v1-market",
+  "gated": true,
+  "beats": [
+    {
+      "id": "question",
+      "kind": "performance",
+      "script": "v1-question",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "入门考校开始了。",
+      "href": "/game/story",
+      "hail": {
+        "by": "{instructor}",
+        "line": "考校的人到齐了没有？进场。"
+      }
+    },
+    {
+      "id": "garden",
+      "kind": "wait",
+      "until": {
+        "type": "fact",
+        "fact": "dungeon_settled"
+      },
+      "scene": "dungeon",
+      "prompt": "去落日森林·废弃药园，查清药草枯萎的缘由。",
+      "href": "/game/dungeon",
+      "unlocks": [
+        "dungeon",
+        "dungeon-history"
+      ],
+      "hail": {
+        "by": "林晚",
+        "portrait": "icon:portrait-disciple-f",
+        "line": "废弃药园在落日森林。我看过舆图。"
+      }
+    },
+    {
+      "id": "blocked",
+      "kind": "performance",
+      "script": "v1-blocked",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "查完了，该出园了。",
+      "href": "/game/story"
+    },
+    {
+      "id": "posted",
+      "kind": "performance",
+      "script": "v1-posted",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "三天后放榜。",
+      "href": "/game/story",
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "放榜了放榜了！你怎么还坐得住？"
+      }
+    }
+  ]
+}

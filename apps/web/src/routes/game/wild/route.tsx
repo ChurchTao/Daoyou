@@ -18,6 +18,7 @@ import {
   useSectCombatState,
 } from '@app/lib/resources/player';
 import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
+import { StoryTracker } from '@app/components/feature/story/StoryTracker';
 import { useStory } from '@app/lib/story/useStory';
 import { REALM_ORDER } from '@daoyou/constants/realms';
 import type {
@@ -73,7 +74,6 @@ function WildRegion({ nodeId }: { nodeId: string }) {
   const build = useSectCombatState();
   const identity = useCultivatorIdentity();
   const player = usePlayerSession();
-  const story = useStory(nodeId === 'SAT_TN_08');
   const qi = useQiState({
     cultivatorId: player.data?.activeCultivator?.id ?? '',
   });
@@ -97,6 +97,13 @@ function WildRegion({ nodeId }: { nodeId: string }) {
     !!cultivator &&
     REALM_ORDER[cultivator.realm] < REALM_ORDER[region.realmRequirement];
   const [searching, setSearching] = useState(false);
+  // 野外办完主线的事，主线追踪要跟上最新的一步。
+  const { reload: reloadStory } = useStory();
+  const arrived = Boolean(region);
+  const settlingBattle = region?.settlingBattleId;
+  useEffect(() => {
+    if (arrived && !settlingBattle) void reloadStory();
+  }, [arrived, reloadStory, settlingBattle]);
   const alive = useRef(false);
   useEffect(() => {
     alive.current = true;
@@ -284,6 +291,7 @@ function WildRegion({ nodeId }: { nodeId: string }) {
                 上场战斗结算中，请稍候。
               </p>
             )}
+            {!region.settlingBattleId && <StoryTracker placement="slip" />}
             {region.trainingSessionId && (
               <p className="text-ink-secondary text-center text-sm">
                 请先
@@ -345,11 +353,6 @@ function WildRegion({ nodeId }: { nodeId: string }) {
         <CombatV6Battle
           key={session.sessionId}
           title={region?.name ?? '野外探索'}
-          tutorial={
-            nodeId === 'SAT_TN_08' &&
-            story.story?.chapterId === 'arrival' &&
-            story.story.beatId === 'seek'
-          }
           session={session}
           pending={pending}
           shown={combat.shown}

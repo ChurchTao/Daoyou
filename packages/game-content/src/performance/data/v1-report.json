@@ -1,0 +1,44 @@
+{
+  "id": "v1-report",
+  "title": "复命",
+  "requires": [
+    "instructor"
+  ],
+  "cast": {
+    "instructor": {
+      "name": "{instructor}"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "演武场边，教习手里拿着纸笔。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "路塌了没有？"
+    },
+    {
+      "type": "narration",
+      "text": "你把看见的都说了。他一条一条记在纸上。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "行。去吧。"
+    },
+    {
+      "type": "narration",
+      "text": "没有夸你，也没有多问。"
+    },
+    {
+      "type": "narration",
+      "text": "陈放说，这就算是夸了。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

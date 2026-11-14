@@ -1,44 +1,58 @@
-import { runDbTasks, type DbTransaction } from '@server/lib/drizzle/db.js';
+import {
+  runDbTasks,
+  type DbExecutor,
+  type DbTransaction,
+} from '@server/lib/drizzle/db.js';
 import {
   cultivatorBeasts,
   cultivatorEquipmentSlots,
   cultivators,
+  retreatRecords,
   sectCombatStates,
   sectMemberships,
+  sectTaskRecords,
 } from '@server/lib/drizzle/schema.js';
 import {
-  findCultivatorStory,
   insertCultivatorStory,
+  listCultivatorStories,
   updateCultivatorStory,
 } from '@server/lib/repositories/storyRepository.js';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
 import { getGuideLesson } from '@daoyou/game-content/guide/catalog';
+import { getPerformanceScript } from '@daoyou/game-content/performance/catalog';
+import { performanceFlags } from '@daoyou/game-domain/performance';
 import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import {
   storyReward,
   restingStoryProgress,
+  acknowledgeBattle,
   acknowledgeGuide,
   acknowledgePerformance,
   noteStoryFact,
+  openingStoryProgress,
   presentStory,
   resolveStory,
   rewindToUnwatchedPerformance,
   type StoryResolution,
 } from '@daoyou/game-rules/story';
+import { storyGiftParts } from '@daoyou/game-content/story/gifts';
 import { getStoryChapter } from '@daoyou/game-content/story/catalog';
+import { giveStarterBeast } from '@server/combat/application/starterBeastGift.js';
 import {
   emptyStoryFacts,
+  chapterUnlocks,
+  storyFlags,
   STORY_MARK_FACT_IDS,
+  type StoryBattleOutcome,
   type StoryChapter,
   type StoryFactId,
   type StoryFacts,
   type StoryProgress,
   type StoryView,
 } from '@daoyou/game-domain/story';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, count, eq, isNotNull, sql } from 'drizzle-orm';
+import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import { grantInventory } from '@server/inventory/operations.js';
-
-const MAIN_STORY_ID = 'arrival';
 
 type StoryMarkFact = (typeof STORY_MARK_FACT_IDS)[number];
 
@@ -103,7 +117,7 @@ async function readStoryFacts(
   tx: DbTransaction,
 ): Promise<StoryFacts> {
   const facts = emptyStoryFacts();
-  const [beasts, memberships, rows, weapons] = await runDbTasks(tx, [
+  const [beasts, memberships, rows, weapons, dailies, retreats] = await runDbTasks(tx, [
     () =>
       tx
         .select({ id: cultivatorBeasts.id })
@@ -127,7 +141,7 @@ async function readStoryFacts(
         .limit(1),
     () =>
       tx
-        .select({ stage: cultivators.realm_stage })
+        .select({ realm: cultivators.realm, stage: cultivators.realm_stage })
         .from(cultivators)
         .where(eq(cultivators.id, cultivatorId))
         .limit(1),
@@ -142,12 +156,43 @@ async function readStoryFacts(
           ),
         )
         .limit(1),
+    // 历来交了差的宗门日常，换过宗门的也算。做完没交的不算。
+    () =>
+      tx
+        .select({ value: count() })
+        .from(sectTaskRecords)
+        .innerJoin(
+          sectMemberships,
+          eq(sectMemberships.id, sectTaskRecords.membershipId),
+        )
+        .where(
+          and(
+            eq(sectMemberships.cultivatorId, cultivatorId),
+            eq(sectTaskRecords.kind, 'daily'),
+            isNotNull(sectTaskRecords.claimedAt),
+          ),
+        ),
+    () =>
+      tx
+        .select({ value: count() })
+        .from(retreatRecords)
+        .where(eq(retreatRecords.cultivatorId, cultivatorId)),
   ]);
+  facts.counts = {
+    sect_dailies: Number(dailies[0]?.value ?? 0),
+    retreats: Number(retreats[0]?.value ?? 0),
+  };
   facts.starter_beast = beasts.length > 0;
   facts.sect_joined = memberships.length > 0;
   facts.sect_ready = Boolean(memberships[0]?.pathId);
   facts.weapon_equipped = weapons.length > 0;
   facts.breakthrough_available = rows[0]?.stage === '圆满';
+  if (rows[0]) {
+    facts.standing = {
+      realm: rows[0].realm as RealmType,
+      stage: rows[0].stage as RealmStage,
+    };
+  }
   return facts;
 }
 
@@ -156,7 +201,15 @@ async function applyRewards(
   ids: readonly string[],
   tx: DbTransaction,
 ): Promise<{ items: boolean; spiritStones: boolean }> {
-  const rewards = ids.map((id) => storyReward(id, cultivatorId));
+  // 一份赠礼可以由几样拼成：掉落包里的东西，或者一只灵兽。
+  const parts = ids.flatMap((id) => storyGiftParts(id));
+  for (const part of parts) {
+    if (part.type === 'beast')
+      await giveStarterBeast(cultivatorId, part.species, tx);
+  }
+  const rewards = parts.flatMap((part) =>
+    part.type === 'payout' ? [storyReward(part.payout, cultivatorId)] : [],
+  );
   const items = rewards.flatMap((reward) => reward.items);
   const stones = rewards.reduce((sum, reward) => sum + reward.spiritStones, 0);
   if (items.length > 0) await grantInventory(cultivatorId, items, tx);
@@ -177,6 +230,22 @@ async function applyRewards(
   return { items: items.length > 0, spiritStones: stones > 0 };
 }
 
+// 主线眼下演到的那一章：还没演完的优先，否则取最近的一章。
+async function currentStory(
+  cultivatorId: string,
+  tx: DbExecutor | DbTransaction,
+) {
+  const rows = await listCultivatorStories(cultivatorId, 'main', tx);
+  const stored = rows.find((row) => row.status === 'active') ?? rows[0] ?? null;
+  const past = rows.filter((row) => row !== stored);
+  return {
+    rows,
+    stored,
+    carried: past.flatMap((row) => storyFlags(row.marks)),
+    opened: past.flatMap((row) => chapterUnlocks(getStoryChapter(row.storyId))),
+  };
+}
+
 async function settle(
   cultivatorId: string,
   tx: DbTransaction,
@@ -191,54 +260,110 @@ async function settle(
   rewardIds: string[];
   effect: { items: boolean; spiritStones: boolean };
 }> {
-  const stored = await findCultivatorStory(
+  const { rows, stored, carried, opened } = await currentStory(
     cultivatorId,
-    'main',
-    MAIN_STORY_ID,
     tx,
   );
   const base = stored ?? restingStoryProgress();
-  const chapter = getStoryChapter(base.storyId);
+  let chapter = getStoryChapter(base.storyId);
   const facts = await readStoryFacts(cultivatorId, tx);
   const progress = rewindToUnwatchedPerformance(chapter, base, facts);
-  const resolved = mutate(chapter, progress, facts);
-  const effect =
-    resolved.grants.length > 0
-      ? await applyRewards(cultivatorId, resolved.grants, tx)
-      : { items: false, spiritStones: false };
-  const dirty = !stored || !sameProgress(stored, resolved.progress);
+  let resolved = mutate(chapter, progress, facts);
+  const rewardIds = [...resolved.grants];
+  let dirty = !stored || !sameProgress(stored, resolved.progress);
   if (dirty) {
     if (stored) await updateCultivatorStory(cultivatorId, resolved.progress, tx);
     else await insertCultivatorStory(cultivatorId, resolved.progress, tx);
   }
+
+  // 一章演完就接下一章；下一章开头若已满足，也一并走过去。
+  const flags = [...carried];
+  const unlocks = [...opened];
+  const visited = new Set([chapter.id]);
+  while (resolved.finished && chapter.next && !visited.has(chapter.next)) {
+    flags.push(...storyFlags(resolved.progress.marks));
+    unlocks.push(...chapterUnlocks(chapter));
+    chapter = getStoryChapter(chapter.next);
+    visited.add(chapter.id);
+    const resumed = rows.find((row) => row.storyId === chapter.id);
+    resolved = resolveStory(
+      chapter,
+      resumed
+        ? { ...resumed, status: 'active' }
+        : openingStoryProgress(chapter.id),
+      facts,
+    );
+    rewardIds.push(...resolved.grants);
+    if (resumed) await updateCultivatorStory(cultivatorId, resolved.progress, tx);
+    else await insertCultivatorStory(cultivatorId, resolved.progress, tx);
+    dirty = true;
+  }
+
+  const effect =
+    rewardIds.length > 0
+      ? await applyRewards(cultivatorId, rewardIds, tx)
+      : { items: false, spiritStones: false };
   return {
-    view: presentStory(chapter, resolved.progress, facts),
+    view: presentStory(chapter, resolved.progress, facts, flags, unlocks),
     dirty,
-    rewardIds: resolved.grants,
+    rewardIds,
     effect,
   };
 }
 
 export const StoryService = {
-  async read(cultivatorId: string, tx: DbTransaction): Promise<StoryView> {
-    const stored =
-      (await findCultivatorStory(cultivatorId, 'main', MAIN_STORY_ID, tx)) ??
-      restingStoryProgress();
+  /** 主线眼下开了哪些门。为空表示不设限。只读进度，不推进剧情。 */
+  async unlocked(
+    cultivatorId: string,
+    q: DbExecutor | DbTransaction,
+  ): Promise<string[] | null> {
+    const { stored, opened } = await currentStory(cultivatorId, q);
+    if (!stored) return null;
     const chapter = getStoryChapter(stored.storyId);
+    if (!chapter.gated) return null;
+    return [...new Set([...opened, ...chapterUnlocks(chapter, stored.beatId)])];
+  },
+
+  async read(cultivatorId: string, tx: DbTransaction): Promise<StoryView> {
+    const { stored, carried, opened } = await currentStory(cultivatorId, tx);
+    const base = stored ?? restingStoryProgress();
+    const chapter = getStoryChapter(base.storyId);
     const facts = await readStoryFacts(cultivatorId, tx);
-    const progress = rewindToUnwatchedPerformance(chapter, stored, facts);
-    return presentStory(chapter, progress, facts);
+    const progress = rewindToUnwatchedPerformance(chapter, base, facts);
+    return presentStory(chapter, progress, facts, carried, opened);
   },
 
   async completePerformance(
     cultivatorId: string,
     scriptId: string,
     outcome: string,
+    chosen: readonly string[],
+    tx: DbTransaction,
+  ): Promise<{ view: StoryView; changes: ResourceChangeDescriptor[] }> {
+    await lockCultivatorForStateMutation(tx, cultivatorId);
+    const allowed = performanceFlags(getPerformanceScript(scriptId));
+    const settled = await settle(cultivatorId, tx, (chapter, progress, facts) =>
+      acknowledgePerformance(chapter, progress, facts, scriptId, outcome, {
+        flags: chosen,
+        allowed,
+      }),
+    );
+    return {
+      view: settled.view,
+      changes: storyChanges(cultivatorId, settled.view, settled.effect),
+    };
+  },
+
+  /** 剧情战打完了，把结果记进主线。 */
+  async completeBattle(
+    cultivatorId: string,
+    battleId: string,
+    outcome: StoryBattleOutcome,
     tx: DbTransaction,
   ): Promise<{ view: StoryView; changes: ResourceChangeDescriptor[] }> {
     await lockCultivatorForStateMutation(tx, cultivatorId);
     const settled = await settle(cultivatorId, tx, (chapter, progress, facts) =>
-      acknowledgePerformance(chapter, progress, facts, scriptId, outcome),
+      acknowledgeBattle(chapter, progress, facts, battleId, outcome),
     );
     return {
       view: settled.view,
@@ -272,6 +397,9 @@ export const StoryService = {
   } | null> {
     if (!isStoryMarkFact(fact)) return null;
     await lockCultivatorForStateMutation(tx, cultivatorId);
+    // 这件事已经记过就不必再算一遍；买东西、用丹这类事会反复发生。
+    const { stored } = await currentStory(cultivatorId, tx);
+    if (stored?.marks.includes(fact)) return null;
     const settled = await settle(cultivatorId, tx, (chapter, progress, facts) =>
       noteStoryFact(chapter, progress, facts, fact),
     );

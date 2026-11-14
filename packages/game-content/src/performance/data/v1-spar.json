@@ -1,0 +1,62 @@
+{
+  "id": "v1-spar",
+  "title": "几斤几两",
+  "requires": [
+    "instructor"
+  ],
+  "cast": {
+    "instructor": {
+      "name": "{instructor}"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "演武场，地上画着几道白线。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "行，路子算是有了。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "你洞府里有间练功房，立着木人。闲了去打几趟，打坏了不用你赔。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "我以前没打过架。",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "instructor",
+              "text": "看得出来。所以才叫你去打木人。"
+            }
+          ]
+        },
+        {
+          "label": "什么时候学真本事？",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "instructor",
+              "text": "先把手脚练顺。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "明天卯时来。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "id": "v1-qingxi",
+  "track": "main",
+  "title": "青溪",
+  "next": "v1-drill",
+  "gated": true,
+  "beats": [
+    {
+      "id": "errand",
+      "kind": "performance",
+      "script": "v1-errand",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "教习在演武场点人。",
+      "href": "/game/story",
+      "unlocks": [
+        "yield"
+      ],
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "教习在演武场点人了，快走快走！"
+      }
+    },
+    {
+      "id": "seek",
+      "kind": "wait",
+      "until": {
+        "type": "fact",
+        "fact": "qingxi_met"
+      },
+      "scene": "map",
+      "prompt": "去青溪坡寻觅，遇上一次生灵。",
+      "href": "/game/map-v2",
+      "hail": {
+        "by": "{instructor}",
+        "line": "青溪坡，去看一眼就回。别走深了。"
+      }
+    },
+    {
+      "id": "fatter",
+      "kind": "performance",
+      "script": "v1-fatter",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "溪边有个熟人。",
+      "href": "/game/story"
+    },
+    {
+      "id": "report",
+      "kind": "performance",
+      "script": "v1-report",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "回宗门向教习复命。",
+      "href": "/game/story",
+      "hail": {
+        "by": "{instructor}",
+        "line": "青溪坡回来的？过来回话。"
+      }
+    }
+  ]
+}

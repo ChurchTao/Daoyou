@@ -1,0 +1,36 @@
+{
+  "id": "v1-forged",
+  "title": "凑合",
+  "requires": [
+    "forge_teacher"
+  ],
+  "cast": {
+    "forge_teacher": {
+      "name": "{forge_teacher}"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "器坊，新打的兵器还带着余温。"
+    },
+    {
+      "type": "narration",
+      "text": "{forge_teacher}拿起来掂了掂。"
+    },
+    {
+      "type": "line",
+      "speaker": "forge_teacher",
+      "text": "凑合。比那把强。"
+    },
+    {
+      "type": "line",
+      "speaker": "forge_teacher",
+      "text": "往后要打东西，自己找地方开炉。我这儿不常开门。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

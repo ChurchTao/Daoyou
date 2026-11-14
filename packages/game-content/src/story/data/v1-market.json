@@ -1,0 +1,52 @@
+{
+  "id": "v1-market",
+  "track": "main",
+  "title": "坊市",
+  "next": "v1-foundation",
+  "gated": true,
+  "beats": [
+    {
+      "id": "downhill",
+      "kind": "performance",
+      "script": "v1-downhill",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "有了腰牌，可以下山了。",
+      "href": "/game/story",
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "腰牌拿到手了吧？走，下山。"
+      }
+    },
+    {
+      "id": "buy",
+      "kind": "wait",
+      "until": {
+        "type": "fact",
+        "fact": "market_bought"
+      },
+      "scene": "market",
+      "prompt": "去天南·百草集，买一样东西。",
+      "href": "/game/map-v2?intent=market",
+      "unlocks": [
+        "market",
+        "market-recycle"
+      ],
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "百草集什么都有。你随便挑一样，我请……算了，你自己付。"
+      }
+    },
+    {
+      "id": "word",
+      "kind": "performance",
+      "script": "v1-word",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "回山的时候，门房叫住了你。",
+      "href": "/game/story"
+    }
+  ]
+}

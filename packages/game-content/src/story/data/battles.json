@@ -1,0 +1,18 @@
+[
+  {
+    "id": "v1-ambush",
+    "title": "窄路",
+    "opponents": [
+      {
+        "name": "红眼山豕",
+        "level": 1,
+        "kind": "normal",
+        "hp": 0.06,
+        "attack": 0.35
+      }
+    ],
+    "defeat": "pass",
+    "rescueAfter": 5,
+    "fresh": true
+  }
+]

@@ -1,0 +1,186 @@
+{
+  "id": "v1-cubs",
+  "title": "篓底",
+  "requires": [],
+  "cast": {
+    "elder": {
+      "name": "许伯",
+      "portrait": "icon:portrait-elder-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "溪边的乱石滩，药篓翻倒在石头边上。"
+    },
+    {
+      "type": "narration",
+      "text": "山豕倒在路边，不动了。",
+      "when": {
+        "flag": "battle.v1-ambush.won"
+      }
+    },
+    {
+      "type": "narration",
+      "text": "你低头看自己的手。还在抖。",
+      "when": {
+        "flag": "battle.v1-ambush.won"
+      }
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "手脚倒快。学过？",
+      "when": {
+        "flag": "battle.v1-ambush.won"
+      }
+    },
+    {
+      "type": "narration",
+      "text": "你被撞得坐在地上，眼前发黑。等看清的时候，山豕已经横在路边，许伯正把柴刀在草上蹭干净。",
+      "when": {
+        "flag": "battle.v1-ambush.lost"
+      }
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "敢迎上去，倒是没想到。学过？",
+      "when": {
+        "flag": "battle.v1-ambush.lost"
+      }
+    },
+    {
+      "type": "narration",
+      "text": "山豕又一次撞过来的时候，一把柴刀从你身侧递出去，正砍在它颈上。",
+      "when": {
+        "flag": "battle.v1-ambush.rescued"
+      }
+    },
+    {
+      "type": "narration",
+      "text": "你低头看自己的手。还在抖。",
+      "when": {
+        "flag": "battle.v1-ambush.rescued"
+      }
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "撑了这么久。学过？",
+      "when": {
+        "flag": "battle.v1-ambush.rescued"
+      }
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "没有。"
+        },
+        {
+          "label": "不知道。"
+        },
+        {
+          "label": "（摇头）"
+        }
+      ]
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "嗯。"
+    },
+    {
+      "type": "narration",
+      "text": "他没有再问，弯腰去捡散了一地的草药。"
+    },
+    {
+      "type": "narration",
+      "text": "药篓翻倒在石头边上。篓底有东西动了一下。"
+    },
+    {
+      "type": "narration",
+      "text": "一只银灰虎斑的小猫从草药底下钻出来。圆脸，短腿，四只爪子雪白，像穿了袜子。"
+    },
+    {
+      "type": "narration",
+      "text": "它抖了抖毛，看了你一眼，走过来，挨着你的脚坐下了。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "咪咪。"
+    },
+    {
+      "type": "narration",
+      "text": "猫没有理他。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "上个月在溪边捡的。喂了它一个月，摸都不让我摸一下。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "倒肯挨着你。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "（把它抱起来）",
+          "then": [
+            {
+              "type": "narration",
+              "text": "它没有躲，在你胳膊弯里转了半圈，找了个舒服的姿势。"
+            }
+          ]
+        },
+        {
+          "label": "它咬人吗？",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "elder",
+              "text": "咬我。"
+            },
+            {
+              "type": "narration",
+              "text": "猫打了个哈欠。"
+            }
+          ]
+        },
+        {
+          "label": "我自己都不知道往哪去。",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "elder",
+              "text": "它也不知道。正好。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "带着吧。山里走夜路，身边有个活物，胆子大些。"
+    },
+    {
+      "type": "narration",
+      "text": "咪咪顺着你的袖子爬上肩头，尾巴绕过来，搭在你脖子上。"
+    },
+    {
+      "type": "letter",
+      "title": "所得",
+      "text": "咪咪　灵猫 · 5 级 · 宝宝\n已经在你的灵兽袋里了。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

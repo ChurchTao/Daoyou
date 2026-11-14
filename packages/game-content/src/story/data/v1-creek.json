@@ -1,0 +1,129 @@
+{
+  "id": "v1-creek",
+  "track": "main",
+  "title": "溪边",
+  "next": "v1-gate",
+  "gated": true,
+  "beats": [
+    {
+      "id": "wake",
+      "kind": "performance",
+      "script": "v1-wake",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "你在一条溪边醒了过来。",
+      "href": "/game/story",
+      "unlocks": [
+        "settings",
+        "feedback",
+        "community",
+        "download",
+        "redeem"
+      ]
+    },
+    {
+      "id": "ambush",
+      "kind": "performance",
+      "script": "v1-ambush",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "跟着采药的老人下山。",
+      "href": "/game/story",
+      "hail": {
+        "by": "许伯",
+        "portrait": "icon:portrait-elder-m",
+        "line": "能走就跟上。天黑前要下到山弯。"
+      }
+    },
+    {
+      "id": "fight",
+      "kind": "battle",
+      "battle": "v1-ambush",
+      "lesson": "story-battle-basics",
+      "scene": "story-battle",
+      "prompt": "有东西冲过来了。先应付过去。",
+      "href": "/game/story/battle?guide=story-battle-basics"
+    },
+    {
+      "id": "cubs",
+      "kind": "performance",
+      "script": "v1-cubs",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "动静过去了，老人在等你。",
+      "href": "/game/story",
+      "hail": {
+        "by": "许伯",
+        "portrait": "icon:portrait-elder-m",
+        "line": "没事了。过来。"
+      },
+      "gift": "starter-beast"
+    },
+    {
+      "id": "cub",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "beast-pouch"
+        }
+      ],
+      "scene": "beasts",
+      "prompt": "打开灵兽袋，看看咪咪。",
+      "href": "/game/beasts?guide=beast-pouch",
+      "unlocks": [
+        "beasts",
+        "beast-room"
+      ],
+      "hail": {
+        "by": "许伯",
+        "portrait": "icon:portrait-elder-m",
+        "line": "它认你了。去看看它，别饿着。"
+      }
+    },
+    {
+      "id": "soup",
+      "kind": "performance",
+      "script": "v1-soup",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "跟许伯回山弯里歇一歇。",
+      "href": "/game/story",
+      "unlocks": [
+        "inn"
+      ],
+      "hail": {
+        "by": "许伯",
+        "portrait": "icon:portrait-elder-m",
+        "line": "回去喝口热的。"
+      }
+    },
+    {
+      "id": "home",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "cave-layout"
+        }
+      ],
+      "scene": "cave",
+      "prompt": "去洞府看看：认一认泉眼和出门的路。",
+      "href": "/game?guide=cave-layout",
+      "hail": {
+        "by": "许伯",
+        "portrait": "icon:portrait-elder-m",
+        "line": "这洞往后归你住。里头有眼泉，自己去认认。"
+      }
+    },
+    {
+      "id": "night",
+      "kind": "performance",
+      "script": "v1-night",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "天黑了，在洞府住下。",
+      "href": "/game/story"
+    }
+  ]
+}

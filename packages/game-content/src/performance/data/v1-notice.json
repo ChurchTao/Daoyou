@@ -1,0 +1,108 @@
+{
+  "id": "v1-notice",
+  "title": "告示",
+  "requires": [
+    "name"
+  ],
+  "cast": {
+    "chen": {
+      "name": "陈放",
+      "portrait": "icon:portrait-disciple-m"
+    },
+    "he": {
+      "name": "贺钧",
+      "portrait": "icon:portrait-noble-m"
+    },
+    "lin": {
+      "name": "林晚",
+      "portrait": "icon:portrait-disciple-f"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "差事榜旁边贴着一张新告示，围了不少人。"
+    },
+    {
+      "type": "title",
+      "kicker": "宗门 · 告示",
+      "text": "告示"
+    },
+    {
+      "type": "narration",
+      "text": "差事榜旁边贴了新告示。"
+    },
+    {
+      "type": "letter",
+      "title": "告示",
+      "text": "记名弟子入门考校，定于月末。过者发下山腰牌。不过者留山一年。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "留山一年？一年不能下山，那不是坐牢吗。"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "去年过了四成。"
+    },
+    {
+      "type": "narration",
+      "text": "有人从后面拍了拍你的肩。"
+    },
+    {
+      "type": "line",
+      "speaker": "he",
+      "text": "{name}师弟也想试试？"
+    },
+    {
+      "type": "line",
+      "speaker": "he",
+      "text": "不是师兄泼冷水。名额就那些，年年有人白费力气。师弟刚来，不必着急。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "我想试试。",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "he",
+              "text": "有志气。那师兄等着看。"
+            }
+          ]
+        },
+        {
+          "label": "（不接话）",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "he",
+              "text": "师弟慢慢想。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "narration",
+      "text": "他笑着走了。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "他是怕你过了，没人给他跑腿。"
+    },
+    {
+      "type": "line",
+      "speaker": "lin",
+      "text": "考校看三样。差事勤不勤，修为够不够，心法入没入门。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

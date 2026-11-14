@@ -1,0 +1,40 @@
+{
+  "id": "v1-kin",
+  "track": "main",
+  "title": "同乡",
+  "next": "v1-after",
+  "gated": true,
+  "beats": [
+    {
+      "id": "fever",
+      "kind": "performance",
+      "script": "v1-fever",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "陈放的伤要有人守夜。",
+      "href": "/game/story",
+      "hail": {
+        "by": "林晚",
+        "portrait": "icon:portrait-disciple-f",
+        "line": "陈放烧起来了。今夜要有人守着。"
+      }
+    },
+    {
+      "id": "token",
+      "kind": "performance",
+      "script": "v1-token",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "陈放有东西要给你。",
+      "href": "/game/story",
+      "unlocks": [
+        "world-chat"
+      ],
+      "hail": {
+        "by": "陈放",
+        "portrait": "icon:portrait-disciple-m",
+        "line": "你过来。有样东西，早该给你。"
+      }
+    }
+  ]
+}

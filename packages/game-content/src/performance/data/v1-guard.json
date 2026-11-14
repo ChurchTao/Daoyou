@@ -1,0 +1,51 @@
+{
+  "id": "v1-guard",
+  "title": "守门",
+  "requires": [],
+  "cast": {
+    "chen": {
+      "name": "陈放",
+      "portrait": "icon:portrait-disciple-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "静室门口。"
+    },
+    {
+      "type": "line",
+      "speaker": "chen",
+      "text": "等你冲关那天，门口我守着。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "不用。",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "chen",
+              "text": "用。姓贺的这两天老在你门口转。"
+            }
+          ]
+        },
+        {
+          "label": "多谢。",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "chen",
+              "text": "谢什么。等我冲关，你也得给我守。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "id": "v1-sleepless",
+  "title": "睡不着",
+  "requires": [],
+  "cast": {},
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "弟子房，一排通铺。窗纸上有月光。"
+    },
+    {
+      "type": "title",
+      "kicker": "弟子房 · 夜",
+      "text": "睡不着"
+    },
+    {
+      "type": "narration",
+      "text": "新兵器挂在床头。同屋的人都睡了。"
+    },
+    {
+      "type": "narration",
+      "text": "你躺着，想起家里的事。一件一件，都还很清楚。"
+    },
+    {
+      "type": "narration",
+      "text": "桌上有白天领来的纸笔。你坐了起来。"
+    },
+    {
+      "type": "aside",
+      "text": "写下来吧。免得日子久了，记岔了。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "家门口那条街的名字。",
+          "set": "note.street"
+        },
+        {
+          "label": "常去吃的那家店。",
+          "set": "note.shop"
+        },
+        {
+          "label": "一个人说话的声音。",
+          "set": "note.voice"
+        }
+      ]
+    },
+    {
+      "type": "narration",
+      "text": "你写了很久。字歪歪扭扭的，这支笔你还用不惯。"
+    },
+    {
+      "type": "narration",
+      "text": "写完，你把纸折好，压在枕头底下。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

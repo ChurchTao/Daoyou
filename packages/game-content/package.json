@@ -93,7 +93,9 @@
     "./social/config": "./dist/social/config.js",
     "./spirit-field/config": "./dist/spirit-field/config.js",
     "./sponsorship/defaults": "./dist/sponsorship/defaults.js",
+    "./story/battles": "./dist/story/battles.js",
     "./story/catalog": "./dist/story/catalog.js",
+    "./story/gifts": "./dist/story/gifts.js",
     "./tower": "./dist/public/tower.js",
     "./world/dungeon": "./dist/world/dungeon.js",
     "./world/map": "./dist/public/world/map.js"

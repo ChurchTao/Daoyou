@@ -29,6 +29,7 @@ import {
   DungeonStartErrors,
 } from './dungeon-errors.js';
 import { DungeonService } from './dungeon.service.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 
 const StartSchema = z.object({
   mapNodeId: z.string().min(1),
@@ -49,6 +50,7 @@ const RecoverSchema = DungeonFlowRequestSchema.extend({
 });
 
 @Controller('api/dungeon')
+@StoryGate('dungeon')
 @Access('active')
 export class DungeonController {
   constructor(

@@ -1,0 +1,86 @@
+{
+  "id": "v1-fatter",
+  "title": "胖了",
+  "requires": [],
+  "cast": {
+    "elder": {
+      "name": "许伯",
+      "portrait": "icon:portrait-elder-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "涨了水的青溪，上游有个弯腰的人影。"
+    },
+    {
+      "type": "title",
+      "kicker": "太岳山 · 青溪坡",
+      "text": "胖了"
+    },
+    {
+      "type": "narration",
+      "text": "溪水涨了一些。你醒来的那片卵石滩，已经淹在水下了。"
+    },
+    {
+      "type": "narration",
+      "text": "上游有人在采药。是许伯。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "入门了。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "入门了。"
+        },
+        {
+          "label": "只是记名弟子。"
+        }
+      ]
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "嗯。"
+    },
+    {
+      "type": "narration",
+      "text": "他看了看趴在你肩上的小东西。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "胖了。"
+    },
+    {
+      "type": "narration",
+      "text": "他从怀里摸出一把晒干的果子，倒在你手心。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "它爱吃这个。"
+    },
+    {
+      "type": "narration",
+      "text": "小东西闻了闻，吃得头也不抬。"
+    },
+    {
+      "type": "line",
+      "speaker": "elder",
+      "text": "另外两只也爱吃。"
+    },
+    {
+      "type": "narration",
+      "text": "他背起药篓，往上游去了。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

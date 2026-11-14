@@ -1,0 +1,62 @@
+{
+  "id": "v1-alchemy",
+  "track": "main",
+  "title": "丹房",
+  "next": "v1-qingxi",
+  "gated": true,
+  "beats": [
+    {
+      "id": "soot",
+      "kind": "performance",
+      "script": "v1-soot",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "今天的差事是去丹房打杂。",
+      "href": "/game/story",
+      "hail": {
+        "by": "{alchemy_teacher}",
+        "line": "今天打杂的是谁？丹房这边缺人。"
+      }
+    },
+    {
+      "id": "furnace",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "alchemy-first-furnace"
+        },
+        {
+          "type": "fact",
+          "fact": "alchemy_crafted"
+        }
+      ],
+      "scene": "sect-alchemy",
+      "prompt": "把 4 份翠芽草一起入炉，炼成一炉丹。",
+      "href": "/game/sect/alchemy?workspace=craft&guide=alchemy-first-furnace",
+      "mode": "all",
+      "classroom": "alchemy",
+      "grant": "first-furnace-lesson",
+      "hail": {
+        "by": "{alchemy_teacher}",
+        "line": "翠芽草四份，一起下。看着火。"
+      }
+    },
+    {
+      "id": "pals",
+      "kind": "performance",
+      "script": "v1-pals",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "丹成了，给丹房执事看看。",
+      "href": "/game/story",
+      "unlocks": [
+        "alchemy"
+      ],
+      "hail": {
+        "by": "{alchemy_teacher}",
+        "line": "出炉了？端过来。"
+      }
+    }
+  ]
+}

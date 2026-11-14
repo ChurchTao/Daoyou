@@ -8,6 +8,7 @@ import { AutoStrategyController } from './auto-strategy.controller.js';
 import { AutoStrategyService } from './auto-strategy.service.js';
 import { BreakthroughController } from './breakthrough.controller.js';
 import { BreakthroughService } from './breakthrough.service.js';
+import { StoryBattleController } from './story-battle.controller.js';
 import { CombatActivityController } from './combat-activity.controller.js';
 import { CombatActivityService } from './combat-activity.service.js';
 import {
@@ -32,6 +33,7 @@ import { WildService } from './wild.service.js';
     WildController,
     AutoStrategyController,
     BreakthroughController,
+    StoryBattleController,
     SectTaskBattleController,
   ],
   providers: [

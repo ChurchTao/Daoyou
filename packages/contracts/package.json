@@ -27,6 +27,7 @@
     "./combat/arena": "./dist/combatV6Arena.js",
     "./combat/auto": "./dist/combatAuto.js",
     "./combat/breakthrough": "./dist/combatV6Breakthrough.js",
+    "./combat/story-battle": "./dist/combatV6StoryBattle.js",
     "./combat/dungeon": "./dist/combatV6Dungeon.js",
     "./dungeon/mystery": "./dist/dungeonMystery.js",
     "./dungeon/history": "./dist/dungeonHistory.js",
