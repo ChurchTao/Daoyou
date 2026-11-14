@@ -2,7 +2,7 @@
 
 日期：2026-11-13。状态：已实现并完成重点本地验收，未部署生产。验收记录见文末。
 
-将师徒和好友建设为两个独立系统。好友承载结缘、名录和一对一私聊；师徒承载拜师收徒、授业、个人成长和出师；道友传音继续负责信件与附件投递。三者有独立导航入口，师徒交流复用好友私聊，不产生第二份聊天记录。
+将师徒和好友建设为两个独立系统。好友承载结缘、名录和一对一私聊；师徒承载拜师收徒、授业、个人成长和出师；系统传音继续负责信件与附件投递，作为好友列表的置顶会话。底栏「传音」统一进入好友和传音工作区，师徒保留展开导航入口，师徒交流复用好友私聊，不产生第二份聊天记录。
 
 首版由化神及以上角色收徒，拜师时徒弟必须低于元婴。出师固定检查当前角色境界、功法、宗门心法和炼体，不选择任务。账号首次拜师后永久记录，不允许通过解除、删角、转世或师父离去重新拜师。师徒交流复用好友私聊，成功出师结算双向声望并公告，成就可选入名片展示。
 
@@ -35,37 +35,43 @@
 
 ### 2.1 导航与地址
 
-核心底栏保持四项：角色、储物袋、洞府、道友。其中“道友”取代当前“道友传音”，进入好友系统。展开导航建立“交游”分组，独立列出好友、师徒、道友传音和世界传音。修仙日志与探险札记仍属于见闻。
+核心底栏保持四项：角色、储物袋、洞府、传音。「传音」进入好友与私聊工作区；系统传音置顶，点击后在同一工作区阅读邮件。展开导航「交游」只保留带图标的师徒入口，好友和邮件不重复列出，世界传音由常驻聊天预览条进入。成就保留在修行分组并补齐图标；修仙日志与探险札记仍属于见闻。邮件未读、私聊未读和好友申请汇总在「传音」红点，师徒待办提示展开红点。
 
 | 地址 | 场景 | 首屏任务 |
 | --- | --- | --- |
 | `/game/friends`、`/game/friends?chat=会话ID` | `friends` | 一体化道友列表与私聊，选定道友原地交流 |
+| `/game/friends?chat=system-mail` | 同属 `friends` | 选中置顶系统传音，在右侧信件目录选信、原位阅读正文和领取附件 |
+| `/game/friends?chat=会话ID&composeTo=道友ID` | 同属 `friends` | 保留当前私聊，打开固定收件人的赠物弹层 |
 | `/game/friends/chat/:conversationId` | 保留 `friends-chat` 兼容入口 | replace 到统一工作区的 `?chat=会话ID` |
 | `/game/mentorship` | `mentorship` | 当前师徒关系、正在进行的目标、下一步操作 |
-| `/game/mail` | 保留 `mail` | 阅读信件、领取附件、发送玉简 |
+| `/game/mail` | 兼容跳转，无独立场景 | replace 到统一工作区的 `?chat=system-mail`，迁移已识别参数 |
 | `/game/world-chat` | 保留现有场景 | 世界、宗门与系统频道 |
 
 全部沿用真实路由树中的 `GameViewportLayout`。在 `gameNavigation.ts` 声明私聊场景属于好友入口，详情页保持底栏激活状态；不另外按 pathname 维护一套注册表。
 
-新增 `viewport/social.tsx`，追加到现有 viewport 路由数组末尾。保留 `mail` 在现有路由数组的位置，以免改变已有隐式路由 ID。场景元数据、页面标题、核心底栏与展开菜单同时更新。
+`viewport/social.tsx` 位于现有 viewport 路由数组末尾。旧 `mail` 路由保留在原数组位置，仅负责兼容跳转，以免改变已有隐式路由 ID；移除独立 `mail` 场景元数据。
 
 ### 2.2 好友与私聊页面
 
-好友与最近会话合并为同一列表，已结缘但还没聊过的好友也直接可选；历史或非好友会话保留在“其他会话”。行内只保留道号、真实最后一句、时间和未读数，可就地筛选。结缘申请、寻访、分享链接和屏蔽管理通过独立面板进入，移出、屏蔽和师徒操作收进选定道友资料。
+好友与最近会话合并为同一列表，已结缘但还没聊过的好友也直接可选；历史或非好友会话保留在“其他会话”。系统传音固定置顶并显示邮件未读数，好友行内只保留道号、真实最后一句、时间和未读数，不设列表搜索框。结缘申请、寻访、分享链接和屏蔽管理通过独立面板进入，移出、屏蔽和师徒操作收进选定道友资料。
 
-桌面在同一个工作区左侧选道友、右侧聊天；360px窄屏原地切换列表与会话，返回保留筛选。消息使用与世界聊天共享的头像、姓名时间、连续发言、本人底纹、日期分隔和输入组件，桌面Enter发送、Shift+Enter换行，输入法组合时不发送；接近字数上限才提示计数。按会话保留草稿、待确认发送和阅读锚点，提供回到最新与返回刚才位置。赠物通过“传音赠物”进入原流程。
+桌面在同一个工作区左侧选道友或系统传音、右侧显示对应内容；360px窄屏原地切换列表与会话。消息使用与世界聊天共享的头像、姓名时间、连续发言、本人底纹、日期分隔和输入组件，桌面Enter发送、Shift+Enter换行，输入法组合时不发送；接近字数上限才提示计数。按会话保留草稿、待确认发送和阅读锚点，提供回到最新与返回刚才位置。赠物通过“传音赠物”进入原流程。
 
-从私聊发送传音使用 `/game/mail?composeTo=目标角色ID&conversation=会话ID`。打开时预选该收件人并保留返回会话入口；提交时重新校验好友、角色与屏蔽。目标失效时给出错误，绝不回落到默认第一位好友。返回时保留原会话草稿，`conversation` 只用于会话ID形式的站内返回，不接受任意外链。
+从私聊赠物使用 `/game/friends?chat=会话ID&composeTo=目标角色ID`，参数值通过 `encodeURIComponent` 编码。工作区父级打开固定收件人的赠物弹层，底层仍保留原私聊与草稿，不切到系统传音。正文和附件在同一发送区核对，发送前显示传音符费用、所选附件和数量；提交时重新校验好友、角色、屏蔽及物品 revision。目标失效时给出错误，绝不回落到默认第一位好友。
 
 师徒页面的“私聊”进入同一会话地址，消息不带可由客户端任意填写的“师徒专用权限”。
 
-### 2.3 传音页面和旧链接
+### 2.3 传音会话和旧链接
 
-传音移除好友管理页签，保留收件、阅读、领取和发信。收件人选择器消费独立好友数据，不再负责增删好友。传音符费用、附件扣除、物品 revision 和领取规则沿用原链路。
+系统传音作为工作区内的置顶会话，保留一封一封的邮件形式。首次进入显示精简信件目录，每行包含标题、时间、简短预览及有意义的未读、附件状态，目录只展示摘要。选定后在同一工作区原位读信，不打开独立邮件页；完整正文与附件属于当前信件，上一封、下一封和返回目录操作保持当前阅读上下文。返回目录、读取更多信件、刷新和切换会话保留已选信件及阅读位置，不把当前加载页当作全邮箱统计。
 
-旧 `/game/mail?tab=friends` 使用 replace 跳到 `/game/friends`；旧地址包含 `addFriend` 时，转为 `/game/friends?addFriend=...`。只迁移已识别的社交参数，保留传音自身的收件上下文，不把任意 `returnTo` 当可跳转地址。
+当前信件完整展示正文、附件网格和领取操作，附件继续使用共享物品预览。单封领取后原位显示已领取，保留信件正文与附件；失败原因紧邻原操作。批量领取和全部已读放进语义明确的「传音管理」抽屉，不与当前阅读和单封领取等权常驻。只有当前打开的信件在文档可见、窗口聚焦且未被管理、赠物或其他弹层遮挡时才自动标记已读；滚动信件目录、隐藏会话、仅收到推送和仅打开好友列表都不算读过。
 
-新邀请链接只生成好友地址。打开链接展示目标身份和申请动作，GET 不自动加好友或拜师。普通 `/game/mail`、空白传音符入口、讨伐领奖收件链接继续有效。
+系统传音不设发信入口。赠物在好友会话中处理，无目标的传音符入口先选择好友，再打开工作区父级的固定收件人弹层。收件人选择消费好友数据，不负责增删好友；传音符费用、附件扣除、物品 revision 和领取规则沿用原链路。
+
+旧 `/game/mail?tab=friends` 使用 replace 跳到 `/game/friends`；旧地址包含 `addFriend` 时，转为 `/game/friends?addFriend=...`。普通 `/game/mail` replace 到 `/game/friends?chat=system-mail`；旧赠物地址中的 `composeTo` 配合 `conversation` 迁移为 `?chat=会话ID&composeTo=道友ID`，缺少会话 ID 时仍打开指定好友的赠物弹层，不将任意 `returnTo` 当可跳转地址。
+
+新邀请链接只生成好友地址。打开链接展示目标身份和申请动作，GET 不自动加好友或拜师。讨伐领奖收件链接直接进入系统传音会话，普通 `/game/mail` 旧书签继续有效。新邮件和赠物链接统一复用 `lib/social/mailNavigation.ts` 的 `SYSTEM_MAIL_HREF` 与 `mailGiftHref`，保留值 `system-mail` 不作为私聊会话 ID 请求服务端。
 
 ## 3 好友关系和申请
 
@@ -135,10 +141,10 @@
 
 | 入口           | 提醒内容                               |
 | -------------- | -------------------------------------- |
-| 核心“道友”     | 私聊未读数；好友申请另用待处理标记     |
+| 核心“传音”     | 邮件、私聊未读或好友申请的待处理红点     |
 | 展开“师徒”     | 待确认申请或可出师状态         |
-| 展开“道友传音” | 原邮件未读数；附件领取状态在收件箱展示 |
-| 展开菜单按钮   | 隐藏入口有待处理事项时的汇总红点       |
+| 置顶“系统传音” | 邮件未读数；目录显示附件状态，当前信件原位领取 |
+| 展开菜单按钮   | 师徒入口有待处理事项时的汇总红点       |
 
 各项不累加成含义不明的总数量。当前会话不逐条弹成功或新消息 toast；战斗、地图等场景只更新导航提醒，不增加新的全局私聊浮条。
 
@@ -408,7 +414,7 @@
 | 领域 | 当前入口 |
 | --- | --- |
 | 好友 | `apps/api/src/social/application/FriendService.ts`、`friends.controller.ts`、`friends.service.ts`、`social.module.ts` |
-| 传音 | `apps/web/src/routes/game/mail/route.tsx`、`apps/api/src/mail/application/PlayerMailService.ts` 与 `PlayerMailApplicationService.ts` |
+| 传音 | `apps/web/src/routes/game/friends/components/SystemMailPanel.tsx`、`SystemMailLetter.tsx`、`apps/web/src/lib/social/mailNavigation.ts`；赠物弹层由 `friends/route.tsx` 统一挂载 `components/mail/MailComposer.tsx`；`apps/web/src/routes/game/mail/route.tsx` 仅负责旧链接跳转；服务端沿用 `apps/api/src/mail/application/PlayerMailService.ts` 与 `PlayerMailApplicationService.ts` |
 | 共享好友弹层 | `apps/web/src/components/feature/friends/FriendTargetModal.tsx` |
 | 现有聊天持久化 | `apps/api/src/lib/repositories/chatRepository.ts`、`worldChatRepository.ts`、`sectChatRepository.ts` |
 | 实时 | `apps/api/src/realtime/realtime.service.ts`、`infrastructure/huntTeamChatBroadcaster.ts`、`apps/web/src/lib/realtime/realtimeClient.ts` |
@@ -418,7 +424,7 @@
 | 生命周期 | `apps/api/src/lib/lifespan/handleLifespan.ts`、`player/application/state/ResourceEngine.ts`、`cultivator/application/CultivatorProfileApplicationService.ts`、`cultivator/application/readers/CultivatorStateRepository.ts`、`transfer/transfer.service.ts` |
 | 账号注销 | `apps/api/src/lib/auth/auth.ts`、`lib/repositories/accountDeletionRepository.ts` |
 | Schema 与迁移 | `apps/api/src/lib/drizzle/schema.ts`、`drizzle/` |
-| 路由与导航 | `apps/web/src/route-definitions/viewport.tsx`、`viewport/daily.tsx`、`apps/web/src/components/game-shell/gameNavigation.ts`、`GameBottomDock.tsx` |
+| 路由与导航 | `apps/web/src/route-definitions/viewport.tsx`、`viewport/social.tsx`、`viewport/daily.tsx`、`apps/web/src/components/game-shell/gameNavigation.ts`、`GameBottomDock.tsx` |
 | 协议和配置 | `packages/contracts/src/friends.ts`、`packages/game-content/src/social/config.ts`、`packages/game-content/src/cultivation/cultivationExpGain.ts` |
 
 已同步 `docs/game-layout-ownership.md`、`docs/nats-domain-events.md` 及旧频道聊天提案的后续链接；本次没有新增图标素材或修改图标协议。固定四项进度直接读取权威状态，没有新增课程事件消费者。

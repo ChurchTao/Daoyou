@@ -1,5 +1,6 @@
 import { useSocialQuery } from '@app/components/feature/friends/socialApi';
 import Link from '@app/components/router/AppLink';
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { cn } from '@app/lib/cn';
 import type { SocialSummary } from '@daoyou/contracts/social';
@@ -69,7 +70,6 @@ export function GameBottomDock({
   const mentorAttention = Boolean(
     summary?.mentorshipRequests || summary?.mentorshipReadyToGraduate,
   );
-  const hiddenAttention = unreadMailCount > 0 || mentorAttention;
   const activeCoreScene = getActiveCoreDockSceneId(sceneId);
   const badgeInput = {
     unreadMailCount,
@@ -100,7 +100,7 @@ export function GameBottomDock({
               active={activeCoreScene === item.id}
               attention={
                 item.id === 'friends'
-                  ? `${unreadDirectMessages} 条未读私聊，${summary?.friendRequests ?? 0} 条待处理申请`
+                  ? `${unreadMailCount} 封未读系统传音，${unreadDirectMessages} 条未读私聊，${summary?.friendRequests ?? 0} 条待处理申请`
                   : undefined
               }
               badge={getCoreDockItemBadge(item.id, badgeInput)}
@@ -112,7 +112,7 @@ export function GameBottomDock({
             className="hover:text-crimson shrink-0 px-1.5 py-1.5 text-center tracking-[0.08em] whitespace-nowrap transition"
           >
             [{drawerOpen ? '收起' : '展开'}]
-            {hiddenAttention ? (
+            {mentorAttention ? (
               <span
                 className="bg-crimson ml-1 inline-block h-2 w-2 rounded-full"
                 role="status"
@@ -161,7 +161,11 @@ export function GameBottomDock({
                             : '',
                         )}
                       >
-                        [{action.label}]
+                        [
+                        {action.icon ? (
+                          <GameIcon value={action.icon} className="mr-1" />
+                        ) : null}
+                        {action.label}]
                         {shouldShowGameDockBadge(
                           action.id === 'mentorship'
                             ? mentorAttention

@@ -14,10 +14,11 @@ export function getCoreDockItemBadge(
   },
 ): GameDockBadge {
   if (itemId === 'friends') {
-    return input.unreadDirectMessages || Boolean(input.pendingFriendRequests);
-  }
-  if (itemId === 'mail') {
-    return input.unreadMailCount;
+    return (
+      input.unreadMailCount ||
+      input.unreadDirectMessages ||
+      Boolean(input.pendingFriendRequests)
+    );
   }
   if (itemId === 'cultivator') {
     return input.hasUnallocatedAttributePoints;

@@ -6,6 +6,7 @@ export interface GameSceneNavItem {
   href?: string;
   coreDockLabel?: string;
   expandedDockLabel?: string;
+  expandedDockIcon?: string;
   coreDockParentId?: string;
 }
 
@@ -25,6 +26,7 @@ export interface GameDockLink {
   id: string;
   label: string;
   href: string;
+  icon?: string;
 }
 
 export interface GameDockGroupLinks {
@@ -77,6 +79,7 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '成就',
         href: '/game/achievements',
         expandedDockLabel: '成就',
+        expandedDockIcon: '🏅',
         coreDockParentId: 'cultivator',
       },
       {
@@ -350,8 +353,7 @@ export const gameDockGroups: GameNavGroup[] = [
         id: 'friends',
         sceneLabel: '道友',
         href: '/game/friends',
-        coreDockLabel: '道友',
-        expandedDockLabel: '好友',
+        coreDockLabel: '传音',
       },
       {
         id: 'friends-chat',
@@ -363,18 +365,12 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '师徒',
         href: '/game/mentorship',
         expandedDockLabel: '师徒',
-      },
-      {
-        id: 'mail',
-        sceneLabel: '道友传音',
-        href: '/game/mail',
-        expandedDockLabel: '道友传音',
+        expandedDockIcon: '🎓',
       },
       {
         id: 'world-chat',
         sceneLabel: '世界传音',
         href: '/game/world-chat',
-        expandedDockLabel: '世界传音',
       },
     ],
   },
@@ -552,6 +548,7 @@ export function getExpandedDockGroups(): GameDockGroupLinks[] {
             id: scene.id,
             label: scene.expandedDockLabel,
             href: scene.href,
+            icon: scene.expandedDockIcon,
           },
         ];
       }),

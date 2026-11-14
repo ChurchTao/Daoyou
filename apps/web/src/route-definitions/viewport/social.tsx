@@ -10,7 +10,7 @@ export const socialRoutes = [
       {
         id: 'friends',
         presentation: 'service',
-        summary: '选择道友，接续私聊往来。',
+        summary: '与道友私聊，查看系统传音与邮件附件。',
       },
       '道友',
     )}
