@@ -44,7 +44,7 @@ const coreDockSceneOrder = [
 ] as const;
 
 const expandedMenuColumns = [
-  ['cultivation', 'sect', 'adventure', 'combat'],
+  ['cultivation', 'sect', 'adventure', 'combat', 'legacy'],
   ['trade', 'social', 'message', 'service'],
 ] as const satisfies readonly (readonly GameSceneGroup[])[];
 
@@ -63,12 +63,6 @@ export const gameDockGroups: GameNavGroup[] = [
         id: 'storage',
         sceneLabel: '洞府储藏室',
         href: '/game/cave/storage/new?location=storage',
-      },
-      {
-        id: 'legacy-storage',
-        sceneLabel: '洞府宝库',
-        href: '/game/cave/storage',
-        expandedDockLabel: '📦 旧藏宝库',
       },
       {
         id: 'cultivator',
@@ -134,25 +128,6 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '阵纹室',
         href: '/game/inscriptions',
         expandedDockLabel: '🔶 阵纹室',
-      },
-      {
-        id: 'artifact-migration',
-        sceneLabel: '旧法宝焕新',
-        href: '/game/artifact-migration',
-        expandedDockLabel: '⚒️ 旧法宝焕新',
-      },
-      {
-        id: 'manual-migration',
-        sceneLabel: '旧功法传承',
-        href: '/game/manual-migration',
-        expandedDockLabel: '📜 旧功法传承',
-      },
-      {
-        id: 'seed-migration',
-        sceneLabel: '旧灵种转化',
-        href: '/game/seed-migration',
-        expandedDockLabel: '旧灵种转化',
-        expandedDockIcon: '🌱',
       },
       { id: 'story', sceneLabel: '入世' },
       { id: 'story-preview', sceneLabel: '看演出' },
@@ -426,6 +401,40 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'battle-replay',
         sceneLabel: '战斗回放',
+      },
+    ],
+  },
+  {
+    key: 'legacy',
+    title: '旧道具转化',
+    scenes: [
+      {
+        id: 'legacy-storage',
+        sceneLabel: '洞府宝库',
+        href: '/game/cave/storage',
+        expandedDockLabel: '旧藏宝库',
+        expandedDockIcon: '📦',
+      },
+      {
+        id: 'artifact-migration',
+        sceneLabel: '旧法宝焕新',
+        href: '/game/artifact-migration',
+        expandedDockLabel: '旧法宝焕新',
+        expandedDockIcon: '⚒️',
+      },
+      {
+        id: 'manual-migration',
+        sceneLabel: '旧功法传承',
+        href: '/game/manual-migration',
+        expandedDockLabel: '旧功法传承',
+        expandedDockIcon: '📜',
+      },
+      {
+        id: 'seed-migration',
+        sceneLabel: '旧灵种转化',
+        href: '/game/seed-migration',
+        expandedDockLabel: '旧灵种转化',
+        expandedDockIcon: '🌱',
       },
     ],
   },
