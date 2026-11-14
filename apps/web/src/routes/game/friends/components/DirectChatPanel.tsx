@@ -13,6 +13,7 @@ import {
   readDirectChatStorage,
   writeDirectChatStorage,
 } from '@app/lib/social/drafts';
+import { mailGiftHref } from '@app/lib/social/mailNavigation';
 import type {
   DirectConversationDTO,
   DirectMessageDTO,
@@ -764,7 +765,10 @@ export function DirectChatPanel({
                   <InkButton
                     variant="secondary"
                     className="min-h-11"
-                    href={`/game/mail?composeTo=${conversation.peer.cultivatorId}&conversation=${conversationId}`}
+                    href={mailGiftHref(
+                      conversation.peer.cultivatorId,
+                      conversationId,
+                    )}
                   >
                     传音赠物
                   </InkButton>

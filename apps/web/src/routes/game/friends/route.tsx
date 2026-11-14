@@ -8,11 +8,16 @@ import '@app/components/feature/world-chat/worldChatViewport.css';
 import { GameLoadingState, GameSceneFrame } from '@app/components/game-shell';
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
-import { InkButton, InkInput, InkNotice } from '@app/components/ui';
+import { InkButton, InkNotice } from '@app/components/ui';
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { apiFetch } from '@app/lib/api/fetch';
 import { useAuth } from '@app/lib/auth/useAuth';
 import { cn } from '@app/lib/cn';
-import { usePlayerSession } from '@app/lib/resources/player';
+import {
+  usePlayerSession,
+  useUnreadMailCount,
+} from '@app/lib/resources/player';
+import { SYSTEM_MAIL_CONVERSATION_ID } from '@app/lib/social/mailNavigation';
 import type {
   DirectConversationDTO,
   DirectConversationsPage,
@@ -21,13 +26,20 @@ import type {
   FriendCultivatorSummary,
   FriendRequestDTO,
 } from '@daoyou/contracts/friends';
-import { Activity, useCallback, useRef, useState } from 'react';
+import { Activity, lazy, Suspense, useCallback, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { DirectChatPanel } from './components/DirectChatPanel';
 import {
   FriendsManagement,
   type FriendsManagementTab,
 } from './components/FriendsManagement';
+
+const SystemMailPanel = lazy(async () => ({
+  default: (await import('./components/SystemMailPanel')).SystemMailPanel,
+}));
+const MailComposer = lazy(async () => ({
+  default: (await import('@app/components/mail/MailComposer')).MailComposer,
+}));
 
 type Contact = {
   key: string;
@@ -55,13 +67,19 @@ export default function FriendsPage() {
 
 function FriendsWorkspace({ identity }: { identity: string }) {
   const [params, setParams] = useSearchParams();
+  const unreadMailCount = useUnreadMailCount() ?? 0;
   const conversationId = params.get('chat');
+  const isSystemMail = conversationId === SYSTEM_MAIL_CONVERSATION_ID;
+  const directConversationId = isSystemMail ? null : conversationId;
+  const [mailVisited, setMailVisited] = useState(isSystemMail);
+  // Browser navigation can select mail without a row click.
+  if (isSystemMail && !mailVisited) setMailVisited(true);
   const [visited, setVisited] = useState<string[]>(() =>
-    conversationId ? [conversationId] : [],
+    directConversationId ? [directConversationId] : [],
   );
   const visiblePanels = [
-    ...visited.filter((id) => id !== conversationId),
-    ...(conversationId ? [conversationId] : []),
+    ...visited.filter((id) => id !== directConversationId),
+    ...(directConversationId ? [directConversationId] : []),
   ];
   const managementValue = params.get('manage') ?? params.get('tab');
   const management = ['find', 'requests', 'blocks'].includes(
@@ -72,6 +90,11 @@ function FriendsWorkspace({ identity }: { identity: string }) {
   const friends = useSocialQuery<{ friends: FriendCultivatorSummary[] }>(
     '/api/friends',
   );
+  const composeTo = params.get('composeTo');
+  const giftRecipient = friends.data?.friends.find(
+    (friend) => friend.id === composeTo,
+  );
+  const giftObscured = Boolean(composeTo && (!friends.data || giftRecipient));
   const conversations = useSocialQuery<DirectConversationsPage>(
     '/api/direct-messages/conversations',
   );
@@ -84,7 +107,6 @@ function FriendsWorkspace({ identity }: { identity: string }) {
   const [olderCursor, setOlderCursor] = useState<string | null | undefined>(
     undefined,
   );
-  const [search, setSearch] = useState('');
   const [opening, setOpening] = useState<string | null>(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [focusedConversation, setFocusedConversation] =
@@ -146,9 +168,6 @@ function FriendsWorkspace({ identity }: { identity: string }) {
       name: conversation.peer.name,
       conversation,
     }));
-  const query = search.trim().toLocaleLowerCase();
-  const match = (contact: Contact) =>
-    !query || contact.name.toLocaleLowerCase().includes(query);
   const incoming =
     requests.data?.requests.filter(
       (item) => item.direction === 'incoming' && item.status === 'pending',
@@ -164,7 +183,8 @@ function FriendsWorkspace({ identity }: { identity: string }) {
     );
 
   function selectChat(id: string | null) {
-    if (id)
+    if (id === SYSTEM_MAIL_CONVERSATION_ID) setMailVisited(true);
+    else if (id)
       setVisited((previous) =>
         [...previous.filter((value) => value !== id), id].slice(-4),
       );
@@ -173,6 +193,8 @@ function FriendsWorkspace({ identity }: { identity: string }) {
       if (id) next.set('chat', id);
       else next.delete('chat');
       next.delete('tab');
+      next.delete('composeTo');
+      next.delete('conversation');
       return next;
     });
   }
@@ -187,6 +209,23 @@ function FriendsWorkspace({ identity }: { identity: string }) {
       },
       { replace: true },
     );
+  }
+  function closeGift() {
+    setParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        next.delete('composeTo');
+        next.delete('conversation');
+        return next;
+      },
+      { replace: true },
+    );
+  }
+  function openGift(cultivatorId: string, chatId: string) {
+    setDetails(null);
+    setFriendDetails(null);
+    setConfirm(null);
+    setParams({ chat: chatId, composeTo: cultivatorId });
   }
   async function openContact(contact: Contact) {
     if (opening) return;
@@ -335,7 +374,41 @@ function FriendsWorkspace({ identity }: { identity: string }) {
   }
 
   return (
-    <GameSceneFrame description="与道友说说近况。">
+    <GameSceneFrame description="与道友私聊，查看系统传音与邮件附件。">
+      {composeTo && !giftRecipient ? (
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role={friends.data || friends.error ? 'alert' : 'status'}
+        >
+          <InkNotice tone={friends.data || friends.error ? 'warning' : 'muted'}>
+            {friends.error
+              ? `收信道友读取失败：${friends.error}`
+              : friends.data
+                ? '当前无法向这位道友赠物，请先检查好友关系。'
+                : '正在确认收信道友……'}
+          </InkNotice>
+          {friends.error ? (
+            <InkButton onClick={() => void friends.reload()}>重试</InkButton>
+          ) : friends.data ? (
+            <InkButton
+              onClick={() => {
+                setParams((previous) => {
+                  const next = new URLSearchParams(previous);
+                  next.delete('composeTo');
+                  next.delete('conversation');
+                  next.set('addFriend', composeTo);
+                  return next;
+                });
+              }}
+            >
+              查看道友
+            </InkButton>
+          ) : null}
+          <InkButton variant="secondary" onClick={closeGift}>
+            取消赠物
+          </InkButton>
+        </div>
+      ) : null}
       <div style={{ height }}>
         <div
           ref={workspaceRef}
@@ -383,14 +456,35 @@ function FriendsWorkspace({ identity }: { identity: string }) {
                 </InkButton>
               </div>
             </div>
-            <InkInput
-              label="搜索好友"
-              labelClassName="sr-only"
-              placeholder="搜索好友或会话"
-              value={search}
-              onChange={setSearch}
-              containerClassName="mb-2 shrink-0"
-            />
+            <button
+              type="button"
+              onClick={() => selectChat(SYSTEM_MAIL_CONVERSATION_ID)}
+              aria-label={`系统传音${unreadMailCount ? `，${unreadMailCount}封未读` : ''}`}
+              aria-current={isSystemMail ? 'true' : undefined}
+              className={cn(
+                'border-ink/15 focus-visible:outline-crimson mb-2 flex shrink-0 items-center gap-2.5 border-b border-dashed px-2.5 py-3 text-left',
+                isSystemMail
+                  ? 'bg-ink/5 text-crimson'
+                  : 'hover:bg-ink/4 text-ink',
+              )}
+            >
+              <span className="bg-ink/5 text-ink-secondary flex size-9 shrink-0 items-center justify-center rounded-full">
+                <GameIcon value="📨" className="text-lg" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center justify-between gap-2">
+                  <span className="font-semibold">系统传音</span>
+                  {unreadMailCount > 0 ? (
+                    <span className="bg-crimson/10 text-crimson shrink-0 rounded-full px-1.5 font-mono text-xs">
+                      {unreadMailCount > 99 ? '99+' : unreadMailCount}
+                    </span>
+                  ) : null}
+                </span>
+                <span className="text-ink-secondary mt-1 block text-xs">
+                  系统通知与奖励
+                </span>
+              </span>
+            </button>
             <div
               className="battle-scroll min-h-0 flex-1 overflow-y-auto"
               aria-label="好友与最近会话"
@@ -415,21 +509,21 @@ function FriendsWorkspace({ identity }: { identity: string }) {
                   variant="inline"
                 />
               ) : null}
-              {contacts.filter(match).map(contactRow)}
-              {history.some(match) ? (
+              {contacts.map(contactRow)}
+              {history.length > 0 ? (
                 <>
                   <p className="text-ink-secondary px-2.5 pt-4 pb-1 text-xs">
                     其他会话
                   </p>
-                  {history.filter(match).map(contactRow)}
+                  {history.map(contactRow)}
                 </>
               ) : null}
               {!friends.loading &&
               !conversations.loading &&
-              !contacts.some(match) &&
-              !history.some(match) ? (
+              contacts.length === 0 &&
+              history.length === 0 ? (
                 <p className="text-ink-secondary px-2 py-8 text-center text-sm">
-                  {query ? '没有找到这位道友' : '还未结识道友，试试上方结缘。'}
+                  还未结识道友，试试上方结缘。
                 </p>
               ) : null}
               {nextCursor ? (
@@ -464,6 +558,29 @@ function FriendsWorkspace({ identity }: { identity: string }) {
               conversationId ? 'flex' : 'hidden md:flex',
             )}
           >
+            {mailVisited || isSystemMail ? (
+              <Activity mode={isSystemMail ? 'visible' : 'hidden'}>
+                <Suspense
+                  fallback={
+                    <GameLoadingState
+                      message="正在接收系统传音……"
+                      variant="inline"
+                    />
+                  }
+                >
+                  <SystemMailPanel
+                    onBack={() => selectChat(null)}
+                    obscured={
+                      !!friendDetails ||
+                      !!management ||
+                      !!details ||
+                      !!params.get('addFriend') ||
+                      giftObscured
+                    }
+                  />
+                </Suspense>
+              </Activity>
+            ) : null}
             {visiblePanels.map((id) => (
               <Activity
                 key={id}
@@ -480,7 +597,8 @@ function FriendsWorkspace({ identity }: { identity: string }) {
                     id !== conversationId ||
                     !!management ||
                     !!details ||
-                    !!params.get('addFriend')
+                    !!params.get('addFriend') ||
+                    giftObscured
                   }
                 />
               </Activity>
@@ -493,15 +611,31 @@ function FriendsWorkspace({ identity }: { identity: string }) {
                 >
                   友
                 </span>
-                <p className="font-semibold">选择一位道友，开始私聊</p>
+                <p className="font-semibold">选择会话，接续往来</p>
                 <p className="text-ink-secondary text-sm">
-                  往来消息与好友都在左侧，点选即可接续。
+                  选择左侧道友开始私聊，或查看置顶的系统传音。
                 </p>
               </div>
             ) : null}
           </section>
         </div>
       </div>
+      {composeTo && giftRecipient && friends.data ? (
+        <Suspense
+          fallback={
+            <InkModal isOpen title="传音赠物" onClose={closeGift}>
+              <GameLoadingState message="正在准备赠物……" variant="inline" />
+            </InkModal>
+          }
+        >
+          <MailComposer
+            key={composeTo}
+            friends={friends.data.friends}
+            recipientId={giftRecipient.id}
+            onClose={closeGift}
+          />
+        </Suspense>
+      ) : null}
       {management ? (
         <FriendsManagement
           tab={management}
@@ -594,7 +728,10 @@ function FriendsWorkspace({ identity }: { identity: string }) {
               <div className="flex flex-wrap gap-2">
                 {details.canSend ? (
                   <InkButton
-                    href={`/game/mail?composeTo=${details.peer.cultivatorId}&conversation=${details.id}`}
+                    onClick={() => {
+                      const targetId = details.peer.cultivatorId;
+                      if (targetId) openGift(targetId, details.id);
+                    }}
                   >
                     传音赠物
                   </InkButton>
