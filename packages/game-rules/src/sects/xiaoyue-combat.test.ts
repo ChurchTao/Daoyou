@@ -8,12 +8,17 @@ import { createDaoyouRuleset } from '../combat/daoyou/index.js';
 import { createEmptySectCombatProgressV6 } from './build-state.js';
 import { compileSectDefinitionV6 } from './compiler.js';
 
-function setup(methodLevel = 180, enemies = 6, quick = false, enemyKind: 'npc' | 'player' = 'npc') {
+function setup(methodLevel = 180, enemies = 6, quick = false, enemyKind: 'npc' | 'player' = 'npc', options: { canonLevel?: number; hitChance?: number; nodes?: string[] } = {}) {
   const progress = createEmptySectCombatProgressV6('xiaoyue', definition.paths[0].id,
     Object.fromEntries(definition.methods.map(method => [method.id, methodLevel])));
+  if (options.canonLevel !== undefined) progress.methods['xiaoyue.method.canon'] = options.canonLevel;
   if (quick) {
     progress.meridianDepth = 1;
     progress.meridianLoadouts[0].nodeIds = ['xiaoyue.node.blood.1.2'];
+  }
+  if (options.nodes) {
+    progress.meridianDepth = Math.max(...options.nodes.map(node => Number(node.split('.')[0]))) as typeof progress.meridianDepth;
+    progress.meridianLoadouts[0].nodeIds = options.nodes.map(node => `xiaoyue.node.blood.${node}`);
   }
   const compiled = compileSectDefinitionV6({ definition, progress, characterLevel: 180 });
   if (!compiled.ok) throw new Error(JSON.stringify(compiled.diagnostics));
@@ -22,7 +27,7 @@ function setup(methodLevel = 180, enemies = 6, quick = false, enemyKind: 'npc' |
     seed: 34,
     versions,
     ruleset: { ...createDaoyouRuleset({ formulas: {
-      physicalHitChance: () => 1, sealHitChance: () => 1,
+      physicalHitChance: () => options.hitChance ?? 1, sealHitChance: () => 1,
       fluctuationMin: 1, fluctuationMax: 1,
       physicalFluctuationMin: 1, physicalFluctuationMax: 1,
     } }), deferredPlayerCommands: true },
@@ -53,6 +58,104 @@ function round(battle: Battle, source: Command = { type: 'defend' }, pet: Comman
 }
 const damage = (battle: Battle, sourceId: string) => battle.log().filter(event => event.type === 'damage' && event.sourceId === sourceId);
 
+describe('百兽崖首场狮搏化形', () => {
+  it.each(['npc', 'player'] as const)('对 %s 首次无兽形狮搏合付 50 法力，先按主心法化形再命中', enemyKind => {
+    const battle = setup(50, 1, false, enemyKind, { canonLevel: 75 });
+    const before = structuredClone(battle.unit('s'));
+    expect(battle.queryCommands('s').skills.find(skill => skill.skillId === XIAOYUE_SKILL_ID.LionStrike))
+      .toMatchObject({ costs: { mp: 50 }, reasons: [] });
+    expect(battle.unit('s')).toEqual(before);
+    round(battle, cast(XIAOYUE_SKILL_ID.LionStrike));
+    expect(battle.unit('s').attrs.mp).toBe(9950);
+    expect(effectiveAttrs(battle.unit('s')).physicalAtk).toBe(1075);
+    expect(battle.unit('s').statuses.find(status => status.id === XIAOYUE_STATUS_ID.Transform)?.remainingRounds).toBe(4);
+    const manual = setup(50, 1, false, enemyKind, { canonLevel: 75 });
+    round(manual, cast(XIAOYUE_SKILL_ID.Transform, ['s']));
+    round(manual, cast(XIAOYUE_SKILL_ID.LionStrike));
+    expect(damage(battle, 's').map(event => event.type === 'damage' ? event.amount : 0))
+      .toEqual(damage(manual, 's').map(event => event.type === 'damage' ? event.amount : 0));
+    expect(battle.queryCommands('s').skills.find(skill => skill.skillId === XIAOYUE_SKILL_ID.LionStrike)?.costs.mp).toBe(30);
+  });
+
+  it('不足 50 法力不化形也不消费额度，补足后仍能使用', () => {
+    const battle = setup(75, 1);
+    battle.unit('s').attrs.mp = 49;
+    expect(battle.queryCommands('s').skills.find(skill => skill.skillId === XIAOYUE_SKILL_ID.LionStrike)?.reasons)
+      .toContain('insufficient-mp');
+    round(battle, cast(XIAOYUE_SKILL_ID.LionStrike));
+    expect(battle.unit('s').attrs.mp).toBe(49);
+    expect(battle.unit('s').statuses).toHaveLength(0);
+    battle.unit('s').attrs.mp = 50;
+    round(battle, cast(XIAOYUE_SKILL_ID.LionStrike));
+    expect(battle.unit('s').attrs.mp).toBe(0);
+    expect(battle.unit('s').statuses.some(status => status.id === XIAOYUE_STATUS_ID.Transform)).toBe(true);
+  });
+
+  it('攻击落空仍完成化形，兽形到期后不能再次合并，须主动重开', () => {
+    const battle = setup(75, 1, false, 'player', { hitChance: 0 });
+    round(battle, cast(XIAOYUE_SKILL_ID.LionStrike));
+    expect(damage(battle, 's')).toHaveLength(0);
+    expect(battle.unit('s').attrs.mp).toBe(9950);
+    expect(battle.unit('s').statuses.some(status => status.id === XIAOYUE_STATUS_ID.Transform)).toBe(true);
+    for (let i = 0; i < 4; i++) round(battle);
+    expect(battle.unit('s').statuses).toHaveLength(0);
+    expect(battle.queryCommands('s').skills.find(skill => skill.skillId === XIAOYUE_SKILL_ID.LionStrike)?.reasons)
+      .toContain('skill-condition');
+    round(battle, cast(XIAOYUE_SKILL_ID.LionStrike));
+    expect(battle.unit('s').attrs.mp).toBe(9950);
+    round(battle, cast(XIAOYUE_SKILL_ID.Transform, ['s']));
+    expect(battle.unit('s').attrs.mp).toBe(9930);
+    expect(battle.queryCommands('s').skills.find(skill => skill.skillId === XIAOYUE_SKILL_ID.LionStrike))
+      .toMatchObject({ costs: { mp: 30 }, reasons: [] });
+  });
+
+  it('跳过行动时不化形也不消费首次机会', () => {
+    const battle = setup(75, 1);
+    battle.unit('s').flags.skipNextAction = true;
+    round(battle, cast(XIAOYUE_SKILL_ID.LionStrike));
+    expect(battle.unit('s').attrs.mp).toBe(10000);
+    expect(battle.unit('s').statuses).toHaveLength(0);
+    expect(damage(battle, 's')).toHaveLength(0);
+    expect(battle.queryCommands('s').skills.find(skill => skill.skillId === XIAOYUE_SKILL_ID.LionStrike))
+      .toMatchObject({ costs: { mp: 50 }, reasons: [] });
+    round(battle, cast(XIAOYUE_SKILL_ID.LionStrike));
+    expect(battle.unit('s').attrs.mp).toBe(9950);
+    expect(damage(battle, 's')).toHaveLength(1);
+  });
+
+  it('已有兽形的狮搏不消费首次合并机会，兽形自然结束后仍可使用一次', () => {
+    const battle = setup(75, 1);
+    round(battle, cast(XIAOYUE_SKILL_ID.Transform, ['s']));
+    round(battle, cast(XIAOYUE_SKILL_ID.LionStrike));
+    for (let i = 0; i < 3; i++) round(battle);
+    expect(battle.unit('s').statuses).toHaveLength(0);
+    expect(battle.queryCommands('s').skills.find(skill => skill.skillId === XIAOYUE_SKILL_ID.LionStrike))
+      .toMatchObject({ costs: { mp: 50 }, reasons: [] });
+    round(battle, cast(XIAOYUE_SKILL_ID.LionStrike));
+    expect(battle.unit('s').attrs.mp).toBe(9900);
+  });
+
+  it('心法未达到学习门槛时不能借狮搏合并化形', () => {
+    const battle = setup(19, 1);
+    expect(battle.queryCommands('s').skills.find(skill => skill.skillId === XIAOYUE_SKILL_ID.LionStrike)).toBeUndefined();
+    round(battle, cast(XIAOYUE_SKILL_ID.LionStrike));
+    expect(battle.unit('s').attrs.mp).toBe(10000);
+    expect(damage(battle, 's')).toHaveLength(0);
+  });
+
+  it('合并化形继承宁息、展翅与主动兽形余势，后续普通狮搏不重复刷新', () => {
+    const battle = setup(75, 1, false, 'player', { nodes: ['1.2', '2.2', '3.2', '4.2'] });
+    round(battle, cast(XIAOYUE_SKILL_ID.LionStrike));
+    expect(battle.unit('s').statuses.find(status => status.id === XIAOYUE_STATUS_ID.Transform)?.remainingRounds).toBe(5);
+    expect(battle.unit('s').statuses.some(status => status.id === 'xiaoyue.status.active_transform_ready')).toBe(true);
+    expect(battle.unit('s').statuses.some(status => status.id === 'xiaoyue.status.wing_guard')).toBe(true);
+    round(battle, cast(XIAOYUE_SKILL_ID.LionStrike));
+    expect(battle.unit('s').attrs.mp).toBe(9920);
+    expect(battle.unit('s').statuses.find(status => status.id === XIAOYUE_STATUS_ID.Transform)?.remainingRounds).toBe(4);
+    expect(battle.unit('s').statuses.some(status => status.id === 'xiaoyue.status.wing_guard')).toBe(false);
+  });
+});
+
 describe('百兽崖迅捷入场兽形', () => {
   const penalty = 'xiaoyue.status.quick_penalty';
 
@@ -79,8 +182,8 @@ describe('百兽崖迅捷入场兽形', () => {
     expect(damage(battle, 's')).toHaveLength(2);
     expect(battle.unit('s').statuses).toHaveLength(0);
     expect(effectiveAttrs(battle.unit('s')).physicalAtk).toBe(1000);
-    expect(battle.queryCommands('s').skills.find(skill => skill.skillId === XIAOYUE_SKILL_ID.LionStrike)?.reasons)
-      .toContain('skill-condition');
+    expect(battle.queryCommands('s').skills.find(skill => skill.skillId === XIAOYUE_SKILL_ID.LionStrike))
+      .toMatchObject({ costs: { mp: 50 }, reasons: [] });
     round(battle);
     expect(battle.log().filter(event => event.type === 'statusApplied' && event.statusId === XIAOYUE_STATUS_ID.Transform))
       .toHaveLength(1);
@@ -109,7 +212,7 @@ describe('百兽崖迅捷入场兽形', () => {
     expect(effectiveAttrs(battle.unit('s')).physicalAtk).toBe(1075);
   });
 
-  it.each([XIAOYUE_SKILL_ID.ChainStrike, XIAOYUE_SKILL_ID.ElephantSeal])(
+  it.each([XIAOYUE_SKILL_ID.ElephantSeal])(
     '%s 取消迅捷兽形时一并清除减攻，下一回合不补发', skillId => {
       const battle = setup(75, 1, true);
       round(battle, cast(skillId));
@@ -125,9 +228,9 @@ describe('百兽崖迅捷入场兽形', () => {
 });
 
 describe('啸岳岭基础技能回合边界', () => {
-  it('四个变身攻击在兽形前不可用，主动兽形花费 20 法力并开启攻击资格', () => {
+  it('除首次狮搏外的变身攻击在兽形前不可用，主动兽形花费 20 法力开启攻击资格', () => {
     const battle = setup();
-    for (const skillId of [XIAOYUE_SKILL_ID.LionStrike, XIAOYUE_SKILL_ID.EagleStrike,
+    for (const skillId of [XIAOYUE_SKILL_ID.EagleStrike,
       XIAOYUE_SKILL_ID.ChainStrike, XIAOYUE_SKILL_ID.ElephantSeal]) {
       expect(battle.queryCommands('s').skills.find(skill => skill.skillId === skillId)?.reasons, skillId)
         .toContain('skill-condition');
@@ -175,16 +278,21 @@ describe('啸岳岭基础技能回合边界', () => {
     },
   );
 
-  it('连环击按可连段数预付法力，首段击倒后停手、取消变身并休息', () => {
+  it('连环击预付法力，首段击倒后停手并休息，之后可继续使用兽形攻击', () => {
     const battle = setup();
     round(battle, cast(XIAOYUE_SKILL_ID.Transform, ['s']));
     battle.unit('t0').attrs.hp = 1;
     round(battle, cast(XIAOYUE_SKILL_ID.ChainStrike));
     expect(damage(battle, 's')).toHaveLength(1);
     expect(battle.unit('s').attrs.mp).toBe(9980 - 7 * 30);
-    expect(battle.unit('s').statuses.some(status => status.id === XIAOYUE_STATUS_ID.Transform)).toBe(false);
-    round(battle, cast(XIAOYUE_SKILL_ID.Transform, ['s']));
+    expect(battle.unit('s').statuses.some(status => status.id === XIAOYUE_STATUS_ID.Transform)).toBe(true);
+    round(battle, cast(XIAOYUE_SKILL_ID.LionStrike, ['t1']));
+    expect(damage(battle, 's')).toHaveLength(1);
     expect(battle.unit('s').attrs.mp).toBe(9980 - 7 * 30);
+    expect(battle.unit('s').statuses.find(status => status.id === XIAOYUE_STATUS_ID.Transform)?.remainingRounds).toBe(2);
+    round(battle, cast(XIAOYUE_SKILL_ID.LionStrike, ['t1']));
+    expect(damage(battle, 's')).toHaveLength(2);
+    expect(battle.unit('s').attrs.mp).toBe(9980 - 7 * 30 - 30);
   });
 
   it('镇形命中后封住目标下一行动、取消自身兽形并付出下一行动的宗门法术限制', () => {

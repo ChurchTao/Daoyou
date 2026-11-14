@@ -18,7 +18,7 @@ const groupSpell = 'beast.thunderstorm';
 const spellRepeat = 'beast.spell-combo';
 const fixedAttack = 'beast.wind-strike';
 
-function setup(pathId = 'xiaoyue.path.bond', nodes: string[] = [], withPet = true, extraStatuses: StatusDef[] = [], petSpellHitChance?: () => number) {
+function setup(pathId = 'xiaoyue.path.bond', nodes: string[] = [], withPet = true, extraStatuses: StatusDef[] = [], petSpellHitChance?: () => number, options: { physicalHitChance?: () => number; reflection?: boolean } = {}) {
   const progress = createEmptySectCombatProgressV6('xiaoyue', pathId,
     Object.fromEntries(definition.methods.map(method => [method.id, 180])));
   progress.meridianDepth = 7;
@@ -41,6 +41,7 @@ function setup(pathId = 'xiaoyue.path.bond', nodes: string[] = [], withPet = tru
     { id: 'allyPet', name: '队友宠', side: 0, kind: 'pet', ownerId: 'ally',
       attrs: { hp: 10000, maxHp: 10000, speed: 400, physicalAtk: 500, physicalDef: 100, magicDef: 100 } },
     { id: 't0', name: '敌人', side: 1, kind: 'player',
+      passives: options.reflection ? ['beast.advanced-reflection'] : [],
       attrs: { hp: 100000, maxHp: 100000, speed: 50, physicalAtk: 100, physicalDef: 100 } },
     { id: 'guard', name: '护卫', side: 1, kind: 'player',
       attrs: { hp: 100000, maxHp: 100000, speed: 40, physicalAtk: 100, physicalDef: 100 } },
@@ -53,13 +54,14 @@ function setup(pathId = 'xiaoyue.path.bond', nodes: string[] = [], withPet = tru
     seed: 43,
     versions,
     ruleset: { ...createDaoyouRuleset({ formulas: {
-      physicalHitChance: () => 1, sealHitChance: () => 1,
+      physicalHitChance: options.physicalHitChance ?? (() => 1), sealHitChance: () => 1,
       ...(petSpellHitChance ? { spellHitChance: petSpellHitChance } : {}),
       fluctuationMin: 1, fluctuationMax: 1, physicalFluctuationMin: 1, physicalFluctuationMax: 1,
     } }), deferredPlayerCommands: true },
-    skills: petSpellHitChance ? [...content.skills, ...BEAST_SKILLS.filter(skill =>
+    skills: [...(petSpellHitChance ? [...content.skills, ...BEAST_SKILLS.filter(skill =>
       [groupSpell, fixedAttack, spellRepeat].includes(skill.id)).map(skill =>
-      skill.id === spellRepeat ? { ...skill, innate: { spellRepeat: { chance: 1, factor: 0.5 } } } : skill)] : content.skills,
+      skill.id === spellRepeat ? { ...skill, innate: { spellRepeat: { chance: 1, factor: 0.5 } } } : skill)] : content.skills),
+      ...BEAST_SKILLS.filter(skill => options.reflection && skill.id === 'beast.advanced-reflection')],
     statusDefs: [...content.statusDefs, ...extraStatuses],
     units,
   };
@@ -101,14 +103,97 @@ describe('啸岳岭同契与真实灵兽', () => {
   it('狮魂只给本宠，收回时清除，替补换入不继承', () => {
     const battle = setup();
     round(battle, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });
-    battle.unit('t0').attrs.hp = 1;
     round(battle, { s: cast(XIAOYUE_SKILL_ID.LionStrike) });
+    expect(battle.unit('t0').attrs.hp).toBeGreaterThan(0);
     expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(true);
     expect(battle.unit('allyPet').statuses.some(status => status.id === lionSoul)).toBe(false);
     round(battle, { s: { type: 'summon', petId: 'reserve' } });
     expect(battle.unit('ownPet').flags.benched).toBe(true);
     expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(false);
     expect(battle.unit('reserve').statuses.some(status => status.id === lionSoul)).toBe(false);
+  });
+
+  it.each([{ nodes: [] }, { nodes: ['1.1'] }])('狮搏非致命命中时，本宠本轮首击获得既有狮魂倍率，经脉=$nodes', ({ nodes }) => {
+    const baseline = setup('xiaoyue.path.blood');
+    const enhanced = setup('xiaoyue.path.bond', nodes);
+    for (const battle of [baseline, enhanced]) {
+      round(battle, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });
+      round(battle, {
+        s: cast(XIAOYUE_SKILL_ID.LionStrike),
+        ownPet: { type: 'attack', target: 't0' },
+        allyPet: { type: 'attack', target: 'guard' },
+      });
+    }
+    const baseHit = hits(baseline, 'ownPet')[0];
+    expect(hits(enhanced, 'ownPet')[0].amount).toBe(Math.floor(baseHit.amount * (nodes.length ? 1.1 : 1.08)));
+    expect(hits(enhanced, 'allyPet')).toEqual(hits(baseline, 'allyPet'));
+    expect(enhanced.unit('t0').attrs.hp).toBeGreaterThan(0);
+    expect(enhanced.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(false);
+  });
+
+  it('本宠先行动时，狮搏命中赋予的狮魂留到下一回合本宠行动', () => {
+    const battle = setup();
+    battle.unit('ownPet').attrs.speed = 2000;
+    round(battle, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });
+    round(battle, { s: cast(XIAOYUE_SKILL_ID.LionStrike), ownPet: { type: 'attack', target: 't0' } });
+    const firstHit = hits(battle, 'ownPet')[0];
+    expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(true);
+    round(battle, { ownPet: { type: 'attack', target: 't0' } });
+    expect(hits(battle, 'ownPet')[1].amount).toBe(Math.floor(firstHit.amount * 1.08));
+    expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(false);
+  });
+
+  it('狮搏命中护盾或敌宠也赋予狮魂；落空和无在场本宠不赋予', () => {
+    const shielded = setup();
+    const petTarget = setup();
+    const missed = setup('xiaoyue.path.bond', [], true, [], undefined, { physicalHitChance: () => 0 });
+    const noPet = setup('xiaoyue.path.bond', [], false);
+    for (const battle of [shielded, petTarget, missed, noPet])
+      round(battle, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });
+    shielded.unit('t0').barriers.push({ id: 'test.shield', kind: 'shield', name: '护盾', current: 100000,
+      remainingRounds: 3, appliedRound: shielded.state.round, sourceId: 't0' });
+    round(shielded, { s: cast(XIAOYUE_SKILL_ID.LionStrike) });
+    round(petTarget, { s: cast(XIAOYUE_SKILL_ID.LionStrike, ['enemyPet']) });
+    round(missed, { s: cast(XIAOYUE_SKILL_ID.LionStrike) });
+    round(noPet, { s: cast(XIAOYUE_SKILL_ID.LionStrike) });
+    expect(shielded.unit('t0').attrs.hp).toBe(100000);
+    for (const battle of [shielded, petTarget])
+      expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(true);
+    for (const battle of [missed, noPet])
+      expect(battle.log().some(event => event.type === 'statusApplied' && event.statusId === lionSoul)).toBe(false);
+  });
+
+  it('狮搏多段命中及击倒只赋予一次狮魂，下回合可再次赋予', () => {
+    const battle = setup();
+    const lion = definition.skills.find(skill => skill.definition.id === XIAOYUE_SKILL_ID.LionStrike)!.definition;
+    battle.unit('s').skillOverrides[lion.id] = { ...lion, effects: [{ type: 'physicalHit', hits: 2, coeff: 1.15 }] };
+    round(battle, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });
+    round(battle, { s: cast(XIAOYUE_SKILL_ID.LionStrike) });
+    const soulApplications = () => battle.log().filter(event => event.type === 'statusApplied' && event.statusId === lionSoul);
+    expect(hits(battle, 's')).toHaveLength(2);
+    expect(soulApplications()).toHaveLength(1);
+    battle.unit('guard').attrs.hp = 1;
+    round(battle, { s: cast(XIAOYUE_SKILL_ID.LionStrike, ['guard']), ownPet: { type: 'attack', target: 't0' } });
+    expect(battle.unit('guard').flags.downed).toBe(true);
+    expect(soulApplications()).toHaveLength(2);
+  });
+
+  it('主人狮搏被反震击倒时不给狮魂，队友同名狮搏也不能替本人触发', () => {
+    vi.spyOn(SeededRng.prototype, 'chance').mockImplementation(probability => probability >= 0.3);
+    const reflected = setup('xiaoyue.path.bond', [], true, [], undefined, { reflection: true });
+    round(reflected, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });
+    reflected.unit('s').attrs.hp = 1;
+    round(reflected, { s: cast(XIAOYUE_SKILL_ID.LionStrike) });
+    expect(reflected.unit('s').flags.downed).toBe(true);
+    expect(reflected.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(false);
+
+    const ally = setup();
+    ally.unit('ally').skills.push(XIAOYUE_SKILL_ID.LionStrike);
+    ally.applyStatus('ally', 'xiaoyue.status.transform', 4, 'ally');
+    round(ally, { ally: cast(XIAOYUE_SKILL_ID.LionStrike) });
+    expect(hits(ally, 'ally')).toHaveLength(1);
+    expect(ally.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(false);
+    expect(ally.unit('allyPet').statuses.some(status => status.id === lionSoul)).toBe(false);
   });
 
   it('狮魂只增强群法的首个命中，不强化其他目标或法连', () => {
@@ -144,7 +229,6 @@ describe('啸岳岭同契与真实灵兽', () => {
   it('图腾只在狮魂实际赋予原本宠时建立主人与灵兽的同契标记', () => {
     const battle = setup('xiaoyue.path.bond', ['1.3']);
     round(battle, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });
-    battle.unit('t0').attrs.hp = 1;
     round(battle, { s: cast(XIAOYUE_SKILL_ID.LionStrike) });
     expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(true);
     expect(battle.unit('s').statuses.some(status => status.id === 'xiaoyue.status.totem')).toBe(true);
@@ -155,12 +239,11 @@ describe('啸岳岭同契与真实灵兽', () => {
     expect(battle.unit('reserve').statuses.some(status => status.id === 'xiaoyue.status.totem_link')).toBe(false);
   });
 
-  it('图腾增强下一回合的狮搏，结算后消耗且不会在触发当回合误消耗', () => {
+  it('图腾增强下一次狮搏，并由这次命中刷新下一击机会', () => {
     const base = setup();
     const enhanced = setup('xiaoyue.path.bond', ['1.3']);
     for (const battle of [base, enhanced]) {
       round(battle, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });
-      battle.unit('t0').attrs.hp = 1;
       round(battle, { s: cast(XIAOYUE_SKILL_ID.LionStrike) });
     }
     expect(enhanced.unit('s').statuses.some(status => status.id === 'xiaoyue.status.totem')).toBe(true);
@@ -171,7 +254,31 @@ describe('啸岳岭同契与真实灵兽', () => {
     expect(enhancedHit?.type).toBe('damage');
     if (baseHit?.type === 'damage' && enhancedHit?.type === 'damage')
       expect(enhancedHit.amount).toBeGreaterThan(baseHit.amount);
-    expect(enhanced.unit('s').statuses.some(status => status.id === 'xiaoyue.status.totem')).toBe(false);
+    expect(enhanced.unit('s').statuses.some(status => status.id === 'xiaoyue.status.totem')).toBe(true);
+    for (const battle of [base, enhanced]) round(battle, { s: { type: 'attack', target: 'guard' } });
+    expect(hits(enhanced, 's').at(-1)?.amount).toBe(hits(base, 's').at(-1)?.amount);
+  });
+
+  it('狮搏非致命命中也触发狮魂护盾，连续命中只刷新既有上限', () => {
+    const battle = setup('xiaoyue.path.bond', ['3.1']);
+    round(battle, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });
+    for (let turn = 0; turn < 2; turn++) {
+      round(battle, { s: cast(XIAOYUE_SKILL_ID.LionStrike) });
+      const barriers = battle.unit('ownPet').barriers.filter(barrier => barrier.id === 'xiaoyue.barrier.lion_soul');
+      expect(barriers).toHaveLength(1);
+      expect(barriers[0].current).toBe(1000);
+      expect(battle.unit('allyPet').barriers).toHaveLength(0);
+    }
+  });
+
+  it.each([false, true])('主人最佳搭档仍须击倒非灵兽敌人才给狮魂，击倒=%s', killed => {
+    const battle = setup('xiaoyue.path.bond', ['7.2']);
+    round(battle, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });
+    battle.unit('s').cooldowns![XIAOYUE_SKILL_ID.BestPartners] = 0;
+    if (killed) battle.unit('t0').attrs.hp = 1;
+    round(battle, { s: cast(XIAOYUE_SKILL_ID.BestPartners) });
+    expect(battle.unit('t0').flags.downed).toBe(killed);
+    expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(killed);
   });
 
   it('最佳搭档只合并主人和本宠的正常行动，标记目标的两次攻击都在保护前结算', () => {
@@ -355,15 +462,22 @@ describe('啸岳岭血啸关键经脉', () => {
     expect(marked.unit('t0').statuses.find(status => status.id === 'xiaoyue.status.claw')?.stacks).toBe(1);
   });
 
-  it('乱击把连环击取消兽形改为扣两回合，同时只增强本次连环击', () => {
+  it('乱击不再扣兽形时长，只增强本次连环击且仍需休息', () => {
     const normal = setup('xiaoyue.path.blood');
     const enhanced = setup('xiaoyue.path.blood', ['6.2']);
     for (const battle of [normal, enhanced]) {
       round(battle, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });
       round(battle, { s: cast(XIAOYUE_SKILL_ID.ChainStrike) });
     }
-    expect(normal.unit('s').statuses.some(status => status.id === 'xiaoyue.status.transform')).toBe(false);
-    expect(enhanced.unit('s').statuses.some(status => status.id === 'xiaoyue.status.transform')).toBe(true);
+    const remaining = (battle: Battle) => battle.unit('s').statuses.find(status => status.id === 'xiaoyue.status.transform')?.remainingRounds;
+    expect(remaining(normal)).toBeGreaterThan(0);
+    expect(remaining(enhanced)).toBe(remaining(normal));
     expect(hits(enhanced, 's')[0].amount).toBeGreaterThan(hits(normal, 's')[0].amount);
+    for (const battle of [normal, enhanced]) {
+      const before = hits(battle, 's').length;
+      round(battle, { s: cast(XIAOYUE_SKILL_ID.LionStrike) });
+      expect(hits(battle, 's')).toHaveLength(before);
+    }
+    expect(remaining(enhanced)).toBe(remaining(normal));
   });
 });

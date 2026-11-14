@@ -1,7 +1,7 @@
 {
   "$schema": "./xiaoyue-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 2,
   "baseSkillIds": [
     "xiaoyue.skill.transform",
     "xiaoyue.skill.lion_strike",
@@ -20,7 +20,7 @@
       "id": "xiaoyue.skill.transform",
       "name": "兽形",
       "school": "xiaoyue",
-      "description": "观山林百兽之形，运息化为己用。\n消耗20法力获得[[xiaoyue.status.transform]]，物攻增加《百兽化形》等级，持续四个完整后续回合；狮搏、鹏击、连环击和镇形均须处于兽形。",
+      "description": "观山林百兽之形，运息化为己用。\n消耗20法力获得[[xiaoyue.status.transform]]，物攻增加《百兽化形》等级，持续四个完整后续回合；鹏击、连环击和镇形须处于兽形，狮搏每场有一次合并化形的机会。",
       "tags": [
         "support"
       ],
@@ -57,7 +57,7 @@
       "id": "xiaoyue.skill.lion_strike",
       "name": "狮搏",
       "school": "xiaoyue",
-      "description": "借兽形之势，近身一搏。\n兽形期间消耗30法力，攻击一名敌人，物理伤害系数1.15。启用灵兽同契时，击倒非灵兽敌人可让自己在场且存活的灵兽获得[[xiaoyue.status.lion_soul]]。",
+      "description": "借兽形之势，近身一搏。\n兽形期间消耗30法力，攻击一名敌人，物理伤害系数1.15。已学会兽形时，每场战斗有一次机会在无兽形时施放，合付50法力，先获得完整兽形再攻击；继承宁息、展翅与主动兽形余势。启用灵兽同契时，狮搏命中即可让自己在场且存活的灵兽获得[[xiaoyue.status.lion_soul]]，每回合最多触发一次。",
       "tags": [
         "physical"
       ],
@@ -67,12 +67,59 @@
       },
       "effects": [
         {
+          "type": "removeStatus",
+          "statusIds": [
+            "xiaoyue.status.quick_penalty"
+          ],
+          "targeting": {
+            "side": "self"
+          },
+          "when": {
+            "expression": "1-hasStatus.xiaoyue.status.transform"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "xiaoyue_opening_transform_used",
+          "value": 1,
+          "when": {
+            "expression": "1-hasStatus.xiaoyue.status.transform"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.active_transform_ready",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "1-hasStatus.xiaoyue.status.transform"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.wing_guard_pending",
+          "duration": 1,
+          "self": true,
+          "when": {
+            "expression": "(1-hasStatus.xiaoyue.status.transform)*known.xiaoyue.passive.blood.4.2"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.transform",
+          "duration": "4+known.xiaoyue.passive.blood.2.2",
+          "self": true,
+          "when": {
+            "expression": "1-hasStatus.xiaoyue.status.transform"
+          }
+        },
+        {
           "type": "physicalHit",
           "coeff": 1.15
         }
       ],
-      "requirement": "hasStatus.xiaoyue.status.transform",
-      "costMp": 30
+      "requirement": "hasStatus.xiaoyue.status.transform+(1-hasStatus.xiaoyue.status.transform)*(1-min(1,fact.xiaoyue_opening_transform_used))*known.xiaoyue.skill.transform",
+      "costMp": "30+20*(1-hasStatus.xiaoyue.status.transform)"
     },
     {
       "id": "xiaoyue.skill.eagle_strike",
@@ -139,7 +186,7 @@
       "id": "xiaoyue.skill.chain_strike",
       "name": "连环击",
       "school": "xiaoyue",
-      "description": "连势不绝，逼敌失守。\n兽形期间连续攻击一名敌人。《狂兽诀》达到30／50／75／125／175级时，分别攻击2／3／5／6／7次。出手前按攻击次数一次付清，每次30法力。目标倒地时，剩余攻击停止。出手后进入[[xiaoyue.status.rest]]并结束兽形。选择经脉「乱击」后，改为缩短兽形两回合。",
+      "description": "连势不绝，逼敌失守。\n兽形期间连续攻击一名敌人。《狂兽诀》达到30／50／75／125／175级时，分别攻击2／3／5／6／7次。出手前按攻击次数一次付清，每次30法力。目标倒地时，剩余攻击停止。出手后进入[[xiaoyue.status.rest]]，保留兽形且不额外缩短其时长，兽形仍按正常回合流逝。",
       "tags": [
         "physical"
       ],
@@ -169,31 +216,6 @@
           "statusId": "xiaoyue.status.rest",
           "duration": 1,
           "self": true
-        },
-        {
-          "type": "removeStatus",
-          "statusIds": [
-            "xiaoyue.status.transform"
-          ],
-          "targeting": {
-            "side": "self"
-          },
-          "when": {
-            "expression": "1-known.xiaoyue.passive.blood.6.2"
-          }
-        },
-        {
-          "type": "modifyStatusDuration",
-          "kinds": [
-            "xiaoyue.status.transform"
-          ],
-          "amount": -2,
-          "targeting": {
-            "side": "self"
-          },
-          "when": {
-            "expression": "known.xiaoyue.passive.blood.6.2"
-          }
         }
       ],
       "requirement": "hasStatus.xiaoyue.status.transform",
@@ -510,10 +532,10 @@
       "name": "兽形",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "物攻增加《百兽化形》等级；狮搏、鹏击、连环击和镇形须处于兽形。主动施放后持续四个完整后续回合。",
+      "description": "物攻增加《百兽化形》等级；鹏击、连环击和镇形须处于兽形，狮搏每场有一次合并化形的机会。主动施放或狮搏合并化形后持续四个完整后续回合。",
       "dispellable": true,
       "attrMods": {
-        "physicalAtk": "skillLevel"
+        "physicalAtk": "knownSkillLevel.xiaoyue.skill.transform"
       }
     },
     {
@@ -728,7 +750,7 @@
       "name": "狮魂",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "灵兽同契赋予出战灵兽的一次性增益。你用狮搏或最佳搭档击倒非灵兽敌人时，自己仍在场且存活的灵兽会获得狮魂。灵兽用最佳搭档接力击倒标记目标时，也会在这次行动结束后获得狮魂。灵兽下一次主动直接物理或法术攻击命中的第一击伤害提高8%，选择狮王后为10%。命中后消耗，收回灵兽时清除。法术连击的追加施法和技能触发的额外施法不会消耗狮魂。狮搏在《生死搏》达到20级后解锁，须在兽形下施放。",
+      "description": "灵兽同契赋予出战灵兽的一次性增益。你用狮搏命中敌人时，自己仍在场且存活的灵兽会获得狮魂，每回合最多触发一次。你用最佳搭档击倒非灵兽敌人时，也会赋予狮魂；灵兽用最佳搭档接力击倒标记目标时，则在这次行动结束后获得狮魂。灵兽下一次主动直接物理或法术攻击命中的第一击伤害提高8%，选择狮王后为10%。命中后消耗，收回灵兽时清除。法术连击的追加施法和技能触发的额外施法不会消耗狮魂。狮搏在《生死搏》达到20级后解锁；已学会兽形时，每场可有一次在无兽形时合付50法力，先化形再攻击。",
       "dispellable": false,
       "sourceBound": true
     },
