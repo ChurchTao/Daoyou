@@ -2,7 +2,6 @@ import { GameLoadingState } from '@app/components/game-shell';
 import type { Mail } from '@app/components/mail/types';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui';
-import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { apiFetch } from '@app/lib/api/fetch';
 import { pendingCommandRequest } from '@app/lib/pendingCommandRequest';
 import { realtimeClient } from '@app/lib/realtime/realtimeClient';
@@ -50,7 +49,6 @@ export function SystemMailPanel({
   const [stepping, setStepping] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [loadError, setLoadError] = useState('');
-  const [managementOpen, setManagementOpen] = useState(false);
   const [operation, setOperation] = useState<string | null>(null);
   const [claimErrors, setClaimErrors] = useState<Record<string, string>>({});
   const [readErrors, setReadErrors] = useState<Record<string, string>>({});
@@ -269,7 +267,6 @@ export function SystemMailPanel({
       !selectedMail ||
       selectedMail.isRead ||
       obscured ||
-      managementOpen ||
       operationRef.current ||
       document.visibilityState !== 'visible' ||
       !document.hasFocus()
@@ -282,7 +279,7 @@ export function SystemMailPanel({
       void markRead(selectedMail.id);
   });
   useEffect(() => {
-    if (!selectedId || obscured || managementOpen) return;
+    if (!selectedId || obscured) return;
     readSelected();
     const onFocus = () => readSelected();
     window.addEventListener('focus', onFocus);
@@ -291,7 +288,7 @@ export function SystemMailPanel({
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onFocus);
     };
-  }, [selectedId, selectedMail?.isRead, obscured, managementOpen, operation]);
+  }, [selectedId, selectedMail?.isRead, obscured, operation]);
 
   function openMail(id: string) {
     if (!selectedIdRef.current && directoryRef.current)
@@ -477,24 +474,43 @@ export function SystemMailPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="border-ink/15 flex min-h-12 shrink-0 items-center justify-between gap-2 border-b border-dashed pb-2">
-        <div className="flex min-w-0 items-center gap-1">
+      <div className="border-ink/15 flex min-h-12 shrink-0 items-center justify-between gap-x-1 border-b border-dashed pb-2 md:gap-x-2">
+        <div className="flex shrink-0 items-center gap-1">
           <InkButton
             variant="secondary"
-            className="min-h-11 md:hidden"
+            className="min-h-11 min-w-11 px-0.5 md:hidden"
             onClick={onBack}
           >
-            道友列表
+            返回
           </InkButton>
-          <p className="truncate font-semibold">系统传音</p>
+          <p className="font-semibold whitespace-nowrap">系统传音</p>
         </div>
-        <InkButton
-          variant="secondary"
-          className="min-h-11 shrink-0"
-          onClick={() => setManagementOpen(true)}
+        <div
+          role="group"
+          aria-label="系统传音操作"
+          className="flex shrink-0 items-center gap-x-0.5 md:gap-x-2"
         >
-          传音管理
-        </InkButton>
+          <InkButton
+            variant="primary"
+            className="min-h-11 px-0.5 md:px-1.5"
+            pending={operation === 'claim-all'}
+            pendingLabel="领取中…"
+            disabled={operation !== null || !mails.length}
+            onClick={() => void claimAll()}
+          >
+            领取全部
+          </InkButton>
+          <InkButton
+            variant="secondary"
+            className="min-h-11 px-0.5 md:px-1.5"
+            pending={operation === 'read-all'}
+            pendingLabel="标记中…"
+            disabled={operation !== null || !mailSummary.data?.unreadCount}
+            onClick={() => void readAll()}
+          >
+            全部已读
+          </InkButton>
+        </div>
       </div>
       {loadError ? (
         <div
@@ -566,7 +582,6 @@ export function SystemMailPanel({
                 onClick={() => {
                   if (
                     obscured ||
-                    managementOpen ||
                     document.visibilityState !== 'visible' ||
                     !document.hasFocus()
                   )
@@ -641,46 +656,6 @@ export function SystemMailPanel({
           ) : null}
         </div>
       )}
-      <InkDetailDrawer
-        isOpen={managementOpen}
-        onClose={() => setManagementOpen(false)}
-        title="传音管理"
-        size="sm"
-      >
-        <div className="space-y-5">
-          <div className="space-y-2">
-            <p className="text-ink-secondary text-sm leading-6">
-              领取所有可收取的附件，暂时无法入库的灵兽会保留在原传音中。
-            </p>
-            <InkButton
-              variant="primary"
-              className="min-h-11"
-              pending={operation === 'claim-all'}
-              disabled={operation !== null || !mails.length}
-              onClick={() => void claimAll()}
-            >
-              领取全部附件
-            </InkButton>
-          </div>
-          <div className="border-ink/15 space-y-2 border-t border-dashed pt-4">
-            <p className="text-ink-secondary text-sm leading-6">
-              未读传音{' '}
-              <span className="font-mono">
-                {mailSummary.data?.unreadCount ?? '—'}
-              </span>
-            </p>
-            <InkButton
-              variant="secondary"
-              className="min-h-11"
-              pending={operation === 'read-all'}
-              disabled={operation !== null || !mailSummary.data?.unreadCount}
-              onClick={() => void readAll()}
-            >
-              全部标记已读
-            </InkButton>
-          </div>
-        </div>
-      </InkDetailDrawer>
     </div>
   );
 }
