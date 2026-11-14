@@ -1,3 +1,4 @@
+import { endSocialRelationsForCharacter } from '@server/social/social-lifecycle.js';
 import {
 hasCultivatorOwnership
 } from '@server/lib/repositories/cultivatorRepository.js';
@@ -156,6 +157,10 @@ export async function deleteCultivator(
   cultivatorId: string,
 ): Promise<boolean> {
   return db.transaction(async (tx) => {
+    const owned = await tx.select({ id: schema.cultivators.id }).from(schema.cultivators)
+      .where(and(eq(schema.cultivators.id, cultivatorId), eq(schema.cultivators.userId, userId))).for('update');
+    if (!owned.length) return false;
+    await endSocialRelationsForCharacter(tx, cultivatorId, 'deleted');
     const deleted = await tx
       .delete(schema.cultivators)
       .where(

@@ -1,8 +1,8 @@
 import { ELEMENT_VALUES, type ElementType } from '@daoyou/constants/elements';
-import { type MaterialType } from '../inventory.js';
 import { type Quality } from '@daoyou/constants/qualities';
-import type { MaterialDetails } from '../cultivator.js';
 import { z } from 'zod';
+import type { MaterialDetails } from '../cultivator.js';
+import type { MaterialFacts } from '../items/material-facts.js';
 
 // AI 生成的部分：包含名称、描述、以及 AI 决定的元素
 export const MaterialAISchema = z.object({
@@ -15,9 +15,12 @@ export const MaterialAISchema = z.object({
 
 export type MaterialAIData = z.infer<typeof MaterialAISchema>;
 
+/** Seeds are catalog items and never enter material text generation. */
+export type GeneratedMaterialType = MaterialFacts['type'];
+
 // 程序生成的骨架部分
 export interface MaterialSkeleton {
-  type: MaterialType;
+  type: GeneratedMaterialType;
   rank: Quality;
   quantity: number;
   // 可选：如果指定了元素，AI 必须遵循；如果未指定，AI 自由发挥
@@ -27,7 +30,7 @@ export interface MaterialSkeleton {
 // 最终组合的完整材料
 export interface GeneratedMaterial {
   name: string;
-  type: MaterialType;
+  type: GeneratedMaterialType;
   rank: Quality;
   element: ElementType;
   description: string;
@@ -39,7 +42,7 @@ export interface GeneratedMaterial {
 // 随机生成参数选项
 export interface MaterialRandomOptions {
   guaranteedRank?: Quality; // 指定保底品质（可选）
-  specifiedType?: MaterialType; // 指定类型（可选）
+  specifiedType?: GeneratedMaterialType; // 指定类型（可选）
   specifiedElement?: ElementType; // 指定元素（可选）
   regionTags?: string[]; // 区域标签（用于加权）
   qualityChanceMap?: Record<Quality, number>; // 指定品质权重（可选）

@@ -1,6 +1,5 @@
 import { beastTradePreview } from '@daoyou/game-domain/beasts';
-import { BeastTransferSchema } from '@daoyou/game-rules/beasts/trade';
-import { MailInventoryGrantSchema } from '@daoyou/game-rules/mail';
+import type { Consumable, Material } from '@daoyou/game-domain/character';
 import {
   consumableFactsOf,
   INVENTORY_MATERIAL_TYPES,
@@ -8,18 +7,24 @@ import {
   seedFactsOf,
   SeedFactsSchema,
 } from '@daoyou/game-domain/inventory';
-import { assertCurrentRewardItem } from '@daoyou/game-rules/legacy/retired-draw';
-import type { Consumable, Material } from '@daoyou/game-domain/character';
 import type { MailAttachment } from '@daoyou/game-domain/mail';
-import type { DbTransaction } from '@server/lib/drizzle/db.js';
+import { BeastTransferSchema } from '@daoyou/game-rules/beasts/trade';
+import { assertCurrentRewardItem } from '@daoyou/game-rules/legacy/retired-draw';
+import { MailInventoryGrantSchema } from '@daoyou/game-rules/mail';
+import { isSpiritGardenSeed } from '@daoyou/game-rules/spirit-field';
 import { grantInventory } from '@server/inventory/operations.js';
 import { sanitizeMaterialForClient } from '@server/inventory/presentation.js';
+import type { DbTransaction } from '@server/lib/drizzle/db.js';
 
-/** New rewards and stored material/consumable claims both enter the current inventory. */
+/** New rewards reject retired production; existing mail remains claimable for conversion. */
 export function newRewardAttachment(item: MailAttachment): MailAttachment {
   assertCurrentRewardItem(
     item.type === 'inventory_v1' ? item.inventory?.instanceData : item.data,
   );
+  return inventoryAttachment(item);
+}
+
+function inventoryAttachment(item: MailAttachment): MailAttachment {
   if (item.type === 'consumable' && item.data)
     return {
       type: 'inventory_v1',
@@ -33,9 +38,7 @@ export function newRewardAttachment(item: MailAttachment): MailAttachment {
     };
   if (item.type === 'material' && item.data) {
     const material = item.data as Material;
-    if (
-      !['seed', ...INVENTORY_MATERIAL_TYPES].includes(material.type)
-    )
+    if (!['seed', ...INVENTORY_MATERIAL_TYPES].includes(material.type))
       return item;
     const facts =
       material.type === 'seed'
@@ -86,6 +89,7 @@ export function publicMailAttachment(item: MailAttachment): MailAttachment {
         ...item.inventory,
         instanceData: {
           seedPreview: {
+            legacy: !isSpiritGardenSeed(plant),
             quality: plant.quality,
             element: plant.element,
             minRealm: plant.minRealm,
@@ -101,11 +105,13 @@ export function publicMailAttachment(item: MailAttachment): MailAttachment {
   return item;
 }
 
-function claimableInventoryAttachment(item: MailAttachment): MailAttachment | null {
+function claimableInventoryAttachment(
+  item: MailAttachment,
+): MailAttachment | null {
   if (item.type === 'inventory_v1') return item;
   if (item.type === 'artifact') throw new Error('旧法宝不能再写入洞府宝库');
   if (item.type !== 'material' && item.type !== 'consumable') return null;
-  const next = newRewardAttachment(item);
+  const next = inventoryAttachment(item);
   if (next.type !== 'inventory_v1') throw new Error('旧藏宝库已停止入库');
   return next;
 }

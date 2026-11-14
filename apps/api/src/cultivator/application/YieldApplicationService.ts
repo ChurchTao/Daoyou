@@ -230,6 +230,12 @@ export async function executeYieldCommand(args: {
             .update(cultivators)
             .set({ last_yield_at: claimedAt })
             .where(eq(cultivators.id, args.cultivatorId));
+          await createDomainEvent({
+            type: 'yield.collection.completed',
+            aggregate: { type: 'cultivator', id: args.cultivatorId },
+            data: { cultivatorId: args.cultivatorId, actionInstanceId },
+            deduplicationKey: `yield-collection:${args.cultivatorId}:${actionInstanceId}`,
+          }, tx);
           if (rewardPlan.count > 0) {
             domainEventId = (
               await createDomainEvent(

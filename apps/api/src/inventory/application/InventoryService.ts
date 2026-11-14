@@ -1,4 +1,5 @@
 import { QUALITY_VALUES } from '@daoyou/constants/qualities';
+import { recordGrowthObserved } from '@server/cultivator/application/GrowthDomainEvents.js';
 import type {
   InventoryAction,
   InventoryQuerySchema,
@@ -99,6 +100,17 @@ export function inventoryItemOf(
     item.instanceData = ConsumableFactsSchema.parse(item.instanceData);
   return item;
 }
+function inventoryItemName(row: typeof inventoryItems.$inferSelect): string {
+  if (row.definitionId === 'seed.v1')
+    return SeedFactsSchema.parse(row.instanceData).seedSpec.plant.seedName;
+  if (
+    row.definitionId === 'equipment.v6' ||
+    row.definitionId === 'material.v1' ||
+    row.definitionId === 'consumable.v1'
+  )
+    return (row.instanceData as DaoEquipmentInstanceV1).name;
+  return itemDefinition(row.definitionId).name;
+}
 export async function assertInventoryIdle(owner: string, tx: DbExecutor = db) {
   if (await hasActiveCombat(owner, { executor: tx }))
     throw new InventoryError('请先结束战斗与结算，再调整物品');
@@ -159,7 +171,7 @@ export async function readInventory(
       ? or(
           inArray(inventoryItems.definitionId, matches),
           ilike(
-            sql`${inventoryItems.instanceData}->>'name'`,
+            sql`coalesce(${inventoryItems.instanceData}->>'name', ${inventoryItems.instanceData}->'seedSpec'->'plant'->>'seedName')`,
             `%${query.search.replace(/[\\%_]/g, '\\$&')}%`,
           ),
         )
@@ -274,13 +286,7 @@ export async function readInventory(
     items: rows.map((row) => ({
       ...inventoryItemOf(row),
       updatedAt: row.updatedAt.toISOString(),
-      name:
-        row.definitionId === 'equipment.v6' ||
-        row.definitionId === 'material.v1' ||
-        row.definitionId === 'seed.v1' ||
-        row.definitionId === 'consumable.v1'
-          ? (row.instanceData as DaoEquipmentInstanceV1).name
-          : itemDefinition(row.definitionId).name,
+      name: inventoryItemName(row),
       equipped: false,
     })),
     equippedItems: equipped.map((row) => ({
@@ -555,9 +561,7 @@ export async function mutateInventory(
                     eq(inventoryItems.definitionId, item.definitionId),
                     ...(item.definitionId === 'consumable.v1'
                       ? []
-                      : [
-                          eq(inventoryItems.stackKey, item.stackKey ?? ''),
-                        ]),
+                      : [eq(inventoryItems.stackKey, item.stackKey ?? '')]),
                     sql`${inventoryItems.quantity} < ${itemDefinition(item.definitionId).stackLimit}`,
                   ),
                 ]
@@ -577,36 +581,34 @@ export async function mutateInventory(
                   )
               : [];
           const before = [
-            ...new Map(
-              [
-                ...rows.map((row) => [row.id, inventoryItemOf(row)] as const),
-                ...targets
-                  .map(inventoryItemOf)
-                  .filter((item) =>
-                    sources.some((source) => {
-                      const itemKey = resolvedStackKey(
-                        item.definitionId,
-                        item.instanceData,
-                        item.stackKey,
-                      );
-                      const sourceKey = resolvedStackKey(
-                        source.definitionId,
-                        source.instanceData,
-                        source.stackKey,
-                      );
-                      return (
-                        item.definitionId === source.definitionId &&
-                        itemKey !== null &&
-                        itemKey === sourceKey
-                      );
-                    }),
-                  )
-                  .map(
-                    (item) =>
-                      [item.id, withResolvedConsumableStack(item)] as const,
-                  ),
-              ],
-            ).values(),
+            ...new Map([
+              ...rows.map((row) => [row.id, inventoryItemOf(row)] as const),
+              ...targets
+                .map(inventoryItemOf)
+                .filter((item) =>
+                  sources.some((source) => {
+                    const itemKey = resolvedStackKey(
+                      item.definitionId,
+                      item.instanceData,
+                      item.stackKey,
+                    );
+                    const sourceKey = resolvedStackKey(
+                      source.definitionId,
+                      source.instanceData,
+                      source.stackKey,
+                    );
+                    return (
+                      item.definitionId === source.definitionId &&
+                      itemKey !== null &&
+                      itemKey === sourceKey
+                    );
+                  }),
+                )
+                .map(
+                  (item) =>
+                    [item.id, withResolvedConsumableStack(item)] as const,
+                ),
+            ]).values(),
           ];
           let next = before.map((item) => ({ ...item }));
           for (const source of sources) {
@@ -729,7 +731,9 @@ export async function mutateInventory(
                     ) === wanted,
                 )
                 .slice(0, 1)
-                .map((row) => withResolvedConsumableStack(inventoryItemOf(row))),
+                .map((row) =>
+                  withResolvedConsumableStack(inventoryItemOf(row)),
+                ),
             );
           }
         }
@@ -906,6 +910,11 @@ export async function mutateInventory(
                   eq(cultivatorBeasts.cultivatorId, owner),
                 ),
               );
+            await recordGrowthObserved(tx, {
+              cultivatorId: owner,
+              discipline: 'beasts',
+              value: fed.beast.level,
+            });
             result = {
               gained: fed.gained,
               wasted: fed.wasted,

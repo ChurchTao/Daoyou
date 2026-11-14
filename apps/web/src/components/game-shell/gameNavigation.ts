@@ -7,6 +7,8 @@ export interface GameSceneNavItem {
   href?: string;
   coreDockLabel?: string;
   expandedDockLabel?: string;
+  expandedDockIcon?: string;
+  coreDockParentId?: string;
 }
 
 export interface GameNavGroup {
@@ -25,6 +27,7 @@ export interface GameDockLink {
   id: string;
   label: string;
   href: string;
+  icon?: string;
 }
 
 export interface GameDockGroupLinks {
@@ -33,11 +36,16 @@ export interface GameDockGroupLinks {
   actions: GameDockLink[];
 }
 
-const coreDockSceneOrder = ['cultivator', 'inventory', 'cave', 'mail'] as const;
+const coreDockSceneOrder = [
+  'cultivator',
+  'inventory',
+  'cave',
+  'friends',
+] as const;
 
 const expandedMenuColumns = [
   ['cultivation', 'sect', 'adventure', 'combat'],
-  ['trade', 'message', 'service'],
+  ['trade', 'social', 'message', 'service'],
 ] as const satisfies readonly (readonly GameSceneGroup[])[];
 
 export const gameDockGroups: GameNavGroup[] = [
@@ -67,6 +75,14 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '道身',
         href: '/game/cultivator',
         coreDockLabel: '角色',
+      },
+      {
+        id: 'achievements',
+        sceneLabel: '成就',
+        href: '/game/achievements',
+        expandedDockLabel: '成就',
+        expandedDockIcon: '🏅',
+        coreDockParentId: 'cultivator',
       },
       {
         id: 'cultivator-attributes',
@@ -130,6 +146,13 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '旧功法传承',
         href: '/game/manual-migration',
         expandedDockLabel: '📜 旧功法传承',
+      },
+      {
+        id: 'seed-migration',
+        sceneLabel: '旧灵种转化',
+        href: '/game/seed-migration',
+        expandedDockLabel: '旧灵种转化',
+        expandedDockIcon: '🌱',
       },
       { id: 'story', sceneLabel: '入世' },
       { id: 'story-preview', sceneLabel: '看演出' },
@@ -324,21 +347,38 @@ export const gameDockGroups: GameNavGroup[] = [
     ],
   },
   {
-    key: 'message',
-    title: '见闻',
+    key: 'social',
+    title: '交游',
     scenes: [
       {
-        id: 'mail',
-        sceneLabel: '道友传音',
-        href: '/game/mail',
-        coreDockLabel: '道友传音',
+        id: 'friends',
+        sceneLabel: '道友',
+        href: '/game/friends',
+        coreDockLabel: '传音',
+      },
+      {
+        id: 'friends-chat',
+        sceneLabel: '道友私聊',
+        coreDockParentId: 'friends',
+      },
+      {
+        id: 'mentorship',
+        sceneLabel: '师徒',
+        href: '/game/mentorship',
+        expandedDockLabel: '师徒',
+        expandedDockIcon: '🎓',
       },
       {
         id: 'world-chat',
         sceneLabel: '世界传音',
         href: '/game/world-chat',
-        expandedDockLabel: '💬 世界传音',
       },
+    ],
+  },
+  {
+    key: 'message',
+    title: '见闻',
+    scenes: [
       {
         id: 'journal',
         sceneLabel: '修仙日志',
@@ -515,6 +555,7 @@ export function getExpandedDockGroups(
             id: scene.id,
             label: scene.expandedDockLabel,
             href: scene.href,
+            icon: scene.expandedDockIcon,
           },
         ];
       }),
@@ -547,4 +588,10 @@ export function getExpandedDockColumns(
   }
 
   return columns;
+}
+
+export function getActiveCoreDockSceneId(sceneId?: string | null) {
+  return sceneId
+    ? (gameSceneRegistryById.get(sceneId)?.coreDockParentId ?? sceneId)
+    : null;
 }

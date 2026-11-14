@@ -1,5 +1,5 @@
 import { seedFactsOf } from '@daoyou/game-domain/inventory';
-import { buildSpiritFieldSeedMaterialFromPlant } from '@daoyou/game-domain/spirit-field';
+import { buildSpiritGardenSeed } from '../spirit-field/garden.js';
 import { auctionBlockReason, auctionItemPriceCap } from './items.js';
 import {
   calculateAuctionSettlement,
@@ -45,32 +45,7 @@ describe('auctionConfig', () => {
   });
 
   it('灵植种子同样只有玄品及以上可以寄售', () => {
-    const seed = buildSpiritFieldSeedMaterialFromPlant({
-      id: 'seed-test',
-      seedName: '青芽草灵种',
-      seedDescription: '一枚青色种籽。',
-      clueTexts: ['遇到温和灵机时微微发热', '似乎喜爱山间清气'],
-      quality: '凡品',
-      element: '木',
-      minRealm: '炼气',
-      stageDurationMs: {
-        germination: 4 * 60_000,
-        nourishing: 4 * 60_000,
-        forming: 4 * 60_000,
-      },
-      growthForm: 'herb',
-      harvestPart: 'leaf',
-      preferredMethods: ['seasonal_nurture'],
-      avoidedMethods: [],
-      preferredHabitats: ['mountain'],
-      avoidedHabitats: [],
-      growthTraits: ['qi-sensitive'],
-      useTags: ['alchemy'],
-      outcomeBiases: ['herb'],
-      creationTags: ['Material.Semantic.Wood'],
-      baseYieldMin: 4,
-      baseYieldMax: 6,
-    });
+    const seed = buildSpiritGardenSeed('licorice', '凡品');
     expect(isAuctionListableQuality(seed.rank)).toBe(false);
     const item = {
       definitionId: 'seed.v1',
@@ -81,10 +56,7 @@ describe('auctionConfig', () => {
     const highSeed = {
       ...item,
       instanceData: seedFactsOf(
-        buildSpiritFieldSeedMaterialFromPlant({
-          ...item.instanceData.seedSpec.plant,
-          quality: '玄品',
-        }),
+        buildSpiritGardenSeed('jade_marrow_lingzhi', '玄品'),
       ),
     };
     expect(auctionBlockReason(highSeed)).toBeNull();
@@ -94,7 +66,10 @@ describe('auctionConfig', () => {
         ...item,
         instanceData: {
           ...item.instanceData,
-          seedSpec: { ...item.instanceData.seedSpec, fingerprint: 'invalid' },
+          seedSpec: {
+            ...item.instanceData.seedSpec,
+            plant: { ...item.instanceData.seedSpec.plant, id: 'invalid' },
+          },
         },
       }),
     ).toThrow();

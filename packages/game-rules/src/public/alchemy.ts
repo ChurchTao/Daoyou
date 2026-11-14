@@ -20,7 +20,9 @@ export {
   sortWeightedAlchemyProperties,
 } from '../alchemy/alchemyProperties.js';
 export {
+  calculateAlchemyAnalysisQiCost,
   calculateAlchemyCost,
+  calculateAlchemyCraftQiCost,
   calculateHighestMaterialRank,
 } from '../alchemy/alchemyCost.js';
 export { isAlchemyMaterialType } from '../alchemy/alchemyMaterials.js';

@@ -1,5 +1,6 @@
-import type { MaterialType } from '@daoyou/game-domain/inventory';
 import type { Quality } from '@daoyou/constants/qualities';
+import type { MaterialType } from '@daoyou/game-domain/inventory';
+import type { GeneratedMaterialType } from '@daoyou/game-domain/materials/generation';
 import { getMaterialTypeLabel } from '../presentation/concepts.js';
 
 // 每个品质出现的概率
@@ -15,8 +16,7 @@ export const QUALITY_CHANCE_MAP: Record<Quality, number> = {
 };
 
 // 随机生成时各类型出现的权重 (非固定生成时使用)
-export const TYPE_CHANCE_MAP: Record<MaterialType, number> = {
-  seed: 0,
+export const TYPE_CHANCE_MAP: Record<GeneratedMaterialType, number> = {
   herb: 0.3, // 30% 灵药
   ore: 0.28, // 28% 矿石
   monster: 0.22, // 22% 妖兽材料
@@ -51,8 +51,7 @@ export const TYPE_MULTIPLIERS: Record<MaterialType, number> = {
 };
 
 // 类型中文描述与解释（用于 Prompt）
-export const TYPE_DESCRIPTIONS: Record<MaterialType, string> = {
-  seed: `${getMaterialTypeLabel('seed')} (仅由个人洞府灵田专用生成器产出)`,
+export const TYPE_DESCRIPTIONS: Record<GeneratedMaterialType, string> = {
   herb: `${getMaterialTypeLabel('herb')} (用于炼丹，如灵草、灵果)`,
   ore: `${getMaterialTypeLabel('ore')} (用于炼器，如金属、晶石)`,
   monster: `${getMaterialTypeLabel('monster')} (妖丹、骨骼、皮毛等)`,

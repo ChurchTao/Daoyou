@@ -17,6 +17,7 @@ class ActiveNotFoundController {
     'api/hunts{/{*path}}',
     'api/artifact-migration{/{*path}}',
     'api/manual-migration{/{*path}}',
+    'api/seed-migration{/{*path}}',
   ])
   @HttpCode(404)
   notFound(

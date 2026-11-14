@@ -39,6 +39,7 @@ import {
 import { publishResourceEvents } from '@server/realtime/infrastructure/playerStateBroadcaster.js';
 import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
 import { queueAchievementRumor } from '@server/social/application/achievementRumor.js';
+import { recordGrowthObserved } from '@server/cultivator/application/GrowthDomainEvents.js';
 
 async function readManualFacts(owner: string, q: DbExecutor) {
   const character = await characterIdentityRow(owner, q);
@@ -147,6 +148,11 @@ export async function mutateManuals(owner: string, action: ManualAction) {
           .returning({ id: cultivatorManualStates.cultivatorId });
         if (!updated.length)
           throw new InventoryError('功法已变化，请刷新后重试');
+        await recordGrowthObserved(tx, {
+          cultivatorId: owner,
+          discipline: 'manuals',
+          value: Math.max(0, ...result.state.learned.map((manual) => manual.level)),
+        }, `manual-growth:${owner}:${result.state.revision}`);
         await tx
           .delete(cultivatorManualSlots)
           .where(

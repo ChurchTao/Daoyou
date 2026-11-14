@@ -1,19 +1,15 @@
 import { tierColorMap } from '@app/components/ui/inkBadgeTiers';
-import { beastSkillPresentation } from '@daoyou/game-rules/beasts/presentation';
-import { getLevelRealmStage } from '@daoyou/game-domain/progression';
+import { REALM_VALUES } from '@daoyou/constants/realms';
 import {
+  BEAST_REFINEMENT,
   BEAST_SKILL_CONTENT,
   BEAST_SUPERIOR_BOOK_SKILL_IDS,
-  BEAST_REFINEMENT,
 } from '@daoyou/game-content/beasts';
-import { BEAST_LURE, BEAST_REJUVENATION } from '@daoyou/game-content/items/beasts';
 import {
-  BEAST_LURE_RATE_MULTIPLIER,
-  BEAST_LURE_SEARCHES,
-} from '@daoyou/game-rules/combat/wild';
+  BEAST_LURE,
+  BEAST_REJUVENATION,
+} from '@daoyou/game-content/items/beasts';
 import { CHARACTER_MANUALS_V1 } from '@daoyou/game-content/manuals';
-import { manualEffectLines } from '@daoyou/game-rules/manuals/presentation';
-import { isAdvancedManual } from '@daoyou/game-rules/manuals/projection';
 import { EQUIPMENT_SLOT_NAMES } from '@daoyou/game-domain/equipment';
 import {
   MATERIAL_TYPE_NAMES,
@@ -21,7 +17,19 @@ import {
   SeedPreviewFactsSchema,
   materialFactsOf,
 } from '@daoyou/game-domain/inventory';
-import { REALM_VALUES } from '@daoyou/constants/realms';
+import { getLevelRealmStage } from '@daoyou/game-domain/progression';
+import { beastSkillPresentation } from '@daoyou/game-rules/beasts/presentation';
+import {
+  BEAST_LURE_RATE_MULTIPLIER,
+  BEAST_LURE_SEARCHES,
+} from '@daoyou/game-rules/combat/wild';
+import { manualEffectLines } from '@daoyou/game-rules/manuals/presentation';
+import { isAdvancedManual } from '@daoyou/game-rules/manuals/projection';
+import {
+  getSpiritGardenSpecies,
+  isSpiritGardenSeed,
+  resolveSpiritGardenSpecies,
+} from '@daoyou/game-rules/spirit-field';
 import { field, lines, quantity } from './helpers';
 import type { ItemAdapter } from './types';
 
@@ -35,10 +43,7 @@ export const blueprintAdapter: ItemAdapter = (item, def) => {
       type: '道装图纸',
     },
     preview: (options) => ({
-      header: [
-        field('类型', '道装图纸'),
-        quantity(item, options),
-      ],
+      header: [field('类型', '道装图纸'), quantity(item, options)],
       sections: [],
       description: `记载${EQUIPMENT_SLOT_NAMES[def.slot!]}铸造之法的图纸，铸造时消耗1张。`,
     }),
@@ -84,28 +89,65 @@ export const seedAdapter: ItemAdapter = (item) => {
   const plant = fullFacts.success
     ? fullFacts.data.seedSpec.plant
     : SeedPreviewFactsSchema.parse(item.instanceData).seedPreview;
+  const legacy = fullFacts.success
+    ? !isSpiritGardenSeed(fullFacts.data.seedSpec.plant)
+    : 'legacy' in plant && plant.legacy === true;
+  const species =
+    fullFacts.success && !legacy
+      ? getSpiritGardenSpecies(
+          resolveSpiritGardenSpecies(fullFacts.data.seedSpec.plant),
+        )
+      : null;
   return {
     summary: {
       icon: '🌱',
       color: tierColorMap[plant.quality],
       tier: plant.quality,
-      type: '灵种',
+      type: legacy ? '旧灵种' : '灵种',
     },
     preview: (options) => ({
       header: [
-        field('类型', `${plant.quality} · 灵种`),
-        field('功能', '灵田培育'),
-        field('要求', `${plant.minRealm}及以上`),
+        field('类型', `${plant.quality} · ${legacy ? '旧灵种' : '灵种'}`),
+        field('功能', legacy ? '材料转化' : '灵田培育'),
+        ...(!legacy ? [field('要求', `${plant.minRealm}及以上`)] : []),
         quantity(item, options),
       ],
       sections: [
         {
           title: '道具资料',
-          entries: [{ kind: 'line', label: '五行', value: plant.element }],
+          entries: [
+            { kind: 'line', label: '五行', value: plant.element },
+            ...(species
+              ? [{ kind: 'line' as const, label: '物种', value: species.name }]
+              : []),
+          ],
         },
-        ...(plant.clueTexts.length
-          ? [{ title: '培育线索', entries: lines(plant.clueTexts.join('\n')) }]
-          : []),
+        ...(legacy
+          ? [
+              {
+                title: '转化用途',
+                entries: lines(
+                  '旧灵种无法播种，可在旧灵种转化中等量换取同品质的新种子。',
+                ),
+              },
+            ]
+          : species
+            ? [
+                {
+                  title: '长期培养',
+                  entries: lines(
+                    `成株后可持续培养28天，产出${species.baseOutput.name}。收成已满或灵植处于暂存区时暂停计时；受虫害或偷吃影响而恢复时仍会计时。\n${species.branches.abundance.name}：${species.branches.abundance.output.name}\n${species.branches.essence.name}：${species.branches.essence.output.name}`,
+                  ),
+                },
+              ]
+            : plant.clueTexts.length
+              ? [
+                  {
+                    title: '培育线索',
+                    entries: lines(plant.clueTexts.join('\n')),
+                  },
+                ]
+              : []),
       ],
       description: plant.seedDescription,
     }),
@@ -131,10 +173,7 @@ export const manualAdapter: ItemAdapter = (item, def) => {
         {
           title: '所载功法',
           entries: lines(
-            [
-              ...manualEffectLines(manual, 1),
-              manual.description,
-            ].join('\n'),
+            [...manualEffectLines(manual, 1), manual.description].join('\n'),
           ),
         },
       ],
@@ -162,14 +201,19 @@ export const beastBookAdapter: ItemAdapter = (item, def) => {
         {
           title: '所载传承',
           entries: [
-            ...lines(skill.summary).map((line) => ({ ...line, tone: 'muted' as const })),
+            ...lines(skill.summary).map((line) => ({
+              ...line,
+              tone: 'muted' as const,
+            })),
             ...(skill.details
-              ? [{
-                  kind: 'disclosure' as const,
-                  title: '具体效果',
-                  tone: 'positive' as const,
-                  rows: lines(skill.details),
-                }]
+              ? [
+                  {
+                    kind: 'disclosure' as const,
+                    title: '具体效果',
+                    tone: 'positive' as const,
+                    rows: lines(skill.details),
+                  },
+                ]
               : []),
           ],
         },

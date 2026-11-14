@@ -22,6 +22,7 @@ import { getRealmStageLevel as combatCharacterLevel } from '@daoyou/game-domain/
 import { sectV6Change } from '@daoyou/game-rules/sects';
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import { and, eq } from 'drizzle-orm';
+import { recordGrowthObserved } from '@server/cultivator/application/GrowthDomainEvents.js';
 import { assertInventoryIdle, InventoryError } from '@server/inventory/operations.js';
 import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
 import { StoryService } from '@server/story/application/StoryService.js';
@@ -143,6 +144,13 @@ export async function mutateSectV6(owner: string, action: SectV6Action) {
                 eq(sectMethodProgress.methodId, action.methodId),
               ),
             );
+        if (action.action === 'train') {
+          await recordGrowthObserved(tx, {
+            cultivatorId: owner,
+            discipline: 'sect_methods',
+            value: Math.max(0, ...Object.values(change.progress.methods)),
+          }, `sect-method-growth:${build.membershipId}:${build.revision + 1}`);
+        }
         if (action.action === 'save') {
           const [loadout] = await tx
             .update(sectMeridianLoadouts)

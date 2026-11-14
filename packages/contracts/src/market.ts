@@ -3,6 +3,7 @@ import { z } from 'zod';
 const purchaseItem = z
   .object({
     listingId: z.string().min(1).max(160),
+    // 每个货品整叠限购一次，叠内数量由服务端货架决定。
     quantity: z.literal(1),
   })
   .strict();
@@ -26,6 +27,8 @@ export type MarketPurchaseResult = {
   deliveries: Array<{
     listingId: string;
     name: string;
+    quantity: number;
+    /** 首个入库堆叠的位置；整叠货品可能分散到储物袋和储藏室。 */
     location: 'bag' | 'storage' | 'vault';
   }>;
 };

@@ -61,7 +61,7 @@ function makeBattle(path: Path, scenario: Scenario, level: number, seed: number,
   return createBattle(input);
 }
 
-function simulate(path: Path, scenario: Scenario, level: number, seed: number, loadout: Loadout, guaranteedCombo = false, withPet = true) {
+function simulate(path: Path, scenario: Scenario, level: number, seed: number, loadout: Loadout, guaranteedCombo = false, withPet = true, opening: 'lion' | 'transform' = 'lion') {
   const battle = makeBattle(path, scenario, level, seed, loadout, guaranteedCombo, withPet);
   const enemyIds = battle.state.units.filter(unit => unit.side === 1).map(unit => unit.id);
   for (let turn = 0; turn < 6; turn++) {
@@ -69,7 +69,9 @@ function simulate(path: Path, scenario: Scenario, level: number, seed: number, l
     const available = (skillId: string) => battle.queryCommands('owner').skills.some(skill =>
       skill.skillId === skillId && skill.reasons.length === 0);
     let command: Command;
-    if (!owner.flags.skipNextAction && available(XIAOYUE_SKILL_ID.Transform))
+    if (turn === 0 && opening === 'lion' && available(XIAOYUE_SKILL_ID.LionStrike))
+      command = { type: 'skill', skillId: XIAOYUE_SKILL_ID.LionStrike, targets: ['enemy0'] };
+    else if (!owner.flags.skipNextAction && available(XIAOYUE_SKILL_ID.Transform))
       command = { type: 'skill', skillId: XIAOYUE_SKILL_ID.Transform, targets: ['owner'] };
     else if (!owner.flags.skipNextAction && scenario !== 'single' && available(XIAOYUE_SKILL_ID.EagleStrike))
       command = { type: 'skill', skillId: XIAOYUE_SKILL_ID.EagleStrike, targets: ['enemy0'] };
@@ -89,25 +91,34 @@ function simulate(path: Path, scenario: Scenario, level: number, seed: number, l
     total: damage.owner + damage.pet,
     petActions: battle.log().filter(event => event.type === 'actionStart' && event.unitId === 'pet').length,
     petHits: battle.log().filter(event => event.type === 'damage' && event.sourceId === 'pet').length,
+    lionActions: battle.log().filter(event => event.type === 'actionStart' && event.unitId === 'owner' &&
+      event.command.type === 'skill' && event.command.skillId === XIAOYUE_SKILL_ID.LionStrike).length,
     failedOwnerActions: battle.log().filter(event => event.type === 'actionFailed' && event.unitId === 'owner').length,
   };
 }
 
-describe('啸岳岭同属性六回合伤害边界', () => {
-  it.each([50, 90, 170] as const)('%i 级无经脉基线一致，同功能路线落入六回合预算', level => {
+describe('百兽崖同属性六回合伤害边界', () => {
+  // 首版评审预算保留为主动兽形起手的历史轮转对照，不代表现行默认战术的强度验收。
+  it.each([50, 90, 170] as const)('%i 级历史主动兽形轮转保持双流派六回合预算', level => {
     for (const scenario of ['single', 'three', 'six'] as const)
       for (const loadout of ['baseline', 'matched-healing'] as const) {
         const samples = [11, 23, 37, 53, 71, 89, 107].map(seed => ({
-          blood: simulate('blood', scenario, level, seed, loadout),
-          bond: simulate('bond', scenario, level, seed, loadout),
+          blood: simulate('blood', scenario, level, seed, loadout, false, true, 'transform'),
+          bond: simulate('bond', scenario, level, seed, loadout, false, true, 'transform'),
         }));
         const ratios = samples.map(({ blood, bond }) => bond.total / blood.total).sort((a, b) => a - b);
-        if (loadout === 'baseline') expect(ratios).toEqual(Array(7).fill(1));
-        else {
-          expect(ratios[3]).toBeGreaterThanOrEqual(0.9);
-          expect(ratios[3]).toBeLessThanOrEqual(1.1);
-        }
+        expect(ratios[3], `${scenario}/${loadout}`).toBeGreaterThanOrEqual(0.9);
+        expect(ratios[3], `${scenario}/${loadout}`).toBeLessThanOrEqual(1.1);
         for (const { blood, bond } of samples) {
+          if (loadout === 'baseline') {
+            expect(bond.damage.owner).toBe(blood.damage.owner);
+            if (scenario === 'single') expect(bond.damage.pet).toBeGreaterThan(blood.damage.pet);
+            else {
+              expect(blood.lionActions).toBe(0);
+              expect(bond.lionActions).toBe(0);
+              expect(bond.damage.pet).toBe(blood.damage.pet);
+            }
+          }
           expect(blood.failedOwnerActions).toBe(0);
           expect(bond.failedOwnerActions).toBe(0);
           expect(blood.petActions).toBe(6);
@@ -115,6 +126,36 @@ describe('啸岳岭同属性六回合伤害边界', () => {
           expect(blood.petHits).toBe(6);
           expect(bond.petHits).toBe(6);
           expect(bond.damage.pet).toBeGreaterThanOrEqual(blood.damage.pet);
+        }
+      }
+  });
+
+  it.each([50, 90, 170] as const)('%i 级合并狮搏开局提高各流派六回合输出，狮魂只增强本宠正常行动', level => {
+    for (const scenario of ['single', 'three', 'six'] as const)
+      for (const loadout of ['baseline', 'matched-healing'] as const) {
+        const samples = [11, 23, 37, 53, 71, 89, 107].map(seed => ({
+          blood: simulate('blood', scenario, level, seed, loadout),
+          bond: simulate('bond', scenario, level, seed, loadout),
+          beforeBlood: simulate('blood', scenario, level, seed, loadout, false, true, 'transform'),
+          beforeBond: simulate('bond', scenario, level, seed, loadout, false, true, 'transform'),
+        }));
+        for (const path of ['blood', 'bond'] as const) {
+          const beforeKey = path === 'blood' ? 'beforeBlood' : 'beforeBond';
+          const before = samples.reduce((sum, sample) => sum + sample[beforeKey].total, 0);
+          const after = samples.reduce((sum, sample) => sum + sample[path].total, 0);
+          expect(after, `${scenario}/${loadout}/${path}`).toBeGreaterThan(before);
+        }
+        for (const { blood, bond } of samples) {
+          if (loadout === 'baseline') {
+            expect(bond.damage.owner).toBe(blood.damage.owner);
+            expect(bond.damage.pet).toBeGreaterThan(blood.damage.pet);
+          }
+          for (const result of [blood, bond]) {
+            expect(result.lionActions).toBeGreaterThan(0);
+            expect(result.petActions).toBe(6);
+            expect(result.petHits).toBe(6);
+            expect(result.failedOwnerActions).toBe(0);
+          }
         }
       }
   });

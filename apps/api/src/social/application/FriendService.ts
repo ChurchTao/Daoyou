@@ -1,9 +1,9 @@
-import { MAX_FRIENDS_PER_CULTIVATOR } from '@daoyou/game-content/social/config';
 import type {
   FriendCultivatorSummary,
   FriendSearchResult,
   FriendTargetResponse,
 } from '@daoyou/contracts/friends';
+import { MAX_FRIENDS_PER_CULTIVATOR } from '@daoyou/game-content/social/config';
 import {
   getExecutor,
   type DbExecutor,
@@ -11,6 +11,10 @@ import {
 } from '@server/lib/drizzle/db.js';
 import * as schema from '@server/lib/drizzle/schema.js';
 import { and, desc, eq, inArray, ne, or, sql } from 'drizzle-orm';
+import {
+  assertSocialContactAllowed,
+  readSocialActor,
+} from './SocialTransaction.js';
 
 export class FriendServiceError extends Error {
   constructor(
@@ -277,6 +281,12 @@ export async function assertFriend(
   friendCultivatorId: string,
   executor?: DbExecutor | DbTransaction,
 ): Promise<void> {
+  const q = executor ?? getExecutor();
+  const actor = await readSocialActor(q, cultivatorId);
+  const target = await readSocialActor(q, friendCultivatorId);
+  if (!actor || !target)
+    throw new FriendServiceError(403, '当前无法联系该道友');
+  await assertSocialContactAllowed(q, actor.userId, target.userId);
   if (!(await areFriends(cultivatorId, friendCultivatorId, executor))) {
     throw new FriendServiceError(403, '只能向好友名录中的道友发送');
   }
@@ -292,6 +302,13 @@ export async function assertFriends(
   }
 
   const q = executor ?? getExecutor();
+  const actor = await readSocialActor(q, cultivatorId);
+  if (!actor) throw new FriendServiceError(403, '当前无法联系该道友');
+  for (const targetId of new Set(friendCultivatorIds)) {
+    const target = await readSocialActor(q, targetId);
+    if (!target) throw new FriendServiceError(403, '当前无法联系该道友');
+    await assertSocialContactAllowed(q, actor.userId, target.userId);
+  }
   const rows = await q
     .select({ friendCultivatorId: schema.cultivatorFriends.friendCultivatorId })
     .from(schema.cultivatorFriends)

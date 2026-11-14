@@ -26,6 +26,8 @@ import { AdminSystemMailsController } from './system-mails.controller.js';
 import { AdminSystemMailsService } from './system-mails.service.js';
 import { AdminTowerController } from './tower.controller.js';
 import { AdminTowerService } from './tower.service.js';
+import { AdminWorldChatController } from './world-chat.controller.js';
+import { AdminWorldChatService } from './world-chat.service.js';
 
 @Module({
   imports: [LlmModule,DatabaseModule, AiUsageModule],
@@ -41,6 +43,7 @@ import { AdminTowerService } from './tower.service.js';
     AdminRewardItemsController,
     AdminTowerController,
     AdminDungeonScenariosController,
+    AdminWorldChatController,
   ],
   providers: [
     AdminSystemMailsService,
@@ -56,6 +59,7 @@ import { AdminTowerService } from './tower.service.js';
     AdminRewardItemsService,
     AdminTowerService,
     AdminDungeonScenariosService,
+    AdminWorldChatService,
   ],
 })
 export class AdminModule {}

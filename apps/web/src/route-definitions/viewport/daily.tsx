@@ -77,14 +77,6 @@ export const dailyRoutes = [
   <Route
     path="mail"
     lazy={lazyRoute(() => import('@app/routes/game/mail/route'))}
-    handle={scene(
-      {
-        id: 'mail',
-        presentation: 'service',
-        summary: '查看传音玉简、领取附件，也可联系好友。',
-      },
-      '道友传音',
-    )}
   />,
   <Route
     path="tower"

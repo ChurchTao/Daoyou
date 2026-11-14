@@ -1,10 +1,12 @@
 import { useSyncExternalStore } from 'react';
 
+export type PaperTexture = 'fine' | 'classic' | 'none';
+
 /** Browser-local preferences. Never store credentials or battle progress here. */
 export interface GameSettings {
   mapMode: 'atlas' | 'text';
   imageOpacity: number;
-  paperTexture: boolean;
+  paperTexture: PaperTexture;
   /** Remember the in-battle auto toggle for later battles in this browser. */
   keepCombatAuto: boolean;
   /** Last in-battle auto choice. Honored only while `keepCombatAuto` is on. */
@@ -15,7 +17,7 @@ export const GAME_SETTING_STORAGE_KEY = 'game-setting';
 const defaults: Readonly<GameSettings> = {
   mapMode: 'atlas',
   imageOpacity: 1,
-  paperTexture: true,
+  paperTexture: 'fine',
   keepCombatAuto: false,
   combatAutoHeld: false,
 };
@@ -30,19 +32,26 @@ function normalizeImageOpacity(value: unknown): number {
     : defaults.imageOpacity;
 }
 
+function normalizePaperTexture(value: unknown): PaperTexture {
+  if (value === 'classic') return 'classic';
+  // Preserve the former texture switch's disabled preference.
+  if (value === 'none' || value === false) return 'none';
+  return defaults.paperTexture;
+}
+
 function readSettings(): GameSettings {
   try {
     const stored = JSON.parse(
       localStorage.getItem(GAME_SETTING_STORAGE_KEY) ?? 'null',
     );
-    if (stored?.version === 1) {
+    if (stored?.version === 1 || stored?.version === 2) {
       const keepCombatAuto = stored.keepCombatAuto === true;
       return {
         mapMode: ['atlas', 'text'].includes(stored.mapMode)
           ? stored.mapMode
           : defaults.mapMode,
         imageOpacity: normalizeImageOpacity(stored.imageOpacity),
-        paperTexture: stored.paperTexture !== false,
+        paperTexture: normalizePaperTexture(stored.paperTexture),
         keepCombatAuto,
         combatAutoHeld: keepCombatAuto && stored.combatAutoHeld === true,
       };
@@ -99,7 +108,7 @@ function subscribe(listener: () => void) {
 export function updateGameSettings(patch: Partial<GameSettings>) {
   const next = { ...getSnapshot(), ...patch };
   next.imageOpacity = normalizeImageOpacity(next.imageOpacity);
-  next.paperTexture = next.paperTexture !== false;
+  next.paperTexture = normalizePaperTexture(next.paperTexture);
   next.keepCombatAuto = next.keepCombatAuto === true;
   // The held choice is meaningless until the player asks to keep it.
   next.combatAutoHeld = next.keepCombatAuto && next.combatAutoHeld === true;
@@ -107,7 +116,7 @@ export function updateGameSettings(patch: Partial<GameSettings>) {
   try {
     localStorage.setItem(
       GAME_SETTING_STORAGE_KEY,
-      JSON.stringify({ version: 1, ...next }),
+      JSON.stringify({ version: 2, ...next }),
     );
     memoryOnly = false;
   } catch {

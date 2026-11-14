@@ -1,10 +1,16 @@
-import { getExecutor, type DbExecutor, type DbTransaction } from '@server/lib/drizzle/db.js';
-import { spiritFields } from '@server/lib/drizzle/schema.js';
+import type { LegacySpiritFieldPlotState } from '@daoyou/game-domain/legacy/spirit-field';
+import { readPersistedSpiritGarden } from '@daoyou/game-rules/legacy/spirit-field-plots';
 import {
-  createDefaultSpiritFieldPlots,
-  normalizeSpiritFieldPlots,
-  type SpiritFieldPlotState,
+  createSpiritGarden,
+  parseSpiritGardenState,
+  type SpiritGardenState,
 } from '@daoyou/game-rules/spirit-field';
+import {
+  getExecutor,
+  type DbExecutor,
+  type DbTransaction,
+} from '@server/lib/drizzle/db.js';
+import { spiritFields } from '@server/lib/drizzle/schema.js';
 import { eq, sql } from 'drizzle-orm';
 
 export interface SpiritFieldRecord {
@@ -13,7 +19,8 @@ export interface SpiritFieldRecord {
   selfHarvestCount: number;
   totalCareCount: number;
   starterClaimed: boolean;
-  plots: SpiritFieldPlotState[];
+  plots: LegacySpiritFieldPlotState[];
+  garden: SpiritGardenState | null;
   version: number;
 }
 
@@ -24,7 +31,11 @@ function mapRow(row: typeof spiritFields.$inferSelect): SpiritFieldRecord {
     selfHarvestCount: row.selfHarvestCount,
     totalCareCount: row.totalCareCount,
     starterClaimed: row.starterClaimed,
-    plots: normalizeSpiritFieldPlots(row.plots),
+    plots: row.plots,
+    garden:
+      row.garden === null
+        ? null
+        : readPersistedSpiritGarden(row.garden, row.id),
     version: row.version,
   };
 }
@@ -37,7 +48,8 @@ export async function getOrCreateSpiritField(
     .insert(spiritFields)
     .values({
       cultivatorId,
-      plots: createDefaultSpiritFieldPlots(),
+      plots: [],
+      garden: createSpiritGarden(),
     })
     .onConflictDoNothing({ target: spiritFields.cultivatorId });
 
@@ -60,13 +72,18 @@ export async function updateSpiritField(
       | 'totalCareCount'
       | 'starterClaimed'
       | 'plots'
+      | 'garden'
     >
   >,
 ): Promise<void> {
+  const validatedPatch = {
+    ...patch,
+    ...(patch.garden ? { garden: parseSpiritGardenState(patch.garden) } : {}),
+  };
   await tx
     .update(spiritFields)
     .set({
-      ...patch,
+      ...validatedPatch,
       version: sql`${spiritFields.version} + 1`,
       updatedAt: new Date(),
     })

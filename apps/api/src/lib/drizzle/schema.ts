@@ -25,7 +25,8 @@ import type {
   ResourceTopic,
 } from '@daoyou/contracts/resources';
 import type { BeastLineup, SummonedBeast } from '@daoyou/game-domain/beasts';
-import type { SpiritFieldPlotState } from '@daoyou/game-domain/spirit-field';
+import type { LegacySpiritFieldPlotState } from '@daoyou/game-domain/legacy/spirit-field';
+import type { SpiritGardenState } from '@daoyou/game-domain/spirit-field';
 import type {
   ItemLibraryEditorConfig,
   ItemLibraryPayload,
@@ -244,7 +245,9 @@ export const spiritFields = pgTable(
     selfHarvestCount: integer('self_harvest_count').notNull().default(0),
     totalCareCount: integer('total_care_count').notNull().default(0),
     starterClaimed: boolean('starter_claimed').notNull().default(false),
-    plots: jsonb('plots').$type<SpiritFieldPlotState[]>().notNull().default([]),
+    plots: jsonb('plots').$type<LegacySpiritFieldPlotState[]>().notNull().default([]),
+    // Null retains legacy plots; reads only project unknown occupants until an explicit write.
+    garden: jsonb('garden').$type<SpiritGardenState>(),
     version: integer('version').notNull().default(1),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
@@ -273,6 +276,11 @@ export const accountDeletionRecords = pgTable(
       .default('pending'),
     requestedAt: timestamp('requested_at').notNull().defaultNow(),
     completedAt: timestamp('completed_at'),
+    socialCleanupStatus: varchar('social_cleanup_status', { length: 16 })
+      .$type<'pending' | 'completed'>().notNull().default('pending'),
+    socialCleanupAttempts: integer('social_cleanup_attempts').notNull().default(0),
+    socialCleanupError: text('social_cleanup_error'),
+    socialCleanupCompletedAt: timestamp('social_cleanup_completed_at'),
   },
   (table) => [
     uniqueIndex('account_deletion_records_user_uidx').on(table.userId),
@@ -2529,5 +2537,318 @@ export const wandererBookSales = pgTable(
   },
   (table) => [
     check('wanderer_book_sales_count_check', sql`${table.sales} >= 0`),
+  ],
+);
+
+type SocialRequestStatus =
+  'pending' | 'accepted' | 'rejected' | 'cancelled' | 'expired';
+
+// Social identities survive character deletion. Account erasure anonymizes them explicitly.
+export const socialAccounts = pgTable('wanjiedaoyou_social_accounts', {
+  userId: uuid('user_id').primaryKey(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const friendRequests = pgTable(
+  'wanjiedaoyou_friend_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    pairKey: varchar('pair_key', { length: 80 }).notNull(),
+    requesterCultivatorId: uuid('requester_cultivator_id').notNull(),
+    recipientCultivatorId: uuid('recipient_cultivator_id').notNull(),
+    requesterUserId: uuid('requester_user_id').notNull(),
+    recipientUserId: uuid('recipient_user_id').notNull(),
+    status: varchar('status', { length: 16 })
+      .$type<SocialRequestStatus>()
+      .notNull()
+      .default('pending'),
+    requestId: uuid('request_id').notNull(),
+    revision: integer('revision').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  (t) => [
+    uniqueIndex('friend_requests_pending_pair_uidx')
+      .on(t.pairKey)
+      .where(sql`${t.status} = 'pending'`),
+    uniqueIndex('friend_requests_request_uidx').on(
+      t.requesterUserId,
+      t.requestId,
+    ),
+    index('friend_requests_recipient_idx').on(
+      t.recipientUserId,
+      t.status,
+      t.expiresAt,
+    ),
+    index('friend_requests_requester_idx').on(t.requesterUserId, t.createdAt),
+  ],
+);
+
+export const socialBlocks = pgTable(
+  'wanjiedaoyou_social_blocks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull(),
+    blockedUserId: uuid('blocked_user_id').notNull(),
+    targetName: varchar('target_name', { length: 100 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex('social_blocks_pair_uidx').on(t.userId, t.blockedUserId)],
+);
+
+export const directConversations = pgTable(
+  'wanjiedaoyou_direct_conversations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    pairKey: varchar('pair_key', { length: 80 }).notNull().unique(),
+    lastSequence: bigint('last_sequence', { mode: 'number' })
+      .notNull()
+      .default(0),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+);
+
+export const directConversationMembers = pgTable(
+  'wanjiedaoyou_direct_conversation_members',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => directConversations.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id'),
+    originalCultivatorId: uuid('original_cultivator_id'),
+    name: varchar('name', { length: 100 }).notNull(),
+    lastReadSequence: bigint('last_read_sequence', { mode: 'number' })
+      .notNull()
+      .default(0),
+  },
+  (t) => [
+    uniqueIndex('direct_members_character_uidx').on(
+      t.conversationId,
+      t.originalCultivatorId,
+    ),
+    index('direct_members_user_idx').on(t.userId, t.conversationId),
+  ],
+);
+
+export const directMessages = pgTable(
+  'wanjiedaoyou_direct_messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => directConversations.id, { onDelete: 'cascade' }),
+    senderMemberId: uuid('sender_member_id')
+      .notNull()
+      .references(() => directConversationMembers.id),
+    senderName: varchar('sender_name', { length: 100 }).notNull(),
+    sequence: bigint('sequence', { mode: 'number' }).notNull(),
+    textContent: text('text_content'),
+    clientMessageId: uuid('client_message_id').notNull(),
+    requestFingerprint: varchar('request_fingerprint', {
+      length: 64,
+    }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    expiredAt: timestamp('expired_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('direct_messages_sequence_uidx').on(
+      t.conversationId,
+      t.sequence,
+    ),
+    uniqueIndex('direct_messages_request_uidx').on(
+      t.senderMemberId,
+      t.clientMessageId,
+    ),
+    index('direct_messages_created_idx').on(t.createdAt),
+  ],
+);
+
+export const mentorshipProfiles = pgTable('wanjiedaoyou_mentorship_profiles', {
+  userId: uuid('user_id').primaryKey(),
+  cultivatorId: uuid('cultivator_id'),
+  open: boolean('open').notNull().default(false),
+  directions: text('directions')
+    .array()
+    .notNull()
+    .default(sql`'{}'::text[]`),
+  availableTimes: text('available_times').notNull().default(''),
+  introduction: text('introduction').notNull().default(''),
+  revision: integer('revision').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const mentorshipRequests = pgTable(
+  'wanjiedaoyou_mentorship_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    mentorUserId: uuid('mentor_user_id').notNull(),
+    discipleUserId: uuid('disciple_user_id').notNull(),
+    mentorCultivatorId: uuid('mentor_cultivator_id').notNull(),
+    discipleCultivatorId: uuid('disciple_cultivator_id').notNull(),
+    initiatorUserId: uuid('initiator_user_id').notNull(),
+    requestId: uuid('request_id').notNull(),
+    status: varchar('status', { length: 16 })
+      .$type<SocialRequestStatus>()
+      .notNull()
+      .default('pending'),
+    revision: integer('revision').notNull().default(0),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('mentorship_requests_pending_uidx')
+      .on(t.mentorCultivatorId, t.discipleCultivatorId)
+      .where(sql`${t.status} = 'pending'`),
+    uniqueIndex('mentorship_requests_request_uidx').on(
+      t.initiatorUserId,
+      t.requestId,
+    ),
+    index('mentorship_requests_disciple_idx').on(t.discipleUserId, t.status),
+    index('mentorship_requests_mentor_idx').on(t.mentorUserId, t.status),
+  ],
+);
+
+export const mentorshipRelations = pgTable(
+  'wanjiedaoyou_mentorship_relations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    mentorUserId: uuid('mentor_user_id').notNull(),
+    discipleUserId: uuid('disciple_user_id').notNull(),
+    mentorCultivatorId: uuid('mentor_cultivator_id'),
+    discipleCultivatorId: uuid('disciple_cultivator_id'),
+    mentorOriginalCultivatorId: uuid('mentor_original_cultivator_id').notNull(),
+    discipleOriginalCultivatorId: uuid(
+      'disciple_original_cultivator_id',
+    ).notNull(),
+    mentorName: varchar('mentor_name', { length: 100 }).notNull(),
+    discipleName: varchar('disciple_name', { length: 100 }).notNull(),
+    status: varchar('status', { length: 16 })
+      .$type<'active' | 'graduated' | 'dissolved'>()
+      .notNull()
+      .default('active'),
+    mentorSeat: integer('mentor_seat').notNull(),
+    revision: integer('revision').notNull().default(0),
+    // Retired guidance watermarks remain only for historical data compatibility.
+    guidanceSequence: bigint('guidance_sequence', { mode: 'number' })
+      .notNull()
+      .default(0),
+    apprenticeSeenGuidanceSequence: bigint(
+      'apprentice_seen_guidance_sequence',
+      { mode: 'number' },
+    )
+      .notNull()
+      .default(0),
+    startedAt: timestamp('started_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    endedAt: timestamp('ended_at', { withTimezone: true }),
+    endReason: text('end_reason'),
+    graduationRewardedAt: timestamp('graduation_rewarded_at', { withTimezone: true }),
+    mentorReputationReward: integer('mentor_reputation_reward'),
+    discipleReputationReward: integer('disciple_reputation_reward'),
+  },
+  (t) => [
+    uniqueIndex('mentorship_active_disciple_uidx')
+      .on(t.discipleUserId)
+      .where(sql`${t.status} = 'active'`),
+    uniqueIndex('mentorship_active_seat_uidx')
+      .on(t.mentorUserId, t.mentorSeat)
+      .where(sql`${t.status} = 'active'`),
+    check('mentorship_seat_check', sql`${t.mentorSeat} in (1, 2)`),
+    index('mentorship_relations_mentor_idx').on(t.mentorUserId, t.startedAt),
+    index('mentorship_relations_disciple_idx').on(
+      t.discipleUserId,
+      t.startedAt,
+    ),
+  ],
+);
+
+export const mentorshipAccountStates = pgTable(
+  'wanjiedaoyou_mentorship_account_states',
+  {
+    userId: uuid('user_id').primaryKey(),
+    firstMentorUserId: uuid('first_mentor_user_id'),
+    firstMentorCultivatorId: uuid('first_mentor_cultivator_id'),
+    firstBoundAt: timestamp('first_bound_at', { withTimezone: true }),
+    // Retired one-time cultivation supply; new graduations award reputation.
+    supplyClaimedAt: timestamp('supply_claimed_at', { withTimezone: true }),
+    supplyCultivatorId: uuid('supply_cultivator_id'),
+    revision: integer('revision').notNull().default(0),
+  },
+);
+
+/** Retired guidance archive, retained for account-erasure cleanup only. */
+export const mentorshipGuidance = pgTable(
+  'wanjiedaoyou_mentorship_guidance',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    relationId: uuid('relation_id')
+      .notNull()
+      .references(() => mentorshipRelations.id),
+    mentorUserId: uuid('mentor_user_id').notNull(),
+    discipleUserId: uuid('disciple_user_id').notNull(),
+    milestoneKey: varchar('milestone_key', { length: 32 }).notNull(),
+    content: text('content').notNull(),
+    baselineValue: integer('baseline_value').notNull(),
+    sequence: bigint('sequence', { mode: 'number' }).notNull(),
+    creditedAt: timestamp('credited_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('mentorship_guidance_sequence_uidx').on(
+      t.relationId,
+      t.sequence,
+    ),
+    index('mentorship_guidance_relation_idx').on(t.relationId, t.createdAt),
+  ],
+);
+
+export const achievementUnlocks = pgTable(
+  'wanjiedaoyou_achievement_unlocks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id').notNull().references(() => cultivators.id, { onDelete: 'cascade' }),
+    achievementId: varchar('achievement_id', { length: 160 }).notNull(),
+    sourceKey: varchar('source_key', { length: 200 }).notNull(),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
+    unlockedAt: timestamp('unlocked_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('achievement_unlocks_character_definition_uidx').on(t.cultivatorId, t.achievementId),
+    index('achievement_unlocks_character_time_idx').on(t.cultivatorId, t.unlockedAt),
+  ],
+);
+
+export const achievementMetrics = pgTable(
+  'wanjiedaoyou_achievement_metrics',
+  {
+    cultivatorId: uuid('cultivator_id').notNull().references(() => cultivators.id, { onDelete: 'cascade' }),
+    metric: varchar('metric', { length: 160 }).notNull(),
+    value: integer('value').notNull().default(0),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.cultivatorId, t.metric] }),
+    check('achievement_metrics_value_valid', sql`${t.value} >= 0`),
   ],
 );

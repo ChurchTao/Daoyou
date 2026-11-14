@@ -7,6 +7,8 @@ import {
   igniteBeastLure,
 } from '@daoyou/game-rules/combat/wild';
 import { stripExpCapForStorage } from '@daoyou/game-rules/cultivation';
+import { normalizeBodyCultivationState } from '@daoyou/game-rules/body-cultivation/progress';
+import { recordGrowthObserved } from '@server/cultivator/application/GrowthDomainEvents.js';
 import {
   conditionChangesAfterConsumable,
   innRecoveryChanges,
@@ -171,6 +173,14 @@ export function consumeCultivatorConsumable(args: {
             .where(eq(cultivators.id, args.actor.cultivatorId))
             .limit(1);
           if (!state) throw new Error('角色不存在');
+          if ('family' in result.consumable.spec && result.consumable.spec.family === 'tempering') {
+            const body = normalizeBodyCultivationState(state.condition as CultivatorCondition);
+            await recordGrowthObserved(tx, {
+              cultivatorId: args.actor.cultivatorId,
+              discipline: 'body',
+              value: Math.max(0, ...Object.values(body.tracks).map((track) => track.level)),
+            });
+          }
           const remainingConsumable = await getCultivatorConsumableById(
             args.actor.cultivatorId,
             args.consumableId,

@@ -1,3 +1,4 @@
+import { realtimeClient } from '@app/lib/realtime/realtimeClient';
 import { GuideOverlay } from '@app/components/feature/guide/GuideOverlay';
 import { SceneGate } from '@app/components/feature/story/SceneGate';
 import { StoryTracker } from '@app/components/feature/story/StoryTracker';
@@ -101,6 +102,10 @@ export function GameViewportLayout() {
 }
 
 function GameViewportBody({ scene }: { scene: GameSceneHandle | null }) {
+  useEffect(() => {
+    realtimeClient.enableChannel('social');
+    return () => realtimeClient.disableChannel('social');
+  }, []);
   const location = useLocation();
   const hud = useGameHudModel();
   const routeKey = `${location.pathname}${location.search}`;

@@ -34,7 +34,7 @@ const TALISMAN_SCENARIO_HREFS: Record<string, string> = {
   [CHEAT_HEAVEN_TALISMAN_SCENARIO]: '/game/sect/transfer',
   fate_reshape: '/game/fate-reshape',
   [IDENTITY_RESHAPE_SCENARIO]: '/game/identity-reshape',
-  [FRIEND_MAIL_TALISMAN_SCENARIO]: '/game/mail',
+  [FRIEND_MAIL_TALISMAN_SCENARIO]: '/game/friends',
   [AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO]: '/game/auction',
 };
 
@@ -44,7 +44,7 @@ const TALISMAN_SCENARIO_ACTION_LABELS: Record<string, string> = {
   [CHEAT_HEAVEN_TALISMAN_SCENARIO]: '前往欺天台转宗',
   fate_reshape: '前往重塑',
   [IDENTITY_RESHAPE_SCENARIO]: '前往改命',
-  [FRIEND_MAIL_TALISMAN_SCENARIO]: '去传音',
+  [FRIEND_MAIL_TALISMAN_SCENARIO]: '选择赠物道友',
   [AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO]: '去上架',
 };
 

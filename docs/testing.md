@@ -83,7 +83,7 @@ Lint、TypeScript／构建、Prettier 是静态质量检查，不是额外一层
 
 新库存材料使用 `type: item`、`definitionId: material.v1`、`instanceData: { name, type, rank, element?, description? }`。传承灵印使用注册的定义 ID；随机道装使用 `{ "type": "equipment", "slot": "weapon", "level": 10 }`，法兵默认生成剑，可加 `weaponType` 指定 `axe/blade/spear/staff/sword/fan/bell/brush/banner`，非武器不得指定。全部定义在 `packages/game-content/src/items`，参数边界见 `packages/contracts/src/forging.ts`。
 
-旧丹药／消耗品、旧材料和灵种的 `vault-consumable`、`vault-material`、`vault-seed` 发放仍接受原事实，但写入当前背包，不再进入洞府宝库。新版消耗品也可直接使用 `type: item`、`definitionId: consumable.v1` 及同一完整 facts 作为 instanceData。该能力仍只在纯本地开放。
+旧丹药／消耗品和旧材料的 `vault-consumable`、`vault-material` 写入当前背包，不再进入洞府宝库。`vault-seed` 只接受 `seedSpec.version = 2` 的当前灵植目录种子，旧种不能通过新物资发放入口生成；验证旧种转化可使用下述 `historical` 邮件保留旧资产事实，再通过正式领取与转化。新版消耗品也可直接使用 `type: item`、`definitionId: consumable.v1` 及同一完整 facts 作为 instanceData。该能力仍只在纯本地开放。
 
 邮件附件验收可提交 `{ "type": "mail", "format": "historical" | "new_reward", "attachments": [...] }`。附件遵循共享 MailAttachmentsSchema，每次1–20个。format默认为new_reward，经过正式新奖励生产入口；historical原样保存合法附件协议，可构造新旧混合邮件。领取时材料与消耗品进入当前背包，旧法宝附件会拒绝入库。邮件固定使用本地验收标题与正文，返回邮件ID。该能力只创建样本，领取仍需真实角色通过正式邮件接口完成，不直接标记领取或绕过好友赠送成本。
 
@@ -112,6 +112,12 @@ Lint、TypeScript／构建、Prettier 是静态质量检查，不是额外一层
 所有数值为新绝对值，省略字段保持原值。基础属性支持 vitality、strength、spirit、endurance、speed、willpower（1–10000）；待分配属性点 0–100000、灵石 0–100000000、声望 0–1000000。resources 必须同时给出 hp、mp（0–10000000），按调整后 v6 构筑的资源上限裁剪。不自动分配属性、补满资源或迁移宗门深度。
 
 空对象、未知字段、非法境界或越界值返回 400；不存在或非活跃角色、战斗占用返回 409。角色调整采用角色锁和数据库事务，提交后更新资源版本；脚本发起的变更后应刷新页面获取新数据。禁止修改用户归属、认证、角色状态等任意数据库字段。测试结束恢复事先记录的境界、属性和准备性资源改动，保留实际玩法奖励与战绩。
+
+### 本地灵田成长准备
+
+同一 `PATCH /api/dev/cultivators/:id` 可提交 `{ "spiritField": { "finishGrowth": 0, "milestone": "branch" } }`。`finishGrowth` 为 0–5 的田块序号；`milestone` 可选 `mature`、`branch`、`evolve`、`yield`，省略时推进至下一成长机会。准备使用当前规则结算时间，只推进指定在田株，不替玩家选择分支、完成蜕变或领取产物。收藏株不能通过此入口继续成长。
+
+此能力仍受纯本地环境限制、角色锁与事务保护。跨天节点验收先记录原灵田、库存与货币基准，再用正式页面执行后续操作；完成后恢复临时成长准备及本次测试物资，不覆盖其他角色或原有资产。
 
 ### 本地灵根与先天命格
 

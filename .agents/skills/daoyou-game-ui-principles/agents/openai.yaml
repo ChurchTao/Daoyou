@@ -1,0 +1,4 @@
+interface:
+  display_name: "万界道友 UI 设计原则"
+  short_description: "为所有玩法建立清晰的信息优先级、操作重心与按需披露时机"
+  default_prompt: "使用 $daoyou-game-ui-principles 设计或审查当前玩法的信息层级、视觉重心和披露时机，让玩家清楚当前状态与下一步，并在决策前看见必要收益、代价与风险。"

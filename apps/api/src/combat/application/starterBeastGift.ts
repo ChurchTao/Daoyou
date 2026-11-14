@@ -5,6 +5,7 @@ import {
   carriedBeastIds,
 } from '@daoyou/game-rules/beasts/growth';
 import { canDeployBeast } from '@daoyou/game-rules/beasts/projection';
+import { recordGrowthObserved } from '@server/cultivator/application/GrowthDomainEvents.js';
 import type { DbTransaction } from '@server/lib/drizzle/db.js';
 import {
   cultivatorBeastLineups,
@@ -42,6 +43,11 @@ export async function giveStarterBeast(
     cultivatorId,
     individual: beastIndividualData(beast),
   });
+  await recordGrowthObserved(
+    tx,
+    { cultivatorId, discipline: 'beasts', value: beast.level },
+    `starter-beast-growth:${cultivatorId}`,
+  );
   const lineup = {
     carriedBeastIds: [...carried, beast.id],
     leadBeastId:

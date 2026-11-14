@@ -1,8 +1,10 @@
+import { MaterialFactsSchema } from '@daoyou/game-domain/inventory';
 import { describe, expect, it } from 'vitest';
 import { forgingBoosts } from '../forging/rules.js';
 import { groupAlchemyBagMaterials } from '../inventory/alchemy.js';
 import { addItems } from '../inventory/test-helpers.js';
-import { MaterialFactsSchema } from '@daoyou/game-domain/inventory';
+import { legacySeedMaterial } from '../legacy/seed-fixtures.js';
+import { buildSpiritGardenSeed } from '../spirit-field/garden.js';
 import { legacyMaterialUnavailableReason } from './legacy-material.js';
 
 describe('legacy material connectivity', () => {
@@ -64,9 +66,16 @@ describe('legacy material connectivity', () => {
           rank: '凡品',
           details,
         }),
-      ).toContain('已弃用');
+      ).toContain('转化');
     expect(
       legacyMaterialUnavailableReason({ type: 'herb', rank: '凡品' }),
     ).toBeUndefined();
+  });
+
+  it('routes valid old seeds to conversion while permitting current catalog seeds', () => {
+    const current = buildSpiritGardenSeed('licorice', '凡品');
+    const old = legacySeedMaterial();
+    expect(legacyMaterialUnavailableReason(old)).toContain('转化');
+    expect(legacyMaterialUnavailableReason(current)).toBeUndefined();
   });
 });

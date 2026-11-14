@@ -8,7 +8,7 @@
 
 - `GameGenesisLayout`：`/game/create`、`/game/reincarnate`
 - `GameNarrativeLayout`：`/game/story`、`/game/sect/onboarding`、`/game/identity-reshape` 等无 HUD、无全局导航的沉浸页。`/game/story` 用剧情播放器读当前演出；本地开发另有 `/game/story/preview`：按演出编号读取同一套配置来看，不写进度。
-- `GameViewportLayout`：常规主流程页，包括 `/game`、`/game/inventory`、`/game/retreat`、`/game/cultivator`、`/game/skills`、`/game/techniques`、`/game/artifacts`、`/game/craft/alchemy`、`/game/craft/refine`、`/game/beast-room`、`/game/enlightenment*`、`/game/fate-reshape`、`/game/market*`、`/game/black-market`、`/game/auction`、`/game/hunt-team`、`/game/mail`、`/game/world-chat`、`/game/community`、`/game/download`、`/game/redeem`、`/game/settings/feedback`、`/game/rankings`、`/game/battle/history`、`/game/dungeon/history`
+- `GameViewportLayout`：常规主流程页，包括 `/game`、`/game/inventory`、`/game/retreat`、`/game/cultivator`、`/game/skills`、`/game/techniques`、`/game/artifacts`、`/game/craft/alchemy`、`/game/craft/refine`、`/game/beast-room`、`/game/enlightenment*`、`/game/fate-reshape`、`/game/market*`、`/game/black-market`、`/game/auction`、`/game/hunt-team`、`/game/friends`、`/game/friends/chat/:conversationId`、`/game/mentorship`、`/game/mail`、`/game/world-chat`、`/game/community`、`/game/download`、`/game/redeem`、`/game/settings/feedback`、`/game/rankings`、`/game/battle/history`、`/game/dungeon/history`
 - `GameActivityLayout`：`/game/sect/gate/sweep`、`/game/sect/spirit-vein/mining` 等无 HUD、无全局导航的全屏互动玩法
 - `GameCombatLayout`：`/game/battle`、`/game/battle/challenge`、`/game/battle/live/:matchId`、`/game/battle/:id`、宗门任务战斗
 - `CombatV6Layout`：`/game/training-room`、`/game/wild`，独立于 v5 战斗布局及状态容器
@@ -16,6 +16,10 @@
 - `GameDungeonLayout`：`/game/dungeon`
 
 ## 共享组件归位
+
+- `/game/friends` 的 `friends` 场景整合道友列表、私聊与置顶「系统传音」会话，以 `?chat=会话ID` 选定私聊，`?chat=system-mail` 在同一工作区查看一封一封的信件。桌面左侧列表、右侧会话，窄屏原地切换；列表不设搜索框，申请、寻访与屏蔽在管理面板。系统传音先展示精简信件目录，行内区分未读与附件状态，并保留标题、时间和简短预览；选定后在原区域阅读完整正文、预览附件及单封领取，可查看上一封、下一封或返回目录。目录滚动不标记已读，只有当前打开的信件在窗口可见、聚焦且无遮挡时才标记已读。批量领取与全部已读直接放在系统传音顶部，窄屏紧凑单行排列；返回目录、刷新和切换会话保留当前信件与阅读位置。旧 `/game/friends/chat/:conversationId` 保留 `friends-chat` 兼容场景并 replace 到统一工作区。私聊消息外观、输入器和视口测量共用 `components/feature/chat/`，会话按 ID 保留草稿、发送状态与阅读锚点。
+- `/game/mentorship` 的 `mentorship` 场景负责寻师收徒、请求、结构化指导、四项出师进境和桃李记录；师徒私聊进入好友系统的同一会话。赠物留在当前私聊，通过 `/game/friends?chat=会话ID&composeTo=道友ID` 打开工作区父级的固定收件人弹层，发送前显示传音符费用与附件数量。系统传音不再拥有独立 `mail` 场景；普通 `/game/mail` 只做 replace 兼容跳转到系统传音，旧 `composeTo` 配合 `conversation` 则迁移到对应私聊并打开赠物弹层。旧 `tab=friends` 及带 `addFriend` 的链接仍进入好友列表或关系弹层；目标失效不改投其他好友，`conversation` 只用作站内私聊 ID。无目标的传音符入口先选择好友。新邮件和赠物链接统一使用 `lib/social/mailNavigation.ts` 的常量与构造函数。
+- 核心底栏的「传音」进入 `/game/friends`。邮件未读、私聊未读和好友申请汇总为「传音」红点，置顶系统传音行显示邮件未读数；展开导航「交游」只保留师徒，师徒待办提示展开红点。世界传音由常驻聊天预览条进入；修仙日志和探险札记保留在「见闻」。完整规则及交付范围见 [师徒好友与私聊系统](mentorship-and-friends-design.md)。
 
 - 洞府「育兽室」进入 `/game/beast-room`，复用炼丹房的 `RoomView` 设施选择界面，可分别进入灵兽袋、灵兽仓库、灵兽图鉴和灵兽融合；「储藏室」「灵田」直接进入各自页面。旧 `/game/craft` 造物仙炉汇总页已删除，炼丹房与炼器室保留独立入口。炼器室可进入装备图鉴。
 

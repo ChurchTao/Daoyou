@@ -38,6 +38,7 @@ import {
   cultivatorBeasts,
 } from '@server/lib/drizzle/schema.js';
 import { createDomainEvent } from '@server/lib/mq/domainEventWriter.js';
+import { recordGrowthObserved } from '@server/cultivator/application/GrowthDomainEvents.js';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock.js';
 import {
   beastIndividualData,
@@ -50,7 +51,7 @@ import { ResourceEventCommitter } from '@server/player/application/state/Resourc
 import { publishResourceEvents } from '@server/realtime/infrastructure/playerStateBroadcaster.js';
 import { textFilter } from '@server/social/application/textFilter.js';
 import { StoryService } from '@server/story/application/StoryService.js';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, count } from 'drizzle-orm';
 import { createHash, randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import { giveStarterBeast } from './starterBeastGift.js';
@@ -168,6 +169,14 @@ export async function fuseOwnedBeasts(
       fingerprint,
       parents: [a, b],
       result,
+    });
+    const [fusionRows] = await tx.select({ count: count() })
+      .from(cultivatorBeastFusions).where(eq(cultivatorBeastFusions.cultivatorId, cultivatorId));
+    await recordGrowthObserved(tx, {
+      cultivatorId, discipline: 'beast_fusions', value: fusionRows.count,
+    }, `beast-fusion-growth:${cultivatorId}:${input.requestId}`);
+    await recordGrowthObserved(tx, {
+      cultivatorId, discipline: 'beasts', value: result.level,
     });
     if (result.skills.length > 5) {
       const owner = await readBeastOwner(cultivatorId, tx);

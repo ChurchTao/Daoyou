@@ -1,3 +1,4 @@
+import { endSocialRelationsForCharacter } from '@server/social/social-lifecycle.js';
 import {
   breakthroughHistory,
   cultivators,
@@ -97,6 +98,7 @@ export async function reincarnateActiveCultivator(args: {
       if (!updated) {
         throw new Error('角色状态已经变化，请刷新后重试');
       }
+      await endSocialRelationsForCharacter(tx, args.actor.cultivatorId, 'death');
       await tx.insert(breakthroughHistory).values({
         cultivatorId: args.actor.cultivatorId,
         from_realm: current.realm,

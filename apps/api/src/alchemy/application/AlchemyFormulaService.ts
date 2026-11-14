@@ -28,7 +28,9 @@ import { type MaterialType } from '@daoyou/game-domain/inventory';
 import type { ResourceOperationSettlement } from '@daoyou/game-domain/resources';
 import {
   buildAlchemyYieldPreview,
+  calculateAlchemyAnalysisQiCost,
   calculateAlchemyCost,
+  calculateAlchemyCraftQiCost,
   calculateAlchemyQiCost,
   calculateHighestMaterialRank,
   formatAlchemyPropertyVector,
@@ -1397,7 +1399,9 @@ export async function analyzeFormulaMaterials(
             cultivatorId,
             action: 'alchemy_formula',
             actionInstanceId,
-            cost: calculateAlchemyQiCost(current.materials),
+            cost: calculateAlchemyAnalysisQiCost(
+              calculateAlchemyQiCost(current.materials),
+            ),
             metadata: {
               formulaId,
               analysisId: input.requestId,
@@ -1687,7 +1691,10 @@ export async function prepareFormulaCraft(
     batchProfile,
     dominantElement,
   });
-  const qiCost = prepaid ? 0 : calculateAlchemyQiCost(materialsList);
+  const qiCost = calculateAlchemyCraftQiCost(
+    calculateAlchemyQiCost(materialsList),
+    prepaid?.payload.qiCostPaid,
+  );
   if (formula.blueprint.needsRebirth) {
     throw new AlchemyServiceError('此丹方需要升级后才能炼制。', 409);
   }

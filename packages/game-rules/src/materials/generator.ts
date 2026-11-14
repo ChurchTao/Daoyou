@@ -1,7 +1,3 @@
-import {
-  MATERIAL_TYPE_VALUES,
-  type MaterialType,
-} from '@daoyou/game-domain/inventory';
 import { QUALITY_VALUES, type Quality } from '@daoyou/constants/qualities';
 import {
   QUALITY_CHANCE_MAP,
@@ -10,7 +6,9 @@ import {
   RANK_TO_QUALITY,
   TYPE_CHANCE_MAP,
 } from '@daoyou/game-content/materials';
+import { INVENTORY_MATERIAL_TYPES } from '@daoyou/game-domain/inventory';
 import {
+  type GeneratedMaterialType,
   type MaterialRandomOptions,
   type MaterialSkeleton,
 } from '@daoyou/game-domain/materials/generation';
@@ -21,9 +19,11 @@ export class MaterialGenerator {
     options: MaterialRandomOptions = {},
     rng: () => number = Math.random,
   ): MaterialSkeleton[] {
-    if (options.specifiedType === 'seed') {
-      throw new Error('灵植种子必须使用 SpiritSeedGenerator 生成');
-    }
+    if (
+      options.specifiedType &&
+      !INVENTORY_MATERIAL_TYPES.includes(options.specifiedType)
+    )
+      throw new Error('不支持的材料生成类型');
     const skeletons: MaterialSkeleton[] = [];
 
     for (let i = 0; i < count; i++) {
@@ -97,20 +97,20 @@ export class MaterialGenerator {
   private static randomType(
     regionTags?: string[],
     rng: () => number = Math.random,
-  ): MaterialType {
+  ): GeneratedMaterialType {
     const weightedMap = this.getTypeChanceMapByRegion(regionTags);
     const rand = rng();
     let accumulated = 0;
-    for (const type of MATERIAL_TYPE_VALUES) {
+    for (const type of INVENTORY_MATERIAL_TYPES) {
       accumulated += weightedMap[type] || 0;
-      if (rand <= accumulated) return type;
+      if (weightedMap[type] > 0 && rand < accumulated) return type;
     }
     return 'herb';
   }
 
   private static getTypeChanceMapByRegion(
     regionTags?: string[],
-  ): Record<MaterialType, number> {
+  ): Record<GeneratedMaterialType, number> {
     if (!regionTags || regionTags.length === 0) {
       return TYPE_CHANCE_MAP;
     }
@@ -118,7 +118,7 @@ export class MaterialGenerator {
     const next = { ...TYPE_CHANCE_MAP };
     const normalizedTags = regionTags.map((tag) => tag.toLowerCase());
 
-    const boost = (type: MaterialType, factor: number) => {
+    const boost = (type: GeneratedMaterialType, factor: number) => {
       next[type] = Math.max(0, next[type] * factor);
     };
 
@@ -152,10 +152,13 @@ export class MaterialGenerator {
       boost('aux', 1.15);
     }
 
-    const sum = MATERIAL_TYPE_VALUES.reduce((acc, type) => acc + next[type], 0);
+    const sum = INVENTORY_MATERIAL_TYPES.reduce(
+      (acc, type) => acc + next[type],
+      0,
+    );
     if (sum <= 0) return TYPE_CHANCE_MAP;
 
-    for (const type of MATERIAL_TYPE_VALUES) {
+    for (const type of INVENTORY_MATERIAL_TYPES) {
       next[type] = next[type] / sum;
     }
     return next;

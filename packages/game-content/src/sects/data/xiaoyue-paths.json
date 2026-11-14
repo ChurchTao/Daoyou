@@ -1,13 +1,38 @@
 {
   "$schema": "./xiaoyue-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 3,
+  "contentRevision": 4,
   "passives": [
     {
       "id": "xiaoyue.passive.bond.foundation",
       "name": "狮魂同契",
-      "description": "你用狮搏或最佳搭档击倒非灵兽敌人时，自己仍在场且存活的灵兽会获得[[xiaoyue.status.lion_soul]]。灵兽用最佳搭档接力击倒标记目标时，也会在本次行动结束后获得狮魂。",
+      "description": "你用狮搏命中敌人时，自己仍在场且存活的灵兽会获得[[xiaoyue.status.lion_soul]]，每回合最多触发一次。你用最佳搭档击倒非灵兽敌人时，或灵兽用最佳搭档接力击倒标记目标时，也会获得狮魂；灵兽接力获得的狮魂在本次行动结束后赋予。",
       "hooks": [
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.lion_soul",
+              "duration": 99
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "ownedPet",
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.lion_strike"
+            ],
+            "requireKind": "physical",
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "targetEnemy": true,
+            "sourceHasStandingPet": true,
+            "sourceStanding": true,
+            "oncePerRound": true
+          }
+        },
         {
           "on": "onDeath",
           "effects": [
@@ -21,7 +46,6 @@
           "aim": "ownedPet",
           "when": {
             "skillIds": [
-              "xiaoyue.skill.lion_strike",
               "xiaoyue.skill.best_partners"
             ],
             "excludeFoeKinds": [
@@ -279,7 +303,7 @@
     {
       "id": "xiaoyue.passive.blood.1.2",
       "name": "迅捷",
-      "description": "对战非玩家敌人时，开场自动获得一回合[[xiaoyue.status.transform]]。期间物攻降低，降低值等于你的人物等级。",
+      "description": "对战非玩家敌人时，开场自动获得两回合[[xiaoyue.status.transform]]。期间物攻降低，降低值等于你的人物等级。",
       "hooks": [
         {
           "on": "onRoundStart",
@@ -742,7 +766,7 @@
     {
       "id": "xiaoyue.passive.blood.6.2",
       "name": "乱击",
-      "description": "连环击改为缩短兽形两回合。施放时临时提高相当于《狂兽诀》等级的物攻，本次伤害额外提高10%。",
+      "description": "施放连环击时临时提高相当于《狂兽诀》等级的物攻，本次伤害额外提高10%。",
       "modifiers": [
         {
           "physicalAttackAdd": "skillLevel",
@@ -1756,7 +1780,7 @@
         {
           "id": "xiaoyue.node.blood.1.2",
           "name": "迅捷",
-          "description": "对战非玩家敌人时，开场自动获得一回合[[xiaoyue.status.transform]]。期间物攻降低，降低值等于你的人物等级。",
+          "description": "对战非玩家敌人时，开场自动获得两回合[[xiaoyue.status.transform]]。期间物攻降低，降低值等于你的人物等级。",
           "layer": 1,
           "slot": 2,
           "passives": [
@@ -1906,7 +1930,7 @@
         {
           "id": "xiaoyue.node.blood.6.2",
           "name": "乱击",
-          "description": "连环击改为缩短兽形两回合。施放时临时提高相当于《狂兽诀》等级的物攻，本次伤害额外提高10%。",
+          "description": "施放连环击时临时提高相当于《狂兽诀》等级的物攻，本次伤害额外提高10%。",
           "layer": 6,
           "slot": 2,
           "passives": [
@@ -1968,7 +1992,7 @@
     {
       "id": "xiaoyue.path.bond",
       "name": "灵兽同契",
-      "description": "与自己的出战灵兽并肩作战。你用狮搏击倒非灵兽敌人时，仍在场且存活的灵兽会获得狮魂，使下一次主动直接物理或法术攻击命中的第一击伤害提高8%。",
+      "description": "与自己的出战灵兽并肩作战。你用狮搏命中敌人时，仍在场且存活的灵兽会获得狮魂，每回合最多触发一次，使下一次主动直接物理或法术攻击命中的第一击伤害提高8%。",
       "requiresConnectedNodes": true,
       "foundationPassives": [
         "xiaoyue.passive.bond.foundation"

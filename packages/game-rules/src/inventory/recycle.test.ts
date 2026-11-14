@@ -1,9 +1,8 @@
+import type { Consumable } from '@daoyou/game-domain/character';
+import { consumableFactsOf, seedFactsOf } from '@daoyou/game-domain/inventory';
 import { describe, expect, it } from 'vitest';
 import { generateForgedEquipment } from '../equipment/forging.js';
-import { buildSpiritFieldSeedDetails } from '@daoyou/game-domain/spirit-field';
-import type { SpiritFieldPlantSnapshot } from '@daoyou/game-domain/spirit-field';
-import { consumableFactsOf, seedFactsOf } from '@daoyou/game-domain/inventory';
-import type { Consumable } from '@daoyou/game-domain/character';
+import { buildSpiritGardenSeed } from '../spirit-field/garden.js';
 import { recycleBlockingReason } from './recycle.js';
 import {
   blueprintRecycleUnitPrice,
@@ -56,41 +55,13 @@ describe('回收边界', () => {
     expect(recycleBlockingReason({ ...item, location: 'storage' })).toBeNull();
   });
   it('合法灵种与功法玉简可以回收，损坏事实仍被拒绝', () => {
-    const plant: SpiritFieldPlantSnapshot = {
-      id: 'recycle-seed',
-      seedName: '青露种',
-      seedDescription: '可培育灵果。',
-      clueTexts: [],
-      quality: '玄品',
-      element: '木',
-      minRealm: '炼气',
-      growthForm: 'shrub',
-      harvestPart: 'fruit',
-      preferredMethods: [],
-      avoidedMethods: [],
-      preferredHabitats: [],
-      avoidedHabitats: [],
-      growthTraits: [],
-      useTags: [],
-      outcomeBiases: [],
-      creationTags: [],
-      stageDurationMs: {
-        germination: 60_000,
-        nourishing: 60_000,
-        forming: 60_000,
-      },
-      baseYieldMin: 1,
-      baseYieldMax: 2,
-    };
     const seed = {
       id: 'seed',
       definitionId: 'seed.v1',
       location: 'bag' as const,
-      instanceData: seedFactsOf({
-        type: 'seed',
-        rank: '玄品',
-        details: buildSpiritFieldSeedDetails(plant),
-      }),
+      instanceData: seedFactsOf(
+        buildSpiritGardenSeed('jade_marrow_lingzhi', '玄品'),
+      ),
     };
     expect(recycleBlockingReason(seed)).toBeNull();
     expect(seedRecycleUnitPrice('玄品')).toBe(300);

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
 import { BEAST_SKILLS } from '@daoyou/game-content/beasts';
 import { createBattle } from '@daoyou/combat-core/session';
-import { type SkillDef, type StatusDef } from '@daoyou/combat-core/types';
+import { type CreateBattleInput, type SkillDef, type StatusDef } from '@daoyou/combat-core/types';
 import type { CombatV6TrainingPlayerInput } from '@daoyou/game-domain/combat';
 import { CombatV6PveHostSession } from './encounter/host.js';
 import { projectCharacterToCombatV6 } from './projection/project-character.js';
@@ -1152,11 +1152,11 @@ describe('当前场次托管', () => {
             'wanqiao.skill.echo', 'wanqiao.skill.pierce',
           ],
           'xiaoyue.path.blood': [
-            'xiaoyue.skill.transform', 'xiaoyue.skill.chain_strike',
+            'xiaoyue.skill.lion_strike', 'xiaoyue.skill.transform', 'xiaoyue.skill.chain_strike',
             'xiaoyue.skill.eagle_strike', 'xiaoyue.skill.lion_strike',
           ],
           'xiaoyue.path.bond': [
-            'xiaoyue.skill.transform', 'xiaoyue.skill.lion_strike',
+            'xiaoyue.skill.lion_strike', 'xiaoyue.skill.transform', 'xiaoyue.skill.lion_strike',
             'xiaoyue.skill.eagle_strike', 'xiaoyue.skill.lion_strike',
           ],
         };
@@ -1924,6 +1924,106 @@ describe('通用效用策略与观察边界', () => {
       type: 'skill',
       skillId: 'revive',
     });
+  });
+});
+
+describe('百兽崖默认战术的开局与人数节奏', () => {
+  function setup(pathIndex: 0 | 1, enemyCount = 2, opponentKind: 'player' | 'npc' = 'player') {
+    const player = towerReferenceBuild('xiaoyue', '金丹', '中期', pathIndex);
+    const projection = projectCharacterToCombatV6({
+      ...player, side: 0, slot: 0, resourcePolicy: 'full',
+    });
+    if (!projection.ok) throw new Error('百兽崖参考构筑编译失败');
+    const attrs = { hp: 1000000, maxHp: 1000000, speed: 1, physicalAtk: 1, physicalDef: 100 };
+    const enemies = Array.from({ length: enemyCount }, (_, index): CreateBattleInput['units'][number] => ({
+      id: `enemy-${index}`,
+      name: '敌人',
+      kind: index === 0 ? opponentKind : index === 1 && opponentKind === 'player' ? 'pet' : 'npc',
+      ...(index === 1 && opponentKind === 'player' ? { ownerId: 'enemy-0' } : {}),
+      side: 1,
+      slot: index,
+      level: projection.unit.level,
+      attrs,
+    }));
+    const battle = createBattle({
+      seed: 42,
+      versions: { ...COMBAT_V6_CHARACTER_BUILD_VERSIONS, autoPolicyVersion: AUTO_POLICY_VERSION },
+      ruleset: daoyouRulesetV6,
+      skills: projection.skills,
+      statusDefs: projection.statusDefs,
+      units: [
+        { ...projection.unit, id: 'player', attrs: { ...projection.unit.attrs, ...attrs, speed: 1000, physicalAtk: 1000, mp: 10000, maxMp: 10000 } },
+        { id: 'pet', name: '本人灵兽', kind: 'pet', ownerId: 'player', side: 0, attrs },
+        ...enemies,
+      ],
+    });
+    const choose = () => automaticCommands(
+      battle.snapshot(), 'player', projection.skills, id => battle.queryCommands(id),
+      { statusDefs: projection.statusDefs, strategies: { player: DEFAULT_AUTO_STRATEGIES[player.sect!.activePathId!] } },
+    );
+    function round() {
+      const commands = choose();
+      for (const { unitId, command } of commands) battle.submit(unitId, command);
+      for (const enemy of battle.state.units.filter(unit => unit.side === 1))
+        battle.submit(enemy.id, { type: 'defend' });
+      battle.lockAndResolve();
+      return commands.find(entry => entry.unitId === 'player')!.command;
+    }
+    const transformed = () => battle.unit('player').statuses.some(status => status.id === 'xiaoyue.status.transform');
+    return { battle, choose, round, transformed };
+  }
+
+  for (const pathIndex of [0, 1] as const) {
+    it.each(['player', 'npc'] as const)('道途' + pathIndex + '对%s两目标开局狮搏消耗50法力，兽形内持续单攻', opponentKind => {
+      const { battle, round, transformed } = setup(pathIndex, 2, opponentKind);
+      expect(round()).toMatchObject({ type: 'skill', skillId: 'xiaoyue.skill.lion_strike' });
+      expect(battle.unit('player').attrs.mp).toBe(9950);
+      expect(transformed()).toBe(true);
+      expect(battle.log().filter(event => event.type === 'damage' && event.sourceId === 'player')).toHaveLength(1);
+      expect(round()).toMatchObject({ type: 'skill', skillId: 'xiaoyue.skill.lion_strike' });
+      expect(battle.unit('player').attrs.mp).toBe(9920);
+    });
+
+    it('道途' + pathIndex + '面对三个敌人时在开局狮搏后使用鹏击', () => {
+      const { battle, round } = setup(pathIndex, 3);
+      expect(round()).toMatchObject({ type: 'skill', skillId: 'xiaoyue.skill.lion_strike' });
+      const before = battle.log().length;
+      expect(round()).toMatchObject({ type: 'skill', skillId: 'xiaoyue.skill.eagle_strike' });
+      expect(battle.log().slice(before).filter(event => event.type === 'damage' && event.sourceId === 'player')).toHaveLength(3);
+      expect(battle.unit('player').attrs.mp).toBe(9900);
+      expect(battle.unit('player').statuses.some(status => status.id === 'xiaoyue.status.rest')).toBe(true);
+    });
+
+    it('道途' + pathIndex + '首次合并化形用尽后，兽形自然结束时重新主动化形', () => {
+      const { battle, round, transformed } = setup(pathIndex);
+      expect(round()).toMatchObject({ type: 'skill', skillId: 'xiaoyue.skill.lion_strike' });
+      for (let turn = 0; turn < 10 && transformed(); turn++)
+        expect(round()).toMatchObject({ type: 'skill', skillId: 'xiaoyue.skill.lion_strike' });
+      expect(transformed()).toBe(false);
+      const mp = battle.unit('player').attrs.mp;
+      expect(round()).toMatchObject({ type: 'skill', skillId: 'xiaoyue.skill.transform' });
+      expect(battle.unit('player').attrs.mp).toBe(mp - 20);
+      expect(transformed()).toBe(true);
+      expect(round()).toMatchObject({ type: 'skill', skillId: 'xiaoyue.skill.lion_strike' });
+      expect(battle.unit('player').attrs.mp).toBe(mp - 50);
+    });
+
+    it.each(['法力不足', '尚未学会狮搏'] as const)('道途' + pathIndex + '%s时回退主动兽形', reason => {
+      const { battle, round, transformed } = setup(pathIndex);
+      if (reason === '法力不足') battle.unit('player').attrs.mp = 49;
+      else battle.unit('player').skills = battle.unit('player').skills.filter(id => id !== 'xiaoyue.skill.lion_strike');
+      const mp = battle.unit('player').attrs.mp;
+      expect(round()).toMatchObject({ type: 'skill', skillId: 'xiaoyue.skill.transform' });
+      expect(battle.unit('player').attrs.mp).toBe(mp - 20);
+      expect(transformed()).toBe(true);
+    });
+  }
+
+  it('百相化形已有兽形时仍优先对残血目标使用连环击', () => {
+    const { battle, round } = setup(0);
+    round();
+    battle.unit('enemy-0').attrs.hp = 200000;
+    expect(round()).toMatchObject({ type: 'skill', skillId: 'xiaoyue.skill.chain_strike', targets: ['enemy-0'] });
   });
 });
 

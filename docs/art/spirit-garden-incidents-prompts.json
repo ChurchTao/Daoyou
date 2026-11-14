@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "tool": "built-in image_gen",
+  "designNote": "三类事件通用透明墨像。风格基准在生成前人工查看，提示词用文字描述其笔墨；新图生成未传编辑目标。灵兽插画为偷吃行为示意，不代表玩家携带灵兽，也不承诺遗种。异化以新枝剪影表达速生，不代替物种阶段立绘。",
+  "visualReviewReferences": [
+    "apps/web/public/assets/icons/beast-bifang.webp",
+    "apps/web/public/assets/icons/beast-qilin.webp",
+    "apps/web/public/assets/icons/beast-baize.webp",
+    "apps/web/public/assets/spirit-garden/botanical-garden-fan.webp",
+    "apps/web/public/assets/spirit-garden/botanical-garden-tian.webp"
+  ],
+  "delivery": {
+    "width": 512,
+    "height": 512,
+    "format": "transparent WebP",
+    "quality": 88,
+    "alphaQuality": 100,
+    "review": "已检查 alpha、纸色与深色合成；页面正常不透明度，服从 GameImage 玩家设置。"
+  },
+  "assets": [
+    {
+      "kind": "pests",
+      "file": "apps/web/public/assets/spirit-garden/incidents/pests-v1.webp",
+      "source": "exec-54245599-8665-490b-91b9-dd691826abe3.png",
+      "prompt": "Use case: illustration-story. Asset type: a transparent Chinese ink-painting event vignette for a cultivation game's spirit garden, square composition readable at 96–128px. Create ONE standalone illustration for the event 虫害 / insect damage: two small curved green caterpillars visibly nibbling a cluster of broad medicinal leaves; irregular bite holes and a partially eaten leaf edge are the unmistakable focal point. Keep it gentle and game appropriate. Chinese xieyi ink and restrained mineral-color wash: broad directional warm-gray ink brush masses establish leaf stems and silhouettes, a few dark ink accents, dry-brush flying-white breaks and transparent negative spaces, subtle sap-green localized color on the caterpillars and leaves. Match hand-brushed ancient botanical illustrations and expressive ink beast portraits, not photorealism or a watercolor clip-art sticker. Organize a single compact asymmetrical silhouette with a little breathing room at all edges, no clipping of leaves or insects. Preserve separate open negative spaces between stems, within bite holes and around the caterpillars; these must be genuinely transparent. Background must be fully transparent alpha, including every blank area. No paper color, no white rectangle, no ground plane, no environment, no shadow halo, no words, no calligraphy, no seals, no frame, no particles, no glow, no uniform contour outlines, no realistic surface rendering. The image communicates a specific occurrence, with caterpillars actively eating, rather than an insect specimen."
+    },
+    {
+      "kind": "beast",
+      "file": "apps/web/public/assets/spirit-garden/incidents/beast-v1.webp",
+      "source": "exec-b4809cc1-98db-4442-8705-1a2c883f9401.png",
+      "prompt": "Use case: illustration-story. Asset type: standalone transparent ink-painting event vignette for a Chinese cultivation game's spirit garden, square composition readable at 96–128px. Primary request: illustrate 灵兽偷吃, a small wild spirit fox stealing tender medicinal foliage. Show the complete small fox crouching beside just one little leafy sprig, muzzle holding a bitten green leaf, one front paw gently pinning the sprig; the fox looks back over its shoulder alertly. Its long arched tail balances a clear asymmetric silhouette; body, muzzle, paw, tail and bitten leaf must remain clearly connected and identifiable at small scale. Animal anatomy rather than a human cartoon face. This is an event in progress, not a fox specimen. Style: expressive Chinese xieyi ink, broad directional warm-gray and charcoal brush masses, a few dark ink anchors, dry-brush breaks and genuinely transparent flying-white spaces. Restrained ochre on a small portion of the fox's coat, muted mineral green only on the foliage. Visible brush construction rather than photoreal fur, cel shading or watercolor clip-art. A compact full silhouette with breathing room around every edge; no clipping. Background fully transparent alpha, including negative spaces inside the silhouette. No landscape, no ground plane, no cast shadow or aura, no paper texture or paper-colored rectangle, no extra animals, no berries, no dropped seeds, no inventory objects, no text, no seals, no borders, no glow or particles. Match a warm-gray expressive ink beast and medicinal botanical illustration family."
+    },
+    {
+      "kind": "mutation",
+      "file": "apps/web/public/assets/spirit-garden/incidents/mutation-v1.webp",
+      "source": "exec-72db9b2b-e0dd-47e7-80cc-cda585a548d3.png",
+      "prompt": "Use case: illustration-story. Asset type: standalone transparent Chinese ink-painting event vignette for a cultivation game's spirit garden, square composition readable at 96–128px. Primary request: illustrate 异化速生, a medicinal plant that has acquired rapid growth. A single small rooted medicinal herb with an unmistakable vigorous branching silhouette: one normal lower leaf cluster and a newly unfurling fork of large curled leaves rising from its center, a fresh violet-tipped shoot and a cluster of clearly extended pale roots. Communicate unexpected new growth through structural change and the contrast between the compact old leaves and energetic new shoots. No other plant, no comparison panel and no floating magic symbols. Style: Chinese xieyi ink and restrained mineral color. Broad directional warm-gray ink masses build stems and leaf clusters, a few charcoal accents anchor leaf joints and roots, dry-brush flying-white breaks and transparent negative spaces separate branches. Local muted violet pigment on the new shoot and muted sap-green on a few leaves; ink remains the principal structure. Match hand-brushed ancient medicinal botanical illustrations and expressive ink beast portraits, not photoreal rendering or a watercolor clip-art sticker. Compact asymmetric form, full roots and upper shoots visible, with breathing room at all four edges, no clipping. Background genuinely fully transparent alpha, including all gaps among roots and stems. No landscape, no soil clod, no ground plane or cast shadow, no paper-colored rectangle or paper texture, no glow, no light streaks, no halo, no particles, no text, no labels, no seals, no border."
+    }
+  ]
+}

@@ -41,6 +41,7 @@ const focusableSelector = [
   'input:not([disabled])',
   'select:not([disabled])',
   'textarea:not([disabled])',
+  'summary',
   '[tabindex]:not([tabindex="-1"])',
 ].join(',');
 
@@ -96,7 +97,11 @@ export function InkDetailDrawer({
     if (!panel) return;
     const focusable = Array.from(
       panel.querySelectorAll<HTMLElement>(focusableSelector),
-    ).filter((element) => !element.hasAttribute('disabled'));
+    ).filter(
+      (element) =>
+        !element.hasAttribute('disabled') &&
+        element.checkVisibility({ visibilityProperty: true }),
+    );
     if (focusable.length === 0) {
       event.preventDefault();
       panel.focus();

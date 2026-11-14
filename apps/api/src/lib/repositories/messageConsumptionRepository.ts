@@ -34,6 +34,8 @@ export async function pruneMessageConsumptions(
         lt(messageConsumptions.processedAt, cutoff),
         ne(messageConsumptions.consumerName, COMBAT_V6_CONDITION_CONSUMER),
         ne(messageConsumptions.consumerName, 'hunt-reward-v1'),
+        // Achievement counters must survive old-message replay after routine cleanup.
+        ne(messageConsumptions.consumerName, 'achievement-projector-v1'),
       ),
     )
     .returning({ messageId: messageConsumptions.messageId });

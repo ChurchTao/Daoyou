@@ -1,3 +1,4 @@
+import { clearDirectChatStorage } from '@app/lib/social/drafts';
 export const ACCOUNT_DELETION_CONFIRMATION = '注销账号';
 
 export const ACCOUNT_DELETION_LOCAL_STORAGE_KEYS = [
@@ -9,7 +10,8 @@ export const ACCOUNT_DELETION_SESSION_STORAGE_KEYS = [
   'reincarnateContext',
 ] as const;
 
-type StorageRemover = Pick<Storage, 'removeItem'>;
+type StorageRemover = Pick<Storage, 'removeItem'> &
+  Partial<Pick<Storage, 'length' | 'key'>>;
 
 function removeKeys(storage: StorageRemover, keys: readonly string[]) {
   for (const key of keys) {
@@ -34,4 +36,5 @@ export function clearAccountDeletionBrowserData(
 ): void {
   removeKeys(localStorage, ACCOUNT_DELETION_LOCAL_STORAGE_KEYS);
   removeKeys(sessionStorage, ACCOUNT_DELETION_SESSION_STORAGE_KEYS);
+  clearDirectChatStorage(sessionStorage);
 }

@@ -1,4 +1,3 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
@@ -9,31 +8,29 @@ import {
   InkInput,
   InkNotice,
   InkQuantityInput,
-  InkSelect,
 } from '@app/components/ui';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { apiFetch } from '@app/lib/api/fetch';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
 import type { FriendCultivatorSummary } from '@daoyou/contracts/friends';
 import type { InventoryView } from '@daoyou/contracts/inventory';
+import { SendMailSchema } from '@daoyou/contracts/mail';
 import { mailGiftBlockReason } from '@daoyou/game-rules/mail';
 import {
   hasReachedLateQiRefining,
   LATE_QI_FRIEND_GIFT_DENIED,
 } from '@daoyou/game-rules/progression/realm-access';
-import { SendMailSchema } from '@daoyou/contracts/mail';
 import { useRef, useState } from 'react';
 
 export function MailComposer({
   friends,
   recipientId,
-  onRecipientChange,
   onClose,
 }: {
   friends: FriendCultivatorSummary[];
   recipientId: string;
-  onRecipientChange: (id: string) => void;
   onClose: () => void;
 }) {
   const profile = useCultivatorIdentity();
@@ -59,6 +56,7 @@ export function MailComposer({
   const attempt = useRef<{ key: string; id: string }>(undefined);
   const { mutate } = useResourceMutation();
   const { pushToast } = useInkUI();
+  const recipient = friends.find((friend) => friend.id === recipientId);
   const refresh = bagQuery.reload;
   function choose(item: InventoryView['items'][number]) {
     if (pending.current || bagUnavailable) return;
@@ -72,7 +70,12 @@ export function MailComposer({
     setBagOpen(false);
   }
   async function send() {
-    if (pending.current || bagUnavailable || (giftOpen && selectedRef && !selected))
+    if (
+      pending.current ||
+      !friends.some((friend) => friend.id === recipientId) ||
+      bagUnavailable ||
+      (giftOpen && selectedRef && !selected)
+    )
       return;
     if (selected && !giftOpen) {
       pushToast({ message: LATE_QI_FRIEND_GIFT_DENIED, tone: 'warning' });
@@ -179,29 +182,24 @@ export function MailComposer({
           else onClose();
         }
       }}
-      title="发送传音"
+      title="传音赠物"
       className={giftOpen ? 'max-w-5xl' : 'max-w-xl'}
     >
       <div
         className={giftOpen ? 'grid min-w-0 gap-6 lg:grid-cols-2' : 'min-w-0'}
       >
         <div className="min-w-0 space-y-4 lg:sticky lg:top-0 lg:self-start">
-          <InkSelect
-            label="收信道友"
-            value={recipientId}
-            onChange={onRecipientChange}
-            disabled={busy || !friends.length}
-          >
-            <option value="">选择好友</option>
-            {friends.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name} · {f.realm}
-                {f.realmStage}
-              </option>
-            ))}
-          </InkSelect>
+          <div className="flex items-baseline gap-3">
+            <span className="text-ink-secondary text-sm">赠予</span>
+            <div className="min-w-0">
+              <p className="font-semibold break-words">{recipient?.name}</p>
+              <p className="text-ink-secondary mt-1 text-xs">
+                {recipient?.realm} {recipient?.realmStage}
+              </p>
+            </div>
+          </div>
           <InkInput
-            label="传音内容"
+            label="随信留言"
             value={content}
             onChange={setContent}
             multiline
@@ -271,7 +269,9 @@ export function MailComposer({
               {LATE_QI_FRIEND_GIFT_DENIED}
             </p>
           )}
-          <p className="text-ink-secondary text-xs">发送消耗一张空白传音符</p>
+          <p className="text-ink-secondary text-xs">
+            消耗 <span className="font-mono">1</span> 张空白传音符
+          </p>
           <div className="flex justify-end gap-3">
             <InkButton disabled={busy} onClick={onClose}>
               取消
@@ -280,7 +280,7 @@ export function MailComposer({
               variant="primary"
               pending={busy}
               disabled={
-                !friends.length ||
+                !friends.some((friend) => friend.id === recipientId) ||
                 busy ||
                 bagUnavailable ||
                 (giftOpen && !!selectedRef && !selected)

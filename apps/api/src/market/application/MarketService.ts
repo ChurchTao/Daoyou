@@ -1,42 +1,51 @@
-import type { AiService } from '@nestjs/ai';
-import { SpiritSeedGenerator } from '@server/lib/generation/SpiritSeedGenerator.js';
-import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db.js';
-import {
-  cultivators,
-  playerMutationRequests,
-} from '@server/lib/drizzle/schema.js';
-import { redis } from '@server/lib/redis/index.js';
-import { parseRedisJson } from '@server/lib/redis/json.js';
-import {
-  isRedisLockContention,
-  redisLockKeys,
-  withRedisLock,
-} from '@server/lib/redis/lock.js';
+import type { Quality } from '@daoyou/constants/qualities';
+import { QUALITY_ORDER, QUALITY_VALUES } from '@daoyou/constants/qualities';
+import type { RealmType } from '@daoyou/constants/realms';
 import type { MarketPurchaseResult } from '@daoyou/contracts/market';
+import { findItemDefinition } from '@daoyou/game-content/items';
+import { MARKET_PRESET_FALLBACK_LAYERS } from '@daoyou/game-content/market';
 import {
   BASE_PRICES,
+  MARKET_PRESET_POOL,
   QUALITY_CHANCE_MAP,
   TYPE_CHANCE_MAP,
   TYPE_MULTIPLIERS,
-  MARKET_PRESET_POOL,
 } from '@daoyou/game-content/materials';
-import {
-  getSpiritFieldMarketSeedSlotCount,
-} from '@daoyou/game-rules/spirit-field';
-import { readSpiritFieldSeedSpec } from '@daoyou/game-domain/spirit-field';
+import { SPIRIT_GARDEN_MARKET_SEED_QUALITY_WEIGHTS } from '@daoyou/game-content/spirit-field/config';
+import type { PreHeavenFate } from '@daoyou/game-domain/character';
+import type { MaterialType } from '@daoyou/game-domain/inventory';
 import { MaterialFactsSchema } from '@daoyou/game-domain/inventory';
-import { findItemDefinition } from '@daoyou/game-content/items';
+import type {
+  MarketAccessState,
+  MarketItemListing,
+  MarketLayer,
+  MarketListing,
+  MarketMaterialListing,
+  MysteryRevealContext,
+  RegionProfile,
+  ResolvedLayerConfig,
+} from '@daoyou/game-domain/market';
+import type { GeneratedMaterialType } from '@daoyou/game-domain/materials/generation';
+import { readSpiritGardenSeedSpec } from '@daoyou/game-domain/spirit-field';
 import {
   evaluateFateContext,
   getMarketPurchasePriceMultiplier,
   scaleFateAdjustedCost,
 } from '@daoyou/game-rules/character/fates';
+import { InventoryEquipmentSchema } from '@daoyou/game-rules/inventory/equipment';
 import { sampleBeastMarketStock } from '@daoyou/game-rules/market/beast-stock';
 import {
   equipmentMarketPurchasePrice,
   sampleEquipmentMarketStock,
 } from '@daoyou/game-rules/market/equipment-stock';
-import { InventoryEquipmentSchema } from '@daoyou/game-rules/inventory/equipment';
+import {
+  marketMaterialStackRange,
+  rollMarketMaterialStock,
+} from '@daoyou/game-rules/market/material-stock';
+import {
+  getSpiritFieldMarketSeedSlotCount,
+  isSpiritGardenSeed,
+} from '@daoyou/game-rules/spirit-field';
 import {
   BLACK_MARKET_HIGH_TIER_MIN,
   getCurrentCycle,
@@ -52,26 +61,33 @@ import {
   resolveLayerConfig,
   validateLayerAccess,
 } from '@daoyou/game-rules/world/market';
-import type { MaterialType } from '@daoyou/game-domain/inventory';
-import type { Quality } from '@daoyou/constants/qualities';
-import type { RealmType } from '@daoyou/constants/realms';
-import { QUALITY_ORDER, QUALITY_VALUES } from '@daoyou/constants/qualities';
-import type { PreHeavenFate } from '@daoyou/game-domain/character';
-import type { MarketAccessState, MarketItemListing, MarketLayer, MarketListing, MarketMaterialListing, MysteryRevealContext, RegionProfile, ResolvedLayerConfig } from '@daoyou/game-domain/market';
-import { MARKET_PRESET_FALLBACK_LAYERS } from '@daoyou/game-content/market';
-import { and, eq, inArray, sql } from 'drizzle-orm';
-import { createHash, randomInt } from 'node:crypto';
-import { grantInventory } from '@server/inventory/operations.js';
-import { deliverMarketMaterial } from '@server/market/application/MarketInventoryDelivery.js';
-import {
-  sanitizeMaterialDetails,
-  type HiddenMysteryReveal,
-} from '@server/inventory/material-privacy.js';
+import type { AiService } from '@nestjs/ai';
 import {
   materialLibraryEntryToMaterial,
   sampleMaterialLibraryEntries,
   type MaterialLibrarySampleRequest,
 } from '@server/admin/application/MaterialLibraryService.js';
+import {
+  sanitizeMaterialDetails,
+  type HiddenMysteryReveal,
+} from '@server/inventory/material-privacy.js';
+import { grantInventory } from '@server/inventory/operations.js';
+import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db.js';
+import {
+  cultivators,
+  playerMutationRequests,
+} from '@server/lib/drizzle/schema.js';
+import { redis } from '@server/lib/redis/index.js';
+import { parseRedisJson } from '@server/lib/redis/json.js';
+import {
+  isRedisLockContention,
+  redisLockKeys,
+  withRedisLock,
+} from '@server/lib/redis/lock.js';
+import { deliverMarketMaterial } from '@server/market/application/MarketInventoryDelivery.js';
+import { SpiritGardenSeedGenerator } from '@server/spirit-field/application/SpiritGardenSeedGenerator.js';
+import { and, eq, inArray, sql } from 'drizzle-orm';
+import { createHash, randomInt } from 'node:crypto';
 
 // ─── Redis 键前缀 ───
 
@@ -239,7 +255,7 @@ function rollHighTierQuality(layerConfig: ResolvedLayerConfig): Quality | null {
 /**
  * 按 typeWeights 加权选取材料类型
  */
-function weightedPickType(profile: RegionProfile): MaterialType {
+function weightedPickType(profile: RegionProfile): GeneratedMaterialType {
   const weights = profile.typeWeights;
   const allTypes = MaterialFactsSchema.shape.type.options;
 
@@ -332,7 +348,7 @@ function buildPriceAnchoredRankRange(
 
 // ─── 神秘物品伪装 ───
 
-function buildMysteryMask(type: MaterialType) {
+function buildMysteryMask(type: GeneratedMaterialType) {
   const manualMaskPool = {
     names: ['虫蛀的旧经卷', '残页秘术抄本', '封角破损的典籍'],
     descriptions: [
@@ -343,13 +359,9 @@ function buildMysteryMask(type: MaterialType) {
   };
 
   const poolByType: Record<
-    MaterialType,
+    GeneratedMaterialType,
     { names: string[]; descriptions: string[] }
   > = {
-    seed: {
-      names: ['封存灵种'],
-      descriptions: ['灵种只由灵田专用生成器塑造，不参与通用神秘物品生成。'],
-    },
     herb: {
       names: ['枯萎的灵草束', '封泥药囊', '残叶草根'],
       descriptions: [
@@ -410,7 +422,9 @@ function applyMysteryLayer(
   return listings.map((item) => {
     if (Math.random() > mysteryChance) return item;
 
-    const mask = buildMysteryMask(item.type);
+    const mask = buildMysteryMask(
+      MaterialFactsSchema.shape.type.parse(item.type),
+    );
     const disguiseRank = rollDisguiseRank();
     const noisyMultiplier = rollMysteryPriceNoiseMultiplier();
     const disguisedPrice = Math.max(
@@ -463,12 +477,12 @@ function applyMysteryLayer(
 function sanitizeListing(listing: InternalMarketListing): MarketListing {
   if ('definitionId' in listing) return listing;
   const seedSpec =
-    listing.type === 'seed' ? readSpiritFieldSeedSpec(listing.details) : null;
+    listing.type === 'seed' ? readSpiritGardenSeedSpec(listing.details) : null;
   return {
     id: listing.id,
     nodeId: listing.nodeId,
     layer: listing.layer,
-    name: listing.name,
+    name: seedSpec ? seedSpec.plant.seedName : listing.name,
     type: listing.type,
     rank: listing.rank,
     element: listing.element,
@@ -476,6 +490,7 @@ function sanitizeListing(listing: InternalMarketListing): MarketListing {
     details: seedSpec
       ? {
           seedPreview: {
+            legacy: !isSpiritGardenSeed(seedSpec.plant),
             quality: seedSpec.plant.quality,
             element: seedSpec.plant.element,
             minRealm: seedSpec.plant.minRealm,
@@ -738,7 +753,6 @@ async function generateFromMaterialLibrary(
 
 /** 按节点配置注入动态灵种；普通坊市不再固定占位，黑市始终不注入。 */
 async function injectSpiritFieldSeedListings(
-  ai: AiService,
   listings: InternalMarketMaterialListing[],
   nodeId: string,
   layer: MarketLayer,
@@ -752,9 +766,9 @@ async function injectSpiritFieldSeedListings(
   );
   if (slots <= 0) return listings;
 
-  const seeds = await SpiritSeedGenerator.generateRandom(ai, slots, {
+  const seeds = SpiritGardenSeedGenerator.generateRandom(slots, {
     rankRange: layerConfig.rankRange,
-    regionTags: getNodeRegionTags(nodeId),
+    qualityChanceMap: SPIRIT_GARDEN_MARKET_SEED_QUALITY_WEIGHTS,
   });
   const seedListings: InternalMarketMaterialListing[] = seeds.map(
     (material) => ({
@@ -856,7 +870,6 @@ async function generateListings(
   }
 
   listings = await injectSpiritFieldSeedListings(
-    ai,
     listings,
     nodeId,
     layer,
@@ -868,6 +881,11 @@ async function generateListings(
   if (layer === 'black') {
     const mysteryChance = layerConfig.mysteryChance ?? 0.7;
     listings = applyMysteryLayer(listings, mysteryChance, layerConfig);
+  } else {
+    listings = listings.map((item) => ({
+      ...item,
+      ...rollMarketMaterialStock(item),
+    }));
   }
 
   return listings;
@@ -959,6 +977,21 @@ function parseCachedData(raw: string | null): CachedMarketData | null {
   return {
     ...asData,
     listings: asData.listings.filter((item) => {
+      if (
+        !Number.isSafeInteger(item.price) ||
+        item.price < 1 ||
+        !Number.isSafeInteger(item.quantity) ||
+        item.quantity < 1
+      )
+        return false;
+      if (!('definitionId' in item) && !QUALITY_VALUES.includes(item.rank))
+        return false;
+      const maxQuantity =
+        'definitionId' in item || item.layer === 'black'
+          ? 1
+          : marketMaterialStackRange(item).max;
+      // Existing single-item shelves keep their IDs, prices and purchase quotas.
+      if (item.quantity > maxQuantity) return false;
       const profile = getMarketConfigByNodeId(item.nodeId)?.region_profile;
       if (profile === 'equipment') {
         if (!('definitionId' in item) || item.definitionId !== 'equipment.v6')
@@ -975,13 +1008,21 @@ function parseCachedData(raw: string | null): CachedMarketData | null {
           item.price > 0
         );
       }
+      const seedSpec =
+        !('definitionId' in item) && item.type === 'seed'
+          ? readSpiritGardenSeedSpec(item.details)
+          : null;
       return 'definitionId' in item
         ? profile === 'beast' &&
             (findItemDefinition(item.definitionId)?.kind === 'beast_book' ||
-              findItemDefinition(item.definitionId)?.kind === 'beast_refinement' ||
-              findItemDefinition(item.definitionId)?.kind === 'beast_rejuvenation')
+              findItemDefinition(item.definitionId)?.kind ===
+                'beast_refinement' ||
+              findItemDefinition(item.definitionId)?.kind ===
+                'beast_rejuvenation')
         : item.type === 'seed'
-          ? readSpiritFieldSeedSpec(item.details) !== null
+          ? seedSpec !== null &&
+            isSpiritGardenSeed(seedSpec.plant) &&
+            seedSpec.plant.quality === item.rank
           : MaterialFactsSchema.shape.type.safeParse(item.type).success;
     }),
   };
@@ -1006,13 +1047,16 @@ export function getMarketAccess(
   return validateLayerAccess(cultivatorRealm, layer, config);
 }
 
-export async function getMarketListings(ai: AiService, input: {
-  nodeId: string;
-  layer: MarketLayer;
-  userId: string;
-  cultivatorRealm: RealmType;
-  fates?: PreHeavenFate[];
-}) {
+export async function getMarketListings(
+  ai: AiService,
+  input: {
+    nodeId: string;
+    layer: MarketLayer;
+    userId: string;
+    cultivatorRealm: RealmType;
+    fates?: PreHeavenFate[];
+  },
+) {
   const { nodeId, layer, userId, cultivatorRealm } = input;
   if (!isMarketNodeEnabled(nodeId)) {
     throw new MarketServiceError(404, '该地图节点未开放坊市');
@@ -1059,7 +1103,7 @@ export async function getMarketListings(ai: AiService, input: {
       boughtIds.has(l.id) ||
       durableBought.has(purchaseKey(nodeId, layer, cycle, l.id))
         ? 0
-        : 1,
+        : l.quantity,
   }));
 
   return {
@@ -1155,7 +1199,8 @@ export async function prepareBatchMarketPurchase(input: BatchBuyInput) {
                       definitionId: item.definitionId,
                       quantity: 1,
                       instanceData:
-                        item.definitionId === 'equipment.v6' && item.instanceData
+                        item.definitionId === 'equipment.v6' &&
+                        item.instanceData
                           ? { ...item.instanceData, id: crypto.randomUUID() }
                           : undefined,
                     },
@@ -1163,11 +1208,17 @@ export async function prepareBatchMarketPurchase(input: BatchBuyInput) {
                   tx,
                 )
               )[0]
-            : await deliverMarketMaterial(cultivatorId, item, tx);
+            : await deliverMarketMaterial(
+                cultivatorId,
+                item,
+                tx,
+                item.quantity,
+              );
         if (!delivered) throw new Error('坊市物品入库失败');
         deliveries.push({
           listingId: item.id,
-          name: item.name,
+          name: sanitizeListing(item).name,
+          quantity: item.quantity,
           location: delivered.location,
         });
       }
@@ -1187,7 +1238,11 @@ export async function prepareBatchMarketPurchase(input: BatchBuyInput) {
 
 // ─── 定时刷新入口（由 MarketScheduler 调用）───
 
-export async function preGenerateMarket(ai: AiService, nodeId: string, layer: MarketLayer) {
+export async function preGenerateMarket(
+  ai: AiService,
+  nodeId: string,
+  layer: MarketLayer,
+) {
   const cycle = getCurrentCycle(layer);
   const cacheKey = getCacheKey(nodeId, layer, cycle);
   const exists = await redis.exists(cacheKey);
@@ -1198,7 +1253,11 @@ export async function preGenerateMarket(ai: AiService, nodeId: string, layer: Ma
 /**
  * 供调度器调用：预生成下一周期的缓存
  */
-export async function preGenerateNextCycle(ai: AiService, nodeId: string, layer: MarketLayer) {
+export async function preGenerateNextCycle(
+  ai: AiService,
+  nodeId: string,
+  layer: MarketLayer,
+) {
   const intervalMs = getRefreshInterval(layer);
   const nextCycle = Math.floor(Date.now() / intervalMs) + 1;
   const cacheKey = getCacheKey(nodeId, layer, nextCycle);

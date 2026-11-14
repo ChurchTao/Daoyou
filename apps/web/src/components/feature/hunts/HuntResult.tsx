@@ -1,6 +1,7 @@
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { InkModal } from '@app/components/layout/InkModal';
 import { SpiritStones } from '@app/components/ui/SpiritStones';
+import { SYSTEM_MAIL_HREF } from '@app/lib/social/mailNavigation';
 import type { HuntBattleReward } from '@daoyou/contracts/hunts';
 import { dungeonRewardItemName } from '@daoyou/game-rules/rewards/dungeon';
 import { useState } from 'react';
@@ -70,7 +71,7 @@ export function HuntResult({
                 </div>
                 <p className="text-ink-secondary">
                   寻得的物品已随信送来。
-                  <Link to="/game/mail" className="text-teal underline">
+                  <Link to={SYSTEM_MAIL_HREF} className="text-teal underline">
                     查看邮件
                   </Link>
                 </p>

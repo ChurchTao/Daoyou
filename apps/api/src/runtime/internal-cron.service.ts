@@ -2,6 +2,7 @@ import { AiService } from '@nestjs/ai';
 import { Inject, Injectable } from '@nestjs/common';
 import { AuctionBuyOrderOperations } from '@server/auction/application/AuctionBuyOrderService.js';
 import { AuctionOperations } from '@server/auction/application/AuctionService.js';
+import { runScenarioGeneration } from '@server/dungeon/application/mystery/ScenarioLibrary.js';
 import { pruneChatHistory } from '@server/lib/repositories/chatRepository.js';
 import {
   runAuctionExpireJob,
@@ -15,7 +16,7 @@ import {
   runSponsorshipReconcileJob,
 } from '@server/runtime/jobs/internalCron.js';
 import { redPacketService } from '@server/social/application/RedPacketService.js';
-import { runScenarioGeneration } from '@server/dungeon/application/mystery/ScenarioLibrary.js';
+import { runSocialMaintenance } from '@server/social/social-lifecycle.js';
 @Injectable()
 export class InternalCronService {
   constructor(
@@ -42,8 +43,10 @@ export class InternalCronService {
   resourceReplayCleanup() {
     return runResourceReplayCleanupJob();
   }
-  expiredDataCleanup() {
-    return runExpiredDataCleanupJob();
+  async expiredDataCleanup() {
+    const result = await runExpiredDataCleanupJob();
+    const social = await runSocialMaintenance();
+    return { ...result, processed: result.processed + social };
   }
   materialLibraryGeneration(scheduledAt?: Date) {
     return runMaterialLibraryDailyGenerationJob(this.ai, scheduledAt);
