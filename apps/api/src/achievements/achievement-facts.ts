@@ -2,6 +2,7 @@ import { REALM_VALUES } from '@daoyou/constants/realms';
 import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
 import type { AchievementFacts } from '@daoyou/game-domain/achievements';
 import type { CultivatorCondition } from '@daoyou/game-domain/condition';
+import { fusionAchievementMetrics } from '@daoyou/game-rules/achievements';
 import { normalizeBodyCultivationState } from '@daoyou/game-rules/body-cultivation/progress';
 import { apprenticeshipBlockReason } from '@daoyou/game-rules/mentorship';
 import { runDbTasks, type DbExecutor } from '@server/lib/drizzle/db.js';
@@ -87,7 +88,10 @@ export async function readAchievementFacts(
         .limit(1),
     () =>
       q
-        .select({ count: sql<number>`count(*)::int` })
+        .select({
+          parents: cultivatorBeastFusions.parents,
+          result: cultivatorBeastFusions.result,
+        })
         .from(cultivatorBeastFusions)
         .where(eq(cultivatorBeastFusions.cultivatorId, cultivatorId)),
     () =>
@@ -159,11 +163,28 @@ export async function readAchievementFacts(
       0,
       ...beasts.map((row) => beastFromRow(row).level),
     ),
-    'beasts.fusions': fusions[0]?.count ?? 0,
+    'manuals.mastered_count': manuals.learned.filter(
+      (manual) => manual.level >= 9,
+    ).length,
+    'body.min_track_level': Math.min(
+      ...Object.values(body.tracks).map((track) => track.level),
+    ),
+    'beasts.max_fusion_skills': Math.max(
+      0,
+      ...fusions.map((fusion) => fusion.result.skills.length),
+    ),
+    'beasts.fusions': fusions.length,
     'spirit_field.harvests': garden[0]?.harvests ?? 0,
     'mentorship.bound': relation[0] ? 1 : 0,
     'mentorship.graduated_disciples': graduates[0]?.count ?? 0,
   };
+  for (const fusion of fusions) {
+    for (const [metric, value] of Object.entries(
+      fusionAchievementMetrics(fusion.parents, fusion.result),
+    )) {
+      snapshots[metric] = Math.max(snapshots[metric] ?? 0, value);
+    }
+  }
   const metrics: Record<string, number> = Object.fromEntries(
     recorded.map((row) => [row.metric, row.value]),
   );

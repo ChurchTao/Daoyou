@@ -2832,10 +2832,13 @@ export const achievementUnlocks = pgTable(
     sourceKey: varchar('source_key', { length: 200 }).notNull(),
     metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
     unlockedAt: timestamp('unlocked_at', { withTimezone: true }).notNull().defaultNow(),
+    rewardClaimedAt: timestamp('reward_claimed_at', { withTimezone: true }),
+    claimedReputation: integer('claimed_reputation'),
   },
   (t) => [
     uniqueIndex('achievement_unlocks_character_definition_uidx').on(t.cultivatorId, t.achievementId),
     index('achievement_unlocks_character_time_idx').on(t.cultivatorId, t.unlockedAt),
+    check('achievement_unlocks_reward_valid', sql`(${t.rewardClaimedAt} is null and ${t.claimedReputation} is null) or (${t.rewardClaimedAt} is not null and ${t.claimedReputation} is not null and ${t.claimedReputation} between 5 and 80)`),
   ],
 );
 

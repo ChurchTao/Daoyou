@@ -547,6 +547,13 @@
       "when": 1794562399944,
       "tag": "0078_achievement_progress",
       "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1794896530456,
+      "tag": "0079_achievement_reputation_rewards",
+      "breakpoints": true
     }
   ]
 }
