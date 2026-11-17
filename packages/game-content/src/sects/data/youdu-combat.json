@@ -1,7 +1,7 @@
 {
   "$schema": "./youdu-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 7,
+  "contentRevision": 8,
   "baseSkillIds": [
     "youdu.skill.edict",
     "youdu.skill.wither",
@@ -245,19 +245,19 @@
       "name": "幽影遁",
       "school": "youdu",
       "costMp": 150,
-      "description": "幽影遁形，身影没入暗处。\n使自己或队友获得[[youdu.status.stealth]]，持续4回合。",
+      "description": "幽影遁形，身影没入暗处。\n自身获得[[youdu.status.stealth]]，持续4回合。",
       "tags": [
         "spell"
       ],
       "targeting": {
-        "side": "ally",
-        "count": 1
+        "side": "self"
       },
       "effects": [
         {
           "type": "applyStatus",
           "statusId": "youdu.status.stealth",
-          "duration": 4
+          "duration": 4,
+          "self": true
         }
       ]
     },
@@ -599,7 +599,7 @@
     {
       "id": "youdu.status.stealth",
       "name": "幽影",
-      "description": "由幽影遁施加。没有看破能力的敌人无法选中你，你也无法施放法术。由施术者支付维持费用，每回合为自己消耗15法力，为每名隐身友方消耗10法力。施术者离场、倒地或法力不足时，隐身消失。",
+      "description": "由幽影遁施加。没有看破能力的敌人无法选中你，你也无法施放法术。仅能对自身施加，每回合消耗15法力维持。自身离场、倒地或法力不足时，隐身消失。",
       "kind": "youdu.stealth",
       "category": "buff",
       "untargetable": true,

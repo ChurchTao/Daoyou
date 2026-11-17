@@ -50,6 +50,23 @@ const resource = (b: Battle, id = 'sword_intent') => b.unit('s').resources.find(
 function ready(b: Battle) { b.unit('s').attrs.hp = 10000; b.unit('s').flags.skipNextAction = false; b.unit('s').statuses = b.unit('s').statuses.filter(s => s.id !== T('recovery')); }
 
 describe('无双流派基础能力和剑意门槛', () => {
+  it.each(['guiyi', 'zhanchen'] as const)('%s 的普通及干将破极剑意都只对自身生效', path => {
+    for (const nodes of [[], ['4.1']]) {
+      for (const target of ['s', 'ally', 'pet']) {
+        const { b } = setup(path, nodes);
+        b.unit('pet').side = 0;
+        b.unit('pet').ownerId = 's';
+        expect(b.queryCommands('s').skills.find(skill => skill.skillId === S('sword_aura'))?.selectableTargetIds).toEqual(['s']);
+        round(b, cast('sword_aura', target));
+        const statusId = T(nodes.length ? 'sword_aura_ganjiang' : 'sword_aura');
+        expect(b.unit('s').statuses).toContainEqual(expect.objectContaining({ id: statusId, remainingRounds: 5 }));
+        for (const id of ['ally', 'pet']) expect(b.unit(id).statuses.some(status => status.kind === 'lingxiao.sword_aura')).toBe(false);
+        expect(b.unit('s').attrs.mp).toBe(9944);
+        round(b, attack);
+        expect(damage(b)).toEqual([nodes.length ? 915 : 910]);
+      }
+    }
+  });
   it('三扫只加一层，惊鸿和临渊不加；26层仍能继续累计，失败不加', () => {
     const { b } = setup();
     round(b, cast('triple')); expect(resource(b).current).toBe(1);
@@ -150,7 +167,7 @@ describe('经典技能强化与代价', () => {
   });
   it('干将强化破极剑意，普通版本不能覆盖强化版本', () => {
     const { b } = setup('zhanchen', ['4.1']); round(b, cast('sword_aura', 's'));
-    b.applyStatus('s', T('sword_aura'), 5, 'ally');
+    b.applyStatus('s', T('sword_aura'), 5, 's');
     expect(b.unit('s').statuses.filter(s => s.kind === 'lingxiao.sword_aura')).toEqual([expect.objectContaining({ id: T('sword_aura_ganjiang'), remainingRounds: 5 })]);
     round(b, attack); expect(damage(b)).toEqual([915]);
   });

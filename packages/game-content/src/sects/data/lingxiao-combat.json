@@ -1,7 +1,7 @@
 {
   "$schema": "./lingxiao-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 9,
+  "contentRevision": 10,
   "baseSkillIds": [
     "lingxiao.skill.triple",
     "lingxiao.skill.waiting",
@@ -115,17 +115,17 @@
         "support"
       ],
       "targeting": {
-        "side": "ally",
-        "count": 1
+        "side": "self"
       },
       "effects": [
         {
           "type": "applyStatus",
           "statusId": "lingxiao.status.sword_aura",
-          "duration": 5
+          "duration": 5,
+          "self": true
         }
       ],
-      "description": "剑意破极，锋芒直入。\n使一名友方获得[[lingxiao.status.sword_aura]]，持续5回合。物理攻击会忽视目标10%的物理防御。"
+      "description": "剑意破极，锋芒直入。\n自身获得[[lingxiao.status.sword_aura]]，持续5回合。物理攻击会忽视目标10%的物理防御。"
     },
     {
       "id": "lingxiao.skill.clarity",
@@ -466,7 +466,7 @@
     },
     {
       "id": "lingxiao.status.sword_aura_ganjiang",
-      "description": "习得「干将」后，破极剑意改为忽视目标15%的物理防御。",
+      "description": "习得「干将」后，自身的破极剑意改为使物理攻击忽视目标15%的物理防御。",
       "name": "破极剑意",
       "kind": "lingxiao.sword_aura",
       "category": "buff",
