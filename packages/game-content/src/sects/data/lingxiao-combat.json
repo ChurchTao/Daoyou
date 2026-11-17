@@ -1,7 +1,7 @@
 {
   "$schema": "./lingxiao-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 11,
+  "contentRevision": 12,
   "baseSkillIds": [
     "lingxiao.skill.triple",
     "lingxiao.skill.waiting",
@@ -47,9 +47,8 @@
         }
       ],
       "requireHpAboveRatio": 0.5,
-      "description": "凝剑断尘，剑势连斩。\n当前气血须高于一半，消耗最大气血的10%。对一名敌人造成三段物理伤害，后段更强。出手后进入[[lingxiao.status.recovery]]，下回合休息。\n基础法力消耗为30＋心法等级×0.5，最终费用向上取整。",
-      "recoveryStatusId": "lingxiao.status.recovery",
-      "costMp": "ceil((30+skillLevel*0.5))"
+      "description": "凝剑断尘，剑势连斩。\n当前气血须高于一半，消耗最大气血的10%。对一名敌人造成三段物理伤害，后段更强。出手后进入[[lingxiao.status.recovery]]，下回合休息。",
+      "recoveryStatusId": "lingxiao.status.recovery"
     },
     {
       "id": "lingxiao.skill.waiting",
@@ -72,8 +71,7 @@
           "storeTarget": true
         }
       ],
-      "description": "藏锋不发，静待惊雷。\n消耗当前气血的5%，本回合不攻击，并进入[[lingxiao.status.preparing]]。下回合转为[[lingxiao.status.waiting]]，提高物理攻击、命中和速度，自动攻击蓄势时选定的敌人。\n基础法力消耗为25＋心法等级×0.4，最终费用向上取整。",
-      "costMp": "ceil((25+skillLevel*0.4))"
+      "description": "藏锋不发，静待惊雷。\n消耗当前气血的5%，本回合不攻击，并进入[[lingxiao.status.preparing]]。下回合转为[[lingxiao.status.waiting]]，提高物理攻击、命中和速度，自动攻击蓄势时选定的敌人。"
     },
     {
       "id": "lingxiao.skill.formation",
@@ -106,8 +104,7 @@
       ],
       "requireHpAboveRatio": 0.1,
       "forbidRevivedRound": true,
-      "description": "以气血换剑势，一剑临渊。\n当前气血须高于最大气血的10%，消耗最大气血的10%，对至多三名敌人造成物理伤害。出手后进入[[lingxiao.status.recovery]]，下回合休息。复活当回合无法施放。\n基础法力消耗为35＋心法等级×0.5，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
-      "costMp": "ceil((35+skillLevel*0.5)*(1+0.5*max(0,targets-1)))"
+      "description": "以气血换剑势，一剑临渊。\n当前气血须高于最大气血的10%，消耗最大气血的10%，对至多三名敌人造成物理伤害。出手后进入[[lingxiao.status.recovery]]，下回合休息。复活当回合无法施放。"
     },
     {
       "id": "lingxiao.skill.sword_aura",

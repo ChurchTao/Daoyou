@@ -16,12 +16,12 @@ const get = (id: string) => skills.find(skill => skill.id === id)!;
 const source = createUnit({ id: 's', name: '修士', kind: 'player', side: 0, level: 180, attrs: { hp: 100, maxHp: 1000, mp: 10000 }, skills: ['xiaoyue.skill.transform'], skillLevels: { 'xiaoyue.skill.transform': 180 } }, 0);
 
 describe('八宗门法力定价', () => {
-  it('除两项回蓝术外，全部主动技能均有正数、随心法成长的费用', () => {
+  it('回蓝术和剑宗耗血技能不耗蓝，其余主动技能费用随心法成长', () => {
     const active = skills.filter(skill => !skill.tags.includes('passive'));
     expect(new Set(active.map(skill => skill.school)).size).toBe(8);
     expect(active).toHaveLength(116);
     for (const skill of active) {
-      if (['bailu.skill.juqi', 'xiaoyue.skill.mana_breath'].includes(skill.id)) {
+      if (['bailu.skill.juqi', 'xiaoyue.skill.mana_breath', 'lingxiao.skill.triple', 'lingxiao.skill.waiting', 'lingxiao.skill.formation'].includes(skill.id)) {
         expect(skill.costMp).toBeUndefined();
         continue;
       }

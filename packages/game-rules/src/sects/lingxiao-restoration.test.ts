@@ -125,6 +125,24 @@ describe('无双流派基础能力和剑意门槛', () => {
 });
 
 describe('经典技能强化与代价', () => {
+  it.each(['guiyi', 'zhanchen'] as const)('%s 的断尘、惊雷、临渊仅支付气血，零法力仍可施放', path => {
+    for (const [name, hpAfter] of [['triple', 9000], ['waiting', 9500], ['formation', 9000]] as const) {
+      for (const mp of [0, 10000]) {
+        const { b } = setup(path);
+        b.unit('s').attrs.mp = mp;
+        const option = b.queryCommands('s').skills.find(skill => skill.skillId === S(name))!;
+        expect(option.costs.mp).toBe(0);
+        expect(option.ready).toBe(true);
+        round(b, cast(name));
+        expect(b.unit('s').attrs.hp).toBe(hpAfter);
+        expect(b.unit('s').attrs.mp).toBe(mp);
+        if (name === 'waiting') round(b);
+        expect(damage(b).length).toBeGreaterThan(0);
+        expect(b.unit('s').attrs.mp).toBe(mp);
+      }
+    }
+  });
+
   it('惊鸿基础为普攻、成长法力费用、6回合冷却，仅下一回合加速15%', () => {
     const { b } = setup('zhanchen'); round(b, cast('shadow_strike'));
     expect(damage(b)).toEqual([900]); expect(b.unit('s').attrs.mp).toBe(9857); expect(effectiveSpeed(b.unit('s'))).toBe(115);
@@ -150,15 +168,19 @@ describe('经典技能强化与代价', () => {
   });
   it('勇武改为回血和10战意，后发附加防御结果并仅对施法者易伤', () => {
     const { b } = setup('zhanchen', ['2.2']); b.unit('s').attrs.hp = 5000;
+    b.unit('s').attrs.mp = 0;
     round(b, cast('waiting')); expect(b.unit('s').attrs.hp).toBe(6440); expect(b.unit('s').resources.find(r => r.id === 'combat.resource.rage')!.current).toBe(10);
+    expect(b.unit('s').attrs.mp).toBe(0);
     round(b); expect(damage(b)).toEqual([1120]);
     round(b, attack, { ally: attack }); expect(damage(b).at(-1)).toBe(990);
     expect(b.log().filter(e => e.type === 'damage' && e.sourceId === 'ally').at(-1)).toMatchObject({ amount: 900 });
   });
   it('乘势取消血线和耗血，追击复制每段至召唤灵，未击倒即消费', () => {
     const { b } = setup('zhanchen', ['4.3']); round(b, cast('pursuit', 's')); b.unit('s').attrs.hp = 100;
+    b.unit('s').attrs.mp = 0;
     expect(b.queryCommands('s').skills.find(s => s.skillId === S('triple'))!.ready).toBe(true);
     round(b, cast('triple')); expect(b.unit('s').attrs.hp).toBe(100); expect(damage(b, 'pet')).toEqual(damage(b));
+    expect(b.unit('s').attrs.mp).toBe(0);
     expect(b.unit('s').statuses.some(s => s.id === T('pursuit'))).toBe(false);
   });
   it('追击击倒主目标保留；普通击倒不再给浴血免休息', () => {
