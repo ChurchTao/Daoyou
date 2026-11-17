@@ -261,27 +261,33 @@ export function CombatV6Battle({
     >
       <header className="cv6-header">
         <h1>{title}</h1>
-        <CombatV6Status
-          round={shown.round}
-          playing={playing}
-          online={online}
-          connected={connected}
-          clockOffset={clockOffset}
-          outcome={
-            ended
-              ? online?.spectator
-                ? (
-                    {
-                      victory: '青方获胜',
-                      defeat: '赤方获胜',
-                      draw: '平局',
-                      aborted: '战斗已终止',
-                    } as const
-                  )[ended]
-                : outcomeLabels[ended]
-              : undefined
-          }
-        />
+        <div className="cv6-header-status">
+          <CombatV6Status
+            round={shown.round}
+            playing={playing}
+            online={online}
+            connected={connected}
+            clockOffset={clockOffset}
+            outcome={
+              ended
+                ? online?.spectator
+                  ? (
+                      {
+                        victory: '青方获胜',
+                        defeat: '赤方获胜',
+                        draw: '平局',
+                        aborted: '战斗已终止',
+                      } as const
+                    )[ended]
+                  : outcomeLabels[ended]
+                : undefined
+            }
+          />
+          <CombatV6Fatigue
+            round={shown.round}
+            versions={session.combatVersions}
+          />
+        </div>
         {online?.spectator ? (
           <button disabled={pending} onClick={onClose}>
             退出观战
@@ -299,7 +305,6 @@ export function CombatV6Battle({
           <Link to={back}>{backLabel}</Link>
         )}
       </header>
-      <CombatV6Fatigue round={shown.round} versions={session.combatVersions} />
       <div className="cv6-field">
         <CombatV6Roster
           spectator={online?.spectator}
