@@ -1,7 +1,7 @@
 {
   "$schema": "./xiaoyue-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 2,
+  "contentRevision": 3,
   "baseSkillIds": [
     "xiaoyue.skill.transform",
     "xiaoyue.skill.lion_strike",
@@ -20,7 +20,7 @@
       "id": "xiaoyue.skill.transform",
       "name": "兽形",
       "school": "xiaoyue",
-      "description": "观山林百兽之形，运息化为己用。\n消耗20法力获得[[xiaoyue.status.transform]]，物攻增加《百兽化形》等级，持续四个完整后续回合；鹏击、连环击和镇形须处于兽形，狮搏每场有一次合并化形的机会。",
+      "description": "观山林百兽之形，运息化为己用。\n获得[[xiaoyue.status.transform]]，物攻增加《百兽化形》等级，持续四个完整后续回合；鹏击、连环击和镇形须处于兽形，狮搏每场有一次合并化形的机会。\n基础法力消耗为35＋心法等级×0.5，最终费用向上取整。",
       "tags": [
         "support"
       ],
@@ -51,13 +51,13 @@
         }
       ],
       "requirement": "(1-hasStatus.xiaoyue.status.transform)+hasStatus.xiaoyue.status.quick_penalty",
-      "costMp": 20
+      "costMp": "ceil((35+skillLevel*0.5))"
     },
     {
       "id": "xiaoyue.skill.lion_strike",
       "name": "狮搏",
       "school": "xiaoyue",
-      "description": "借兽形之势，近身一搏。\n兽形期间消耗30法力，攻击一名敌人，物理伤害系数1.15。已学会兽形时，每场战斗有一次机会在无兽形时施放，合付50法力，先获得完整兽形再攻击；继承宁息、展翅与主动兽形余势。启用灵兽同契时，狮搏命中即可让自己在场且存活的灵兽获得[[xiaoyue.status.lion_soul]]，每回合最多触发一次。",
+      "description": "借兽形之势，近身一搏。\n兽形期间攻击一名敌人，物理伤害系数1.15。已学会兽形时，每场战斗有一次机会在无兽形时施放，支付攻击与化形两部分法力，先获得完整兽形再攻击；继承宁息、展翅与主动兽形余势。启用灵兽同契时，狮搏命中即可让自己在场且存活的灵兽获得[[xiaoyue.status.lion_soul]]，每回合最多触发一次。\n基础法力消耗为35＋心法等级×0.6，合并化形另付35＋《百兽化形》等级×0.5法力，最终费用向上取整。",
       "tags": [
         "physical"
       ],
@@ -119,13 +119,13 @@
         }
       ],
       "requirement": "hasStatus.xiaoyue.status.transform+(1-hasStatus.xiaoyue.status.transform)*(1-min(1,fact.xiaoyue_opening_transform_used))*known.xiaoyue.skill.transform",
-      "costMp": "30+20*(1-hasStatus.xiaoyue.status.transform)"
+      "costMp": "ceil((35+skillLevel*0.6)+ceil(35+knownSkillLevel.xiaoyue.skill.transform*0.5)*(1-hasStatus.xiaoyue.status.transform))"
     },
     {
       "id": "xiaoyue.skill.eagle_strike",
       "name": "鹏击",
       "school": "xiaoyue",
-      "description": "振羽凌空，俯冲敌阵。\n兽形期间可攻击多名敌人。《生死搏》达到30／50／75／125级时，最多攻击3／4／5／6名敌人。攻击第一名敌人消耗30法力，每多攻击一名额外消耗10法力。出手后进入[[xiaoyue.status.rest]]，冷却两回合。",
+      "description": "振羽凌空，俯冲敌阵。\n兽形期间可攻击多名敌人。《生死搏》达到30／50／75／125级时，最多攻击3／4／5／6名敌人。出手后进入[[xiaoyue.status.rest]]，冷却两回合。\n基础法力消耗为35＋心法等级×0.55，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "physical"
       ],
@@ -178,7 +178,7 @@
         }
       ],
       "requirement": "hasStatus.xiaoyue.status.transform",
-      "costMp": "30+10*(targets-1)",
+      "costMp": "ceil((35+skillLevel*0.55)*(1+0.5*max(0,targets-1)))",
       "cooldownRounds": 2,
       "recoveryStatusId": "xiaoyue.status.rest"
     },
@@ -186,7 +186,7 @@
       "id": "xiaoyue.skill.chain_strike",
       "name": "连环击",
       "school": "xiaoyue",
-      "description": "连势不绝，逼敌失守。\n兽形期间连续攻击一名敌人。《狂兽诀》达到30／50／75／125／175级时，分别攻击2／3／5／6／7次。出手前按攻击次数一次付清，每次30法力。目标倒地时，剩余攻击停止。出手后进入[[xiaoyue.status.rest]]，保留兽形且不额外缩短其时长，兽形仍按正常回合流逝。",
+      "description": "连势不绝，逼敌失守。\n兽形期间连续攻击一名敌人。《狂兽诀》达到30／50／75／125／175级时，分别攻击2／3／5／6／7次。出手前按攻击次数一次付清法力。目标倒地时，剩余攻击停止。出手后进入[[xiaoyue.status.rest]]，保留兽形且不额外缩短其时长，兽形仍按正常回合流逝。\n基础法力消耗为30＋心法等级×0.4，每多一击加收50%基础费用，出手前付清，最终费用向上取整。",
       "tags": [
         "physical"
       ],
@@ -219,14 +219,14 @@
         }
       ],
       "requirement": "hasStatus.xiaoyue.status.transform",
-      "costMp": "30*if(skillLevel>=175,7,if(skillLevel>=125,6,if(skillLevel>=75,5,if(skillLevel>=50,3,2))))",
+      "costMp": "ceil((30+skillLevel*0.4)*(1+0.5*(if(skillLevel>=175,7,if(skillLevel>=125,6,if(skillLevel>=75,5,if(skillLevel>=50,3,2))))-1)))",
       "recoveryStatusId": "xiaoyue.status.rest"
     },
     {
       "id": "xiaoyue.skill.elephant_seal",
       "name": "镇形",
       "school": "xiaoyue",
-      "description": "踏地镇形，以攻势封住去路。\n兽形期间消耗50法力攻击一名敌人。物理攻击命中后，有机会封印目标，使其下回合进入[[xiaoyue.status.stun]]。施放后自己下回合进入[[xiaoyue.status.spell_rest]]。通常会结束兽形，经脉「怒象」有机会保留兽形。",
+      "description": "踏地镇形，以攻势封住去路。\n兽形期间攻击一名敌人。物理攻击命中后，有机会封印目标，使其下回合进入[[xiaoyue.status.stun]]。施放后自己下回合进入[[xiaoyue.status.spell_rest]]。通常会结束兽形，经脉「怒象」有机会保留兽形。\n基础法力消耗为50＋心法等级×0.7，最终费用向上取整。",
       "tags": [
         "physical",
         "seal"
@@ -276,7 +276,7 @@
         }
       ],
       "requirement": "hasStatus.xiaoyue.status.transform",
-      "costMp": 50,
+      "costMp": "ceil((50+skillLevel*0.7))",
       "sealBase": 55,
       "hooks": [
         {
@@ -306,7 +306,7 @@
       "id": "xiaoyue.skill.intimidate",
       "name": "兽威",
       "school": "xiaoyue",
-      "description": "观兽之威，令敌暂缓进逼。\n消耗20法力尝试封印一名敌方灵兽或普通生灵。封印成功时，目标下回合进入[[xiaoyue.status.stun]]。玩家角色不能被选为目标，免疫控制的目标不会被封印。",
+      "description": "观兽之威，令敌暂缓进逼。\n尝试封印一名敌方灵兽或普通生灵。封印成功时，目标下回合进入[[xiaoyue.status.stun]]。玩家角色不能被选为目标，免疫控制的目标不会被封印。\n基础法力消耗为30＋心法等级×0.45，最终费用向上取整。",
       "tags": [
         "seal"
       ],
@@ -326,14 +326,14 @@
           "hit": "seal"
         }
       ],
-      "costMp": 20,
+      "costMp": "ceil((30+skillLevel*0.45))",
       "sealBase": 55
     },
     {
       "id": "xiaoyue.skill.meditate",
       "name": "定心",
       "school": "xiaoyue",
-      "description": "收束心神，稳住吐息。\n消耗40法力获得[[xiaoyue.status.calm]]，持续四个后续回合。法攻和法防各提高《百兽化形》等级的30%，舍去小数。",
+      "description": "收束心神，稳住吐息。\n获得[[xiaoyue.status.calm]]，持续四个后续回合。法攻和法防各提高《百兽化形》等级的30%，舍去小数。\n基础法力消耗为40＋心法等级×0.55，最终费用向上取整。",
       "tags": [
         "support"
       ],
@@ -348,13 +348,13 @@
           "self": true
         }
       ],
-      "costMp": 40
+      "costMp": "ceil((40+skillLevel*0.55))"
     },
     {
       "id": "xiaoyue.skill.frenzy",
       "name": "狂反",
       "school": "xiaoyue",
-      "description": "守中蓄势，受击即反扑。\n消耗30法力获得[[xiaoyue.status.frenzy]]，持续三个后续回合；受到敌人的直接物理攻击并损失气血时自动反击，反击物理系数0.5，同一次行动至多反击一次。",
+      "description": "守中蓄势，受击即反扑。\n获得[[xiaoyue.status.frenzy]]，持续三个后续回合；受到敌人的直接物理攻击并损失气血时自动反击，反击物理系数0.5，同一次行动至多反击一次。\n基础法力消耗为45＋心法等级×0.6，最终费用向上取整。",
       "tags": [
         "support"
       ],
@@ -369,7 +369,7 @@
           "self": true
         }
       ],
-      "costMp": 30
+      "costMp": "ceil((45+skillLevel*0.6))"
     },
     {
       "id": "xiaoyue.skill.mana_breath",
@@ -396,7 +396,7 @@
       "id": "xiaoyue.skill.demon_unbound",
       "name": "裂甲狂身",
       "school": "xiaoyue",
-      "description": "舍护身之势，换迅猛攻势。\n消耗30法力获得[[xiaoyue.status.demon_unbound]]。物防降为施放前的一半，物攻提高施放前物防的10%，持续三个后续回合。倒地后解除，复活的回合无法施放。",
+      "description": "舍护身之势，换迅猛攻势。\n获得[[xiaoyue.status.demon_unbound]]。物防降为施放前的一半，物攻提高施放前物防的10%，持续三个后续回合。倒地后解除，复活的回合无法施放。\n基础法力消耗为40＋心法等级×0.55，最终费用向上取整。",
       "tags": [
         "support"
       ],
@@ -411,14 +411,14 @@
           "self": true
         }
       ],
-      "costMp": 30,
+      "costMp": "ceil((40+skillLevel*0.55))",
       "forbidRevivedRound": true
     },
     {
       "id": "xiaoyue.skill.best_partners",
       "name": "最佳搭档",
       "school": "xiaoyue",
-      "description": "一人一兽各守其步，于同一破绽相应。\n处于兽形且自己的出战灵兽仍在场、存活时才可施放。消耗500法力，用狮搏攻击并施加[[xiaoyue.status.best_partner_mark]]。施放时在场的灵兽在下次行动中用直接物理或法术攻击命中该目标时，对该目标的第一击伤害提高20%。这次狮搏和灵兽接力的物理攻击可绕过护卫代挡。开场冷却四回合，施放后冷却八回合。",
+      "description": "一人一兽各守其步，于同一破绽相应。\n处于兽形且自己的出战灵兽仍在场、存活时才可施放。用狮搏攻击并施加[[xiaoyue.status.best_partner_mark]]。施放时在场的灵兽在下次行动中用直接物理或法术攻击命中该目标时，对该目标的第一击伤害提高20%。这次狮搏和灵兽接力的物理攻击可绕过护卫代挡。开场冷却四回合，施放后冷却八回合。\n基础法力消耗为180＋心法等级×2，最终费用向上取整。",
       "tags": [
         "physical"
       ],
@@ -438,7 +438,7 @@
         }
       ],
       "requirement": "ownStandingPet*hasStatus.xiaoyue.status.transform",
-      "costMp": 500,
+      "costMp": "ceil((180+skillLevel*2))",
       "cooldownRounds": 8,
       "initialCooldownRounds": 4,
       "modifiers": [
@@ -750,7 +750,7 @@
       "name": "狮魂",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "灵兽同契赋予出战灵兽的一次性增益。你用狮搏命中敌人时，自己仍在场且存活的灵兽会获得狮魂，每回合最多触发一次。你用最佳搭档击倒非灵兽敌人时，也会赋予狮魂；灵兽用最佳搭档接力击倒标记目标时，则在这次行动结束后获得狮魂。灵兽下一次主动直接物理或法术攻击命中的第一击伤害提高8%，选择狮王后为10%。命中后消耗，收回灵兽时清除。法术连击的追加施法和技能触发的额外施法不会消耗狮魂。狮搏在《生死搏》达到20级后解锁；已学会兽形时，每场可有一次在无兽形时合付50法力，先化形再攻击。",
+      "description": "灵兽同契赋予出战灵兽的一次性增益。你用狮搏命中敌人时，自己仍在场且存活的灵兽会获得狮魂，每回合最多触发一次。你用最佳搭档击倒非灵兽敌人时，也会赋予狮魂；灵兽用最佳搭档接力击倒标记目标时，则在这次行动结束后获得狮魂。灵兽下一次主动直接物理或法术攻击命中的第一击伤害提高8%，选择狮王后为10%。命中后消耗，收回灵兽时清除。法术连击的追加施法和技能触发的额外施法不会消耗狮魂。狮搏在《生死搏》达到20级后解锁；已学会兽形时，每场可有一次在无兽形时合付狮搏与兽形的当前法力费用，先化形再攻击。",
       "dispellable": false,
       "sourceBound": true
     },

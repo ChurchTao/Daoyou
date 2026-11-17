@@ -50,7 +50,7 @@ describe('幽都基础模组还原', () => {
       round(b, cast('stealth', target));
       expect(b.unit('s').statuses).toContainEqual(expect.objectContaining({ id: T('stealth'), remainingRounds: 4 }));
       for (const id of ['a', 'pet']) expect(b.unit(id).statuses.some(status => status.id === T('stealth'))).toBe(false);
-      expect(b.unit('s').attrs.mp).toBe(9850);
+      expect(b.unit('s').attrs.mp).toBe(9756);
     }
   });
   it('两流派共享抗封根基，毒师攻击只由物理流派授予，并按心法分阶段解锁', () => {
@@ -73,17 +73,17 @@ describe('幽都基础模组还原', () => {
     const c = setup().b; round(c, cast('pursuit'));
     expect(c.unit('t').wound).toBe(0);
     expect(c.unit('t').statuses).toContainEqual(expect.objectContaining({ id: T('slow') }));
-    expect(c.unit('s').attrs.mp).toBe(9950);
+    expect(c.unit('s').attrs.mp).toBe(9843);
   });
   it('判官类技能同时削血削蓝，拘灵基础持续5回合', () => {
     const { b } = setup(); round(b, cast('judge'));
     expect(b.unit('t').attrs.hp).toBeLessThan(100000);
     expect(b.unit('t').attrs.mp).toBe(9820);
-    expect(b.unit('s').attrs.mp).toBe(9980);
+    expect(b.unit('s').attrs.mp).toBe(9829);
     for (const [nodes, duration] of [[[], 5]] as const) {
       const c = setup('soul_judge', [...nodes]).b; round(c, cast('soul_seal'));
       expect(c.unit('t').statuses).toContainEqual(expect.objectContaining({ id: T('soul_seal'), remainingRounds: duration }));
-      expect(c.unit('s').attrs.mp).toBe(9950);
+      expect(c.unit('s').attrs.mp).toBe(9796);
     }
   });
   it('隐身阻止单体选取和施法；鬼眼恢复可选目标，不增加普通命中', () => {
@@ -105,12 +105,12 @@ describe('幽都基础模组还原', () => {
     expect(b.unit('a').attrs.hp).toBe(3000);
     expect(effectiveAttrs(b.unit('a')).physicalAtk).toBe(1200);
     expect(effectiveAttrs(b.unit('a')).physicalDef).toBe(800);
-    expect(b.unit('s').attrs.mp).toBe(9850);
+    expect(b.unit('s').attrs.mp).toBe(9648);
   });
   it('自身隐身施放当回合不扣维持费，后续每回合15法力，不足时解除', () => {
     const { b } = setup(); round(b, cast('stealth', 's'));
-    expect(b.unit('s').attrs.mp).toBe(9850);
-    round(b); expect(b.unit('s').attrs.mp).toBe(9835);
+    expect(b.unit('s').attrs.mp).toBe(9756);
+    round(b); expect(b.unit('s').attrs.mp).toBe(9741);
     b.unit('s').attrs.mp = 15; round(b);
     expect(b.unit('s').attrs.mp).toBe(0);
     expect(b.unit('s').statuses.some(s => s.id === T('stealth'))).toBe(true);
@@ -127,7 +127,7 @@ describe('幽都基础模组还原', () => {
     expect(b.unit('a').attrs.hp).toBeGreaterThan(5000);
     expect(b.unit('a').attrs.hp).toBe(b.unit('s').attrs.hp);
     expect(b.unit('pet').attrs.hp).toBe(5000);
-    expect(b.unit('s').attrs.mp).toBe(9960);
+    expect(b.unit('s').attrs.mp).toBe(9636);
     const restored = restoreBattle(input, JSON.parse(JSON.stringify(b.snapshot())), [...b.log()]);
     round(b); round(restored);
     expect(restored.snapshot()).toEqual(b.snapshot()); expect(restored.log()).toEqual(b.log());

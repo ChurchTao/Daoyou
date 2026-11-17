@@ -1,7 +1,7 @@
 {
   "$schema": "./wuxiang-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 2,
+  "contentRevision": 3,
   "passives": [
     {
       "id": "wuxiang.passive.compassion.1.1",
@@ -299,7 +299,7 @@
     {
       "id": "wuxiang.passive.compassion.6.3",
       "name": "解缚还生",
-      "description": "以解缚还生替换莲华还生。消耗30点战意和120法力，使一名倒地友方人物的[[youdu.status.soul_seal]]缩短1回合。若目标此时已无拘灵，立即将其复活并恢复20%最大气血。"
+      "description": "以解缚还生替换莲华还生。消耗30点战意并支付法力，使一名倒地友方人物的[[youdu.status.soul_seal]]缩短1回合。若目标此时已无拘灵，立即将其复活并恢复20%最大气血。法力消耗随所属心法等级成长，以神通当前费用为准。"
     },
     {
       "id": "wuxiang.passive.compassion.foundation",
@@ -921,7 +921,7 @@
           "name": "解缚还生",
           "layer": 6,
           "slot": 3,
-          "description": "以解缚还生替换莲华还生。消耗30点战意和120法力，使一名倒地友方人物的[[youdu.status.soul_seal]]缩短1回合。若目标此时已无拘灵，立即将其复活并恢复20%最大气血。",
+          "description": "以解缚还生替换莲华还生。消耗30点战意并支付法力，使一名倒地友方人物的[[youdu.status.soul_seal]]缩短1回合。若目标此时已无拘灵，立即将其复活并恢复20%最大气血。法力消耗随所属心法等级成长，以神通当前费用为准。",
           "passives": [
             "wuxiang.passive.compassion.6.3"
           ],

@@ -1,7 +1,7 @@
 {
   "$schema": "./bailu-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 2,
+  "contentRevision": 3,
   "passives": [
     {
       "id": "bailu.passive.rectification",
@@ -247,7 +247,7 @@
     {
       "id": "bailu.passive.shouzhi",
       "name": "守志",
-      "description": "回合开始时，若你仍存活、气血不足30%、有至少50法力且能施放法术，有35%概率消耗50法力，自动施放凝神！并获得[[bailu.status.focus]]。",
+      "description": "回合开始时，若你仍存活、气血不足30%、法力足以施放凝神！且能施放法术，有35%概率自动施放凝神！并获得[[bailu.status.focus]]。法力消耗随所属心法等级成长，以神通当前费用为准。",
       "hooks": [
         {
           "on": "onRoundStart",
@@ -262,7 +262,7 @@
           "when": {
             "sourceStanding": true,
             "sourceHpRatioBelow": 0.3,
-            "expression": "(mp>=50)*(1-sourceSpellBlocked)"
+            "expression": "(mp>=ceil(50+knownSkillLevel.bailu.skill.ningshen*0.65))*(1-sourceSpellBlocked)"
           }
         }
       ]
@@ -1572,7 +1572,7 @@
           "name": "守志",
           "layer": 3,
           "slot": 1,
-          "description": "回合开始时，若你仍存活、气血不足30%、有至少50法力且能施放法术，有35%概率消耗50法力，自动施放凝神！并获得[[bailu.status.focus]]。",
+          "description": "回合开始时，若你仍存活、气血不足30%、法力足以施放凝神！且能施放法术，有35%概率自动施放凝神！并获得[[bailu.status.focus]]。法力消耗随所属心法等级成长，以神通当前费用为准。",
           "passives": [
             "bailu.passive.shouzhi"
           ]
@@ -1959,7 +1959,7 @@
           "name": "舍生立言",
           "layer": 7,
           "slot": 2,
-          "description": "获得舍生！。当前气血至少为最大气血的一半时可用，消耗80法力并将自身气血降到1点，获得5回合[[bailu.status.sacrifice]]。冷却8回合，开战冷却4回合。",
+          "description": "获得舍生！。当前气血至少为最大气血的一半时可用，并将自身气血降到1点，获得5回合[[bailu.status.sacrifice]]。冷却8回合，开战冷却4回合。法力消耗随所属心法等级成长，以神通当前费用为准。",
           "grantSkills": [
             "bailu.skill.shesheng"
           ]

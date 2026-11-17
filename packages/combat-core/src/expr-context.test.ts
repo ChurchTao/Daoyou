@@ -15,6 +15,20 @@ function mark(sourceId: string, appliedRound: number) {
 }
 
 describe('contextual expressions', () => {
+  it('rounds up fractional costs and counts standing allied players without pets or departed units', () => {
+    const { env } = fixture();
+    const ally = createUnit({ id: 'ally', name: 'ally', kind: 'player', side: 0, attrs: { hp: 100 } }, 2);
+    const pet = createUnit({ id: 'pet', name: 'pet', kind: 'pet', side: 0, attrs: { hp: 100 } }, 3);
+    env.state!.units.push(ally, pet);
+    expect(evalExpr('ceil(10.01)', env)).toBe(11);
+    expect(evalExpr('ceil(10)', env)).toBe(10);
+    expect(evalExpr('allyStandingPlayers', env)).toBe(2);
+    for (const flag of ['downed', 'dead', 'escaped', 'benched'] as const) {
+      ally.flags[flag] = true;
+      expect(evalExpr('allyStandingPlayers', env)).toBe(1);
+      ally.flags[flag] = false;
+    }
+  });
   it('keeps the action target count and zero-based index separate from effect targets', () => {
     const { target, env } = fixture();
     expect(evalExpr('actionTargetCount', env)).toBe(0);

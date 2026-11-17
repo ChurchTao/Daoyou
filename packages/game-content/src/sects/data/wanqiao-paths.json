@@ -1,7 +1,7 @@
 {
   "$schema": "./wanqiao-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 2,
   "passives": [
     {
       "id": "wanqiao.passive.resonance.fashen",
@@ -1169,7 +1169,7 @@
         {
           "id": "wanqiao.node.subtlety.ducui",
           "name": "叠韵",
-          "description": "解锁叠韵。消耗300法力和一层窍息，使潜籁附加[[wanqiao.status.echo]]的概率翻倍，持续五回合，包含施放的回合。",
+          "description": "解锁叠韵。消耗一层窍息，使潜籁附加[[wanqiao.status.echo]]的概率翻倍，持续五回合，包含施放的回合。法力消耗随所属心法等级成长，以神通当前费用为准。",
           "layer": 6,
           "slot": 3,
           "grantSkills": [

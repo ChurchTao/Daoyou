@@ -296,7 +296,7 @@ describe('啸岳岭同契与真实灵兽', () => {
     expect(hits(battle, 'ownPet')).toHaveLength(1);
     expect(hits(battle, 's')[0]).toMatchObject({ targetId: 't0' });
     expect(hits(battle, 'ownPet')[0]).toMatchObject({ targetId: 't0' });
-    expect(battle.unit('s').attrs.mp).toBe(10000 - 20 - 500);
+    expect(battle.unit('s').attrs.mp).toBe(10000 - 125 - 540);
     expect(battle.unit('guard').attrs.hp).toBe(100000);
     expect(battle.log().filter(event => event.type === 'protectTrigger')).toHaveLength(0);
   });

@@ -1,3 +1,9 @@
+export const PVP_FATIGUE = {
+  fullRecoveryRounds: 30,
+  reductionPerRoundPercent: 2,
+  maxReductionPercent: 60,
+} as const;
+
 /** Daoyou 首版梦幻式规则常量。公式只从此处取数，不在内容中散落。 */
 export const DaoyouRule = {
   spellFluctuationMin: 0.95,

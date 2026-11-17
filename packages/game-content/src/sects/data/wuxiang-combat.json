@@ -1,7 +1,7 @@
 {
   "$schema": "./wuxiang-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 4,
+  "contentRevision": 5,
   "baseSkillIds": [
     "wuxiang.skill.mind",
     "wuxiang.skill.pierce",
@@ -458,7 +458,7 @@
       "id": "wuxiang.skill.pierce",
       "name": "破妄指",
       "school": "wuxiang",
-      "description": "一指破妄，直指本相。\n造成固定伤害。对战人物时攻击一名敌人。对战生灵时，破妄指达到39级可攻击两名，达到60级可攻击三名。尚未显相时，成功施放获得1枚烈念。",
+      "description": "一指破妄，直指本相。\n造成固定伤害。对战人物时攻击一名敌人。对战生灵时，破妄指达到39级可攻击两名，达到60级可攻击三名。尚未显相时，成功施放获得1枚烈念。\n基础法力消耗为30＋心法等级×0.55，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -475,13 +475,13 @@
         }
       ],
       "formula": "fixed",
-      "costMp": "30 * targets"
+      "costMp": "ceil((30+skillLevel*0.55)*(1+0.5*max(0,targets-1)))"
     },
     {
       "id": "wuxiang.skill.nectar",
       "name": "甘露愿",
       "school": "wuxiang",
-      "description": "甘露回润，同门得济。\n为一名友方恢复气血。显相后，甘露愿每满40级多治疗一名友方，至多额外治疗三名。另可照拂持有你的[[wuxiang.status.vow]]的友方。尚未显相时，成功施放获得1枚寂念。",
+      "description": "甘露回润，同门得济。\n为一名友方恢复气血。显相后，甘露愿每满40级多治疗一名友方，至多额外治疗三名。另可照拂持有你的[[wuxiang.status.vow]]的友方。尚未显相时，成功施放获得1枚寂念。\n基础法力消耗为60＋心法等级×1.1，每多覆盖一名目标加收基础费用的60%，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -498,13 +498,13 @@
           "power": "60 + skillLevel * 2"
         }
       ],
-      "costMp": 80
+      "costMp": "ceil((60+skillLevel*1.1)*(1+0.6*max(0,targets-1)))"
     },
     {
       "id": "wuxiang.skill.ward",
       "name": "护生愿",
       "school": "wuxiang",
-      "description": "护生一愿，伤势暂歇。\n为一名友方施加[[wuxiang.status.ward]]，使其本回合受到的伤害降低，基础降幅为20%。显相后，护生愿每满40级多保护一名友方，至多额外保护三名。另可照拂持有你的[[wuxiang.status.vow]]的友方。尚未显相时，成功施放获得1枚寂念。",
+      "description": "护生一愿，伤势暂歇。\n为一名友方施加[[wuxiang.status.ward]]，使其本回合受到的伤害降低，基础降幅为20%。显相后，护生愿每满40级多保护一名友方，至多额外保护三名。另可照拂持有你的[[wuxiang.status.vow]]的友方。尚未显相时，成功施放获得1枚寂念。\n基础法力消耗为55＋心法等级×0.85，每多覆盖一名目标加收基础费用的40%，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -522,13 +522,13 @@
           "duration": 1
         }
       ],
-      "costMp": 100
+      "costMp": "ceil((55+skillLevel*0.85)*(1+0.4*max(0,targets-1)))"
     },
     {
       "id": "wuxiang.skill.empower",
       "name": "破障愿",
       "school": "wuxiang",
-      "description": "破障一愿，攻势骤起。\n为一名友方施加[[wuxiang.status.empower]]，使其本回合造成的伤害提高，基础增幅为20%。显相后，破障愿每满40级多强化一名友方，至多额外强化三名。另可照拂持有你的[[wuxiang.status.vow]]的友方。尚未显相时，成功施放获得1枚烈念。",
+      "description": "破障一愿，攻势骤起。\n为一名友方施加[[wuxiang.status.empower]]，使其本回合造成的伤害提高，基础增幅为20%。显相后，破障愿每满40级多强化一名友方，至多额外强化三名。另可照拂持有你的[[wuxiang.status.vow]]的友方。尚未显相时，成功施放获得1枚烈念。\n基础法力消耗为45＋心法等级×0.7，每多覆盖一名目标加收基础费用的40%，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -546,13 +546,13 @@
           "duration": 1
         }
       ],
-      "costMp": 100
+      "costMp": "ceil((45+skillLevel*0.7)*(1+0.4*max(0,targets-1)))"
     },
     {
       "id": "wuxiang.skill.turn",
       "name": "一念回转",
       "school": "wuxiang",
-      "description": "一念回转，烈寂互换。\n尚未显相且已有念头时可用。将已积攒的烈念全部转为寂念，寂念全部转为烈念。",
+      "description": "一念回转，烈寂互换。\n尚未显相且已有念头时可用。将已积攒的烈念全部转为寂念，寂念全部转为烈念。\n基础法力消耗为30＋心法等级×0.4，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -609,13 +609,13 @@
         }
       ],
       "requirement": "if(fact.wuxiang_form == 0, resource.wuxiang.resource.fierce + resource.wuxiang.resource.still > 0, 0)",
-      "costMp": 30
+      "costMp": "ceil((30+skillLevel*0.4))"
     },
     {
       "id": "wuxiang.skill.restore",
       "name": "返照归真",
       "school": "wuxiang",
-      "description": "返照归真，伤损复原。\n回复自身气血，积攒的念头越多，回复越多。尚未显相时，先修复自身伤势再回复气血，成功施放后积1枚寂念。显相时获得[[wuxiang.status.repair_guard]]，并使法相延长1回合。每次显相时，本技能立即结束冷却。",
+      "description": "返照归真，伤损复原。\n回复自身气血，积攒的念头越多，回复越多。尚未显相时，先修复自身伤势再回复气血，成功施放后积1枚寂念。显相时获得[[wuxiang.status.repair_guard]]，并使法相延长1回合。每次显相时，本技能立即结束冷却。\n基础法力消耗为90＋心法等级×1.3，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -655,13 +655,13 @@
         }
       ],
       "cooldownRounds": 150,
-      "costMp": 50
+      "costMp": "ceil((90+skillLevel*1.3))"
     },
     {
       "id": "wuxiang.skill.strike",
       "name": "摧岳",
       "school": "wuxiang",
-      "description": "摧岳一击，势压一人。\n对一名敌人造成物理伤害。显相时基础威力提高40%，烈念的增幅另外计算。尚未显相时，成功施放获得1枚烈念。",
+      "description": "摧岳一击，势压一人。\n对一名敌人造成物理伤害。显相时基础威力提高40%，烈念的增幅另外计算。尚未显相时，成功施放获得1枚烈念。\n基础法力消耗为35＋心法等级×0.6，最终费用向上取整。",
       "tags": [
         "physical"
       ],
@@ -684,13 +684,13 @@
           }
         }
       ],
-      "costMp": 50
+      "costMp": "ceil((35+skillLevel*0.6))"
     },
     {
       "id": "wuxiang.skill.stars",
       "name": "劫火散华",
       "school": "wuxiang",
-      "description": "劫火散华，星火连落。\n对至多三名敌人造成物理伤害，威力为普通攻击的55%。显相时提高到80%，烈念的增幅另外计算。尚未显相时，成功施放获得1枚烈念。",
+      "description": "劫火散华，星火连落。\n对至多三名敌人造成物理伤害，威力为普通攻击的55%。显相时提高到80%，烈念的增幅另外计算。尚未显相时，成功施放获得1枚烈念。\n基础法力消耗为30＋心法等级×0.5，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "physical"
       ],
@@ -717,13 +717,13 @@
           }
         }
       ],
-      "costMp": 10
+      "costMp": "ceil((30+skillLevel*0.5)*(1+0.5*max(0,targets-1)))"
     },
     {
       "id": "wuxiang.skill.expose",
       "name": "照隙",
       "school": "wuxiang",
-      "description": "照见空隙，破绽自现。\n给一名敌人施加[[wuxiang.status.breach]]，持续5回合。你的物理攻击命中带有自己所施破绽的目标时，伤害提高并消耗破绽。尚未显相时，成功施放获得1枚烈念。",
+      "description": "照见空隙，破绽自现。\n给一名敌人施加[[wuxiang.status.breach]]，持续5回合。你的物理攻击命中带有自己所施破绽的目标时，伤害提高并消耗破绽。尚未显相时，成功施放获得1枚烈念。\n基础法力消耗为40＋心法等级×0.55，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -738,13 +738,13 @@
           "duration": 5
         }
       ],
-      "costMp": 50
+      "costMp": "ceil((40+skillLevel*0.55))"
     },
     {
       "id": "wuxiang.skill.burn",
       "name": "三念俱焚",
       "school": "wuxiang",
-      "description": "三念俱焚，余火成伤。\n尚未显相时可用。对一名敌人造成固定伤害，消耗已积攒的全部烈念与寂念，每消耗一枚使本次伤害提高15%。",
+      "description": "三念俱焚，余火成伤。\n尚未显相时可用。对一名敌人造成固定伤害，消耗已积攒的全部烈念与寂念，每消耗一枚使本次伤害提高15%。\n基础法力消耗为45＋心法等级×0.65，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -778,13 +778,13 @@
           "amount": 40
         }
       ],
-      "costMp": 60
+      "costMp": "ceil((45+skillLevel*0.65))"
     },
     {
       "id": "wuxiang.skill.vow",
       "name": "本愿印",
       "school": "wuxiang",
-      "description": "本愿落印，护持相随。\n为一名友方结下[[wuxiang.status.vow]]。施放甘露愿、护生愿、破障愿或归元愿时，也会照拂这名友方。尚未显相时，成功施放获得1枚寂念。",
+      "description": "本愿落印，护持相随。\n为一名友方结下[[wuxiang.status.vow]]。施放甘露愿、护生愿、破障愿或归元愿时，也会照拂这名友方。尚未显相时，成功施放获得1枚寂念。\n基础法力消耗为100＋心法等级×1，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -811,13 +811,13 @@
           "duration": 1
         }
       ],
-      "costMp": 200
+      "costMp": "ceil((100+skillLevel*1))"
     },
     {
       "id": "wuxiang.skill.renew",
       "name": "归元愿",
       "school": "wuxiang",
-      "description": "归元一愿，气血复全。\n为一名友方修复伤势，恢复受损的气血上限，再回复气血。也会照拂持有你的[[wuxiang.status.vow]]的友方。尚未显相时，成功施放获得1枚寂念。",
+      "description": "归元一愿，气血复全。\n为一名友方修复伤势，恢复受损的气血上限，再回复气血。也会照拂持有你的[[wuxiang.status.vow]]的友方。尚未显相时，成功施放获得1枚寂念。\n基础法力消耗为70＋心法等级×1.1，每多覆盖一名目标加收基础费用的60%，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -838,13 +838,13 @@
           "power": "40 + skillLevel * 1.5"
         }
       ],
-      "costMp": 80
+      "costMp": "ceil((70+skillLevel*1.1)*(1+0.6*max(0,targets-1)))"
     },
     {
       "id": "wuxiang.skill.revive",
       "name": "莲华还生",
       "school": "wuxiang",
-      "description": "莲华还生，神魂归位。\n复活一名倒地的友方人物，使其恢复20%最大气血。尚未显相时，成功施放获得1枚寂念。",
+      "description": "莲华还生，神魂归位。\n复活一名倒地的友方人物，使其恢复20%最大气血。尚未显相时，成功施放获得1枚寂念。\n基础法力消耗为100＋心法等级×1.4，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -861,13 +861,13 @@
           "hpRatio": 0.2
         }
       ],
-      "costMp": 120
+      "costMp": "ceil((100+skillLevel*1.4))"
     },
     {
       "id": "wuxiang.skill.insight",
       "name": "慧眼观照",
       "school": "wuxiang",
-      "description": "慧眼观照，气机可医。\n修复一名友方的伤势，并使其获得[[wuxiang.status.insight]]，持续3回合。尚未显相时，成功施放获得1枚寂念。",
+      "description": "慧眼观照，气机可医。\n修复一名友方的伤势，并使其获得[[wuxiang.status.insight]]，持续3回合。尚未显相时，成功施放获得1枚寂念。\n基础法力消耗为65＋心法等级×0.9，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -886,13 +886,13 @@
           "duration": 3
         }
       ],
-      "costMp": 120
+      "costMp": "ceil((65+skillLevel*0.9))"
     },
     {
       "id": "wuxiang.skill.unbind",
       "name": "解缚还生",
       "school": "wuxiang",
-      "description": "解缚还生，拘灵松动。\n消耗30点战意和120法力，使一名倒地友方人物的[[youdu.status.soul_seal]]缩短1回合。如果目标此时已无拘灵，立即将其复活并恢复20%最大气血。尚未显相时，成功施放获得1枚寂念。",
+      "description": "解缚还生，拘灵松动。\n消耗30点战意并支付法力，使一名倒地友方人物的[[youdu.status.soul_seal]]缩短1回合。如果目标此时已无拘灵，立即将其复活并恢复20%最大气血。尚未显相时，成功施放获得1枚寂念。\n基础法力消耗为110＋心法等级×1.5，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -927,13 +927,13 @@
           "amount": 30
         }
       ],
-      "costMp": 120
+      "costMp": "ceil((110+skillLevel*1.5))"
     },
     {
       "id": "wuxiang.skill.overload",
       "name": "魔临无间",
       "school": "wuxiang",
-      "description": "魔相临世，一式尽出。\n显相时可用，两式各有一半概率。摧岳式对一名敌人造成物理伤害，烈念带来的物理增伤翻倍。若击倒目标，保留法相并延长1回合。散华式对至多六名敌人造成物理伤害。除摧岳式击倒目标外，施放后法相于本回合结束时消退。冷却4回合，开战冷却2回合。",
+      "description": "魔相临世，一式尽出。\n显相时可用，两式各有一半概率。摧岳式对一名敌人造成物理伤害，烈念带来的物理增伤翻倍。若击倒目标，保留法相并延长1回合。散华式对至多六名敌人造成物理伤害。除摧岳式击倒目标外，施放后法相于本回合结束时消退。冷却4回合，开战冷却2回合。\n基础法力消耗为100＋心法等级×1.1，最终费用向上取整。",
       "tags": [
         "physical"
       ],
@@ -1005,13 +1005,13 @@
       "requirement": "fact.wuxiang_form",
       "cooldownRounds": 4,
       "initialCooldownRounds": 2,
-      "costMp": 100
+      "costMp": "ceil((100+skillLevel*1.1))"
     },
     {
       "id": "wuxiang.skill.cleanse",
       "name": "净业愿",
       "school": "wuxiang",
-      "description": "净业一愿，异常暂消。\n显相时可用。随机解除一名友方的一种可净化异常，并在本回合内防止同类异常再次施加。拘灵等禁复活效果无法解除。施放后法相于本回合结束时消退。",
+      "description": "净业一愿，异常暂消。\n显相时可用。随机解除一名友方的一种可净化异常，并在本回合内防止同类异常再次施加。拘灵等禁复活效果无法解除。施放后法相于本回合结束时消退。\n基础法力消耗为70＋心法等级×0.9，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -1054,7 +1054,7 @@
       ],
       "cooldownRounds": 8,
       "initialCooldownRounds": 4,
-      "costMp": 0
+      "costMp": "ceil((70+skillLevel*0.9))"
     }
   ],
   "statuses": [

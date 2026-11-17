@@ -535,7 +535,7 @@ describe('无相经脉条件与代价', () => {
       const mp = b.unit('s').attrs.mp;
       round(b, { s: skill('pierce') });
       expect(damage(b)).toHaveLength(count);
-      expect(b.unit('s').attrs.mp).toBe(mp - 30 * count);
+      expect(b.unit('s').attrs.mp).toBe(mp - Math.ceil((30 + level * .55) * (1 + .5 * (count - 1))));
     },
   );
   it.each([0, 1, 2])('三念俱焚消耗 %i 念，每念增伤15%，使用独立于破妄目标数的单体公式', (count) => {

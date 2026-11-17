@@ -1,7 +1,7 @@
 {
   "$schema": "./lingxiao-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 10,
+  "contentRevision": 11,
   "baseSkillIds": [
     "lingxiao.skill.triple",
     "lingxiao.skill.waiting",
@@ -47,8 +47,9 @@
         }
       ],
       "requireHpAboveRatio": 0.5,
-      "description": "凝剑断尘，剑势连斩。\n当前气血须高于一半，消耗最大气血的10%。对一名敌人造成三段物理伤害，后段更强。出手后进入[[lingxiao.status.recovery]]，下回合休息。",
-      "recoveryStatusId": "lingxiao.status.recovery"
+      "description": "凝剑断尘，剑势连斩。\n当前气血须高于一半，消耗最大气血的10%。对一名敌人造成三段物理伤害，后段更强。出手后进入[[lingxiao.status.recovery]]，下回合休息。\n基础法力消耗为30＋心法等级×0.5，最终费用向上取整。",
+      "recoveryStatusId": "lingxiao.status.recovery",
+      "costMp": "ceil((30+skillLevel*0.5))"
     },
     {
       "id": "lingxiao.skill.waiting",
@@ -71,7 +72,8 @@
           "storeTarget": true
         }
       ],
-      "description": "藏锋不发，静待惊雷。\n消耗当前气血的5%，本回合不攻击，并进入[[lingxiao.status.preparing]]。下回合转为[[lingxiao.status.waiting]]，提高物理攻击、命中和速度，自动攻击蓄势时选定的敌人。"
+      "description": "藏锋不发，静待惊雷。\n消耗当前气血的5%，本回合不攻击，并进入[[lingxiao.status.preparing]]。下回合转为[[lingxiao.status.waiting]]，提高物理攻击、命中和速度，自动攻击蓄势时选定的敌人。\n基础法力消耗为25＋心法等级×0.4，最终费用向上取整。",
+      "costMp": "ceil((25+skillLevel*0.4))"
     },
     {
       "id": "lingxiao.skill.formation",
@@ -104,13 +106,14 @@
       ],
       "requireHpAboveRatio": 0.1,
       "forbidRevivedRound": true,
-      "description": "以气血换剑势，一剑临渊。\n当前气血须高于最大气血的10%，消耗最大气血的10%，对至多三名敌人造成物理伤害。出手后进入[[lingxiao.status.recovery]]，下回合休息。复活当回合无法施放。"
+      "description": "以气血换剑势，一剑临渊。\n当前气血须高于最大气血的10%，消耗最大气血的10%，对至多三名敌人造成物理伤害。出手后进入[[lingxiao.status.recovery]]，下回合休息。复活当回合无法施放。\n基础法力消耗为35＋心法等级×0.5，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
+      "costMp": "ceil((35+skillLevel*0.5)*(1+0.5*max(0,targets-1)))"
     },
     {
       "id": "lingxiao.skill.sword_aura",
       "name": "破极剑意",
       "school": "lingxiao",
-      "costMp": "20 + floor(skillLevel / 5)",
+      "costMp": "ceil((35+skillLevel*0.5))",
       "tags": [
         "support"
       ],
@@ -125,13 +128,13 @@
           "self": true
         }
       ],
-      "description": "剑意破极，锋芒直入。\n自身获得[[lingxiao.status.sword_aura]]，持续5回合。物理攻击会忽视目标10%的物理防御。"
+      "description": "剑意破极，锋芒直入。\n自身获得[[lingxiao.status.sword_aura]]，持续5回合。物理攻击会忽视目标10%的物理防御。\n基础法力消耗为35＋心法等级×0.5，最终费用向上取整。"
     },
     {
       "id": "lingxiao.skill.clarity",
       "name": "剑心通明",
       "school": "lingxiao",
-      "costMp": "20 + floor(skillLevel / 5)",
+      "costMp": "ceil((35+skillLevel*0.5))",
       "tags": [
         "support"
       ],
@@ -146,13 +149,13 @@
           "self": true
         }
       ],
-      "description": "剑心通明，凝神守一。\n自身获得[[lingxiao.status.clarity]]，持续5回合。法术防御提高心法等级，封印抵抗提高心法等级的一半。"
+      "description": "剑心通明，凝神守一。\n自身获得[[lingxiao.status.clarity]]，持续5回合。法术防御提高心法等级，封印抵抗提高心法等级的一半。\n基础法力消耗为35＋心法等级×0.5，最终费用向上取整。"
     },
     {
       "id": "lingxiao.skill.confuse",
       "name": "剑龙吟",
       "school": "lingxiao",
-      "costMp": "30 + floor(skillLevel / 2)",
+      "costMp": "ceil((35+skillLevel*0.6))",
       "tags": [
         "spell",
         "seal"
@@ -171,13 +174,13 @@
           "hit": "seal"
         }
       ],
-      "description": "剑鸣如龙，乱其心神。\n有概率使一只怪物陷入[[lingxiao.status.confuse]]，持续2回合。"
+      "description": "剑鸣如龙，乱其心神。\n有概率使一只怪物陷入[[lingxiao.status.confuse]]，持续2回合。\n基础法力消耗为35＋心法等级×0.6，最终费用向上取整。"
     },
     {
       "id": "lingxiao.skill.shadow_strike",
       "name": "惊鸿掠影",
       "school": "lingxiao",
-      "costMp": 50,
+      "costMp": "ceil((35+skillLevel*0.6))",
       "tags": [
         "physical"
       ],
@@ -199,13 +202,13 @@
         }
       ],
       "cooldownRounds": 6,
-      "description": "掠影一击，身法骤起。\n对一名敌人造成物理伤害。下一回合获得[[lingxiao.status.shadow]]，速度提高15%。冷却6回合。"
+      "description": "掠影一击，身法骤起。\n对一名敌人造成物理伤害。下一回合获得[[lingxiao.status.shadow]]，速度提高15%。冷却6回合。\n基础法力消耗为35＋心法等级×0.6，最终费用向上取整。"
     },
     {
       "id": "lingxiao.skill.pursuit",
       "name": "乘胜追击",
       "school": "lingxiao",
-      "costMp": 50,
+      "costMp": "ceil((40+skillLevel*0.6))",
       "cooldownRounds": 6,
       "tags": [
         "support"
@@ -221,7 +224,7 @@
           "self": true
         }
       ],
-      "description": "追击之势，剑及灵兽。\n获得[[lingxiao.status.pursuit]]，使断尘击中敌方人物时也伤及其出战灵兽。断尘成功施放后消耗此状态，若击倒目标则保留。冷却6回合。",
+      "description": "追击之势，剑及灵兽。\n获得[[lingxiao.status.pursuit]]，使断尘击中敌方人物时也伤及其出战灵兽。断尘成功施放后消耗此状态，若击倒目标则保留。冷却6回合。\n基础法力消耗为40＋心法等级×0.6，最终费用向上取整。",
       "modifiers": [
         {
           "when": {
@@ -262,7 +265,7 @@
       "id": "lingxiao.skill.zhanchen_long_drive",
       "name": "长驱直入",
       "school": "lingxiao",
-      "costMp": 50,
+      "costMp": "ceil((60+skillLevel*0.8))",
       "cooldownRounds": 6,
       "tags": [
         "physical"
@@ -281,7 +284,7 @@
           "power": 0
         }
       ],
-      "description": "长驱直入，剑不容护。\n对一名敌人造成物理伤害，威力为普通攻击的110%，且不能被保护。有60%概率使目标陷入[[lingxiao.status.wound]]，持续2回合。冷却6回合。",
+      "description": "长驱直入，剑不容护。\n对一名敌人造成物理伤害，威力为普通攻击的110%，且不能被保护。有60%概率使目标陷入[[lingxiao.status.wound]]，持续2回合。冷却6回合。\n基础法力消耗为60＋心法等级×0.8，最终费用向上取整。",
       "modifiers": [
         {
           "when": {
@@ -317,7 +320,7 @@
       "id": "lingxiao.skill.guiyi_long_drive",
       "name": "长驱直入",
       "school": "lingxiao",
-      "costMp": 50,
+      "costMp": "ceil((60+skillLevel*0.8))",
       "cooldownRounds": 6,
       "tags": [
         "physical"
@@ -336,7 +339,7 @@
           "power": 0
         }
       ],
-      "description": "长驱直入，剑不容护。\n对一名敌人造成物理伤害，威力为普通攻击的110%，且不能被保护。有60%概率使目标陷入[[lingxiao.status.wound]]，持续2回合。冷却6回合。",
+      "description": "长驱直入，剑不容护。\n对一名敌人造成物理伤害，威力为普通攻击的110%，且不能被保护。有60%概率使目标陷入[[lingxiao.status.wound]]，持续2回合。冷却6回合。\n基础法力消耗为60＋心法等级×0.8，最终费用向上取整。",
       "modifiers": [
         {
           "when": {

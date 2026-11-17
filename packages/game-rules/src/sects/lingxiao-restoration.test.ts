@@ -61,7 +61,7 @@ describe('无双流派基础能力和剑意门槛', () => {
         const statusId = T(nodes.length ? 'sword_aura_ganjiang' : 'sword_aura');
         expect(b.unit('s').statuses).toContainEqual(expect.objectContaining({ id: statusId, remainingRounds: 5 }));
         for (const id of ['ally', 'pet']) expect(b.unit(id).statuses.some(status => status.kind === 'lingxiao.sword_aura')).toBe(false);
-        expect(b.unit('s').attrs.mp).toBe(9944);
+        expect(b.unit('s').attrs.mp).toBe(9875);
         round(b, attack);
         expect(damage(b)).toEqual([nodes.length ? 915 : 910]);
       }
@@ -125,9 +125,9 @@ describe('无双流派基础能力和剑意门槛', () => {
 });
 
 describe('经典技能强化与代价', () => {
-  it('惊鸿基础为普攻、50法力、6回合冷却，仅下一回合加速15%', () => {
+  it('惊鸿基础为普攻、成长法力费用、6回合冷却，仅下一回合加速15%', () => {
     const { b } = setup('zhanchen'); round(b, cast('shadow_strike'));
-    expect(damage(b)).toEqual([900]); expect(b.unit('s').attrs.mp).toBe(9950); expect(effectiveSpeed(b.unit('s'))).toBe(115);
+    expect(damage(b)).toEqual([900]); expect(b.unit('s').attrs.mp).toBe(9857); expect(effectiveSpeed(b.unit('s'))).toBe(115);
     expect(b.queryCommands('s').skills.find(s => s.skillId === S('shadow_strike'))!.reasons).toContain('cooldown');
     round(b); expect(effectiveSpeed(b.unit('s'))).toBe(100);
     while (b.state.round < 7) round(b);

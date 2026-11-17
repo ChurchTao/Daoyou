@@ -21,12 +21,12 @@ describe('啸岳岭内容契约', () => {
   });
 
   it('狮搏无兽形时计入化形费用，已有兽形只支付攻击费用', () => {
-    const source = createUnit({ name: '百兽弟子', side: 0, kind: 'player', attrs: { hp: 100, speed: 10, physicalAtk: 100, physicalDef: 10 } }, 0);
+    const source = createUnit({ name: '百兽弟子', side: 0, kind: 'player', attrs: { hp: 100, speed: 10, physicalAtk: 100, physicalDef: 10 }, skills: ['xiaoyue.skill.transform'], skillLevels: { 'xiaoyue.skill.transform': 75 } }, 0);
     const costMp = XIAOYUE_COMBAT.skill('xiaoyue.skill.lion_strike').definition.costMp;
-    expect(evalExpr(costMp, { source, skillLevel: 75, targets: 1 })).toBe(50);
+    expect(evalExpr(costMp, { source, skillLevel: 75, targets: 1 })).toBe(153);
     source.statuses.push({ id: 'xiaoyue.status.transform', kind: 'xiaoyue.status.transform', sourceId: source.id,
       remainingRounds: 4, appliedRound: 1, speedMod: 0, attrMods: {}, damageTakenPhysical: 1, damageTakenSpell: 1, healTaken: 1, healDealt: 1, stacks: 1 });
-    expect(evalExpr(costMp, { source, skillLevel: 75, targets: 1 })).toBe(30);
+    expect(evalExpr(costMp, { source, skillLevel: 75, targets: 1 })).toBe(80);
   });
 
   it('鹏击与最佳搭档分别计算冷却', () => {

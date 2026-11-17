@@ -108,7 +108,7 @@ describe('万窍山真实技能与经脉战斗组合', () => {
     expect(breath(battle).current).toBe(3);
     expect(effectiveAttrs(battle.unit('s')).magicAtk).toBe(1030);
     expect(battle.unit('s').barriers.reduce((sum, b) => sum + b.current, 0)).toBe(1080);
-    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 30);
+    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 143);
   });
 
   it.each([false, true])('群法复响沿用原目标而不补选，一次付费与追击扣息，原主目标倒地=%s', downed => {
@@ -127,7 +127,7 @@ describe('万窍山真实技能与经脉战斗组合', () => {
     expect(targets[0]).toBe('t5');
     expect(attacks).toEqual([...Array(5).fill(1030), ...Array(downed ? 4 : 5).fill(1020)]);
     expect(breath(battle).current).toBe(2);
-    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 150);
+    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 387);
     expect(battle.unit('s').barriers.reduce((sum, b) => sum + b.current, 0)).toBe(360);
   });
 
@@ -135,11 +135,11 @@ describe('万窍山真实技能与经脉战斗组合', () => {
     noProc();
     const battle = createBattle(setup('resonance', ['1.2']).input);
     breath(battle).current = 6;
-    battle.unit('s').attrs.mp = 29;
-    expect(battle.queryCommands('s').skills.find(s => s.skillId === skillId.Pierce)?.costs.mp).toBe(30);
+    battle.unit('s').attrs.mp = 142;
+    expect(battle.queryCommands('s').skills.find(s => s.skillId === skillId.Pierce)?.costs.mp).toBe(143);
     round(battle, { s: cast(skillId.Pierce) });
     expect(breath(battle).current).toBe(6);
-    expect(battle.unit('s').attrs.mp).toBe(29);
+    expect(battle.unit('s').attrs.mp).toBe(142);
     expect(battle.unit('s').barriers).toEqual([]);
     expect(battle.unit('s').skillUses?.[skillId.Pierce] ?? 0).toBe(0);
   });
@@ -158,7 +158,7 @@ describe('万窍山真实技能与经脉战斗组合', () => {
     round(battle, { s: cast(skillId.Fissure) });
     expect(battle.unit('s').combatFacts?.wanqiao_spent).toBe(spent);
     expect(breath(battle).current).toBe(3 - spent);
-    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 30);
+    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 157);
   });
 
   it('叩隙只按实际气血伤害造成一成伤势，普通护盾吸收时不额外造伤', () => {
@@ -241,7 +241,7 @@ describe('万窍山真实技能与经脉战斗组合', () => {
     expect(afterActions).toEqual([3, 4]);
     expect(breath(battle).current).toBe(5);
     expect(affected.every(u => echo(battle, u.id)!.appliedRound === 1 && echo(battle, u.id)!.remainingRounds === 2)).toBe(true);
-    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 300);
+    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 858);
   });
 
   it('伏声只提高复响挂咒率，五目标共耗一息而非每目标付费', () => {
@@ -253,7 +253,7 @@ describe('万窍山真实技能与经脉战斗组合', () => {
     expect(rolls.filter(e => e.type === 'chanceResolved' && Math.abs(e.chance - 0.25) < 1e-9)).toHaveLength(5);
     expect(battle.state.units.filter(u => u.side === 1 && echo(battle, u.id))).toHaveLength(5);
     expect(breath(battle).current).toBe(2);
-    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 150);
+    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 429);
   });
 
   it('两位音修的留音、引响和驱散各自独立，强化只影响本人咒印', () => {
@@ -319,7 +319,7 @@ describe('万窍山真实技能与经脉战斗组合', () => {
     battle.unit('s').skillLevels[skillId.Harmony] = 180;
     round(battle, { t0: cast(dispel.id, ['s']) });
     expect(battle.unit('s').attrs.hp).toBe(5520);
-    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 25);
+    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 118);
     expect(battle.unit('s').statuses.some(s => s.id === statusId.Harmony)).toBe(false);
   });
 
@@ -327,7 +327,7 @@ describe('万窍山真实技能与经脉战斗组合', () => {
     noProc();
     const battle = createBattle(setup().input);
     round(battle, { s: cast(skillId.Harmony, ['s']) });
-    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 50);
+    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 208);
     expect([battle.unit('s'), battle.unit('a')].every(u => u.statuses.some(s => s.id === statusId.Harmony))).toBe(true);
     expect(effectiveAttrs(battle.unit('s')).magicAtk).toBe(1120);
     expect(effectiveAttrs(battle.unit('a')).magicAtk).toBe(1090);
@@ -380,7 +380,7 @@ describe('万窍山真实技能与经脉战斗组合', () => {
     round(battle, { s: cast(skillId.Rest, ['s']) });
     expect(battle.unit('s').attrs.hp).toBe(9500);
     expect(battle.unit('s').wound).toBe(500);
-    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 100);
+    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 516);
   });
 
   it('叠韵先支付窍息与法力，仅在五回合窗口将潜籁挂咒概率翻倍', () => {
@@ -388,7 +388,7 @@ describe('万窍山真实技能与经脉战斗组合', () => {
     const battle = createBattle(setup('subtlety', ['6.3']).input);
     round(battle, { s: cast(skillId.Distill, ['s']) });
     expect(breath(battle).current).toBe(2);
-    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 300);
+    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 316);
     expect(battle.unit('s').statuses.some(s => s.id === statusId.Distill)).toBe(true);
     const activeCursor = battle.log().length;
     round(battle, { s: cast(skillId.Undertone) });
@@ -419,7 +419,7 @@ describe('万窍山真实技能与经脉战斗组合', () => {
     expect(refreshed.log().slice(cursors[1]).filter(e => e.type === 'chanceResolved' && e.chance === 0.4)).toHaveLength(5);
   });
 
-  it('万窍齐鸣开场冷却后一次消耗全部窍息，付固定法力且不触发复响', () => {
+  it('万窍齐鸣开场冷却后一次消耗全部窍息，按覆盖人数支付法力且不触发复响', () => {
     everyProc();
     const battle = createBattle(setup('resonance', ['7.2']).input);
     const ready = () => battle.queryCommands('s').skills.find(s => s.skillId === skillId.Resonate)?.ready;
@@ -432,7 +432,7 @@ describe('万窍山真实技能与经脉战斗组合', () => {
     round(battle, { s: cast(skillId.Resonate, ['t5']) });
     expect(battle.unit('s').combatFacts?.wanqiao_spent).toBe(5);
     expect(breath(battle).current).toBe(1); // 第四轮末的基础回息独立结算。
-    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 100);
+    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 654);
     expect(directHits(battle, cursor)).toHaveLength(5);
     expect(battle.unit('s').cooldowns?.[skillId.Resonate]).toBe(10);
     expect(ready()).toBe(false);
@@ -546,24 +546,24 @@ describe('万窍山真实技能与经脉战斗组合', () => {
       expect(own.every(s => s.stacks <= 3)).toBe(true);
       expect(echo(battle, 't2', 'a')!.stacks).toBe(3);
       expect(breath(battle).current).toBe(0);
-      expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 100);
+      expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 270);
       expect(battle.unit('s').cooldowns?.[skillId.Coda]).toBe(9);
     }
     expect([...budgets].sort()).toEqual([4, 5]);
   });
 
-  it('含虚真实技能先支付30法力，再以法力抵消盾后名义伤害', () => {
+  it('含虚真实技能先支付148法力，再以法力抵消盾后名义伤害', () => {
     noProc();
     const { input } = setup();
     const probe: SkillDef = { id: 'test.probe', name: '攻击', tags: ['spell'], targeting: { side: 'enemy' }, effects: [{ type: 'fixedHit', power: 101 }] };
     input.skills!.push(probe); input.units[2]!.skills = [probe.id];
     const battle = createBattle(input);
-    battle.unit('s').attrs.mp = 70;
+    battle.unit('s').attrs.mp = 188;
     round(battle, { s: cast(skillId.Hollow, ['s']), t0: cast(probe.id, ['s']) });
     expect(battle.unit('s').attrs.hp).toBe(attrs.hp - 61);
     expect(battle.unit('s').attrs.mp).toBe(0);
     const costs = battle.log().filter(e => e.type === 'mpCost' && e.unitId === 's');
-    expect(costs.map(e => e.type === 'mpCost' ? [e.amount, e.absorbedDamage ?? 0] : [])).toEqual([[30, 0], [40, 40]]);
+    expect(costs.map(e => e.type === 'mpCost' ? [e.amount, e.absorbedDamage ?? 0] : [])).toEqual([[148, 0], [40, 40]]);
   });
 
   it('留音按完整固定公式计算名义伤害，含虚不因目标最大气血较低而少扣法力', () => {

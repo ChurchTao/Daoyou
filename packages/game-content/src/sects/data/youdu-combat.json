@@ -1,7 +1,7 @@
 {
   "$schema": "./youdu-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 8,
+  "contentRevision": 9,
   "baseSkillIds": [
     "youdu.skill.edict",
     "youdu.skill.wither",
@@ -20,7 +20,7 @@
       "id": "youdu.skill.edict",
       "name": "裂魂咒",
       "school": "youdu",
-      "costMp": "20 * targets",
+      "costMp": "ceil((30+skillLevel*0.55)*(1+0.5*max(0,targets-1)))",
       "tags": [
         "spell"
       ],
@@ -51,7 +51,7 @@
           "damageBonus": 1
         }
       ],
-      "description": "裂魂一咒，神魂震裂。\n对多名敌人造成固定伤害并留下伤势，使其可回复到的气血上限降低。裂魂咒每满25级多攻击一名敌人，至多七名。对生灵造成的伤害加倍。"
+      "description": "裂魂一咒，神魂震裂。\n对多名敌人造成固定伤害并留下伤势，使其可回复到的气血上限降低。裂魂咒每满25级多攻击一名敌人，至多七名。对生灵造成的伤害加倍。\n基础法力消耗为30＋心法等级×0.55，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。"
     },
     {
       "id": "youdu.skill.wither",
@@ -86,8 +86,8 @@
           }
         }
       ],
-      "costMp": 40,
-      "description": "魂毒蚀骨，形神同损。\n对一名敌人造成相当于其当前气血10%的固定伤害，最多为技能等级的8倍。施加[[youdu.status.poison]]，持续3回合，并为己方在场存活的人物恢复气血。"
+      "costMp": "ceil((80+skillLevel*1)*(1+0.4*max(0,allyStandingPlayers-1)))",
+      "description": "魂毒蚀骨，形神同损。\n对一名敌人造成相当于其当前气血10%的固定伤害，最多为技能等级的8倍。施加[[youdu.status.poison]]，持续3回合，并为己方在场存活的人物恢复气血。\n基础法力消耗为80＋心法等级×1，每多照拂一名在场存活友方人物加收40%基础费用，最终费用向上取整。"
     },
     {
       "id": "youdu.skill.pursuit",
@@ -112,8 +112,8 @@
           "duration": 3
         }
       ],
-      "costMp": 50,
-      "description": "滞住神魂，身形迟缓。\n对敌人造成固定伤害，并施加[[youdu.status.slow]]，持续3回合。"
+      "costMp": "ceil((40+skillLevel*0.65))",
+      "description": "滞住神魂，身形迟缓。\n对敌人造成固定伤害，并施加[[youdu.status.slow]]，持续3回合。\n基础法力消耗为40＋心法等级×0.65，最终费用向上取整。"
     },
     {
       "id": "youdu.skill.soul_seal",
@@ -138,8 +138,8 @@
           "hit": "seal"
         }
       ],
-      "costMp": 50,
-      "description": "拘住命魂，归路已断。\n可对站立或倒地的敌方人物施放。命中时施加[[youdu.status.soul_seal]]，使其5回合内无法被复活，倒地后仍保留。"
+      "costMp": "ceil((60+skillLevel*0.8))",
+      "description": "拘住命魂，归路已断。\n可对站立或倒地的敌方人物施放。命中时施加[[youdu.status.soul_seal]]，使其5回合内无法被复活，倒地后仍保留。\n基础法力消耗为60＋心法等级×0.8，最终费用向上取整。"
     },
     {
       "id": "youdu.skill.insight",
@@ -161,15 +161,15 @@
           "duration": 5
         }
       ],
-      "costMp": 20,
-      "description": "法眼洞幽，隐者无所遁。\n为友方施加[[youdu.status.insight]]，持续5回合，使其能够看破隐身，并降低被封印的概率。洞幽法眼每满30级多作用一名友方，至多六名。"
+      "costMp": "ceil((35+skillLevel*0.5)*(1+0.4*max(0,targets-1)))",
+      "description": "法眼洞幽，隐者无所遁。\n为友方施加[[youdu.status.insight]]，持续5回合，使其能够看破隐身，并降低被封印的概率。洞幽法眼每满30级多作用一名友方，至多六名。\n基础法力消耗为35＋心法等级×0.5，每多覆盖一名目标加收基础费用的40%，最终费用向上取整。"
     },
     {
       "id": "youdu.skill.judge",
       "name": "灭魂杀",
       "school": "youdu",
-      "costMp": 20,
-      "description": "灭魂一杀，直取神魂。\n对一名敌人造成固定伤害，并使其失去相当于灭魂杀技能等级的法力。",
+      "costMp": "ceil((45+skillLevel*0.7))",
+      "description": "灭魂一杀，直取神魂。\n对一名敌人造成固定伤害，并使其失去相当于灭魂杀技能等级的法力。\n基础法力消耗为45＋心法等级×0.7，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -192,8 +192,8 @@
       "id": "youdu.skill.revival",
       "name": "还魂决",
       "school": "youdu",
-      "costMp": 150,
-      "description": "还魂归身，气血再续。\n复活一名可复活的倒地友方人物，使其恢复30%最大气血，并获得[[youdu.status.revival]]，持续5回合。",
+      "costMp": "ceil((100+skillLevel*1.4))",
+      "description": "还魂归身，气血再续。\n复活一名可复活的倒地友方人物，使其恢复30%最大气血，并获得[[youdu.status.revival]]，持续5回合。\n基础法力消耗为100＋心法等级×1.4，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -221,8 +221,8 @@
       "id": "youdu.skill.dispel",
       "name": "涤魂诀",
       "school": "youdu",
-      "costMp": 40,
-      "description": "涤去护持，术法散落。\n驱散一名敌人身上所有由宗门技能施加的可驱散增益。",
+      "costMp": "ceil((50+skillLevel*0.7))",
+      "description": "涤去护持，术法散落。\n驱散一名敌人身上所有由宗门技能施加的可驱散增益。\n基础法力消耗为50＋心法等级×0.7，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -244,8 +244,8 @@
       "id": "youdu.skill.stealth",
       "name": "幽影遁",
       "school": "youdu",
-      "costMp": 150,
-      "description": "幽影遁形，身影没入暗处。\n自身获得[[youdu.status.stealth]]，持续4回合。",
+      "costMp": "ceil((100+skillLevel*0.8))",
+      "description": "幽影遁形，身影没入暗处。\n自身获得[[youdu.status.stealth]]，持续4回合。\n基础法力消耗为100＋心法等级×0.8，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -281,7 +281,7 @@
       "id": "youdu.skill.siphon",
       "name": "摄魂",
       "school": "youdu",
-      "costMp": 50,
+      "costMp": "ceil((50+skillLevel*0.7))",
       "tags": [
         "spell"
       ],
@@ -299,13 +299,13 @@
           }
         }
       ],
-      "description": "摄取神魂，攻守逆转。\n使敌人陷入[[youdu.status.siphon]]，持续3回合。"
+      "description": "摄取神魂，攻守逆转。\n使敌人陷入[[youdu.status.siphon]]，持续3回合。\n基础法力消耗为50＋心法等级×0.7，最终费用向上取整。"
     },
     {
       "id": "youdu.skill.soul_chase",
       "name": "魂契共鸣",
       "school": "youdu",
-      "costMp": 100,
+      "costMp": "ceil((70+skillLevel*0.8))",
       "tags": [
         "spell"
       ],
@@ -323,13 +323,13 @@
         }
       ],
       "cooldownRounds": 4,
-      "description": "魂契共鸣，亡者仍助一臂。\n给一名倒地的友方施加[[youdu.status.soul_chase]]。目标仍然倒地，复活后可获得印记提供的增伤。冷却4回合。"
+      "description": "魂契共鸣，亡者仍助一臂。\n给一名倒地的友方施加[[youdu.status.soul_chase]]。目标仍然倒地，复活后可获得印记提供的增伤。冷却4回合。\n基础法力消耗为70＋心法等级×0.8，最终费用向上取整。"
     },
     {
       "id": "youdu.skill.blood_shadow",
       "name": "血影蚀心",
       "school": "youdu",
-      "costMp": 50,
+      "costMp": "ceil((35+skillLevel*0.6))",
       "tags": [
         "spell"
       ],
@@ -346,13 +346,13 @@
           ]
         }
       ],
-      "description": "血影蚀心，直取形体。\n对一名敌人造成物理伤害，威力与普通攻击相同。命中时有30%概率施加[[youdu.status.poison]]，持续3回合。自身有[[youdu.status.poison_shroud]]时，概率提高到60%。"
+      "description": "血影蚀心，直取形体。\n对一名敌人造成物理伤害，威力与普通攻击相同。命中时有30%概率施加[[youdu.status.poison]]，持续3回合。自身有[[youdu.status.poison_shroud]]时，概率提高到60%。\n基础法力消耗为35＋心法等级×0.6，最终费用向上取整。"
     },
     {
       "id": "youdu.skill.ghost_swarm",
       "name": "百鬼噬魂",
       "school": "youdu",
-      "costMp": "35 * targets",
+      "costMp": "ceil((35+skillLevel*0.6)*(1+0.5*max(0,targets-1)))",
       "tags": [
         "spell"
       ],
@@ -370,13 +370,13 @@
           ]
         }
       ],
-      "description": "百鬼噬魂，群起扑食。\n对至多四名敌人造成物理伤害，威力为普通攻击的80%，每个目标消耗35法力。命中时有30%概率施加[[youdu.status.poison]]，持续3回合。自身有[[youdu.status.poison_shroud]]时，概率提高到60%。"
+      "description": "百鬼噬魂，群起扑食。\n对至多四名敌人造成物理伤害，威力为普通攻击的80%，命中时有30%概率施加[[youdu.status.poison]]，持续3回合。自身有[[youdu.status.poison_shroud]]时，概率提高到60%。\n基础法力消耗为35＋心法等级×0.6，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。"
     },
     {
       "id": "youdu.skill.poison_shroud",
       "name": "森罗迷障",
       "school": "youdu",
-      "costMp": 100,
+      "costMp": "ceil((70+skillLevel*0.8))",
       "tags": [
         "spell"
       ],
@@ -391,13 +391,13 @@
           "self": true
         }
       ],
-      "description": "森罗迷障，毒雾自生。\n自身获得[[youdu.status.poison_shroud]]，持续10回合。"
+      "description": "森罗迷障，毒雾自生。\n自身获得[[youdu.status.poison_shroud]]，持续10回合。\n基础法力消耗为70＋心法等级×0.8，最终费用向上取整。"
     },
     {
       "id": "youdu.skill.pardonless",
       "name": "摧形散法",
       "school": "youdu",
-      "costMp": 50,
+      "costMp": "ceil((50+skillLevel*0.75))",
       "tags": [
         "spell"
       ],
@@ -442,13 +442,13 @@
           }
         }
       ],
-      "description": "摧形散法，护持难存。\n对一名敌人造成物理伤害，威力为普通攻击的110%，并随机驱散一个可驱散的增益。目标带有[[youdu.status.poison]]或灵兽施加的毒时，最多驱散两个。"
+      "description": "摧形散法，护持难存。\n对一名敌人造成物理伤害，威力为普通攻击的110%，并随机驱散一个可驱散的增益。目标带有[[youdu.status.poison]]或灵兽施加的毒时，最多驱散两个。\n基础法力消耗为50＋心法等级×0.75，最终费用向上取整。"
     },
     {
       "id": "youdu.skill.life_and_death",
       "name": "噬魂夺生",
       "school": "youdu",
-      "costMp": 100,
+      "costMp": "ceil((100+skillLevel*1.2))",
       "tags": [
         "spell"
       ],
@@ -475,7 +475,7 @@
       ],
       "cooldownRounds": 36,
       "initialCooldownRounds": 18,
-      "description": "夺其生息，反哺己身。\n对一名敌人造成普通攻击230%的物理伤害，并随机驱散其一个可驱散的增益。目标本次实际损失多少气血，你就回复多少。目标带有[[youdu.status.poison]]或灵兽施加的毒时，物理暴击倍率增加0.60。开战冷却18回合，施放后冷却36回合。若你是队中唯一的幽都弟子，每回合结束时，敌方每有一名倒地人物或一个在场存活且带魂毒的目标，额外缩短2回合冷却。",
+      "description": "夺其生息，反哺己身。\n对一名敌人造成普通攻击230%的物理伤害，并随机驱散其一个可驱散的增益。目标本次实际损失多少气血，你就回复多少。目标带有[[youdu.status.poison]]或灵兽施加的毒时，物理暴击倍率增加0.60。开战冷却18回合，施放后冷却36回合。若你是队中唯一的幽都弟子，每回合结束时，敌方每有一名倒地人物或一个在场存活且带魂毒的目标，额外缩短2回合冷却。\n基础法力消耗为100＋心法等级×1.2，最终费用向上取整。",
       "modifiers": [
         {
           "when": {

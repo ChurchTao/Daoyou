@@ -63,6 +63,17 @@ const successfulRolls = () => vi.spyOn(SeededRng.prototype, 'chance').mockImplem
 afterEach(() => vi.restoreAllMocks());
 
 describe('白鹿书院封印与贤影纵切', () => {
+  it.each([166, 167])('守志按凝神的成长费用判断并扣款：%i 法力', mp => {
+    successfulRolls();
+    const { input } = setup('edict', ['shouzhi']);
+    const battle = createBattle(input);
+    battle.unit('s').attrs.hp = 20000;
+    battle.unit('s').attrs.mp = mp;
+    round(battle);
+    expect(has(battle, 's', 'bailu.status.focus')).toBe(mp === 167);
+    expect(battle.unit('s').attrs.mp).toBe(mp === 167 ? 0 : 166);
+  });
+
   it.each([{ damage: 30, shield: 0, awake: false }, { damage: 31, shield: 0, awake: true },
     { damage: 46, shield: 16, awake: false }, { damage: 46, shield: 15, awake: true }])(
     '余音按实际单次气血损失唤醒：$damage伤害／$shield护盾', ({ damage, shield, awake }) => {
@@ -78,7 +89,7 @@ describe('白鹿书院封印与贤影纵切', () => {
       round(battle, { s: cast(skillId.Rumeng), a: cast(probe.id) });
       expect(has(battle, 't', 'bailu.status.sleep_deep')).toBe(!awake);
       expect(battle.unit('t').attrs.hp).toBe(attrs.hp - Math.max(0, damage - shield));
-      expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 45);
+      expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 162);
     },
   );
 
@@ -116,7 +127,7 @@ describe('白鹿书院封印与贤影纵切', () => {
     expect(has(battle, 's', statusId.Law)).toBe(false);
     expect(battle.unit('a').attrs.hp).toBeLessThan(attrs.hp);
     expect(has(battle, 'a', statusId.Law)).toBe(true);
-    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 80);
+    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 204);
     expect(battle.unit('t').attrs.mp).toBe(attrs.mp - 90);
     expect(battle.unit('t').cooldowns![mixed.id]).toBe(5);
     expect(battle.unit('t').combatFacts!.completed).toBe(1);
@@ -176,12 +187,12 @@ describe('白鹿书院封印与贤影纵切', () => {
     expect(resolutions.map(result => result.duration)).toEqual([3, 3]);
     expect(has(battle, 't', statusId.Sleep)).toBe(true);
     expect(battle.unit('t').statuses.find(status => status.id === statusId.Sleep)!.remainingRounds).toBe(3);
-    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 45);
+    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 99);
     expect(battle.unit('s').combatFacts!.bailu_pet_seal_attempted).toBe(1);
     round(battle, { s: cast(skillId.Jinfa) });
     expect(chances).toHaveLength(3);
     expect(resolutions).toHaveLength(3);
-    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 45 - 60);
+    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 99 - 190);
   });
 
   it('审辨首次命中、免疫或被贤影拦截后均消费机会，后续未中不再补判', () => {

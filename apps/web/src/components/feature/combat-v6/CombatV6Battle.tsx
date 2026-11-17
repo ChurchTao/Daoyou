@@ -15,6 +15,7 @@ import {
 import { Link } from 'react-router';
 import { CombatV6Commands, type Choice } from './CombatV6Commands';
 import { CombatV6Details } from './CombatV6Details';
+import { CombatV6Fatigue } from './CombatV6Fatigue';
 import { CombatV6Log } from './CombatV6Log';
 import { CombatV6Roster } from './CombatV6Roster';
 import { CombatV6Status } from './CombatV6Status';
@@ -298,6 +299,7 @@ export function CombatV6Battle({
           <Link to={back}>{backLabel}</Link>
         )}
       </header>
+      <CombatV6Fatigue round={shown.round} versions={session.combatVersions} />
       <div className="cv6-field">
         <CombatV6Roster
           spectator={online?.spectator}
