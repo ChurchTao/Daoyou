@@ -1,7 +1,7 @@
 {
   "$schema": "./bailu-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 4,
+  "contentRevision": 5,
   "baseSkillIds": [
     "bailu.skill.poxie",
     "bailu.skill.zhuxie",
@@ -506,7 +506,7 @@
       "id": "bailu.skill.jinsheng",
       "name": "噤声！",
       "school": "bailu",
-      "description": "战意化言，一语封喉。\n消耗70战意，必定使目标陷入[[bailu.status.law]]，持续2回合。自身无法使用法术时不能施放。冷却6回合。\n基础法力消耗为35＋心法等级×0.5，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
+      "description": "战意化言，一语封喉。\n消耗70战意，必定使目标陷入[[bailu.status.law]]，持续2回合。自身无法使用法术时不能施放。冷却6回合。",
       "tags": [
         "spell",
         "seal"
@@ -544,8 +544,7 @@
             ]
           }
         }
-      ],
-      "costMp": "ceil((35+skillLevel*0.5)*(1+0.5*max(0,targets-1)))"
+      ]
     },
     {
       "id": "bailu.skill.shesheng",

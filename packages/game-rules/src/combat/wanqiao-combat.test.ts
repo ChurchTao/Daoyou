@@ -494,6 +494,20 @@ describe('万窍山真实技能与经脉战斗组合', () => {
     expect(battle.unit('s').skillUses?.[skillId.Catalyze] ?? 0).toBe(0);
   });
 
+  it.each([0, 1000])('泣血吟只支付气血，不耗蓝，且保留禁法代价：初始 %i MP', mp => {
+    noProc();
+    const battle = createBattle(setup().input);
+    battle.unit('s').attrs.mp = mp;
+    const option = battle.queryCommands('s').skills.find(skill => skill.skillId === skillId.Blood)!;
+    expect(option.costs.mp).toBe(0);
+    expect(option.ready).toBe(true);
+    round(battle, { s: cast(skillId.Blood) });
+    expect(battle.unit('t0').attrs.hp).toBeLessThan(100000);
+    expect(battle.unit('s').attrs.hp).toBe(8000);
+    expect(battle.unit('s').attrs.mp).toBe(mp);
+    expect(battle.queryCommands('s').skills.find(skill => skill.skillId === skillId.Blood)?.ready).toBe(false);
+  });
+
   it('泣血吟只支付一次气血且次轮仅禁法，仍可普攻防御', () => {
     noProc();
     const battle = createBattle(setup().input);

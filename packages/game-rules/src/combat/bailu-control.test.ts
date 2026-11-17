@@ -63,6 +63,24 @@ const successfulRolls = () => vi.spyOn(SeededRng.prototype, 'chance').mockImplem
 afterEach(() => vi.restoreAllMocks());
 
 describe('白鹿书院封印与贤影纵切', () => {
+  it.each([0, 1000])('噤声只支付70战意，不消耗法力：初始 %i MP', mp => {
+    const { input } = setup('edict', ['reward_2']);
+    const battle = createBattle(input);
+    battle.unit('s').attrs.mp = mp;
+    const rage = battle.unit('s').resources.find(resource => resource.id === DAO_RAGE_RESOURCE_ID)!;
+    rage.current = 69;
+    expect(battle.queryCommands('s').skills.find(skill => skill.skillId === skillId.Jinsheng)?.ready).toBe(false);
+    rage.current = 70;
+    const option = battle.queryCommands('s').skills.find(skill => skill.skillId === skillId.Jinsheng)!;
+    expect(option.costs.mp).toBe(0);
+    expect(option.ready).toBe(true);
+    round(battle, { s: cast(skillId.Jinsheng) });
+    expect(has(battle, 't', statusId.Law)).toBe(true);
+    expect(rage.current).toBe(0);
+    expect(battle.unit('s').attrs.mp).toBe(mp);
+    expect(battle.queryCommands('s').skills.find(skill => skill.skillId === skillId.Jinsheng)?.reasons).toContain('cooldown');
+  });
+
   it.each([166, 167])('守志按凝神的成长费用判断并扣款：%i 法力', mp => {
     successfulRolls();
     const { input } = setup('edict', ['shouzhi']);

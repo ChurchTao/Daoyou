@@ -1,7 +1,7 @@
 {
   "$schema": "./wanqiao-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 2,
+  "contentRevision": 3,
   "baseSkillIds": [
     "wanqiao.skill.chorus",
     "wanqiao.skill.pierce",
@@ -945,7 +945,7 @@
       "id": "wanqiao.skill.blood",
       "name": "泣血吟",
       "school": "wanqiao",
-      "description": "以血为弦，发出长吟。\n当前气血至少为最大气血的一半时可施放。消耗最大气血的20%，对一名敌人造成法术伤害。施放后获得[[wanqiao.status.spell_rest_pending]]，下回合无法使用宗门神通。可触发复响，追加一次攻击。\n基础法力消耗为20＋心法等级×0.3，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
+      "description": "以血为弦，发出长吟。\n当前气血至少为最大气血的一半时可施放。消耗最大气血的20%，对一名敌人造成法术伤害。施放后获得[[wanqiao.status.spell_rest_pending]]，下回合无法使用宗门神通。可触发复响，追加一次攻击。",
       "tags": [
         "spell"
       ],
@@ -1099,8 +1099,7 @@
         "quad": 0.008333333333333333,
         "linear": 1.5,
         "intercept": 30
-      },
-      "costMp": "ceil((20+skillLevel*0.3)*(1+0.5*max(0,targets-1)))"
+      }
     },
     {
       "id": "wanqiao.skill.rest",

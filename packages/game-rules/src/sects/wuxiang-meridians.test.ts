@@ -405,10 +405,18 @@ describe('无相化相循环与经脉结算', () => {
     expect(b.unit('s').flags.downed).toBe(true);
     expect(form(b)).toBeUndefined();
   });
-  it('净业仅免疫实际驱散的同类异常，回合末退相；次回合可重新附加', () => {
+  it.each([0, 1000])('净业不耗蓝、支付20战意，仅免疫实际驱散的异常且回合末退相：初始 %i MP', mp => {
     const b = setup('compassion', ['7.2']).b;
     for (let i = 0; i < 4; i++) round(b);
     enter(b, 0);
+    b.unit('s').attrs.mp = mp;
+    const rage = b.unit('s').resources.find(resource => resource.id === 'combat.resource.rage')!;
+    rage.current = 19;
+    expect(b.queryCommands('s').skills.find(entry => entry.skillId === S('cleanse'))?.ready).toBe(false);
+    rage.current = 20;
+    const option = b.queryCommands('s').skills.find(entry => entry.skillId === S('cleanse'))!;
+    expect(option.costs.mp).toBe(0);
+    expect(option.ready).toBe(true);
     b.applyStatus('a', 'youdu.status.poison', 3, 't');
     b.hooks.on('afterAction', (h) => {
       if (h.source?.id === 's') {
@@ -419,6 +427,8 @@ describe('无相化相循环与经脉结算', () => {
       }
     });
     round(b, { s: skill('cleanse', 'a') });
+    expect(b.unit('s').attrs.mp).toBe(mp);
+    expect(rage.current).toBe(0);
     expect(form(b)).toBeUndefined();
     b.applyStatus('a', 'youdu.status.poison', 3, 't');
     expect(

@@ -1,7 +1,7 @@
 {
   "$schema": "./wuxiang-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 5,
+  "contentRevision": 6,
   "baseSkillIds": [
     "wuxiang.skill.mind",
     "wuxiang.skill.pierce",
@@ -1011,7 +1011,7 @@
       "id": "wuxiang.skill.cleanse",
       "name": "净业愿",
       "school": "wuxiang",
-      "description": "净业一愿，异常暂消。\n显相时可用。随机解除一名友方的一种可净化异常，并在本回合内防止同类异常再次施加。拘灵等禁复活效果无法解除。施放后法相于本回合结束时消退。\n基础法力消耗为70＋心法等级×0.9，最终费用向上取整。",
+      "description": "净业一愿，异常暂消。\n显相时可用。随机解除一名友方的一种可净化异常，并在本回合内防止同类异常再次施加。拘灵等禁复活效果无法解除。施放后法相于本回合结束时消退。",
       "tags": [
         "spell",
         "support"
@@ -1054,7 +1054,7 @@
       ],
       "cooldownRounds": 8,
       "initialCooldownRounds": 4,
-      "costMp": "ceil((70+skillLevel*0.9))"
+      "costMp": 0
     }
   ],
   "statuses": [
