@@ -40,6 +40,27 @@
   font-size: 0.75rem;
   color: var(--color-battle-muted);
 }
+.cv6-header-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  min-width: 0;
+}
+.cv6-header-status > span {
+  font-size: 0.75rem;
+  color: var(--color-battle-muted);
+}
+.cv6-header .cv6-fatigue {
+  min-height: 2.75rem;
+  cursor: help;
+  white-space: nowrap;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.25em;
+}
+.cv6-header .cv6-fatigue.is-active {
+  color: var(--color-crimson);
+}
 .cv6-error {
   padding: 0.5rem;
   color: var(--color-crimson);
@@ -568,9 +589,13 @@
   .cv6-header h1 {
     font-size: 1rem;
   }
-  .cv6-phase {
+  .cv6-header-status {
     grid-row: 2;
     grid-column: 1 / -1;
+    justify-content: space-between;
+    gap: 0.25rem 0.5rem;
+  }
+  .cv6-phase {
     justify-content: center;
     height: 1.9rem;
     font-size: 0.8rem;

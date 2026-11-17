@@ -87,12 +87,17 @@ export function CombatV6ReplayPlayer({
     <section className="cv6-battle" aria-label="战斗回放">
       <header className="cv6-header">
         <h1>{title}</h1>
-        <span>
-          {ended ? outcomes[record.outcome] : `第 ${position.round} 回合`}
-        </span>
+        <div className="cv6-header-status">
+          <span>
+            {ended ? outcomes[record.outcome] : `第 ${position.round} 回合`}
+          </span>
+          <CombatV6Fatigue
+            round={position.round}
+            versions={record.combatVersions}
+          />
+        </div>
         <Link to={back}>{backLabel}</Link>
       </header>
-      <CombatV6Fatigue round={position.round} versions={record.combatVersions} />
       <div className="cv6-field">
         <CombatV6Roster
           units={position.units}
