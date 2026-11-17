@@ -28,7 +28,7 @@ describe('achievement rules', () => {
       )) {
         expect(Number.isInteger(definition.reputationReward)).toBe(true);
         expect(definition.reputationReward).toBeGreaterThanOrEqual(5);
-        expect(definition.reputationReward).toBeLessThanOrEqual(80);
+        expect(definition.reputationReward).toBeLessThanOrEqual(50);
         expect(definition.reputationReward).toBeGreaterThanOrEqual(
           previousByMetric.get(definition.requirement.metric) ?? 0,
         );
@@ -70,9 +70,18 @@ describe('achievement rules', () => {
     });
     expect(
       achievementCatalogue(facts(0), [
-        { ...legacy, rewardClaimedAt: unlockedAt, claimedReputation: 10 },
-      ])[0],
-    ).toMatchObject({ rewardClaimedAt: unlockedAt, claimedReputation: 10 });
+        {
+          achievementId: 'forging.high_triple_blue',
+          unlockedAt,
+          rewardClaimedAt: unlockedAt,
+          claimedReputation: 80,
+        },
+      ]).find((item) => item.id === 'forging.high_triple_blue'),
+    ).toMatchObject({
+      reputationReward: 50,
+      rewardClaimedAt: unlockedAt,
+      claimedReputation: 80,
+    });
   });
 
   it.each(ACHIEVEMENT_DEFINITIONS)(
