@@ -1,4 +1,3 @@
-import { StoryTracker } from '@app/components/feature/story/StoryTracker';
 import { cn } from '@app/lib/cn';
 import { resolveGameScene } from '@app/lib/router/routeTitle';
 import type { ReactNode } from 'react';
@@ -226,7 +225,6 @@ export function GameSceneFrame({
             {headerMeta ? <div className="mt-4">{headerMeta}</div> : null}
 
             <SceneBody className={contentClassName}>
-              <StoryTracker placement="page" sceneId={scene?.id} />
               {children}
             </SceneBody>
           </SceneSurface>
