@@ -1,0 +1,3 @@
+ALTER TABLE "wanjiedaoyou_achievement_unlocks" ADD COLUMN "reward_claimed_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "wanjiedaoyou_achievement_unlocks" ADD COLUMN "claimed_reputation" integer;--> statement-breakpoint
+ALTER TABLE "wanjiedaoyou_achievement_unlocks" ADD CONSTRAINT "achievement_unlocks_reward_valid" CHECK (("wanjiedaoyou_achievement_unlocks"."reward_claimed_at" is null and "wanjiedaoyou_achievement_unlocks"."claimed_reputation" is null) or ("wanjiedaoyou_achievement_unlocks"."reward_claimed_at" is not null and "wanjiedaoyou_achievement_unlocks"."claimed_reputation" is not null and "wanjiedaoyou_achievement_unlocks"."claimed_reputation" between 5 and 80));

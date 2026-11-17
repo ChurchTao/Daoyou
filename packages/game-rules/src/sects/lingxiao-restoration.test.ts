@@ -50,6 +50,23 @@ const resource = (b: Battle, id = 'sword_intent') => b.unit('s').resources.find(
 function ready(b: Battle) { b.unit('s').attrs.hp = 10000; b.unit('s').flags.skipNextAction = false; b.unit('s').statuses = b.unit('s').statuses.filter(s => s.id !== T('recovery')); }
 
 describe('无双流派基础能力和剑意门槛', () => {
+  it.each(['guiyi', 'zhanchen'] as const)('%s 的普通及干将破极剑意都只对自身生效', path => {
+    for (const nodes of [[], ['4.1']]) {
+      for (const target of ['s', 'ally', 'pet']) {
+        const { b } = setup(path, nodes);
+        b.unit('pet').side = 0;
+        b.unit('pet').ownerId = 's';
+        expect(b.queryCommands('s').skills.find(skill => skill.skillId === S('sword_aura'))?.selectableTargetIds).toEqual(['s']);
+        round(b, cast('sword_aura', target));
+        const statusId = T(nodes.length ? 'sword_aura_ganjiang' : 'sword_aura');
+        expect(b.unit('s').statuses).toContainEqual(expect.objectContaining({ id: statusId, remainingRounds: 5 }));
+        for (const id of ['ally', 'pet']) expect(b.unit(id).statuses.some(status => status.kind === 'lingxiao.sword_aura')).toBe(false);
+        expect(b.unit('s').attrs.mp).toBe(9875);
+        round(b, attack);
+        expect(damage(b)).toEqual([nodes.length ? 915 : 910]);
+      }
+    }
+  });
   it('三扫只加一层，惊鸿和临渊不加；26层仍能继续累计，失败不加', () => {
     const { b } = setup();
     round(b, cast('triple')); expect(resource(b).current).toBe(1);
@@ -108,9 +125,27 @@ describe('无双流派基础能力和剑意门槛', () => {
 });
 
 describe('经典技能强化与代价', () => {
-  it('惊鸿基础为普攻、50法力、6回合冷却，仅下一回合加速15%', () => {
+  it.each(['guiyi', 'zhanchen'] as const)('%s 的断尘、惊雷、临渊仅支付气血，零法力仍可施放', path => {
+    for (const [name, hpAfter] of [['triple', 9000], ['waiting', 9500], ['formation', 9000]] as const) {
+      for (const mp of [0, 10000]) {
+        const { b } = setup(path);
+        b.unit('s').attrs.mp = mp;
+        const option = b.queryCommands('s').skills.find(skill => skill.skillId === S(name))!;
+        expect(option.costs.mp).toBe(0);
+        expect(option.ready).toBe(true);
+        round(b, cast(name));
+        expect(b.unit('s').attrs.hp).toBe(hpAfter);
+        expect(b.unit('s').attrs.mp).toBe(mp);
+        if (name === 'waiting') round(b);
+        expect(damage(b).length).toBeGreaterThan(0);
+        expect(b.unit('s').attrs.mp).toBe(mp);
+      }
+    }
+  });
+
+  it('惊鸿基础为普攻、成长法力费用、6回合冷却，仅下一回合加速15%', () => {
     const { b } = setup('zhanchen'); round(b, cast('shadow_strike'));
-    expect(damage(b)).toEqual([900]); expect(b.unit('s').attrs.mp).toBe(9950); expect(effectiveSpeed(b.unit('s'))).toBe(115);
+    expect(damage(b)).toEqual([900]); expect(b.unit('s').attrs.mp).toBe(9857); expect(effectiveSpeed(b.unit('s'))).toBe(115);
     expect(b.queryCommands('s').skills.find(s => s.skillId === S('shadow_strike'))!.reasons).toContain('cooldown');
     round(b); expect(effectiveSpeed(b.unit('s'))).toBe(100);
     while (b.state.round < 7) round(b);
@@ -133,15 +168,19 @@ describe('经典技能强化与代价', () => {
   });
   it('勇武改为回血和10战意，后发附加防御结果并仅对施法者易伤', () => {
     const { b } = setup('zhanchen', ['2.2']); b.unit('s').attrs.hp = 5000;
+    b.unit('s').attrs.mp = 0;
     round(b, cast('waiting')); expect(b.unit('s').attrs.hp).toBe(6440); expect(b.unit('s').resources.find(r => r.id === 'combat.resource.rage')!.current).toBe(10);
+    expect(b.unit('s').attrs.mp).toBe(0);
     round(b); expect(damage(b)).toEqual([1120]);
     round(b, attack, { ally: attack }); expect(damage(b).at(-1)).toBe(990);
     expect(b.log().filter(e => e.type === 'damage' && e.sourceId === 'ally').at(-1)).toMatchObject({ amount: 900 });
   });
   it('乘势取消血线和耗血，追击复制每段至召唤灵，未击倒即消费', () => {
     const { b } = setup('zhanchen', ['4.3']); round(b, cast('pursuit', 's')); b.unit('s').attrs.hp = 100;
+    b.unit('s').attrs.mp = 0;
     expect(b.queryCommands('s').skills.find(s => s.skillId === S('triple'))!.ready).toBe(true);
     round(b, cast('triple')); expect(b.unit('s').attrs.hp).toBe(100); expect(damage(b, 'pet')).toEqual(damage(b));
+    expect(b.unit('s').attrs.mp).toBe(0);
     expect(b.unit('s').statuses.some(s => s.id === T('pursuit'))).toBe(false);
   });
   it('追击击倒主目标保留；普通击倒不再给浴血免休息', () => {
@@ -150,7 +189,7 @@ describe('经典技能强化与代价', () => {
   });
   it('干将强化破极剑意，普通版本不能覆盖强化版本', () => {
     const { b } = setup('zhanchen', ['4.1']); round(b, cast('sword_aura', 's'));
-    b.applyStatus('s', T('sword_aura'), 5, 'ally');
+    b.applyStatus('s', T('sword_aura'), 5, 's');
     expect(b.unit('s').statuses.filter(s => s.kind === 'lingxiao.sword_aura')).toEqual([expect.objectContaining({ id: T('sword_aura_ganjiang'), remainingRounds: 5 })]);
     round(b, attack); expect(damage(b)).toEqual([915]);
   });

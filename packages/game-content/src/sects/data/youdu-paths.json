@@ -1,7 +1,7 @@
 {
   "$schema": "./youdu-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 3,
+  "contentRevision": 4,
   "passives": [
     {
       "id": "youdu.passive.recoil",
@@ -1189,7 +1189,7 @@
           "name": "摧形散法",
           "layer": 4,
           "slot": 1,
-          "description": "以摧形散法替换涤魂诀。消耗50法力，对一名敌人造成普通攻击110%的物理伤害，随机驱散一个可驱散的增益。目标带有[[youdu.status.poison]]或灵兽所施的毒时，最多驱散两个。",
+          "description": "以摧形散法替换涤魂诀。对一名敌人造成普通攻击110%的物理伤害，随机驱散一个可驱散的增益。目标带有[[youdu.status.poison]]或灵兽所施的毒时，最多驱散两个。法力消耗随所属心法等级成长，以神通当前费用为准。",
           "grantSkills": [
             "youdu.skill.pardonless"
           ],

@@ -543,7 +543,7 @@ export function applyHeal(ctx: BattleContext, source: Unit, target: Unit, power:
     skillId: ctx.currentAction?.skillId,
     isPrimary,
   })
-  const finalHeal = floorAtLeast(0, fixedBase ? amount * taken : hooked.heal ?? amount * taken)
+  const finalHeal = floorAtLeast(0, (fixedBase ? amount * taken : hooked.heal ?? amount * taken) * (ctx.rules.hpRecoveryMultiplier?.(ctx.state) ?? 1))
   const hp = Math.min(recoverableHp(target), target.attrs.hp + finalHeal)
   const healed = hp - target.attrs.hp
   target.attrs.hp = hp
@@ -563,7 +563,7 @@ export function applyRevive(ctx: BattleContext, source: Unit, target: Unit, hp: 
     ctx.emit({ type: EventType.ActionFailed, unitId: source.id, reason: FailReason.ReviveBlocked })
     return false
   }
-  const restored = Math.max(MIN_HP, Math.min(recoverableHp(target), Math.floor(hp)))
+  const restored = Math.max(MIN_HP, Math.min(recoverableHp(target), Math.floor(hp * (ctx.rules.hpRecoveryMultiplier?.(ctx.state) ?? 1))))
   target.attrs.hp = restored
   target.flags.downed = false
   target.flags.dead = false
@@ -591,7 +591,7 @@ export function applyReviveWithOwnedPetHpCost(ctx: BattleContext, source: Unit, 
   return applyRevive(ctx, source, target, hp)
 }
 
-/** 精确恢复气血：不读取 healPower 与施疗/受疗倍率。 */
+/** 精确恢复气血：不读取 healPower 与施疗/受疗倍率，仍受规则级恢复倍率影响。 */
 export function applyHpRestore(
   ctx: BattleContext,
   source: Unit,
@@ -601,6 +601,7 @@ export function applyHpRestore(
 ): number {
   if (target.flags.escaped) return 0
   if (passiveSkills(ctx.skills, target).some(s => s.innate?.rejectHpRecovery)) return 0
+  amount *= ctx.rules.hpRecoveryMultiplier?.(ctx.state) ?? 1
   if (options.revive && target.attrs.hp <= 0) {
     if (isReviveBlocked(ctx, target)) {
       ctx.emit({ type: EventType.ActionFailed, unitId: source.id, reason: FailReason.ReviveBlocked })

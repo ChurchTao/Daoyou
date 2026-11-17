@@ -1,13 +1,20 @@
 import { achievementCategoryIcon } from '@app/components/feature/achievements/achievementIcons';
-import { useSocialQuery } from '@app/components/feature/friends/socialApi';
+import {
+  socialRequest,
+  useSocialQuery,
+} from '@app/components/feature/friends/socialApi';
 import { GameLoadingState, GameSceneFrame } from '@app/components/game-shell';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
 import { useAuth } from '@app/lib/auth/useAuth';
 import { cn } from '@app/lib/cn';
 import { usePlayerSession } from '@app/lib/resources/player';
-import type { AchievementView } from '@daoyou/contracts/achievements';
+import type {
+  AchievementView,
+  ClaimAchievementRewardsResult,
+} from '@daoyou/contracts/achievements';
 import { ACHIEVEMENT_CATEGORY_IDS } from '@daoyou/game-domain/achievements';
+import { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { groupAchievementSeries } from './achievementPresentation';
 import { AchievementEntry } from './components/AchievementEntry';
@@ -28,6 +35,10 @@ function AchievementsWorkspace() {
   const query = useSocialQuery<{ achievements: AchievementView[] }>(
     '/api/achievements',
   );
+  const claimInFlight = useRef(false);
+  const [claiming, setClaiming] = useState(false);
+  const [claimMessage, setClaimMessage] = useState('');
+  const [claimError, setClaimError] = useState('');
   const [params, setParams] = useSearchParams();
   const achievements = query.data?.achievements ?? [];
   const series = groupAchievementSeries(achievements);
@@ -52,6 +63,39 @@ function AchievementsWorkspace() {
     ) ?? categories[0];
   const visible = series.filter((item) => item.category === category?.id);
   const unlocked = achievements.filter((item) => item.unlocked).length;
+
+  const claimable = achievements.filter(
+    (item) => item.unlocked && !item.rewardClaimedAt,
+  );
+  const pendingReputation = claimable.reduce(
+    (sum, item) => sum + item.reputationReward,
+    0,
+  );
+  async function claim(ids: string[]) {
+    if (claimInFlight.current) return;
+    claimInFlight.current = true;
+    setClaiming(true);
+    setClaimMessage('');
+    setClaimError('');
+    try {
+      const response = await socialRequest<{
+        data: ClaimAchievementRewardsResult;
+      }>('/api/achievements/claim', { achievementIds: ids });
+      setClaimMessage(
+        response.data.reputationGranted > 0
+          ? `已领取 ${response.data.reputationGranted} 点声望`
+          : '所选成就奖励已领取',
+      );
+      await query.reload();
+    } catch (error) {
+      setClaimError(
+        error instanceof Error ? error.message : '领取失败，请重试',
+      );
+    } finally {
+      claimInFlight.current = false;
+      setClaiming(false);
+    }
+  }
 
   function selectCategory(id: string) {
     setParams({ category: id });
@@ -121,6 +165,33 @@ function AchievementsWorkspace() {
               />
             </div>
           </section>
+          <div className="flex flex-wrap items-center justify-between gap-3 py-4">
+            <p className="text-ink-secondary text-sm">
+              每项成就奖励仅可领取一次，已获得的成就也可补领。
+            </p>
+            {claimable.length ? (
+              <InkButton
+                variant="primary"
+                pending={claiming}
+                onClick={() => void claim(claimable.map((item) => item.id))}
+              >
+                一键领取 <span className="font-mono">{pendingReputation}</span>{' '}
+                声望
+              </InkButton>
+            ) : (
+              <span className="text-ink-secondary text-sm">暂无待领奖励</span>
+            )}
+          </div>
+          {claimMessage ? (
+            <p role="status" className="text-teal pb-3 text-sm">
+              {claimMessage}
+            </p>
+          ) : null}
+          {claimError ? (
+            <p role="alert" className="text-crimson pb-3 text-sm">
+              {claimError}
+            </p>
+          ) : null}
           {categories.length ? (
             <div className="grid min-w-0 gap-6 md:grid-cols-[10rem_minmax(0,1fr)] md:gap-8">
               <nav
@@ -220,6 +291,8 @@ function AchievementsWorkspace() {
                               onToggle={() => toggleAchievement(item)}
                               onRefresh={() => void query.reload()}
                               loading={query.loading}
+                              claiming={claiming}
+                              onClaim={() => void claim([item.id])}
                             />
                           ))}
                         </ul>

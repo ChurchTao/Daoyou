@@ -124,7 +124,8 @@ export type CombatV6VersionStamp = {
     | 'daoyou_rules_v10'
     | 'daoyou_rules_v11'
     | 'daoyou_rules_v12'
-    | 'daoyou_rules_v13';
+    | 'daoyou_rules_v13'
+    | 'daoyou_rules_v14_pvp';
   contentVersion:
     | 'daoyou_wild_inventory_content_v1'
     | 'daoyou_wild_seeking_content_v2'
@@ -1034,6 +1035,8 @@ export type DecideCommandInput = {
 
 /** 规则插件。公式、死亡分型、默认指令都在这里，引擎保持规则无关。 */
 export type Ruleset = {
+  /** Final HP recovery multiplier; covers healing, exact recovery and revival. Defaults to 1. */
+  hpRecoveryMultiplier?(state: BattleState): number;
   protectionTargetRatio?: number;
   name: string;
   /** Intent can be submitted before a player is revived or regains resources. */

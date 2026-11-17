@@ -4,14 +4,20 @@ import {
   type DomainEventEnvelope,
 } from '@daoyou/contracts/events';
 import type { DomainEventType } from '@daoyou/game-domain/events';
+import {
+  forgingAchievementMetrics,
+  productionAchievementMetrics,
+} from '@daoyou/game-rules/achievements';
 import { authUsers } from '@server/lib/auth/schema.js';
 import type { DbTransaction } from '@server/lib/drizzle/db.js';
 import {
   accountDeletionRecords,
   achievementMetrics,
   cultivators,
+  playerJournal,
   socialAccounts,
 } from '@server/lib/drizzle/schema.js';
+import { journalOperationKey } from '@server/lib/repositories/playerJournalRepository.js';
 import type { FeatureCommandResult } from '@server/player/application/state/CommandExecutors.js';
 import { enqueueSocialNotification } from '@server/social/social-notifications.js';
 import { and, eq, inArray, sql } from 'drizzle-orm';
@@ -19,6 +25,7 @@ import {
   recordAchievementMaximum,
   syncAchievements,
 } from './achievement-ledger.js';
+import { recordAchievementOutcomes } from './achievement-metrics.js';
 
 const eventTypes = new Set<DomainEventType>([
   'alchemy.craft.completed',
@@ -181,6 +188,36 @@ export async function projectAchievementDomainEvent(
         'cultivation.realm_rank',
         Math.max(0, REALM_VALUES.indexOf(event.data.toRealm)),
       );
+    }
+    if (isDomainEventType(event, 'equipment.forged')) {
+      metricChanged =
+        (await recordAchievementOutcomes(
+          tx,
+          owner.id,
+          forgingAchievementMetrics(event.data.equipment),
+        )) || metricChanged;
+    }
+    if (isDomainEventType(event, 'alchemy.craft.completed')) {
+      const activity = `alchemy_${event.data.mode}`;
+      const [receipt] = await tx
+        .select({ result: sql<unknown>`${playerJournal.event}->'result'` })
+        .from(playerJournal)
+        .where(
+          and(
+            eq(playerJournal.cultivatorId, owner.id),
+            eq(
+              playerJournal.operationKey,
+              journalOperationKey(activity, event.data.actionInstanceId),
+            ),
+            sql`${playerJournal.event}->>'type' = 'resources.settled'`,
+            sql`${playerJournal.event}->>'activity' = ${activity}`,
+          ),
+        );
+      const metrics = productionAchievementMetrics(activity, receipt?.result);
+      if (metrics)
+        metricChanged =
+          (await recordAchievementOutcomes(tx, owner.id, metrics)) ||
+          metricChanged;
     }
     const result = await syncAchievements(tx, owner.id);
     totalUnlocked += result.unlockedIds.length;

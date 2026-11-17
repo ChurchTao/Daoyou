@@ -163,11 +163,22 @@ describe('宗门离线图鉴与构筑预览', () => {
   it('按施放心法等级计算直接施加状态，不把使用条件中的状态当成本技能加成', () => {
     const transform = (methodLevel: number) => previewSectAtlasSkill({ sectId: 'xiaoyue', skillId: 'xiaoyue.skill.transform', methodLevel });
     const physicalAttack = (methodLevel: number) => transform(methodLevel).numericFields.find(field => field.path === 'effects[1].statuses.xiaoyue.status.transform.attrMods.physicalAtk')!;
-    expect(physicalAttack(75)).toMatchObject({ value: 'skillLevel', resolved: 75, resolvedDisplay: '75' });
+    expect(physicalAttack(75)).toMatchObject({ value: 'knownSkillLevel.xiaoyue.skill.transform', resolved: 75, resolvedDisplay: '75' });
     expect(physicalAttack(180).resolved).toBe(180);
     expect(physicalAttack(75).contextLabel).toContain('施加状态·兽形');
     expect(transform(75).numericFields.find(field => field.path === 'effects[1].duration')?.resolvedDisplay).toBe('4回合');
     expect(previewSectAtlasSkill({ sectId: 'xiaoyue', skillId: 'xiaoyue.skill.eagle_strike', methodLevel: 75 }).numericFields.some(field => field.path.includes('statuses.xiaoyue.status.transform.'))).toBe(false);
+  });
+
+  it('狮搏附带兽形保留主心法依赖，不把生死搏等级用于百兽化形', () => {
+    const lion = previewSectAtlasSkill({ sectId: 'xiaoyue', skillId: 'xiaoyue.skill.lion_strike', methodLevel: 75 });
+    const physicalAttack = lion.numericFields.find(field => field.path.endsWith('statuses.xiaoyue.status.transform.attrMods.physicalAtk'))!;
+    expect(physicalAttack).toMatchObject({
+      value: 'knownSkillLevel.xiaoyue.skill.transform', resolved: null, resolvedDisplay: null,
+      variables: [{ name: 'knownSkillLevel.xiaoyue.skill.transform', label: '已学「兽形」等级' }],
+    });
+    expect(lion.numericFields.find(field => field.path === 'costMp')?.resolved).toBeNull();
+    expect(lion.numericFields.find(field => field.path === 'requirement')?.resolved).toBeNull();
   });
 
   it('惊雷自然转为蓄势状态时沿用施放心法等级计算成长', () => {
@@ -194,14 +205,14 @@ describe('宗门离线图鉴与构筑预览', () => {
     expect(power(75).numericFields.find(field => field.path === 'schoolTerm.linear')).toMatchObject({ value: 1.5, resolved: 1.5 });
   });
 
-  it('独立预览不假设人物等级、已学技能、属性或现场状态', () => {
+  it('独立预览只绑定当前神通等级，不假设人物、其他已学技能或现场状态', () => {
     const atlas = getSectAtlasData();
     let contextualFields = 0;
     for (const sect of atlas.sects) {
       for (const skill of sect.skills) {
         const result = previewSectAtlasSkill({ sectId: sect.id, skillId: skill.id, methodLevel: 75 });
         for (const field of result.numericFields) {
-          if (field.variables.some(variable => variable.name !== 'skillLevel') || (field.variables.length && field.contextLabel.includes('按触发技能等级'))) {
+          if (field.variables.some(variable => variable.name !== 'skillLevel' && variable.name !== `knownSkillLevel.${skill.id}`) || (field.variables.length && field.contextLabel.includes('按触发技能等级'))) {
             contextualFields++;
             expect(field.resolved, `${skill.id}:${field.path}`).toBeNull();
             expect(field.resolvedDisplay).toBeNull();

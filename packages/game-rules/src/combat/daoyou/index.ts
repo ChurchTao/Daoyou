@@ -1,6 +1,7 @@
 import { CommandType, HpZeroOutcome, UnitKind } from '@daoyou/combat-core/enums';
 import { type FormulaSet, type Ruleset } from '@daoyou/combat-core/types';
 import { DaoyouRule } from "@daoyou/game-content/combat/tuning"
+import { pvpRecoveryMultiplier } from '../pvp.js';
 import {
   applyCultivate,
   baseDamage,
@@ -69,4 +70,5 @@ export const daoyouRulesetV6: Ruleset = {
   ...createDaoyouRuleset({ formulas: daoyouFormulasV3, maxRounds: 100 }),
   name: 'daoyou-rules-v6',
   deferredPlayerCommands: true,
+  hpRecoveryMultiplier: pvpRecoveryMultiplier,
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "./tianyan-skills.schema.json",
   "formatVersion": 1,
-  "contentRevision": 7,
+  "contentRevision": 8,
   "baseSkillIds": [
     "tianyan.skill.wood",
     "tianyan.skill.fire",
@@ -17,9 +17,9 @@
       "skill": {
         "id": "tianyan.skill.wood",
         "name": "森罗缚",
-        "description": "藤蔓束敌，森罗成缚。\n对一名敌人造成法术伤害，并使其陷入[[tianyan.status.bind]]，速度降低10%，持续2回合。持有水行法印时触发[[tianyan.status.regrowth]]，使气血比例最低的一名友方持续恢复气血。持有土行法印时，使敌人陷入[[tianyan.status.foundation_break]]，法术防御降低15%，持续2回合。施放成功后留下[[tianyan.status.mark.wood]]。",
+        "description": "藤蔓束敌，森罗成缚。\n对一名敌人造成法术伤害，并使其陷入[[tianyan.status.bind]]，速度降低10%，持续2回合。持有水行法印时触发[[tianyan.status.regrowth]]，使气血比例最低的一名友方持续恢复气血。持有土行法印时，使敌人陷入[[tianyan.status.foundation_break]]，法术防御降低15%，持续2回合。施放成功后留下[[tianyan.status.mark.wood]]。\n基础法力消耗为65＋心法等级×0.85，经脉的耗蓝增减在此基础上计算，最终费用向上取整。",
         "school": "tianyan",
-        "costMp": "35*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.water+hasStatus.tianyan.status.mark.earth))*(1-0.10*known.tianyan.passive.heng_root)",
+        "costMp": "ceil((65+skillLevel*0.85)*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.water+hasStatus.tianyan.status.mark.earth))*(1-0.10*known.tianyan.passive.heng_root))",
         "tags": [
           "spell"
         ],
@@ -76,9 +76,9 @@
       "skill": {
         "id": "tianyan.skill.fire",
         "name": "焚天流火",
-        "description": "流火焚天，延烧敌阵。\n对最多三名敌人造成法术伤害。持有木行法印时触发「燎原」，最多可攻击四名敌人。若无法选中第四名敌人，本次法术的直接伤害提高15%。持有金行法印时，使受击目标陷入[[tianyan.status.melt]]，物理攻击和法术攻击各降低10%，持续2回合。施放成功后留下[[tianyan.status.mark.fire]]。",
+        "description": "流火焚天，延烧敌阵。\n对最多三名敌人造成法术伤害。持有木行法印时触发「燎原」，最多可攻击四名敌人。若无法选中第四名敌人，本次法术的直接伤害提高15%。持有金行法印时，使受击目标陷入[[tianyan.status.melt]]，物理攻击和法术攻击各降低10%，持续2回合。施放成功后留下[[tianyan.status.mark.fire]]。\n基础法力消耗为40＋心法等级×0.65，每多覆盖一名目标加收基础费用的50%，经脉的耗蓝增减在此基础上计算，最终费用向上取整。",
         "school": "tianyan",
-        "costMp": "75*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.wood+hasStatus.tianyan.status.mark.metal))*(1+0.10*known.tianyan.passive.scarlet)",
+        "costMp": "ceil((40+skillLevel*0.65)*(1+0.5*max(0,targets-1))*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.wood+hasStatus.tianyan.status.mark.metal))*(1+0.10*known.tianyan.passive.scarlet))",
         "tags": [
           "spell"
         ],
@@ -130,9 +130,9 @@
       "skill": {
         "id": "tianyan.skill.earth",
         "name": "山河倾覆",
-        "description": "山河倾覆，压住来势。\n对一名敌人造成法术伤害，并施加[[tianyan.status.weaken]]，使其下一次行动造成的物理或法术伤害降低15%，效果在2回合内有效。持有火行法印时触发「烬垒」，为自身附加持续2回合的护盾。持有水行法印时，有概率使敌人陷入[[tianyan.status.seal]]，1回合内无法使用法术。施放成功后留下[[tianyan.status.mark.earth]]。",
+        "description": "山河倾覆，压住来势。\n对一名敌人造成法术伤害，并施加[[tianyan.status.weaken]]，使其下一次行动造成的物理或法术伤害降低15%，效果在2回合内有效。持有火行法印时触发「烬垒」，为自身附加持续2回合的护盾。持有水行法印时，有概率使敌人陷入[[tianyan.status.seal]]，1回合内无法使用法术。施放成功后留下[[tianyan.status.mark.earth]]。\n基础法力消耗为55＋心法等级×0.75，每多覆盖一名目标加收基础费用的50%，经脉的耗蓝增减在此基础上计算，最终费用向上取整。",
         "school": "tianyan",
-        "costMp": "40*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.fire+hasStatus.tianyan.status.mark.water))*(1-0.10*known.tianyan.passive.heng_root)*(1+known.tianyan.passive.mountain*(0.20-0.30*known.tianyan.passive.severance))",
+        "costMp": "ceil((55+skillLevel*0.75)*(1+0.5*max(0,targets-1))*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.fire+hasStatus.tianyan.status.mark.water))*(1-0.10*known.tianyan.passive.heng_root)*(1+known.tianyan.passive.mountain*(0.20-0.30*known.tianyan.passive.severance)))",
         "tags": [
           "spell"
         ],
@@ -208,9 +208,9 @@
       "skill": {
         "id": "tianyan.skill.metal",
         "name": "天锋一线",
-        "description": "一线天锋，专破护持。\n对一名敌人造成法术伤害，打在护盾上的伤害额外提高50%。持有土行法印时触发「淬锋」，额外忽视目标20%的法术防御。持有木行法印时触发「断枝」，移除目标一个可驱散的增益。施放成功后留下[[tianyan.status.mark.metal]]。",
+        "description": "一线天锋，专破护持。\n对一名敌人造成法术伤害，打在护盾上的伤害额外提高50%。持有土行法印时触发「淬锋」，额外忽视目标20%的法术防御。持有木行法印时触发「断枝」，移除目标一个可驱散的增益。施放成功后留下[[tianyan.status.mark.metal]]。\n基础法力消耗为40＋心法等级×0.65，每多覆盖一名目标加收基础费用的50%，经脉的耗蓝增减在此基础上计算，最终费用向上取整。",
         "school": "tianyan",
-        "costMp": "40*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.earth+hasStatus.tianyan.status.mark.wood))*(1-0.10*known.tianyan.passive.heng_root)",
+        "costMp": "ceil((40+skillLevel*0.65)*(1+0.5*max(0,targets-1))*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.earth+hasStatus.tianyan.status.mark.wood))*(1-0.10*known.tianyan.passive.heng_root))",
         "tags": [
           "spell"
         ],
@@ -272,9 +272,9 @@
       "skill": {
         "id": "tianyan.skill.water",
         "name": "沧海横流",
-        "description": "沧海横流，法力更省。\n对最多三名敌人造成法术伤害。持有金行法印时触发「凝露」，治疗气血比例最低的一名友方。持有火行法印时触发「蒸腾」，本次法术伤害提高30%。施放成功后留下[[tianyan.status.mark.water]]。",
+        "description": "沧海横流，法力更省。\n对最多三名敌人造成法术伤害。持有金行法印时触发「凝露」，治疗气血比例最低的一名友方。持有火行法印时触发「蒸腾」，本次法术伤害提高30%。施放成功后留下[[tianyan.status.mark.water]]。\n基础法力消耗为65＋心法等级×0.85，每多覆盖一名目标加收基础费用的50%，经脉的耗蓝增减在此基础上计算，最终费用向上取整。",
         "school": "tianyan",
-        "costMp": "45*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.metal+hasStatus.tianyan.status.mark.fire))*(1-0.20*known.tianyan.passive.stream)*(1-0.10*known.tianyan.passive.calm)",
+        "costMp": "ceil((65+skillLevel*0.85)*(1+0.5*max(0,targets-1))*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.metal+hasStatus.tianyan.status.mark.fire))*(1-0.20*known.tianyan.passive.stream)*(1-0.10*known.tianyan.passive.calm))",
         "tags": [
           "spell"
         ],
@@ -326,9 +326,9 @@
     {
       "id": "tianyan.skill.ward",
       "name": "玄元守一",
-      "description": "玄元守一，风雨不侵。\n自身获得[[tianyan.status.ward]]，受到的物理伤害和法术伤害降低20%，持续2回合。不改变法印。",
+      "description": "玄元守一，风雨不侵。\n自身获得[[tianyan.status.ward]]，受到的物理伤害和法术伤害降低20%，持续2回合。不改变法印。\n基础法力消耗为45＋心法等级×0.7，最终费用向上取整。",
       "school": "tianyan",
-      "costMp": 35,
+      "costMp": "ceil((45+skillLevel*0.7))",
       "cooldownRounds": 5,
       "tags": [
         "spell"
@@ -366,9 +366,9 @@
     {
       "id": "tianyan.skill.clarity",
       "name": "澄灵诀",
-      "description": "澄灵一拂，浊气散去。\n为一名友方移除一个可驱散的持续伤害或普通减益。封印行动、物理攻击、施法或复活的状态仍会保留。法印保持原样。",
+      "description": "澄灵一拂，浊气散去。\n为一名友方移除一个可驱散的持续伤害或普通减益。封印行动、物理攻击、施法或复活的状态仍会保留。法印保持原样。\n基础法力消耗为40＋心法等级×0.6，经脉的耗蓝增减在此基础上计算，最终费用向上取整。",
       "school": "tianyan",
-      "costMp": "30*(1+0.5*max(known.tianyan.passive.clear,known.tianyan.passive.mirror))*(1+0.2*known.tianyan.passive.springwater)",
+      "costMp": "ceil((40+skillLevel*0.6)*(1+0.5*max(known.tianyan.passive.clear,known.tianyan.passive.mirror))*(1+0.2*known.tianyan.passive.springwater))",
       "cooldownRounds": 2,
       "tags": [
         "spell"
@@ -405,9 +405,9 @@
     {
       "id": "tianyan.skill.borrow",
       "name": "借势",
-      "description": "借势而行，印随相生。\n持有法印时可用。对一名敌人造成法术伤害，自己获得持续2回合的护盾，并按「木 → 火 → 土 → 金 → 水 → 木」将当前法印换成下一种。换印本身没有额外的相生或相克效果。",
+      "description": "借势而行，印随相生。\n持有法印时可用。对一名敌人造成法术伤害，自己获得持续2回合的护盾，并按「木 → 火 → 土 → 金 → 水 → 木」将当前法印换成下一种。换印本身没有额外的相生或相克效果。\n基础法力消耗为50＋心法等级×0.7，最终费用向上取整。",
       "school": "tianyan",
-      "costMp": 40,
+      "costMp": "ceil((50+skillLevel*0.7))",
       "cooldownRounds": 3,
       "tags": [
         "spell"
@@ -507,9 +507,9 @@
     {
       "id": "tianyan.skill.truce",
       "name": "止戈",
-      "description": "止戈息争，来势转弱。\n对一名敌人造成法术伤害，并施加[[tianyan.status.truce]]，使其下一次行动造成的物理或法术伤害降低35%，效果在2回合内有效。法印保持原样。",
+      "description": "止戈息争，来势转弱。\n对一名敌人造成法术伤害，并施加[[tianyan.status.truce]]，使其下一次行动造成的物理或法术伤害降低35%，效果在2回合内有效。法印保持原样。\n基础法力消耗为50＋心法等级×0.7，最终费用向上取整。",
       "school": "tianyan",
-      "costMp": 40,
+      "costMp": "ceil((50+skillLevel*0.7))",
       "cooldownRounds": 3,
       "tags": [
         "spell"

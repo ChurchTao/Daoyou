@@ -39,6 +39,7 @@ export interface AchievementDefinition {
   condition: string;
   requirement: AchievementCondition;
   nameTemplate?: string;
+  reputationReward: number;
 }
 
 export interface AchievementFacts {
@@ -65,6 +66,9 @@ export interface AchievementView extends AchievementDisplay {
   blockedReason?: string;
   unlocked: boolean;
   unlockedAt: string | null;
+  reputationReward: number;
+  rewardClaimedAt: string | null;
+  claimedReputation: number | null;
   condition: string;
   progress: { current: number; target: number };
 }
@@ -72,4 +76,6 @@ export interface AchievementView extends AchievementDisplay {
 export interface AchievementUnlockFact {
   achievementId: string;
   unlockedAt: string;
+  rewardClaimedAt?: string | null;
+  claimedReputation?: number | null;
 }

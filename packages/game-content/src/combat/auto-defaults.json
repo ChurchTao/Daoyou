@@ -541,6 +541,13 @@
           "conditions": [
             { "type": "selfStatus", "kind": "xiaoyue.status.transform", "statusId": "xiaoyue.status.transform", "present": false }
           ],
+          "action": { "type": "skill", "skillId": "xiaoyue.skill.lion_strike" },
+          "target": "lowestHpEnemy"
+        },
+        {
+          "conditions": [
+            { "type": "selfStatus", "kind": "xiaoyue.status.transform", "statusId": "xiaoyue.status.transform", "present": false }
+          ],
           "action": { "type": "skill", "skillId": "xiaoyue.skill.transform" },
           "target": "best"
         },
@@ -555,7 +562,7 @@
         {
           "conditions": [
             { "type": "selfStatus", "kind": "xiaoyue.status.transform", "statusId": "xiaoyue.status.transform", "present": true },
-            { "type": "enemyCountAtLeast", "count": 2 }
+            { "type": "enemyCountAtLeast", "count": 3 }
           ],
           "action": { "type": "skill", "skillId": "xiaoyue.skill.eagle_strike" },
           "target": "best"
@@ -572,6 +579,13 @@
     "xiaoyue.path.bond": {
       "version": 1,
       "rules": [
+        {
+          "conditions": [
+            { "type": "selfStatus", "kind": "xiaoyue.status.transform", "statusId": "xiaoyue.status.transform", "present": false }
+          ],
+          "action": { "type": "skill", "skillId": "xiaoyue.skill.lion_strike" },
+          "target": "lowestHpEnemy"
+        },
         {
           "conditions": [
             { "type": "selfStatus", "kind": "xiaoyue.status.transform", "statusId": "xiaoyue.status.transform", "present": false }

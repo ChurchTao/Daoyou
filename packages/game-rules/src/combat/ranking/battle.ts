@@ -26,6 +26,7 @@ import { projectCharacterToCombatV6 } from '../projection/project-character.js';
 import { characterBattleSkills } from '../projection/character-battle-skills.js';
 
 import { daoyouRulesetV6 } from '../daoyou/index.js';
+import { PVP_FATIGUE_RULESET_VERSION } from '../pvp.js';
 
 import type { AutoStrategy } from '@daoyou/game-domain/combat/auto';
 
@@ -83,7 +84,7 @@ export function compileRankingBattle(
     versions: {
       ...COMBAT_V6_CHARACTER_BUILD_VERSIONS,
       autoPolicyVersion: AUTO_POLICY_VERSION,
-      rulesetVersion: 'daoyou_rules_v13',
+      rulesetVersion: PVP_FATIGUE_RULESET_VERSION,
       contentVersion: 'combat-v6-ranking-v1',
     },
   });

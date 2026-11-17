@@ -1,7 +1,7 @@
 {
   "$schema": "./tianyan-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 6,
+  "contentRevision": 7,
   "passives": [
     {
       "id": "tianyan.passive.yan_root",
@@ -186,7 +186,7 @@
     {
       "id": "tianyan.passive.borrow",
       "name": "借势",
-      "description": "领悟「借势」。持有法印时可用，对一名敌人造成法术伤害，自己获得持续2回合的护盾，并按「木 → 火 → 土 → 金 → 水 → 木」换成下一种法印。消耗40法力，冷却3回合。"
+      "description": "领悟「借势」。持有法印时可用，对一名敌人造成法术伤害，自己获得持续2回合的护盾，并按「木 → 火 → 土 → 金 → 水 → 木」换成下一种法印。冷却3回合。法力消耗随所属心法等级成长，以神通当前费用为准。"
     },
     {
       "id": "tianyan.passive.plain",
@@ -341,7 +341,7 @@
     {
       "id": "tianyan.passive.truce",
       "name": "止戈",
-      "description": "领悟「止戈」。对一名敌人造成法术伤害并施加[[tianyan.status.truce]]，使其下一次行动造成的物理或法术伤害降低35%，效果在2回合内有效。消耗40法力，冷却3回合。"
+      "description": "领悟「止戈」。对一名敌人造成法术伤害并施加[[tianyan.status.truce]]，使其下一次行动造成的物理或法术伤害降低35%，效果在2回合内有效。冷却3回合。法力消耗随所属心法等级成长，以神通当前费用为准。"
     },
     {
       "id": "tianyan.passive.gap",
@@ -610,7 +610,7 @@
         {
           "id": "tianyan.node.hetu.3.1",
           "name": "借势",
-          "description": "领悟「借势」。持有法印时可用，对一名敌人造成法术伤害，自己获得持续2回合的护盾，并按「木 → 火 → 土 → 金 → 水 → 木」换成下一种法印。消耗40法力，冷却3回合。",
+          "description": "领悟「借势」。持有法印时可用，对一名敌人造成法术伤害，自己获得持续2回合的护盾，并按「木 → 火 → 土 → 金 → 水 → 木」换成下一种法印。冷却3回合。法力消耗随所属心法等级成长，以神通当前费用为准。",
           "layer": 3,
           "slot": 1,
           "passives": [
@@ -853,7 +853,7 @@
         {
           "id": "tianyan.node.luoshu.3.1",
           "name": "止戈",
-          "description": "领悟「止戈」。对一名敌人造成法术伤害并施加[[tianyan.status.truce]]，使其下一次行动造成的物理或法术伤害降低35%，效果在2回合内有效。消耗40法力，冷却3回合。",
+          "description": "领悟「止戈」。对一名敌人造成法术伤害并施加[[tianyan.status.truce]]，使其下一次行动造成的物理或法术伤害降低35%，效果在2回合内有效。冷却3回合。法力消耗随所属心法等级成长，以神通当前费用为准。",
           "layer": 3,
           "slot": 1,
           "passives": [

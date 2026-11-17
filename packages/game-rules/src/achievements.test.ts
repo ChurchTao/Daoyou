@@ -20,6 +20,70 @@ const facts = (graduates: number, bound = false): AchievementFacts => ({
 });
 
 describe('achievement rules', () => {
+  it('assigns bounded integer rewards, increasing within each numeric ladder', () => {
+    for (const series of ACHIEVEMENT_SERIES) {
+      const previousByMetric = new Map<string, number>();
+      for (const definition of ACHIEVEMENT_DEFINITIONS.filter(
+        (item) => item.seriesId === series.id,
+      )) {
+        expect(Number.isInteger(definition.reputationReward)).toBe(true);
+        expect(definition.reputationReward).toBeGreaterThanOrEqual(5);
+        expect(definition.reputationReward).toBeLessThanOrEqual(50);
+        expect(definition.reputationReward).toBeGreaterThanOrEqual(
+          previousByMetric.get(definition.requirement.metric) ?? 0,
+        );
+        previousByMetric.set(
+          definition.requirement.metric,
+          definition.reputationReward,
+        );
+      }
+    }
+  });
+
+  it.each([12, 16])(
+    'requires a fusion result and grants all milestones up to %i skills',
+    (skillCount) => {
+      expect(
+        eligibleAchievementIds({
+          metrics: { 'beasts.max_level': 180, 'beasts.fusions': 300 },
+        }),
+      ).not.toContain('beasts.fusion_skills.8');
+      const ids = eligibleAchievementIds({
+        metrics: { 'beasts.max_fusion_skills': skillCount },
+      });
+      expect(ids).toEqual(
+        [8, 9, 10, 11, 12, 13, 14, 15, 16]
+          .filter((skills) => skills <= skillCount)
+          .map((skills) => 'beasts.fusion_skills.' + skills),
+      );
+    },
+  );
+
+  it('keeps legacy unlocks claimable and preserves the amount actually paid', () => {
+    const unlockedAt = '2026-11-17T00:00:00.000Z';
+    const legacy = { achievementId: 'mentorship.apprentice', unlockedAt };
+    expect(achievementCatalogue(facts(0), [legacy])[0]).toMatchObject({
+      unlocked: true,
+      reputationReward: 5,
+      rewardClaimedAt: null,
+      claimedReputation: null,
+    });
+    expect(
+      achievementCatalogue(facts(0), [
+        {
+          achievementId: 'forging.high_triple_blue',
+          unlockedAt,
+          rewardClaimedAt: unlockedAt,
+          claimedReputation: 80,
+        },
+      ]).find((item) => item.id === 'forging.high_triple_blue'),
+    ).toMatchObject({
+      reputationReward: 50,
+      rewardClaimedAt: unlockedAt,
+      claimedReputation: 80,
+    });
+  });
+
   it.each(ACHIEVEMENT_DEFINITIONS)(
     'requires the registered metric boundary for $id',
     (definition) => {
@@ -54,14 +118,15 @@ describe('achievement rules', () => {
       expect(definitions.map((definition) => definition.tier)).toEqual(
         definitions.map((_, index) => index + 1),
       );
-      expect(
-        new Set(definitions.map((item) => item.requirement.metric)).size,
-      ).toBe(1);
-      for (let index = 0; index < definitions.length; index++) {
-        const definition = definitions[index]!;
+      const targetsByMetric = new Map<string, number>();
+      for (const definition of definitions) {
         expect(Number.isSafeInteger(definition.requirement.target)).toBe(true);
         expect(definition.requirement.target).toBeGreaterThan(
-          definitions[index - 1]?.requirement.target ?? 0,
+          targetsByMetric.get(definition.requirement.metric) ?? 0,
+        );
+        targetsByMetric.set(
+          definition.requirement.metric,
+          definition.requirement.target,
         );
       }
     }

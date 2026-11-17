@@ -18,6 +18,7 @@ import {
 import { canCollectCommand } from '@daoyou/combat-core/units';
 import { DAO_RAGE_RESOURCE_ID } from '@daoyou/game-domain/equipment';
 import { daoyouRulesetV6 } from './daoyou/index.js';
+import { isPvpLineup, PVP_FATIGUE_RULESET_VERSION } from './pvp.js';
 import { huntParticipantSucceeded } from '../hunts/settlement.js';
 import { controlledUnits, validatePetCommand } from './controlled-commands.js';
 import { diffUnits } from './playback.js';
@@ -38,7 +39,10 @@ export function arenaBattle(
     units: runtime.units,
     skills: runtime.skills,
     statusDefs: runtime.statusDefs,
-    versions: COMBAT_V6_SEAL_CURVE_ARENA_VERSIONS,
+    versions: runtime.state?.versions ?? {
+      ...COMBAT_V6_SEAL_CURVE_ARENA_VERSIONS,
+      rulesetVersion: isPvpLineup(runtime.units) ? PVP_FATIGUE_RULESET_VERSION : COMBAT_V6_SEAL_CURVE_ARENA_VERSIONS.rulesetVersion,
+    },
     ruleset: daoyouRulesetV6,
   };
   if (runtime.state) {
@@ -47,7 +51,7 @@ export function arenaBattle(
     const expected = COMBAT_V6_SEAL_CURVE_ARENA_VERSIONS;
     if (
       actual.engineVersion !== expected.engineVersion ||
-      actual.rulesetVersion !== expected.rulesetVersion ||
+      ![expected.rulesetVersion, PVP_FATIGUE_RULESET_VERSION].includes(actual.rulesetVersion) ||
       actual.contentVersion !== expected.contentVersion ||
       actual.projectionVersion !== expected.projectionVersion
     )

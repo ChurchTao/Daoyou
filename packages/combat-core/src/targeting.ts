@@ -140,6 +140,13 @@ export function costTargets(
     (skill.targeting.extraChance === undefined || evalExpr(skill.targeting.extraChance, env) > 0)
     ? Math.max(0, Math.floor(evalExpr(skill.targeting.extraCount, env)))
     : 0;
+  const ownedKind = skill.targeting.includeOwnedStatusKind;
+  if (ownedKind) {
+    const owned = pool.filter(unit => unit.statuses.some(status => status.kind === ownedKind && status.sourceId === source.id));
+    // Selected targets may be outside the linked group. Reserve the maximum
+    // legal union, rather than underquoting the extra linked recipients.
+    return [...pool.filter(unit => !owned.includes(unit)).slice(0, base + extra), ...owned];
+  }
   return pool.slice(0, base + extra);
 }
 

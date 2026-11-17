@@ -4,6 +4,7 @@ import { injuredAllyTargets, isActiveAttackSkill, selectableAllyTargets } from '
 import { FailReason, HookName } from '@daoyou/combat-core/enums';
 import { matchesWhen, targetStatusStacks } from '@daoyou/combat-core/when';
 import { daoyouRulesetV6 } from './daoyou/index.js';
+import { pvpRecoveryMultiplier } from './pvp.js';
 import type { AutoObservation } from './auto-observation.js';
 import {
   ENEMY_EXECUTE_BONUS,
@@ -61,6 +62,7 @@ export function rankAutoActions(
   const weights = { offense: 1, survival: 1.2, control: 1, economy: 0.5 };
   const candidates: AutoCandidate[] = [];
   const formulas = daoyouRulesetV6.formulas;
+  const recoveryFactor = pvpRecoveryMultiplier(observation);
   // matchesWhen only reads the round, visible units and definitions; never a live context.
   const context = {
     statusDefs: definitions,
@@ -410,8 +412,8 @@ export function rankAutoActions(
             if (effect.type === 'physicalHit' && effect.healInstead) {
               const pool = friendly ? target.attrs.maxHp : source.attrs.maxHp;
               const healing = friendly
-                ? Math.min(Math.max(0, target.attrs.maxHp - target.wound - target.attrs.hp), damage * chance)
-                : damage * chance;
+                ? Math.min(Math.max(0, target.attrs.maxHp - target.wound - target.attrs.hp), damage * chance * recoveryFactor)
+                : damage * chance * recoveryFactor;
               benefits.survival += probability * (friendly ? 1 : -1) * healing / Math.max(1, pool) * 100;
               intentions.push({ ...intent, healing: healing * probability });
               continue;
@@ -460,7 +462,7 @@ export function rankAutoActions(
                     : value(effect.hpRatio);
               survival =
                 (friendly ? 1 : -1) *
-                (25 + Math.min(1, Math.max(0, hp)) * 60) *
+                (25 + Math.min(1, Math.max(0, hp * recoveryFactor)) * 60) *
                 (planned(target).some((i) => i.revive) ? 0.25 : 1);
               intent.revive = probability >= 0.5;
             }
@@ -477,12 +479,12 @@ export function rankAutoActions(
               const power =
                 value(effect.power) +
                 (effect.type === 'heal' && effect.includeHealPower !== false ? source.attrs.healPower : 0);
-              const adjustedPower =
+              const adjustedPower = recoveryFactor * (
                 effect.type === 'heal'
                   ? power *
                     taken(target, 'healTaken') *
                     taken(source, 'healDealt')
-                  : power;
+                  : power);
               const healing = friendly
                 ? Math.min(available, Math.max(0, adjustedPower))
                 : Math.max(0, adjustedPower);
@@ -524,7 +526,7 @@ export function rankAutoActions(
               // A small panel buff is not worth the same as a full control turn.
               // Estimate its relative contribution using the recipient's panel.
               if (def?.healingPerRound !== undefined) {
-                const amount = value(def.healingPerRound) * duration * taken(source, 'healDealt') * taken(target, 'healTaken');
+                const amount = value(def.healingPerRound) * duration * taken(source, 'healDealt') * taken(target, 'healTaken') * recoveryFactor;
                 const healing = friendly
                   ? Math.min(Math.max(0, target.attrs.maxHp - target.wound - target.attrs.hp), amount)
                   : amount;

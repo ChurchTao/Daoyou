@@ -43,6 +43,16 @@ const cast = (id: string, target = 't'): Command => ({ type: 'skill', skillId: S
 const dealt = (b: Battle, id: string) => b.log().filter(e => e.type === 'damage' && e.targetId === id).map(e => e.type === 'damage' ? e.amount : 0);
 
 describe('幽都基础模组还原', () => {
+  it.each(['soul_judge', 'poison_master'])('%s 的幽影遁只允许自身，传入队友或灵兽也不会为其隐身', path => {
+    for (const target of ['s', 'a', 'pet']) {
+      const { b } = setup(path);
+      expect(b.queryCommands('s').skills.find(skill => skill.skillId === S('stealth'))?.selectableTargetIds).toEqual(['s']);
+      round(b, cast('stealth', target));
+      expect(b.unit('s').statuses).toContainEqual(expect.objectContaining({ id: T('stealth'), remainingRounds: 4 }));
+      for (const id of ['a', 'pet']) expect(b.unit(id).statuses.some(status => status.id === T('stealth'))).toBe(false);
+      expect(b.unit('s').attrs.mp).toBe(9756);
+    }
+  });
   it('两流派共享抗封根基，毒师攻击只由物理流派授予，并按心法分阶段解锁', () => {
     for (const path of ['soul_judge', 'poison_master']) {
       const p = project(path);
@@ -63,27 +73,26 @@ describe('幽都基础模组还原', () => {
     const c = setup().b; round(c, cast('pursuit'));
     expect(c.unit('t').wound).toBe(0);
     expect(c.unit('t').statuses).toContainEqual(expect.objectContaining({ id: T('slow') }));
-    expect(c.unit('s').attrs.mp).toBe(9950);
+    expect(c.unit('s').attrs.mp).toBe(9843);
   });
   it('判官类技能同时削血削蓝，拘灵基础持续5回合', () => {
     const { b } = setup(); round(b, cast('judge'));
     expect(b.unit('t').attrs.hp).toBeLessThan(100000);
     expect(b.unit('t').attrs.mp).toBe(9820);
-    expect(b.unit('s').attrs.mp).toBe(9980);
+    expect(b.unit('s').attrs.mp).toBe(9829);
     for (const [nodes, duration] of [[[], 5]] as const) {
       const c = setup('soul_judge', [...nodes]).b; round(c, cast('soul_seal'));
       expect(c.unit('t').statuses).toContainEqual(expect.objectContaining({ id: T('soul_seal'), remainingRounds: duration }));
-      expect(c.unit('s').attrs.mp).toBe(9950);
+      expect(c.unit('s').attrs.mp).toBe(9796);
     }
   });
   it('隐身阻止单体选取和施法；鬼眼恢复可选目标，不增加普通命中', () => {
-    const { b } = setup(); round(b, cast('stealth', 'a'));
-    expect(b.queryCommands('t').attackTargetIds).not.toContain('a');
-    b.unit('a').skills = [S('insight')];
-    expect(b.queryCommands('a').skills[0].ready).toBe(false);
+    const { b } = setup(); round(b, cast('stealth', 's'));
+    expect(b.queryCommands('t').attackTargetIds).not.toContain('s');
+    expect(b.queryCommands('s').skills.find(skill => skill.skillId === S('insight'))?.ready).toBe(false);
     b.unit('t').skills = [S('insight')]; b.unit('t').attrs.mp = 100;
     b.applyStatus('t', T('insight'), 5, 's');
-    expect(b.queryCommands('t').attackTargetIds).toContain('a');
+    expect(b.queryCommands('t').attackTargetIds).toContain('s');
     expect(effectiveAttrs(b.unit('t')).hit).toBe(b.unit('t').attrs.hit);
   });
   it('复活只选倒地可复起目标，并附带增攻降防；禁复活目标不可选', () => {
@@ -96,19 +105,18 @@ describe('幽都基础模组还原', () => {
     expect(b.unit('a').attrs.hp).toBe(3000);
     expect(effectiveAttrs(b.unit('a')).physicalAtk).toBe(1200);
     expect(effectiveAttrs(b.unit('a')).physicalDef).toBe(800);
-    expect(b.unit('s').attrs.mp).toBe(9850);
+    expect(b.unit('s').attrs.mp).toBe(9648);
   });
-  it('隐身分别按自身15、队友10支付后续法力，支付失败解除；多个状态分别计费', () => {
-    for (const [id, cost] of [['s', 15], ['a', 10]] as const) {
-      const { b } = setup(); round(b, cast('stealth', id));
-      expect(b.unit('s').attrs.mp).toBe(9850);
-      round(b); expect(b.unit('s').attrs.mp).toBe(9850 - cost);
-      b.unit('s').attrs.mp = cost - 1; round(b);
-      expect(b.unit(id).statuses.some(s => s.id === T('stealth'))).toBe(false);
-      expect(b.unit('s').attrs.mp).toBe(cost - 1);
-    }
-    const { b } = setup(); round(b, cast('stealth', 'a')); round(b, cast('stealth', 'pet'));
-    const mp = b.unit('s').attrs.mp; round(b); expect(b.unit('s').attrs.mp).toBe(mp - 20);
+  it('自身隐身施放当回合不扣维持费，后续每回合15法力，不足时解除', () => {
+    const { b } = setup(); round(b, cast('stealth', 's'));
+    expect(b.unit('s').attrs.mp).toBe(9756);
+    round(b); expect(b.unit('s').attrs.mp).toBe(9741);
+    b.unit('s').attrs.mp = 15; round(b);
+    expect(b.unit('s').attrs.mp).toBe(0);
+    expect(b.unit('s').statuses.some(s => s.id === T('stealth'))).toBe(true);
+    b.unit('s').attrs.mp = 14; round(b);
+    expect(b.unit('s').statuses.some(s => s.id === T('stealth'))).toBe(false);
+    expect(b.unit('s').attrs.mp).toBe(14);
   });
   it('毒有等级上限并持续扣蓝，群疗按施术者成长而非队友血量成长；快照可恢复', () => {
     const { b, input } = setup(); b.unit('s').attrs.hp = 5000; b.unit('a').attrs.hp = 5000; b.unit('pet').attrs.hp = 5000;
@@ -119,7 +127,7 @@ describe('幽都基础模组还原', () => {
     expect(b.unit('a').attrs.hp).toBeGreaterThan(5000);
     expect(b.unit('a').attrs.hp).toBe(b.unit('s').attrs.hp);
     expect(b.unit('pet').attrs.hp).toBe(5000);
-    expect(b.unit('s').attrs.mp).toBe(9960);
+    expect(b.unit('s').attrs.mp).toBe(9636);
     const restored = restoreBattle(input, JSON.parse(JSON.stringify(b.snapshot())), [...b.log()]);
     round(b); round(restored);
     expect(restored.snapshot()).toEqual(b.snapshot()); expect(restored.log()).toEqual(b.log());

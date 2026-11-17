@@ -197,20 +197,23 @@ const eventLabels: Record<string, string> = { beforeAction: '行动前', afterAc
 const effectLabels: Record<string, string> = { physicalHit: '物理伤害', spellHit: '法术伤害', fixedHit: '固定伤害', applyStatus: '施加状态', removeStatus: '移除状态', restoreHp: '恢复气血', restoreMp: '恢复法力', heal: '治疗', applyBarrier: '护盾', modifyResource: '调整资源', randomBranch: '随机分支', wound: '伤势', repeat: '连续效果' };
 
 /** Resolve only expressions whose complete input is known; absent battle facts never become zero. */
-function numericFields(value: unknown, skillLevel?: number, path = '', parent = '', source?: Unit, contextLabel = '基础参数'): SectAtlasNumericField[] {
+function numericFields(value: unknown, skillLevel?: number, path = '', parent = '', source?: Unit, contextLabel = '基础参数', knownSkillLevels?: Readonly<Record<string, number>>): SectAtlasNumericField[] {
   if (Array.isArray(value)) return value.flatMap((child, index) => {
     const section = sectionLabels[path.split('.').at(-1)!] ?? '规则';
     const detail = child && typeof child === 'object' ? child as Record<string, unknown> : {};
     const name = typeof detail.on === 'string' ? eventLabels[detail.on] : typeof detail.type === 'string' ? effectLabels[detail.type] : undefined;
-    return numericFields(child, skillLevel, `${path}[${index}]`, parent, source, `${contextLabel} / ${section}第${index + 1}项${name ? `·${name}` : ''}`);
+    return numericFields(child, skillLevel, `${path}[${index}]`, parent, source, `${contextLabel} / ${section}第${index + 1}项${name ? `·${name}` : ''}`, knownSkillLevels);
   });
   if (value && typeof value === 'object') return Object.entries(value).flatMap(([key, child]) => numericFields(child, skillLevel, path ? `${path}.${key}` : key, path.split('.').at(-1) ?? '', source,
-    key === 'when' ? `${contextLabel} / 生效条件` : key === 'schoolTerm' ? '心法附加威力' : key === 'targeting' ? `${contextLabel} / 作用目标` : key === 'attrMods' ? `${contextLabel} / 属性修正` : contextLabel));
+    key === 'when' ? `${contextLabel} / 生效条件` : key === 'schoolTerm' ? '心法附加威力' : key === 'targeting' ? `${contextLabel} / 作用目标` : key === 'attrMods' ? `${contextLabel} / 属性修正` : contextLabel, knownSkillLevels));
   const key = path.replace(/\[\d+\]$/g, '').split('.').at(-1)!;
   if (typeof value !== 'number' && !(typeof value === 'string' && (expressionFields.has(key) || parent === 'attrMods'))) return [];
   const names = typeof value === 'string' ? [...new Set(value.match(/[A-Za-z_][A-Za-z0-9_.]*/g) ?? [])].filter(name => !['floor', 'min', 'max', 'if'].includes(name)) : [];
-  const known = names.every(name => (name === 'skillLevel' && skillLevel !== undefined) || (source !== undefined && (name === 'level' || name.startsWith('known.') || name.startsWith('knownSkillLevel.'))));
-  const resolved = typeof value === 'number' ? value : known ? evalExpr(value, { source: source ?? expressionSource, skillLevel: skillLevel ?? 0, targets: 0 }) : null;
+  const known = names.every(name => (name === 'skillLevel' && skillLevel !== undefined)
+    || (source !== undefined && (name === 'level' || name.startsWith('known.') || name.startsWith('knownSkillLevel.')))
+    || (name.startsWith('knownSkillLevel.') && knownSkillLevels !== undefined && Object.hasOwn(knownSkillLevels, name.slice(16))));
+  const previewSource = source ?? (knownSkillLevels ? { ...expressionSource, skills: Object.keys(knownSkillLevels), skillLevels: { ...knownSkillLevels } } : expressionSource);
+  const resolved = typeof value === 'number' ? value : known ? evalExpr(value, { source: previewSource, skillLevel: skillLevel ?? 0, targets: 0 }) : null;
   return [{ path, label: labels[key] ?? '规则数值', contextLabel, value, display: displayValue(value, key), resolved, resolvedDisplay: resolved === null ? null : displayValue(resolved, key), variables: names.map(name => ({ name, label: variableLabel(name) })) }];
 }
 
@@ -280,7 +283,8 @@ export function previewSectAtlasSkill(input: SectAtlasSkillInput): SectAtlasSkil
   const skill = authoredSkills(sect).find(entry => entry.skill.definition.id === input.skillId)?.skill;
   if (!skill) throw new Error('神通不属于当前宗门');
   const methodLevel = Math.max(0, Math.min(SECT_PROGRESSION.method.maxLevel, Math.floor(Number.isFinite(input.methodLevel) ? input.methodLevel : 0)));
-  const fields = numericFields(skill.definition, methodLevel);
+  const knownSkillLevels = { [skill.definition.id]: methodLevel };
+  const fields = numericFields(skill.definition, methodLevel, '', '', undefined, '基础参数', knownSkillLevels);
   function appendAppliedStatuses(value: unknown, path: string, appliedLevel: number | undefined): void {
     if (Array.isArray(value)) { value.forEach((child, index) => appendAppliedStatuses(child, `${path}[${index}]`, appliedLevel)); return; }
     if (!value || typeof value !== 'object') return;
@@ -295,7 +299,7 @@ export function previewSectAtlasSkill(input: SectAtlasSkillInput): SectAtlasSkil
         statusPath += `.statuses.${status.id}`;
         context += ` / ${seen.size === 1 ? '施加状态' : '自然转为'}·${status.name}`;
         fields.push(...numericFields(status, appliedLevel, statusPath, '', undefined,
-          `${context}${appliedLevel === undefined ? ' / 按触发技能等级' : ''}`));
+          `${context}${appliedLevel === undefined ? ' / 按触发技能等级' : ''}`, knownSkillLevels));
         const nextId = status.onExpire?.statusId;
         status = sect.statuses.find(status => status.id === nextId);
         statusPath += '.onExpire';

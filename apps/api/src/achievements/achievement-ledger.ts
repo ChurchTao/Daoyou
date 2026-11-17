@@ -6,12 +6,12 @@ import {
 } from '@daoyou/game-rules/achievements';
 import { HttpException } from '@nestjs/common';
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db.js';
-import {
-  achievementMetrics,
-  achievementUnlocks,
-} from '@server/lib/drizzle/schema.js';
-import { eq, sql } from 'drizzle-orm';
+import { achievementUnlocks } from '@server/lib/drizzle/schema.js';
+import { eq } from 'drizzle-orm';
 import { readAchievementFacts } from './achievement-facts.js';
+import { recordAchievementMaximum } from './achievement-metrics.js';
+import { backfillAchievementOutcomes } from './achievement-outcome-history.js';
+export { recordAchievementMaximum } from './achievement-metrics.js';
 
 /** Trusted business services grant registered IDs; request bodies never reach this API. */
 export async function grantAchievement(
@@ -45,37 +45,13 @@ export async function grantAchievement(
   return rows.length > 0;
 }
 
-/** Preserve observed peaks; an expired membership or consumed asset cannot revoke progress. */
-export async function recordAchievementMaximum(
-  tx: DbTransaction,
-  cultivatorId: string,
-  metric: string,
-  value: number,
-): Promise<boolean> {
-  if (!Number.isSafeInteger(value) || value < 0 || value > 2_147_483_647)
-    throw new Error('成就进度超出合法范围');
-  const rows = await tx
-    .insert(achievementMetrics)
-    .values({ cultivatorId, metric, value })
-    .onConflictDoUpdate({
-      target: [achievementMetrics.cultivatorId, achievementMetrics.metric],
-      set: {
-        value: sql`greatest(${achievementMetrics.value}, excluded.value)`,
-        updatedAt: new Date(),
-      },
-      setWhere: sql`${achievementMetrics.value} < excluded.value`,
-    })
-    .returning({ metric: achievementMetrics.metric });
-  return rows.length > 0;
-}
-
 /** Caller owns its transaction and identity lock; progress and permanent unlocks commit together. */
 export async function syncAchievements(
   tx: DbTransaction,
   cultivatorId: string,
 ): Promise<{ unlockedIds: string[]; progressChanged: boolean }> {
+  let progressChanged = await backfillAchievementOutcomes(tx, cultivatorId);
   const { facts, firstRelation } = await readAchievementFacts(tx, cultivatorId);
-  let progressChanged = false;
   for (const [metric, value] of Object.entries(facts.metrics)) {
     if (await recordAchievementMaximum(tx, cultivatorId, metric, value))
       progressChanged = true;
@@ -105,6 +81,8 @@ export async function readAchievementCatalogue(
       achievementId: achievementUnlocks.achievementId,
       sourceKey: achievementUnlocks.sourceKey,
       unlockedAt: achievementUnlocks.unlockedAt,
+      rewardClaimedAt: achievementUnlocks.rewardClaimedAt,
+      claimedReputation: achievementUnlocks.claimedReputation,
     })
     .from(achievementUnlocks)
     .where(eq(achievementUnlocks.cultivatorId, cultivatorId));
@@ -117,6 +95,8 @@ export async function readAchievementCatalogue(
     unlocks.map((unlock) => ({
       achievementId: unlock.achievementId,
       unlockedAt: unlock.unlockedAt.toISOString(),
+      rewardClaimedAt: unlock.rewardClaimedAt?.toISOString() ?? null,
+      claimedReputation: unlock.claimedReputation,
     })),
   );
 }

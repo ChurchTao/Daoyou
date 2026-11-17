@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { Link } from 'react-router';
 import { CombatV6Details } from './CombatV6Details';
+import { CombatV6Fatigue } from './CombatV6Fatigue';
 import { CombatV6Log } from './CombatV6Log';
 import { CombatV6Roster } from './CombatV6Roster';
 import { appendBattleEntries, frameFeedback, unitLabels } from '@daoyou/game-rules/combat/log';
@@ -91,6 +92,7 @@ export function CombatV6ReplayPlayer({
         </span>
         <Link to={back}>{backLabel}</Link>
       </header>
+      <CombatV6Fatigue round={position.round} versions={record.combatVersions} />
       <div className="cv6-field">
         <CombatV6Roster
           units={position.units}

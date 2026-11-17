@@ -344,6 +344,7 @@ export const ExprVar = {
 } as const;
 
 export const ExprFn = {
+  Ceil: 'ceil',
   Floor: 'floor',
   Min: 'min',
   Max: 'max',
