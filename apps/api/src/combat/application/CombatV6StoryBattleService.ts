@@ -203,7 +203,8 @@ export async function changeStoryBattle(
       key: redisLockKeys.cultivatorMutation(actor.cultivatorId),
       context: 'story-battle',
       timeoutMs: 30000,
-      retries: 0,
+      // 首次点击攻击也会提交教程完成，等同一角色的短事务释放锁。
+      retries: 4,
     },
     async (lease) => {
       const runtime = await readRuntime(actor.cultivatorId);

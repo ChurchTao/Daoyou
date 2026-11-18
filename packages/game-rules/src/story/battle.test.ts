@@ -1,10 +1,7 @@
 import { getStoryBattle } from '@daoyou/game-content/story/battles';
 import { getStoryChapter } from '@daoyou/game-content/story/catalog';
 import { emptyStoryFacts } from '@daoyou/game-domain/story';
-import {
-  storyGateOpen,
-  storySceneOpen,
-} from '@daoyou/game-domain/story/gates';
+import { storyGateOpen, storySceneOpen } from '@daoyou/game-domain/story/gates';
 import { describe, expect, it } from 'vitest';
 
 import { storyBattleOutcome } from './battle-host.js';
@@ -16,21 +13,31 @@ import {
 } from './resolve.js';
 
 describe('剧情战', () => {
-  const creek = getStoryChapter('v1-creek');
+  const creek = getStoryChapter('mountain-bend');
   const facts = emptyStoryFacts();
   const atFight = () => {
-    let progress = openingStoryProgress('v1-creek');
-    progress = acknowledgePerformance(creek, progress, facts, 'v1-wake', 'done')
-      .progress;
-    return acknowledgePerformance(creek, progress, facts, 'v1-ambush', 'done')
-      .progress;
+    let progress = openingStoryProgress('mountain-bend');
+    progress = acknowledgePerformance(
+      creek,
+      progress,
+      facts,
+      'mountain-summit',
+      'done',
+    ).progress;
+    return acknowledgePerformance(
+      creek,
+      progress,
+      facts,
+      'mountain-basket',
+      'done',
+    ).progress;
   };
 
   it('演出之后停在剧情战上，打完才往下走，结果记成标记', () => {
     const waiting = atFight();
     expect(presentStory(creek, waiting, facts).battleId).toBe('v1-ambush');
     const done = acknowledgeBattle(creek, waiting, facts, 'v1-ambush', 'lost');
-    expect(done.progress.beatId).toBe('cubs');
+    expect(done.progress.beatId).toBe('white-paw');
     expect(presentStory(creek, done.progress, facts).flags).toContain(
       'battle.v1-ambush.lost',
     );
@@ -49,25 +56,44 @@ describe('剧情战', () => {
       'v1-ambush',
       'lost',
     );
-    expect(twice.progress.beatId).toBe('cubs');
+    expect(twice.progress.beatId).toBe('white-paw');
     expect(presentStory(creek, twice.progress, facts).flags).not.toContain(
       'battle.v1-ambush.lost',
     );
   });
 
   it('这一幕演完时把赠礼发出去，只发一次', () => {
-    const fought = acknowledgeBattle(creek, atFight(), facts, 'v1-ambush', 'won');
-    const watched = acknowledgePerformance(
+    const fought = acknowledgeBattle(
+      creek,
+      atFight(),
+      facts,
+      'v1-ambush',
+      'won',
+    );
+    const found = acknowledgePerformance(
       creek,
       fought.progress,
       facts,
-      'v1-cubs',
+      'mountain-white-paw',
+      'done',
+    );
+    expect(found.grants).toEqual([]);
+    const watched = acknowledgePerformance(
+      creek,
+      found.progress,
+      facts,
+      'mountain-companion',
       'done',
     );
     expect(watched.grants).toEqual(['starter-beast']);
     expect(
-      acknowledgePerformance(creek, watched.progress, facts, 'v1-cubs', 'done')
-        .grants,
+      acknowledgePerformance(
+        creek,
+        watched.progress,
+        facts,
+        'mountain-companion',
+        'done',
+      ).grants,
     ).toEqual([]);
   });
 

@@ -1,0 +1,92 @@
+{
+  "id": "mountain-companion",
+  "title": "到地方了",
+  "requires": [],
+  "cast": {
+    "player": {
+      "name": "你"
+    },
+    "herb": {
+      "name": "采药人",
+      "portrait": "icon:portrait-elder-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "山脚 · 落脚处"
+    },
+    {
+      "type": "title",
+      "kicker": "过了那道弯",
+      "text": "到地方了"
+    },
+    {
+      "type": "narration",
+      "text": "落脚的地方在山脚背风处。石门槛让人踩得有个浅窝，里面有一眼泉。采药人把铺盖还给你，在灶口烧水。"
+    },
+    {
+      "type": "narration",
+      "text": "你摊开铺盖，两条腿也跟着松下来。一小团银灰色从蓝布上跨过去，沿着被角踩出四个凹印，挑了正中间卧好。你拉出点被子，它跟着挪了一点。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "到地方了。"
+    },
+    {
+      "type": "narration",
+      "text": "采药人往里看了一眼。"
+    },
+    {
+      "type": "line",
+      "speaker": "herb",
+      "text": "嗯。它到了。"
+    },
+    {
+      "type": "narration",
+      "text": "他在门槛边坐下。"
+    },
+    {
+      "type": "line",
+      "speaker": "herb",
+      "text": "咪咪是只灵猫。我上山采药，常得走险路，只好天天把它颠在筐里。你在山门有得住的时候，匀它一角。你要走远路，肯不肯也把它算上一份？"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "行。往里睡点，给我也匀一角。",
+          "then": [
+            {
+              "type": "narration",
+              "text": "你拿指背推推咪咪的后脚。它肯翻身了，这下占的地方更大。"
+            }
+          ]
+        },
+        {
+          "label": "我头一回养。它怕的东西，你跟我说全了再走。",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "herb",
+              "text": "背筐响你知道了。打雷也怕。还有一样，洗它那块蓝布的时候，一定先把它骗远点。"
+            },
+            {
+              "type": "narration",
+              "text": "你看看布边上的爪印，觉得这句话可信。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "narration",
+      "text": "他把装灵兽的袋子也交给你。袋口的系绳上有个旧结，他给你留着，方便一摸就摸到。明早即使人挤散了，你和咪咪也能一道上山了。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

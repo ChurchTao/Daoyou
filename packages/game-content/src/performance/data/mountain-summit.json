@@ -1,0 +1,77 @@
+{
+  "id": "mountain-summit",
+  "title": "周叔少说了一句",
+  "requires": [],
+  "cast": {
+    "player": {
+      "name": "你"
+    },
+    "herb": {
+      "name": "采药人",
+      "portrait": "icon:portrait-elder-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "北岸 · 河弯外"
+    },
+    {
+      "type": "title",
+      "kicker": "过了那道弯",
+      "text": "周叔少说了一句"
+    },
+    {
+      "type": "narration",
+      "text": "你一路盯着那座尖峰，偏在该拐弯的时候低了头。右脚后跟磨得疼，鞋里进了粒砂子。"
+    },
+    {
+      "type": "narration",
+      "text": "等你把砂子倒出来，路边树矮下去，河水亮得晃眼。你扶着鞋跟，光着一只脚找了半天。"
+    },
+    {
+      "type": "aside",
+      "text": "山呢？"
+    },
+    {
+      "type": "narration",
+      "text": "镇上天天能望见的那个尖，矮矮地翘在山脊尽头。从它往右，好长的一道平顶。顶上长着七八棵树，再过去有一间屋。屋旁两根竿子中间撑着一线白。风一吹，那道白鼓起来，又落下去。"
+    },
+    {
+      "type": "narration",
+      "text": "你蹦了两步，换到临河那块石头上看。真是有人在山顶晒被子。"
+    },
+    {
+      "type": "narration",
+      "text": "采药人走出去好远才发现少了个人，拢着嘴朝你喊。"
+    },
+    {
+      "type": "line",
+      "speaker": "herb",
+      "text": "又进砂子啦？"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "周叔说上头是平的！"
+    },
+    {
+      "type": "line",
+      "speaker": "herb",
+      "text": "那你朝我喊什么？"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "他没说上头还住着人！"
+    },
+    {
+      "type": "narration",
+      "text": "河那头悠悠传回来半句“住着人”。你自己也笑了，坐下来穿好鞋。婆婆桌底下空着的那一掌，够画山，恐怕还得往边上挤一挤，才够画那床被。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "mountain-foothill",
+  "track": "main",
+  "title": "山脚小住",
+  "beats": [
+    {
+      "id": "rest",
+      "kind": "life",
+      "scene": "cave",
+      "prompt": "",
+      "href": "/game"
+    }
+  ]
+}

@@ -1,4 +1,7 @@
-import { getStoryChapter } from '@daoyou/game-content/story/catalog';
+import {
+  getStoryChapter,
+  RESTING_STORY_CHAPTER,
+} from '@daoyou/game-content/story/catalog';
 import {
   StoryProgressSchema,
   type StoryProgress,
@@ -20,7 +23,7 @@ export function openingStoryProgress(chapterId?: string): StoryProgress {
 }
 
 export function restingStoryProgress(): StoryProgress {
-  const chapter = getStoryChapter();
+  const chapter = getStoryChapter(RESTING_STORY_CHAPTER);
   const beat = [...chapter.beats]
     .reverse()
     .find((entry) => entry.kind === 'life');

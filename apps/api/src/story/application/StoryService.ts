@@ -36,7 +36,8 @@ import {
   type StoryResolution,
 } from '@daoyou/game-rules/story';
 import { storyGiftParts } from '@daoyou/game-content/story/gifts';
-import { getStoryChapter } from '@daoyou/game-content/story/catalog';
+import { getStoryChapter, OPENING_STORY_CHAPTER } from '@daoyou/game-content/story/catalog';
+import { STORY_EXTRA_GATES, STORY_SCENE_GATES } from '@daoyou/game-domain/story/gates';
 import { giveStarterBeast } from '@server/combat/application/starterBeastGift.js';
 import {
   emptyStoryFacts,
@@ -235,14 +236,31 @@ async function currentStory(
   cultivatorId: string,
   tx: DbExecutor | DbTransaction,
 ) {
-  const rows = await listCultivatorStories(cultivatorId, 'main', tx);
+  const history = await listCultivatorStories(cultivatorId, 'main', tx);
+  // 两套旧主线的章幕与新版无对应关系。保留原记录，另记新版进度。
+  const rows = history.filter(
+    (row) => row.storyId !== 'arrival' && !row.storyId.startsWith('v1-'),
+  );
+  const returning = rows.length !== history.length;
   const stored = rows.find((row) => row.status === 'active') ?? rows[0] ?? null;
   const past = rows.filter((row) => row !== stored);
   return {
     rows,
     stored,
+    base:
+      stored ??
+      (returning
+        ? openingStoryProgress(OPENING_STORY_CHAPTER)
+        : restingStoryProgress()),
     carried: past.flatMap((row) => storyFlags(row.marks)),
-    opened: past.flatMap((row) => chapterUnlocks(getStoryChapter(row.storyId))),
+    opened: returning
+      ? [
+          ...new Set([
+            ...Object.values(STORY_SCENE_GATES),
+            ...STORY_EXTRA_GATES,
+          ]),
+        ]
+      : past.flatMap((row) => chapterUnlocks(getStoryChapter(row.storyId))),
   };
 }
 
@@ -260,11 +278,10 @@ async function settle(
   rewardIds: string[];
   effect: { items: boolean; spiritStones: boolean };
 }> {
-  const { rows, stored, carried, opened } = await currentStory(
+  const { rows, stored, base, carried, opened } = await currentStory(
     cultivatorId,
     tx,
   );
-  const base = stored ?? restingStoryProgress();
   let chapter = getStoryChapter(base.storyId);
   const facts = await readStoryFacts(cultivatorId, tx);
   const progress = rewindToUnwatchedPerformance(chapter, base, facts);
@@ -325,8 +342,7 @@ export const StoryService = {
   },
 
   async read(cultivatorId: string, tx: DbTransaction): Promise<StoryView> {
-    const { stored, carried, opened } = await currentStory(cultivatorId, tx);
-    const base = stored ?? restingStoryProgress();
+    const { base, carried, opened } = await currentStory(cultivatorId, tx);
     const chapter = getStoryChapter(base.storyId);
     const facts = await readStoryFacts(cultivatorId, tx);
     const progress = rewindToUnwatchedPerformance(chapter, base, facts);

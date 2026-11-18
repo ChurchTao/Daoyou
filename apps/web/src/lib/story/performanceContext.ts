@@ -67,7 +67,6 @@ export function storyPerformanceContext(
   return {
     name: cultivator.name,
     background: cultivator.background?.trim() || '尚无来处',
-    // 这具身体的出身。魂穿而来的人是从别人口中头一回听说。
     origin: cultivator.origin?.trim() || '来历不详',
     receptionist: actorName('hall', 'registry', '接引师兄'),
     alchemy_teacher: actorName('alchemy', 'keeper', '丹房执事'),

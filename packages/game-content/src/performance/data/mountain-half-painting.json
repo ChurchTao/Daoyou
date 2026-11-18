@@ -1,0 +1,70 @@
+{
+  "id": "mountain-half-painting",
+  "title": "少了半张的画",
+  "requires": [],
+  "cast": {
+    "player": {
+      "name": "你"
+    },
+    "painter": {
+      "name": "画山人",
+      "portrait": "icon:portrait-elder-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "面棚 · 雨歇"
+    },
+    {
+      "type": "title",
+      "kicker": "捎个口信",
+      "text": "少了半张的画"
+    },
+    {
+      "type": "line",
+      "speaker": "painter",
+      "text": "后来呀，那黄狗自己从水里蹬上船了。"
+    },
+    {
+      "type": "narration",
+      "text": "婆婆笑得直拿围裙擦眼角。外面雨歇了，她还没起身去支棚。"
+    },
+    {
+      "type": "narration",
+      "text": "客人吃完面，把那只旧画筒横在膝上，拿布擦筒口溅进去的汤。你替他扶住一头，瞥见里头有一卷纸烂了半边。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "这张也淋过雨？"
+    },
+    {
+      "type": "line",
+      "speaker": "painter",
+      "text": "嗯。那天我顾着往纸上涂花，忘了天上也有水。"
+    },
+    {
+      "type": "narration",
+      "text": "他抽出画，你替他捏住干净的一角。半幅山崖，半幅水渍。有一截枝子伸进水渍里，再也寻不着下落。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "那它开起来究竟什么样？"
+    },
+    {
+      "type": "narration",
+      "text": "客人把画筒往桌上一倒。又滚出两卷。"
+    },
+    {
+      "type": "line",
+      "speaker": "painter",
+      "text": "桌子借我。你把面汤喝干净，这次可别又毁在水里。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

@@ -66,7 +66,7 @@ function PreviewShelf({
           <InkInput
             label="演出编号"
             value={draft}
-            placeholder="arrival-fall"
+            placeholder="mountain-two-peaks"
             onChange={setDraft}
           />
         </div>

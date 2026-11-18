@@ -79,8 +79,8 @@ function progress(
 
 describe('story resolver', () => {
   it('loads the arrival chapter and opens on the first performance', () => {
-    const arrival = getStoryChapter();
-    const opening = openingStoryProgress();
+    const arrival = getStoryChapter('arrival');
+    const opening = openingStoryProgress('arrival');
     const view = presentStory(arrival, opening, emptyStoryFacts());
     expect(opening.track).toBe('main');
     expect(view.track).toBe('main');
@@ -288,7 +288,7 @@ describe('story resolver', () => {
   });
 
   it('sends an unstarted arrival record to the opening', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const unwatched = progress('entered', { storyId: 'arrival' });
     const rewound = rewindToUnwatchedPerformance(
       arrival,
@@ -313,7 +313,7 @@ describe('story resolver', () => {
     'steady',
     'grip',
   ])('migrates the removed arrival beat %s without losing progress', (beatId) => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const old = progress(beatId, {
       storyId: 'arrival',
       acks: ['arrival-fall:entered', 'arrival-scent:stayed'],
@@ -341,7 +341,7 @@ describe('story resolver', () => {
   });
 
   it('preserves the completed old arrival endpoint without replaying new lessons', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     for (const status of ['active', 'completed'] as const) {
       const old = progress('entered', {
         storyId: 'arrival',
@@ -367,7 +367,7 @@ describe('story resolver', () => {
   });
 
   it('migrates an old active record to the first missing real action', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const old = progress('grip', {
       storyId: 'arrival',
       acks: arrival.beats.flatMap((beat) =>
@@ -398,7 +398,7 @@ describe('story resolver', () => {
   });
 
   it('does not recheck passed live facts after the arrival revision is recorded', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const active = progress('seek', {
       storyId: 'arrival',
       acks: arrival.beats
@@ -419,7 +419,7 @@ describe('story resolver', () => {
   });
 
   it('accepts a Qingxi meeting without requiring a victory or a captured beast', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const fact = storyMarkForSignal({ type: 'wild.met', nodeId: 'SAT_TN_08' });
     expect(fact).toBe('qingxi_met');
     const current = progress('seek', {
@@ -446,7 +446,7 @@ describe('story resolver', () => {
   });
 
   it('requires a real sect membership while allowing its introductory lesson to be optional', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const current = progress('door', {
       storyId: 'arrival',
       marks: ['arrival-v2'],
@@ -464,7 +464,7 @@ describe('story resolver', () => {
   it.each(['hearth', 'forge', 'equip', 'path', 'bag'])(
     'requires the lesson as well as the real action at %s',
     (beatId) => {
-      const arrival = getStoryChapter();
+      const arrival = getStoryChapter('arrival');
       const beat = arrival.beats.find((entry) => entry.id === beatId)!;
       if (beat.kind !== 'practice') throw new Error('教学幕不是实操');
       const current = progress(beatId, {
@@ -492,7 +492,7 @@ describe('story resolver', () => {
     ['hearth', 'first-furnace-lesson'],
     ['forge', 'first-weapon'],
   ])('issues a missing arrival bundle at %s exactly once', (beatId, grant) => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const current = progress(beatId, {
       storyId: 'arrival',
       marks: ['arrival-v2'],
@@ -506,7 +506,7 @@ describe('story resolver', () => {
   });
 
   it('funds the new furnace lesson once for an old player who only watched alchemy', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const facts = emptyStoryFacts();
     const old = progress('hearth', {
       storyId: 'arrival',
@@ -554,10 +554,10 @@ describe('story resolver', () => {
   });
 
   it('walks the complete arrival chain through real actions before the first outing', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const facts = emptyStoryFacts();
     const issued: string[] = [];
-    let current = openingStoryProgress();
+    let current = openingStoryProgress('arrival');
     const accept = (resolution: ReturnType<typeof resolveStory>, beatId: string) => {
       current = resolution.progress;
       issued.push(...resolution.grants);
@@ -618,7 +618,7 @@ describe('story resolver', () => {
   });
 
   it('still rejects an unknown arrival beat instead of treating it as legacy', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const unknown = progress('not-an-arrival-beat', { storyId: 'arrival' });
     expect(() => resolveStory(arrival, unknown, emptyStoryFacts())).toThrow(
       '剧情幕不存在：not-an-arrival-beat',
@@ -892,15 +892,15 @@ describe('volume one', () => {
       expect(current.gated).toBe(true);
       current = getStoryChapter(current.next);
     }
-    expect(seen).toHaveLength(10);
+    expect(seen).toEqual(['mountain-ferry', 'mountain-flowers', 'mountain-bend']);
     expect(current.gated).toBeUndefined();
     expect(current.beats.at(-1)?.kind).toBe('life');
   });
 
   it('opens a new character on the first beat of volume one', () => {
-    expect(openingStoryProgress(OPENING_STORY_CHAPTER)).toMatchObject({
-      storyId: 'v1-creek',
-      beatId: 'wake',
+    expect(openingStoryProgress()).toMatchObject({
+      storyId: 'mountain-ferry',
+      beatId: 'two-peaks',
       status: 'active',
     });
   });

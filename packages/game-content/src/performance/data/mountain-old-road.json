@@ -1,0 +1,114 @@
+{
+  "id": "mountain-old-road",
+  "title": "旧路",
+  "requires": [],
+  "cast": {
+    "player": {
+      "name": "你"
+    },
+    "dyer": {
+      "name": "染坊里的人"
+    },
+    "zhou": {
+      "name": "周叔",
+      "portrait": "icon:portrait-merchant-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "上渡 · 河滩"
+    },
+    {
+      "type": "title",
+      "kicker": "捎个口信",
+      "text": "旧路"
+    },
+    {
+      "type": "narration",
+      "text": "穿过染坊后院，可以少绕一段河堤。你照旧隔着门喊。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "借个道！"
+    },
+    {
+      "type": "line",
+      "speaker": "dyer",
+      "text": "鞋在槛上蹭两下！"
+    },
+    {
+      "type": "narration",
+      "text": "周叔的船拴在上渡。你跑到时，他正埋头从船底往外递坛子。河滩上，两床棉被晒得蓬蓬松松。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "周叔，要下雨了！"
+    },
+    {
+      "type": "line",
+      "speaker": "zhou",
+      "text": "我还差一坛！"
+    },
+    {
+      "type": "narration",
+      "text": "你抱起一床，被子晒足了太阳，一股热气扑到脸上。隔着棉花，周叔的声音闷闷的。"
+    },
+    {
+      "type": "line",
+      "speaker": "zhou",
+      "text": "看得见路么你？"
+    },
+    {
+      "type": "narration",
+      "text": "等两床被都塞进篷里，第一阵雨才密密地落到滩上。周叔掀开篷帘，分给你一小块干处。"
+    },
+    {
+      "type": "narration",
+      "text": "一艘空船从上游下来。船头先从山嘴后头露出来，然后是人，然后是堆在船尾的青竹。你在这个地方看过多少回了；每回都是东西先到了眼前，你才好凭它猜那头是什么地方。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "我真跟你去一回，得留几天？",
+          "then": [
+            {
+              "type": "narration",
+              "text": "周叔掰了掰指头。"
+            },
+            {
+              "type": "line",
+              "speaker": "zhou",
+              "text": "光看你那座山？去一日，回来一日。要是半道又有座山想看，可得自己算。"
+            }
+          ]
+        },
+        {
+          "label": "你说山顶平，到底有多平？",
+          "then": [
+            {
+              "type": "narration",
+              "text": "他拿篙在湿沙上压了一道平印，又端详片刻，自己先拿脚抹了。"
+            },
+            {
+              "type": "line",
+              "speaker": "zhou",
+              "text": "从这儿给你画，跟那盐贩子有什么分别。你得自己去看。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "narration",
+      "text": "他翻出两枚跑腿钱给你。你花一枚在回程的渡船上，另一枚照旧单放。那串钱你已经攒了好一阵，平日舍不得拿它换零嘴。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

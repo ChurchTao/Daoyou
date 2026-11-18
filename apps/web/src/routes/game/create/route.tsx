@@ -1,7 +1,6 @@
 import { FateDetailModal } from '@app/components/feature/fates/FateDetailModal';
 import { toFateDisplayModel } from '@app/components/feature/fates/FateDisplayAdapter';
 import { FateEffectInlineList } from '@app/components/feature/fates/FateEffectInlineList';
-import { PerformancePlayer } from '@app/components/feature/performance/PerformancePlayer';
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkDetailDrawer, InkNotice } from '@app/components/ui';
@@ -15,7 +14,6 @@ import {
   type CharacterGenerationQuotaResponse,
   type GenerateCharacterResponse,
 } from '@daoyou/contracts/character-generation';
-import { getPerformanceScript } from '@daoyou/game-content/performance/catalog';
 import { getResourceLabel } from '@daoyou/game-content/presentation/concepts';
 import type { Cultivator } from '@daoyou/game-domain/character';
 import {
@@ -112,7 +110,6 @@ function AttributeValue({
 }
 
 /**
- * 入世：人间最后一夜 → 心念 → 入梦 → 这具身体 → 命格 → 醒来。
  * 全程一张纸，接着后面的主线演出。
  */
 export default function CreatePage() {
@@ -121,7 +118,6 @@ export default function CreatePage() {
   const session = usePlayerSession();
   const hasActiveCultivator = Boolean(session.data?.activeCultivator);
   const isLoading = session.loading;
-  const [prologueSeen, setPrologueSeen] = useState(false);
   const [userPrompt, setUserPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -318,7 +314,7 @@ export default function CreatePage() {
       }, LEAVE_MS);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : '没能醒过来，请再试一次。';
+        error instanceof Error ? error.message : '未能保存道身，请再试一次。';
       pushToast({ message: errorMessage, tone: 'danger' });
       setIsSaving(false);
     }
@@ -364,24 +360,8 @@ export default function CreatePage() {
     );
   }
 
-  // 序章：人间的最后一夜。看完或跳过之后才写心念，不记进度。
-  if (!prologueSeen) {
-    return (
-      <div className="fixed inset-0 z-30">
-        <PerformancePlayer
-          script={getPerformanceScript('v1-last-night')}
-          context={{}}
-          finalLabel="想那件事"
-          exitLabel="跳过"
-          onExit={() => setPrologueSeen(true)}
-          onFinish={() => setPrologueSeen(true)}
-        />
-      </div>
-    );
-  }
-
   const stage = isGenerating
-    ? 'dream'
+    ? 'generating'
     : !player
       ? 'wish'
       : bodyAccepted
@@ -392,9 +372,9 @@ export default function CreatePage() {
     <GenesisPaper leaving={leaving}>
       {stage === 'wish' ? (
         <Leaf key="wish">
-          <Told past>合上眼之前，你想了一件事。</Told>
+          <Told past>在故乡的渡口，你时常望着河弯外的山。</Told>
           <label className="flex flex-col gap-3">
-            <span className="text-ink text-xl leading-9">你想的是——</span>
+            <span className="text-ink text-xl leading-9">你想成为什么样的修士？</span>
             <textarea
               value={userPrompt}
               rows={4}
@@ -410,7 +390,7 @@ export default function CreatePage() {
             />
           </label>
           <p className="text-ink-secondary text-sm leading-7">
-            写下你想成为什么样的人，它决定你醒来时的样子。
+            写下你的出身或心愿。
             <span className="font-mono">
               {promptLength}/{MAX_PROMPT_LENGTH}
             </span>{' '}
@@ -433,29 +413,28 @@ export default function CreatePage() {
         </Leaf>
       ) : null}
 
-      {stage === 'dream' ? (
-        <Leaf key="dream">
-          <Told past>合上眼之前，你想了一件事。</Told>
+      {stage === 'generating' ? (
+        <Leaf key="generating">
+          <Told past>在故乡的渡口，你时常望着河弯外的山。</Told>
           <p className="text-ink-secondary text-right text-xl leading-9">
             「{trimmedPrompt}」
           </p>
-          <Told>没有人答应你。</Told>
+
           <p className="indent-[2em] text-lg leading-9 text-ink/85 motion-safe:animate-[fade-in_1.6s_ease-out]">
-            你睡着了。
+            河上又来了一班船。
           </p>
           <p
             role="status"
             className="text-ink-secondary mt-4 text-center text-sm motion-safe:animate-pulse"
           >
-            正在入梦，需要十几秒……
+            正在生成身世，需要十几秒……
           </p>
         </Leaf>
       ) : null}
 
       {stage === 'body' && player ? (
         <Leaf key="body">
-          <Told past>梦里，有什么东西应了你。</Told>
-          <Told>它给你备下的，是这样一个人——</Told>
+          <Told>镇上的熟人这样说起你。</Told>
           <div className="border-ink/20 bg-ink/[0.03] border px-5 py-5">
             <p className="font-heading text-ink text-center text-4xl leading-tight">
               {player.name}
@@ -514,7 +493,6 @@ export default function CreatePage() {
               看看根基
             </button>
           </div>
-          <Told past>这些事，你醒来以后一样也不会记得。</Told>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             <InkButton variant="primary" onClick={() => setBodyAccepted(true)}>
               就是这个人
@@ -531,8 +509,8 @@ export default function CreatePage() {
 
       {stage === 'fate' && player ? (
         <Leaf key="fate">
-          <Told past>它给你备下的，是{player.name}这个人。</Told>
-          <Told>它又在这个人身上落了几笔。留得下的，只有三笔。</Told>
+          <Told past>你的名字是{player.name}。</Told>
+          <Told>选下三笔命格，带着它们入山。</Told>
           <div className="flex items-center justify-between gap-4">
             <p className="text-ink-secondary text-sm">
               已留{' '}
@@ -621,16 +599,16 @@ export default function CreatePage() {
           {confirming ? (
             <div className="flex flex-col gap-3">
               <p className="text-ink text-lg leading-9">
-                醒来之后，这个人和这三笔就不能再改了。
+                启程之后，身世与命格就定下了。
               </p>
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                 <InkButton
                   variant="primary"
                   pending={isSaving}
-                  pendingLabel="正在醒来……"
+                  pendingLabel="正在启程……"
                   onClick={() => void handleSaveCharacter()}
                 >
-                  醒来
+                  启程
                 </InkButton>
                 <InkButton
                   variant="secondary"
