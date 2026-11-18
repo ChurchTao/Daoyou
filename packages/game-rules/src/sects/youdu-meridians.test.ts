@@ -252,7 +252,7 @@ describe('幽都经脉触发与边界', () => {
       expect(Boolean(status(b, 't', 'poison'))).toBe(enabled && immunity === 'beast.advanced-poison');
     }
   });
-  it('无赦消耗50法力、替代涤魂；任意毒类异常使随机驱散增为2个，保护不可驱散状态', () => {
+  it('无赦按心法等级消耗法力、替代涤魂；任意毒类异常使随机驱散增为2个，保护不可驱散状态', () => {
     for (const poisoned of [false, true]) {
       const { input, p } = setup(['摧形散法'], 'poison_master');
       expect(p.activeSkillIds).not.toContain(S('dispel'));
@@ -260,7 +260,7 @@ describe('幽都经脉触发与边界', () => {
       b.applyStatus('t', T('insight'), 5, 't'); b.applyStatus('t', T('revival'), 5, 't'); b.applyStatus('t', T('soul_chase'), 1, 't');
       if (poisoned) b.applyStatus('t', BEAST_STATUS_DEFS.find(s => s.kind === 'beast.poison')!.id, 3, 't');
       round(b, { s: skill('pardonless') });
-      expect(b.unit('s').attrs.mp).toBe(99950);
+      expect(b.unit('s').attrs.mp).toBe(99815);
       expect(b.log().filter(e => e.type === 'statusRemoved' && e.reason === 'dispel')).toHaveLength(poisoned ? 2 : 1);
       expect(status(b, 't', 'soul_chase')).toBeDefined();
     }
@@ -322,14 +322,14 @@ describe('幽都经脉触发与边界', () => {
     const c = setup(['窥隙'], 'poison_master').b; c.applyStatus('t', T('poison'), 3, 'a'); round(c, { s: skill('edict') });
     expect(c.log().filter(e => e.type === 'hit').every(e => e.type === 'hit' && !e.crit)).toBe(true);
   });
-  it('森罗迷障是10回合自身增益，百鬼攻击4目标按每人35法力收费，附毒概率受迷障提高', () => {
+  it('森罗迷障是10回合自身增益，百鬼攻击4目标按实际人数折扣收费，附毒概率受迷障提高', () => {
     const { b } = setup([], 'poison_master', 6);
     round(b, { s: skill('poison_shroud', 's') });
     expect(status(b, 's', 'poison_shroud')!.remainingRounds).toBe(10);
-    expect(b.unit('s').attrs.mp).toBe(99900);
+    expect(b.unit('s').attrs.mp).toBe(99786);
     expect(b.state.units.filter(u => u.side === 1).every(u => !u.statuses.some(s => s.kind === 'youdu.poison'))).toBe(true);
     const rolls = vi.spyOn(SeededRng.prototype, 'chance'); round(b, { s: skill('ghost_swarm') });
-    expect(b.unit('s').attrs.mp).toBe(99760);
+    expect(b.unit('s').attrs.mp).toBe(99428);
     expect(rolls.mock.calls.filter(([p]) => p === 0.6)).toHaveLength(4);
   });
 

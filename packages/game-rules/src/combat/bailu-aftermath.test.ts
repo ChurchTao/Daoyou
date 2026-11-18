@@ -106,7 +106,7 @@ describe('白鹿倒地与资源交换', () => {
   it('复元吐纳受伤势、缺血及剩余法力约束，额外交换只扣实需法力', () => {
     const { b } = setup(['tuna']);
     b.unit('s').attrs.hp = 3000;
-    b.unit('s').attrs.mp = 120;
+    b.unit('s').attrs.mp = 252;
     b.unit('s').wound = 1000;
     round(b, { s: cast('bailu.skill.fuyuan', 's') });
     expect(b.unit('s').attrs.hp).toBe(3590); // 180+10 base, then remaining 100 MP -> 400 HP.

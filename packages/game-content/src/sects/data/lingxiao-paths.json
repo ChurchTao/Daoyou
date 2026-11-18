@@ -1,7 +1,7 @@
 {
   "$schema": "./lingxiao-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 5,
+  "contentRevision": 7,
   "passives": [
     {
       "id": "lingxiao.passive.zhanchen.n1_1",
@@ -984,7 +984,7 @@
           "name": "长驱直入",
           "layer": 2,
           "slot": 3,
-          "description": "以长驱直入替换惊鸿掠影。造成普通攻击110%的物理伤害，敌人无法替目标分担伤害，命中后有60%概率使目标陷入[[lingxiao.status.wound]]，持续2回合。消耗50法力，冷却6回合。",
+          "description": "以长驱直入替换惊鸿掠影。造成普通攻击110%的物理伤害，敌人无法替目标分担伤害，命中后有60%概率使目标陷入[[lingxiao.status.wound]]，持续2回合。冷却6回合。法力消耗随所属心法等级成长，以神通当前费用为准。",
           "grantSkills": [
             "lingxiao.skill.zhanchen_long_drive"
           ],
@@ -1027,7 +1027,7 @@
           "name": "干将",
           "layer": 4,
           "slot": 1,
-          "description": "破极剑意改为施加强化的[[lingxiao.status.sword_aura_ganjiang]]，使受益者的物理攻击忽视目标15%的物理防御，持续5回合。",
+          "description": "破极剑意仍仅对自身施放，改为获得强化的[[lingxiao.status.sword_aura_ganjiang]]，使自身的物理攻击忽视目标15%的物理防御，持续5回合。",
           "patches": [
             {
               "skillId": "lingxiao.skill.sword_aura",
@@ -1239,7 +1239,7 @@
           "name": "长驱直入",
           "layer": 2,
           "slot": 3,
-          "description": "以长驱直入替换惊鸿掠影。造成普通攻击110%的物理伤害，敌人无法替目标分担伤害，命中后有60%概率使目标陷入[[lingxiao.status.wound]]，持续2回合。消耗50法力，冷却6回合。",
+          "description": "以长驱直入替换惊鸿掠影。造成普通攻击110%的物理伤害，敌人无法替目标分担伤害，命中后有60%概率使目标陷入[[lingxiao.status.wound]]，持续2回合。冷却6回合。法力消耗随所属心法等级成长，以神通当前费用为准。",
           "grantSkills": [
             "lingxiao.skill.guiyi_long_drive"
           ],
@@ -1282,7 +1282,7 @@
           "name": "干将",
           "layer": 4,
           "slot": 1,
-          "description": "破极剑意改为施加强化的[[lingxiao.status.sword_aura_ganjiang]]，使受益者的物理攻击忽视目标15%的物理防御，持续5回合。",
+          "description": "破极剑意仍仅对自身施放，改为获得强化的[[lingxiao.status.sword_aura_ganjiang]]，使自身的物理攻击忽视目标15%的物理防御，持续5回合。",
           "patches": [
             {
               "skillId": "lingxiao.skill.sword_aura",

@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { Link } from 'react-router';
 import { CombatV6Details } from './CombatV6Details';
+import { CombatV6Fatigue } from './CombatV6Fatigue';
 import { CombatV6Log } from './CombatV6Log';
 import { CombatV6Roster } from './CombatV6Roster';
 import { appendBattleEntries, frameFeedback, unitLabels } from '@daoyou/game-rules/combat/log';
@@ -86,9 +87,15 @@ export function CombatV6ReplayPlayer({
     <section className="cv6-battle" aria-label="战斗回放">
       <header className="cv6-header">
         <h1>{title}</h1>
-        <span>
-          {ended ? outcomes[record.outcome] : `第 ${position.round} 回合`}
-        </span>
+        <div className="cv6-header-status">
+          <span>
+            {ended ? outcomes[record.outcome] : `第 ${position.round} 回合`}
+          </span>
+          <CombatV6Fatigue
+            round={position.round}
+            versions={record.combatVersions}
+          />
+        </div>
         <Link to={back}>{backLabel}</Link>
       </header>
       <div className="cv6-field">

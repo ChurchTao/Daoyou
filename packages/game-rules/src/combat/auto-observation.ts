@@ -2,7 +2,7 @@ import type { BattleState, StatusDef, Unit } from '@daoyou/combat-core/types';
 import { effectiveAttrs } from '@daoyou/combat-core/units';
 import { DAO_RAGE_RESOURCE_ID } from '@daoyou/game-domain/equipment';
 
-export type AutoObservation = { round: number; units: Unit[] };
+export type AutoObservation = { round: number; units: Unit[]; versions?: BattleState['versions'] };
 
 const PUBLIC_BAR = 10000;
 
@@ -28,6 +28,7 @@ export function observeAutoBattle(
   const definitions = new Map(statusDefs.map((status) => [status.id, status]));
   return {
     round: state.round,
+    versions: state.versions,
     units: state.units
       .filter((unit) => !unit.flags.benched)
       .map((unit) => {

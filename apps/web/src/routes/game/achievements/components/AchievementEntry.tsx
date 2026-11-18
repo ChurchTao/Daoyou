@@ -17,6 +17,8 @@ export function AchievementEntry({
   onToggle,
   onRefresh,
   loading,
+  claiming,
+  onClaim,
 }: {
   achievement: AchievementView;
   next: boolean;
@@ -24,6 +26,8 @@ export function AchievementEntry({
   onToggle: () => void;
   onRefresh: () => void;
   loading: boolean;
+  claiming: boolean;
+  onClaim: () => void;
 }) {
   const detailsId = useId();
   const trigger = useRef<HTMLButtonElement>(null);
@@ -88,7 +92,11 @@ export function AchievementEntry({
               )}
             >
               {achievement.unlocked ? (
-                '✓ 已获得'
+                achievement.rewardClaimedAt ? (
+                  '✓ 已领奖'
+                ) : (
+                  '待领奖'
+                )
               ) : achievement.blockedReason ? (
                 '无法达成'
               ) : awaiting ? (
@@ -108,6 +116,12 @@ export function AchievementEntry({
           </span>
           <span className="text-ink-secondary mt-0.5 block text-sm leading-6 break-words">
             {achievement.condition}
+          </span>
+          <span className="text-teal block text-xs leading-6">
+            声望{' '}
+            <span className="font-mono">
+              +{achievement.claimedReputation ?? achievement.reputationReward}
+            </span>
           </span>
           {next && showProgress ? (
             <span
@@ -138,6 +152,20 @@ export function AchievementEntry({
           {expanded ? '−' : '+'}
         </span>
       </button>
+      {achievement.unlocked && !achievement.rewardClaimedAt ? (
+        <div className="ml-12 pb-3 sm:ml-16">
+          <InkButton
+            variant="primary"
+            onClick={onClaim}
+            pending={claiming}
+            aria-label={'领取' + achievement.name + '奖励'}
+          >
+            领取{' '}
+            <span className="font-mono">{achievement.reputationReward}</span>{' '}
+            声望
+          </InkButton>
+        </div>
+      ) : null}
       {expanded ? (
         <div
           id={detailsId}

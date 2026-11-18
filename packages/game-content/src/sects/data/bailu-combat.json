@@ -1,7 +1,7 @@
 {
   "$schema": "./bailu-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 3,
+  "contentRevision": 5,
   "baseSkillIds": [
     "bailu.skill.poxie",
     "bailu.skill.zhuxie",
@@ -24,7 +24,7 @@
       "id": "bailu.skill.poxie",
       "name": "破邪！",
       "school": "bailu",
-      "description": "浩然正气凝于笔端。\n对一名敌人造成法术伤害。启用浩气文章流派后，多攻击一名敌人，优先选中带有你施加的[[bailu.status.mark]]的目标。",
+      "description": "浩然正气凝于笔端。\n对一名敌人造成法术伤害。启用浩气文章流派后，多攻击一名敌人，优先选中带有你施加的[[bailu.status.mark]]的目标。\n基础法力消耗为30＋心法等级×0.55，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -42,7 +42,7 @@
           "power": 0
         }
       ],
-      "costMp": 30,
+      "costMp": "ceil((30+skillLevel*0.55)*(1+0.5*max(0,targets-1)))",
       "formula": "spell",
       "schoolTerm": {
         "quad": 0.008333333333333333,
@@ -54,7 +54,7 @@
       "id": "bailu.skill.zhuxie",
       "name": "诛邪！",
       "school": "bailu",
-      "description": "言辞化作枪剑，专诛邪祟。\n通常最多攻击三名敌人，造成法术伤害，每攻击一人消耗30法力。你选定主目标后，优先追加拥有高级灵魂体或灵魂体的敌人，再按速度从高到低选择。仅在敌方没有修士时可用。",
+      "description": "言辞化作枪剑，专诛邪祟。\n通常最多攻击三名敌人，造成法术伤害，你选定主目标后，优先追加拥有高级灵魂体或灵魂体的敌人，再按速度从高到低选择。仅在敌方没有修士时可用。\n基础法力消耗为30＋心法等级×0.55，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -83,7 +83,7 @@
           "power": 0
         }
       ],
-      "costMp": "30*targets",
+      "costMp": "ceil((30+skillLevel*0.55)*(1+0.5*max(0,targets-1)))",
       "formula": "spell",
       "schoolTerm": {
         "linear": 1.3333333333333333,
@@ -99,7 +99,7 @@
       "id": "bailu.skill.rumeng",
       "name": "入梦！",
       "school": "bailu",
-      "description": "一声入梦，心神沉寂。\n使目标陷入[[bailu.status.sleep]]，无法行动。持续回合随《春秋笔法》等级提高。选择余音后，目标须单次受到超过30点气血伤害才会醒来。",
+      "description": "一声入梦，心神沉寂。\n使目标陷入[[bailu.status.sleep]]，无法行动。持续回合随《春秋笔法》等级提高。选择余音后，目标须单次受到超过30点气血伤害才会醒来。\n基础法力消耗为45＋心法等级×0.65，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell",
         "seal"
@@ -130,7 +130,7 @@
           }
         }
       ],
-      "costMp": 45,
+      "costMp": "ceil((45+skillLevel*0.65)*(1+0.5*max(0,targets-1)))",
       "sealBase": 70,
       "sealChanceCeil": 0.9
     },
@@ -138,7 +138,7 @@
       "id": "bailu.skill.jinfa",
       "name": "禁法！",
       "school": "bailu",
-      "description": "一言封喉，法术难出。\n使目标陷入[[bailu.status.law]]，无法使用法术，法术防御降低10%。持续回合随《春秋笔法》等级提高。",
+      "description": "一言封喉，法术难出。\n使目标陷入[[bailu.status.law]]，无法使用法术，法术防御降低10%。持续回合随《春秋笔法》等级提高。\n基础法力消耗为55＋心法等级×0.75，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell",
         "seal"
@@ -157,7 +157,7 @@
           "hit": "seal"
         }
       ],
-      "costMp": 60,
+      "costMp": "ceil((55+skillLevel*0.75)*(1+0.5*max(0,targets-1)))",
       "sealBase": 70,
       "sealChanceCeil": 0.9
     },
@@ -165,7 +165,7 @@
       "id": "bailu.skill.shihun",
       "name": "失魂！",
       "school": "bailu",
-      "description": "神魂一滞，攻术散乱。\n使目标陷入[[bailu.status.soul]]，无法使用造成伤害的法术，物理防御降低10%。持续回合随《春秋笔法》等级提高。",
+      "description": "神魂一滞，攻术散乱。\n使目标陷入[[bailu.status.soul]]，无法使用造成伤害的法术，物理防御降低10%。持续回合随《春秋笔法》等级提高。\n基础法力消耗为50＋心法等级×0.7，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell",
         "seal"
@@ -184,7 +184,7 @@
           "hit": "seal"
         }
       ],
-      "costMp": 60,
+      "costMp": "ceil((50+skillLevel*0.7)*(1+0.5*max(0,targets-1)))",
       "sealBase": 70,
       "sealChanceCeil": 0.9
     },
@@ -192,7 +192,7 @@
       "id": "bailu.skill.dingshen",
       "name": "定身！",
       "school": "bailu",
-      "description": "正气定身，兵刃难举。\n使目标陷入[[bailu.status.still]]，无法使用普通攻击和物理技能，物理防御和法术防御各降低5%。持续回合随《春秋笔法》等级提高。",
+      "description": "正气定身，兵刃难举。\n使目标陷入[[bailu.status.still]]，无法使用普通攻击和物理技能，物理防御和法术防御各降低5%。持续回合随《春秋笔法》等级提高。\n基础法力消耗为55＋心法等级×0.75，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell",
         "seal"
@@ -211,7 +211,7 @@
           "hit": "seal"
         }
       ],
-      "costMp": 60,
+      "costMp": "ceil((55+skillLevel*0.75)*(1+0.5*max(0,targets-1)))",
       "sealBase": 70,
       "sealChanceCeil": 0.9
     },
@@ -219,7 +219,7 @@
       "id": "bailu.skill.luanshen",
       "name": "乱神！",
       "school": "bailu",
-      "description": "诘问乱神，攻向无定。\n使目标陷入[[bailu.status.confusion]]，无法使用法术，普通攻击会随机选择目标。持续回合随《春秋笔法》等级提高。选择辩锋后，若护身！获得的[[bailu.status.guard]]本回合还未触发，还会使目标的物理防御和法术防御各降低10%。",
+      "description": "诘问乱神，攻向无定。\n使目标陷入[[bailu.status.confusion]]，无法使用法术，普通攻击会随机选择目标。持续回合随《春秋笔法》等级提高。选择辩锋后，若护身！获得的[[bailu.status.guard]]本回合还未触发，还会使目标的物理防御和法术防御各降低10%。\n基础法力消耗为45＋心法等级×0.65，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell",
         "seal"
@@ -250,7 +250,7 @@
           }
         }
       ],
-      "costMp": 40,
+      "costMp": "ceil((45+skillLevel*0.65)*(1+0.5*max(0,targets-1)))",
       "sealBase": 70,
       "sealChanceCeil": 0.9
     },
@@ -258,7 +258,7 @@
       "id": "bailu.skill.shicuo",
       "name": "失措！",
       "school": "bailu",
-      "description": "正名失措，身法散乱。\n使目标陷入[[bailu.status.disarray]]，无法使用法术，躲避降低10%。持续回合随《春秋笔法》等级提高。",
+      "description": "正名失措，身法散乱。\n使目标陷入[[bailu.status.disarray]]，无法使用法术，躲避降低10%。持续回合随《春秋笔法》等级提高。\n基础法力消耗为45＋心法等级×0.65，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell",
         "seal"
@@ -277,7 +277,7 @@
           "hit": "seal"
         }
       ],
-      "costMp": 50,
+      "costMp": "ceil((45+skillLevel*0.65)*(1+0.5*max(0,targets-1)))",
       "sealBase": 70,
       "sealChanceCeil": 0.9
     },
@@ -285,7 +285,7 @@
       "id": "bailu.skill.babing",
       "name": "罢兵！",
       "school": "bailu",
-      "description": "罢兵止戈，锋芒收敛。\n使目标陷入[[bailu.status.peace]]，无法使用普通攻击和物理技能，物理防御降低10%。持续回合随《春秋笔法》等级提高。",
+      "description": "罢兵止戈，锋芒收敛。\n使目标陷入[[bailu.status.peace]]，无法使用普通攻击和物理技能，物理防御降低10%。持续回合随《春秋笔法》等级提高。\n基础法力消耗为50＋心法等级×0.7，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell",
         "seal"
@@ -304,7 +304,7 @@
           "hit": "seal"
         }
       ],
-      "costMp": 55,
+      "costMp": "ceil((50+skillLevel*0.7)*(1+0.5*max(0,targets-1)))",
       "sealBase": 70,
       "sealChanceCeil": 0.9
     },
@@ -312,7 +312,7 @@
       "id": "bailu.skill.jinqi",
       "name": "禁器！",
       "school": "bailu",
-      "description": "缄诀封器，器灵哑然。\n使目标陷入[[bailu.status.device]]，无法使用装备器诀。持续回合随《春秋笔法》等级提高。",
+      "description": "缄诀封器，器灵哑然。\n使目标陷入[[bailu.status.device]]，无法使用装备器诀。持续回合随《春秋笔法》等级提高。\n基础法力消耗为45＋心法等级×0.65，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell",
         "seal"
@@ -331,7 +331,7 @@
           "hit": "seal"
         }
       ],
-      "costMp": 50,
+      "costMp": "ceil((45+skillLevel*0.65)*(1+0.5*max(0,targets-1)))",
       "sealBase": 70,
       "sealChanceCeil": 0.9
     },
@@ -339,7 +339,7 @@
       "id": "bailu.skill.fuyuan",
       "name": "复元！",
       "school": "bailu",
-      "description": "一文复元，气血回生。\n消耗20法力，恢复气血，恢复量为《养气存诚》等级加10点。",
+      "description": "一文复元，气血回生。\n恢复气血，恢复量为《养气存诚》等级加10点。\n基础法力消耗为35＋心法等级×0.65，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -355,7 +355,7 @@
           "includeHealPower": false
         }
       ],
-      "costMp": 20
+      "costMp": "ceil((35+skillLevel*0.65))"
     },
     {
       "id": "bailu.skill.juqi",
@@ -381,7 +381,7 @@
       "id": "bailu.skill.ningshen",
       "name": "凝神！",
       "school": "bailu",
-      "description": "凝神明志，言出必中。\n自身获得[[bailu.status.focus]]，持续10回合。封印命中率与封印命中率上限各+10%。",
+      "description": "凝神明志，言出必中。\n自身获得[[bailu.status.focus]]，持续10回合。封印命中率与封印命中率上限各+10%。\n基础法力消耗为50＋心法等级×0.65，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -396,13 +396,13 @@
           "duration": 10
         }
       ],
-      "costMp": 50
+      "costMp": "ceil((50+skillLevel*0.65))"
     },
     {
       "id": "bailu.skill.hushen",
       "name": "护身！",
       "school": "bailu",
-      "description": "贤影护身，先机不侵。\n自身获得[[bailu.status.guard]]，持续4回合。",
+      "description": "贤影护身，先机不侵。\n自身获得[[bailu.status.guard]]，持续4回合。\n基础法力消耗为60＋心法等级×0.8，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -417,13 +417,13 @@
           "duration": 4
         }
       ],
-      "costMp": 80
+      "costMp": "ceil((60+skillLevel*0.8))"
     },
     {
       "id": "bailu.skill.pojia",
       "name": "破甲！",
       "school": "bailu",
-      "description": "笔削落下，防备见骨。\n使最多三名敌人陷入[[bailu.status.armor]]，物理防御和法术防御各降低5%，持续4回合。每影响一名敌人消耗50法力。选择笔削节点后，两项防御的降幅逐回合依次为10%、9%、8%、7%。",
+      "description": "笔削落下，防备见骨。\n使最多三名敌人陷入[[bailu.status.armor]]，物理防御和法术防御各降低5%，持续4回合。选择笔削节点后，两项防御的降幅逐回合依次为10%、9%、8%、7%。\n基础法力消耗为45＋心法等级×0.65，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -452,13 +452,13 @@
           }
         }
       ],
-      "costMp": "50*targets"
+      "costMp": "ceil((45+skillLevel*0.65)*(1+0.5*max(0,targets-1)))"
     },
     {
       "id": "bailu.skill.dianming",
       "name": "点名！",
       "school": "bailu",
-      "description": "点名留批，正气锁定一人。\n对一名敌人造成法术伤害，并留下[[bailu.status.mark]]。再次点名会把印记移到新目标。消耗30法力，冷却8回合。",
+      "description": "点名留批，正气锁定一人。\n对一名敌人造成法术伤害，并留下[[bailu.status.mark]]。再次点名会把印记移到新目标。冷却8回合。\n基础法力消耗为40＋心法等级×0.6，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -493,7 +493,7 @@
           "duration": 99
         }
       ],
-      "costMp": 30,
+      "costMp": "ceil((40+skillLevel*0.6)*(1+0.5*max(0,targets-1)))",
       "cooldownRounds": 8,
       "formula": "spell",
       "schoolTerm": {
@@ -550,7 +550,7 @@
       "id": "bailu.skill.shesheng",
       "name": "舍生！",
       "school": "bailu",
-      "description": "舍身立言，正气尽出。\n当前气血至少为最大气血的一半时可用。消耗80法力，将自身气血降到1点，获得[[bailu.status.sacrifice]]，持续5回合。冷却8回合，开战冷却4回合。",
+      "description": "舍身立言，正气尽出。\n当前气血至少为最大气血的一半时可用。将自身气血降到1点，获得[[bailu.status.sacrifice]]，持续5回合。冷却8回合，开战冷却4回合。\n基础法力消耗为70＋心法等级×0.9，最终费用向上取整。",
       "tags": [
         "spell",
         "support"
@@ -565,7 +565,7 @@
           "duration": 5
         }
       ],
-      "costMp": 80,
+      "costMp": "ceil((70+skillLevel*0.9))",
       "requireHpRatio": 0.5,
       "cooldownRounds": 8,
       "initialCooldownRounds": 4,

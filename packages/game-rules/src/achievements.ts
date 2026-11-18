@@ -82,6 +82,9 @@ export function achievementCatalogue(
       condition: definition.condition,
       unlocked: Boolean(unlock),
       unlockedAt: unlock?.unlockedAt ?? null,
+      reputationReward: definition.reputationReward,
+      rewardClaimedAt: unlock?.rewardClaimedAt ?? null,
+      claimedReputation: unlock?.claimedReputation ?? null,
       progress: unlock ? { ...progress, current: progress.target } : progress,
     };
   });

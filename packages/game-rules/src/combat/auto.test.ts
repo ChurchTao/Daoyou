@@ -1974,14 +1974,14 @@ describe('百兽崖默认战术的开局与人数节奏', () => {
   }
 
   for (const pathIndex of [0, 1] as const) {
-    it.each(['player', 'npc'] as const)('道途' + pathIndex + '对%s两目标开局狮搏消耗50法力，兽形内持续单攻', opponentKind => {
+    it.each(['player', 'npc'] as const)('道途' + pathIndex + '对%s两目标开局狮搏按成长费用消耗法力，兽形内持续单攻', opponentKind => {
       const { battle, round, transformed } = setup(pathIndex, 2, opponentKind);
       expect(round()).toMatchObject({ type: 'skill', skillId: 'xiaoyue.skill.lion_strike' });
-      expect(battle.unit('player').attrs.mp).toBe(9950);
+      expect(battle.unit('player').attrs.mp).toBe(9875);
       expect(transformed()).toBe(true);
       expect(battle.log().filter(event => event.type === 'damage' && event.sourceId === 'player')).toHaveLength(1);
       expect(round()).toMatchObject({ type: 'skill', skillId: 'xiaoyue.skill.lion_strike' });
-      expect(battle.unit('player').attrs.mp).toBe(9920);
+      expect(battle.unit('player').attrs.mp).toBe(9810);
     });
 
     it('道途' + pathIndex + '面对三个敌人时在开局狮搏后使用鹏击', () => {
@@ -1990,7 +1990,7 @@ describe('百兽崖默认战术的开局与人数节奏', () => {
       const before = battle.log().length;
       expect(round()).toMatchObject({ type: 'skill', skillId: 'xiaoyue.skill.eagle_strike' });
       expect(battle.log().slice(before).filter(event => event.type === 'damage' && event.sourceId === 'player')).toHaveLength(3);
-      expect(battle.unit('player').attrs.mp).toBe(9900);
+      expect(battle.unit('player').attrs.mp).toBe(9750);
       expect(battle.unit('player').statuses.some(status => status.id === 'xiaoyue.status.rest')).toBe(true);
     });
 
@@ -2002,19 +2002,19 @@ describe('百兽崖默认战术的开局与人数节奏', () => {
       expect(transformed()).toBe(false);
       const mp = battle.unit('player').attrs.mp;
       expect(round()).toMatchObject({ type: 'skill', skillId: 'xiaoyue.skill.transform' });
-      expect(battle.unit('player').attrs.mp).toBe(mp - 20);
+      expect(battle.unit('player').attrs.mp).toBe(mp - 60);
       expect(transformed()).toBe(true);
       expect(round()).toMatchObject({ type: 'skill', skillId: 'xiaoyue.skill.lion_strike' });
-      expect(battle.unit('player').attrs.mp).toBe(mp - 50);
+      expect(battle.unit('player').attrs.mp).toBe(mp - 125);
     });
 
     it.each(['法力不足', '尚未学会狮搏'] as const)('道途' + pathIndex + '%s时回退主动兽形', reason => {
       const { battle, round, transformed } = setup(pathIndex);
-      if (reason === '法力不足') battle.unit('player').attrs.mp = 49;
+      if (reason === '法力不足') battle.unit('player').attrs.mp = 124;
       else battle.unit('player').skills = battle.unit('player').skills.filter(id => id !== 'xiaoyue.skill.lion_strike');
       const mp = battle.unit('player').attrs.mp;
       expect(round()).toMatchObject({ type: 'skill', skillId: 'xiaoyue.skill.transform' });
-      expect(battle.unit('player').attrs.mp).toBe(mp - 20);
+      expect(battle.unit('player').attrs.mp).toBe(mp - 60);
       expect(transformed()).toBe(true);
     });
   }

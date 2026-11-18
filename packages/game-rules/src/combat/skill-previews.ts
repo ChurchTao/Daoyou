@@ -29,6 +29,7 @@ import type {
 } from '@daoyou/game-domain/combat';
 import { formatRatioPercent } from '../presentation/numbers.js';
 import { observeAutoBattle } from './auto-observation.js';
+import { pvpRecoveryMultiplier } from './pvp.js';
 
 const percent = (ratio: number) => Math.round(ratio * 1000) / 10;
 
@@ -304,6 +305,8 @@ function previewSkill(
   if (barrier) effects.push(`对护盾额外造成 ${percent(barrier)}% 伤害。`);
   if (seal)
     effects.push(`本次封印命中率 ${seal > 0 ? '+' : ''}${formatRatioPercent(seal, 1)}。`);
+  const recovery = pvpRecoveryMultiplier(state);
+  if (recovery < 1) effects.push(`久战衰减：上述基础气血恢复结算时仅保留${percent(recovery)}%。`);
   return preview;
 }
 

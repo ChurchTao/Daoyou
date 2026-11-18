@@ -1,7 +1,7 @@
 {
   "$schema": "./wanqiao-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 3,
   "baseSkillIds": [
     "wanqiao.skill.chorus",
     "wanqiao.skill.pierce",
@@ -27,7 +27,7 @@
       "id": "wanqiao.skill.chorus",
       "name": "众窍鸣",
       "school": "wanqiao",
-      "description": "空山百窍，同应一声。\n对至多五名敌人造成法术伤害，目标上限随《听万窍》等级提高。每攻击一名敌人消耗30法力。可触发复响，追加一次攻击。",
+      "description": "空山百窍，同应一声。\n对至多五名敌人造成法术伤害，目标上限随《听万窍》等级提高。可触发复响，追加一次攻击。\n基础法力消耗为30＋心法等级×0.55，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -276,13 +276,13 @@
         "perTarget": 0.1,
         "floor": 0.1
       },
-      "costMp": "30*targets"
+      "costMp": "ceil((30+skillLevel*0.55)*(1+0.5*max(0,targets-1)))"
     },
     {
       "id": "wanqiao.skill.pierce",
       "name": "裂帛",
       "school": "wanqiao",
-      "description": "清声裂帛，劲透石间。\n对一名敌人造成法术伤害。消耗至多三层窍息，每消耗一层，本次伤害提高15%。选择经脉「劲节」后每层提高20%。选择「随隙」后，裂帛不再消耗窍息，改由叩隙消耗。可触发复响，追加一次攻击。",
+      "description": "清声裂帛，劲透石间。\n对一名敌人造成法术伤害。消耗至多三层窍息，每消耗一层，本次伤害提高15%。选择经脉「劲节」后每层提高20%。选择「随隙」后，裂帛不再消耗窍息，改由叩隙消耗。可触发复响，追加一次攻击。\n基础法力消耗为35＋心法等级×0.6，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -418,7 +418,7 @@
           "failureEffects": []
         }
       ],
-      "costMp": 30,
+      "costMp": "ceil((35+skillLevel*0.6)*(1+0.5*max(0,targets-1)))",
       "modifiers": [
         {
           "damageBonus": "0.15*fact.wanqiao_spent",
@@ -440,7 +440,7 @@
       "id": "wanqiao.skill.fissure",
       "name": "叩隙",
       "school": "wanqiao",
-      "description": "循声叩隙，直入气机。\n对一名敌人造成法术伤害，并附加相当于目标实际损失气血10%的伤势。可触发复响，追加一次攻击。",
+      "description": "循声叩隙，直入气机。\n对一名敌人造成法术伤害，并附加相当于目标实际损失气血10%的伤势。可触发复响，追加一次攻击。\n基础法力消耗为40＋心法等级×0.65，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -607,7 +607,7 @@
           "failureEffects": []
         }
       ],
-      "costMp": 30,
+      "costMp": "ceil((40+skillLevel*0.65)*(1+0.5*max(0,targets-1)))",
       "formula": "spell",
       "schoolTerm": {
         "quad": 0.008333333333333333,
@@ -619,7 +619,7 @@
       "id": "wanqiao.skill.silence",
       "name": "截声",
       "school": "wanqiao",
-      "description": "一声截流，后音难续。\n对一名敌人造成法术伤害。目标是灵兽时，有20%概率施加[[wanqiao.status.freeze_pending]]，使其下回合无法行动。选择经脉「截流」后，可消耗一层窍息提高伤害与限制行动的概率，并驱散目标一个增益。可触发复响，追加一次攻击。",
+      "description": "一声截流，后音难续。\n对一名敌人造成法术伤害。目标是灵兽时，有20%概率施加[[wanqiao.status.freeze_pending]]，使其下回合无法行动。选择经脉「截流」后，可消耗一层窍息提高伤害与限制行动的概率，并驱散目标一个增益。可触发复响，追加一次攻击。\n基础法力消耗为45＋心法等级×0.7，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -785,7 +785,7 @@
           "failureEffects": []
         }
       ],
-      "costMp": 30,
+      "costMp": "ceil((45+skillLevel*0.7)*(1+0.5*max(0,targets-1)))",
       "formula": "spell",
       "schoolTerm": {
         "quad": 0.008333333333333333,
@@ -797,7 +797,7 @@
       "id": "wanqiao.skill.echo",
       "name": "留音",
       "school": "wanqiao",
-      "description": "弦声已止，余音仍在。\n给一名敌人附加一层[[wanqiao.status.echo]]，使其在接下来的四次回合结束时损失气血，包含施放回合。每名施法者最多可在同一目标上叠三层。选择经脉「入窍」后，有机会一次叠满三层。",
+      "description": "弦声已止，余音仍在。\n给一名敌人附加一层[[wanqiao.status.echo]]，使其在接下来的四次回合结束时损失气血，包含施放回合。每名施法者最多可在同一目标上叠三层。选择经脉「入窍」后，有机会一次叠满三层。\n基础法力消耗为45＋心法等级×0.7，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -939,7 +939,7 @@
           }
         }
       ],
-      "costMp": 50
+      "costMp": "ceil((45+skillLevel*0.7)*(1+0.5*max(0,targets-1)))"
     },
     {
       "id": "wanqiao.skill.blood",
@@ -1105,7 +1105,7 @@
       "id": "wanqiao.skill.rest",
       "name": "息心",
       "school": "wanqiao",
-      "description": "收声敛息，让气血徐徐回转。\n回复自己相当于《月满空山》等级四倍的气血。身上有伤势时，最多回复到伤势允许的气血上限。",
+      "description": "收声敛息，让气血徐徐回转。\n回复自己相当于《月满空山》等级四倍的气血。身上有伤势时，最多回复到伤势允许的气血上限。\n基础法力消耗为60＋心法等级×1.1，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -1213,13 +1213,13 @@
           "includeHealPower": false
         }
       ],
-      "costMp": 50
+      "costMp": "ceil((60+skillLevel*1.1))"
     },
     {
       "id": "wanqiao.skill.hollow",
       "name": "含虚",
       "school": "wanqiao",
-      "description": "虚舟留白，以灵息承受来势。\n获得持续四回合的[[wanqiao.status.hollow]]。护盾吸收后剩余的伤害，最多一半可用法力抵消。每抵消一点伤害，消耗一点法力。",
+      "description": "虚舟留白，以灵息承受来势。\n获得持续四回合的[[wanqiao.status.hollow]]。护盾吸收后剩余的伤害，最多一半可用法力抵消。每抵消一点伤害，消耗一点法力。\n基础法力消耗为40＋心法等级×0.6，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -1327,13 +1327,13 @@
           "self": true
         }
       ],
-      "costMp": 30
+      "costMp": "ceil((40+skillLevel*0.6))"
     },
     {
       "id": "wanqiao.skill.harmony",
       "name": "和鸣",
       "school": "wanqiao",
-      "description": "清声相和，众人气机同振。\n使至多三名友方获得持续四回合的[[wanqiao.status.harmony]]。法攻增加值为《一息绵长》等级的一半，舍去小数。每影响一名友方消耗25法力。选择经脉「内和」后，只对自己施放。",
+      "description": "清声相和，众人气机同振。\n使至多三名友方获得持续四回合的[[wanqiao.status.harmony]]。法攻增加值为《一息绵长》等级的一半，舍去小数。选择经脉「内和」后，只对自己施放。\n基础法力消耗为40＋心法等级×0.6，每多覆盖一名目标加收基础费用的40%，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -1443,13 +1443,13 @@
           "duration": 4
         }
       ],
-      "costMp": "25*targets"
+      "costMp": "ceil((40+skillLevel*0.6)*(1+0.4*max(0,targets-1)))"
     },
     {
       "id": "wanqiao.skill.undertone",
       "name": "潜籁",
       "school": "wanqiao",
-      "description": "声潜细隙，余韵暗生。\n对至多五名敌人造成法术伤害，每攻击一名敌人消耗30法力。命中还没有你的留音的敌人时，有20%概率附加一层[[wanqiao.status.echo]]。本次施法命中已有你的留音的敌人时，最多恢复一层窍息。可触发复响，追加一次攻击。",
+      "description": "声潜细隙，余韵暗生。\n对至多五名敌人造成法术伤害，命中还没有你的留音的敌人时，有20%概率附加一层[[wanqiao.status.echo]]。本次施法命中已有你的留音的敌人时，最多恢复一层窍息。可触发复响，追加一次攻击。\n基础法力消耗为35＋心法等级×0.6，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -1697,13 +1697,13 @@
         "perTarget": 0.1,
         "floor": 0.1
       },
-      "costMp": "30*targets"
+      "costMp": "ceil((35+skillLevel*0.6)*(1+0.5*max(0,targets-1)))"
     },
     {
       "id": "wanqiao.skill.catalyze",
       "name": "引响",
       "school": "wanqiao",
-      "description": "轻叩余音，使暗伏之声骤然响起。\n让目标身上由你施加的[[wanqiao.status.echo]]立刻造成一次伤害，并施加[[wanqiao.status.amplified]]，提高之后每回合的留音伤害。持有窍息时消耗一层，把强化效果施加给所有带有你的留音的敌人。每次施放还会使本场留音的基础伤害提高6%，最多提高60%。",
+      "description": "轻叩余音，使暗伏之声骤然响起。\n让目标身上由你施加的[[wanqiao.status.echo]]立刻造成一次伤害，并施加[[wanqiao.status.amplified]]，提高之后每回合的留音伤害。持有窍息时消耗一层，把强化效果施加给所有带有你的留音的敌人。每次施放还会使本场留音的基础伤害提高6%，最多提高60%。\n基础法力消耗为65＋心法等级×0.85，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -1840,13 +1840,13 @@
           "value": "min(10,fact.wanqiao_catalysis+1)"
         }
       ],
-      "costMp": 100
+      "costMp": "ceil((65+skillLevel*0.85)*(1+0.5*max(0,targets-1)))"
     },
     {
       "id": "wanqiao.skill.distill",
       "name": "叠韵",
       "school": "wanqiao",
-      "description": "旧韵未散，新声又叠。\n消耗300法力和一层窍息，获得[[wanqiao.status.distill]]：潜籁附加留音的概率翻倍，持续五回合，包含当前回合。",
+      "description": "旧韵未散，新声又叠。\n消耗一层窍息，获得[[wanqiao.status.distill]]：潜籁附加留音的概率翻倍，持续五回合，包含当前回合。\n基础法力消耗为100＋心法等级×1.2，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -1954,7 +1954,7 @@
           "self": true
         }
       ],
-      "costMp": 300,
+      "costMp": "ceil((100+skillLevel*1.2))",
       "resourceRequirements": [
         {
           "resourceId": "wanqiao.resource.breath",
@@ -1966,7 +1966,7 @@
       "id": "wanqiao.skill.resonate",
       "name": "万窍齐鸣",
       "school": "wanqiao",
-      "description": "山中万窍齐应，声浪一时尽起。\n至少持有一层窍息才能施放。消耗全部窍息发动一次众窍鸣，每消耗一层，本次伤害提高16%。选择经脉「复音」后，伤害再提高12%。开场冷却三回合，施放后冷却六回合。这次攻击不会触发复响。",
+      "description": "山中万窍齐应，声浪一时尽起。\n至少持有一层窍息才能施放。消耗全部窍息发动一次众窍鸣，每消耗一层，本次伤害提高16%。选择经脉「复音」后，伤害再提高12%。开场冷却三回合，施放后冷却六回合。这次攻击不会触发复响。\n基础法力消耗为65＋心法等级×0.85，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -2085,7 +2085,7 @@
         "perTarget": 0.1,
         "floor": 0.1
       },
-      "costMp": 100,
+      "costMp": "ceil((65+skillLevel*0.85)*(1+0.5*max(0,targets-1)))",
       "cooldownRounds": 6,
       "initialCooldownRounds": 3,
       "resourceRequirements": [
@@ -2109,7 +2109,7 @@
       "id": "wanqiao.skill.coda",
       "name": "无声之章",
       "school": "wanqiao",
-      "description": "众声尽息，余音却在敌阵间游走。\n至少持有一层窍息才能施放。消耗全部窍息，让一名敌人获得持续两回合的[[wanqiao.status.vulnerable]]，受到的法术伤害提高16%，每消耗一层窍息，增伤幅度再+2%。同时向随机敌人分配三层[[wanqiao.status.echo]]。每消耗两层窍息就多分配一层，若消耗的是奇数层，则有50%概率再分配一层。施放后冷却八回合，不触发复响。",
+      "description": "众声尽息，余音却在敌阵间游走。\n至少持有一层窍息才能施放。消耗全部窍息，让一名敌人获得持续两回合的[[wanqiao.status.vulnerable]]，受到的法术伤害提高16%，每消耗一层窍息，增伤幅度再+2%。同时向随机敌人分配三层[[wanqiao.status.echo]]。每消耗两层窍息就多分配一层，若消耗的是奇数层，则有50%概率再分配一层。施放后冷却八回合，不触发复响。\n基础法力消耗为90＋心法等级×1，每多覆盖一名目标加收基础费用的50%，最终费用向上取整。",
       "tags": [
         "spell"
       ],
@@ -2729,7 +2729,7 @@
           }
         }
       ],
-      "costMp": 100,
+      "costMp": "ceil((90+skillLevel*1)*(1+0.5*max(0,targets-1)))",
       "cooldownRounds": 8,
       "resourceRequirements": [
         {
@@ -3577,7 +3577,9 @@
       "category": "buff",
       "dispellable": false,
       "expireSameRound": true,
-      "blockedSkillSchools": ["wanqiao"]
+      "blockedSkillSchools": [
+        "wanqiao"
+      ]
     }
   ]
 }

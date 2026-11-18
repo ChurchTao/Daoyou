@@ -347,7 +347,7 @@ describe('天衍经脉机制分化', () => {
     expect(st(b, 's', 'mark.fire')).toBeDefined();
     expect(b.unit('s').barriers).toHaveLength(1);
     expect(b.unit('s').barriers[0].current).toBe(760);
-    expect(b.unit('s').attrs.mp).toBe(9960);
+    expect(b.unit('s').attrs.mp).toBe(9824);
     expect(damage(b)).toBe(1580);
     expect(b.log().filter((e) => e.type === 'mechanicTriggered')).toEqual([]);
     expect(
@@ -370,7 +370,7 @@ describe('天衍经脉机制分化', () => {
     round(truce, { s: cmd('truce') });
     expect(st(truce, 's', 'mark.wood')).toBeDefined();
     expect(st(truce, 't', 'truce')).toBeDefined();
-    expect(truce.unit('s').attrs.mp).toBe(9960);
+    expect(truce.unit('s').attrs.mp).toBe(9824);
     expect(damage(truce)).toBe(1544);
     expect(
       truce.queryCommands('s').skills.find((s) => s.skillId === S('truce'))
@@ -482,7 +482,7 @@ describe('天衍节点组合收益回归', () => {
       round(b, { s: cmd('clarity', ['a']) });
       expect(st(b, 'a', 'bind')).toBeUndefined();
       expect(st(b, 'a', 'melt')).toBeUndefined();
-      expect(b.unit('s').attrs.mp).toBe(9955);
+      expect(b.unit('s').attrs.mp).toBe(9778);
       expect(
         b.queryCommands('s').skills.find((s) => s.skillId === S('clarity'))
           ?.cooldownRemaining,
@@ -554,7 +554,7 @@ describe('天衍节点组合收益回归', () => {
     const { b: mountain } = setup('luoshu', ['1.3']);
     round(mountain, { s: cmd('earth') });
     expect(st(mountain, 't', 'weaken_deep')).toBeDefined();
-    expect(mountain.unit('s').attrs.mp).toBe(9957);
+    expect(mountain.unit('s').attrs.mp).toBe(9794);
     const { b: end } = setup('luoshu', ['7.2']);
     const { b: both } = setup('luoshu', ['1.3', '7.2']);
     for (const b of [end, both]) {
@@ -563,8 +563,8 @@ describe('天衍节点组合收益回归', () => {
       expect(st(b, 't', 'weaken_deep')).toBeUndefined();
     }
     expect(damage(both)).toBe(damage(end));
-    expect(end.unit('s').attrs.mp).toBe(9964);
-    expect(both.unit('s').attrs.mp).toBe(9968);
+    expect(end.unit('s').attrs.mp).toBe(9829);
+    expect(both.unit('s').attrs.mp).toBe(9846);
   });
   it('留隙搭配禁流将稳定削弱从25%提高到35%，不附加封法', () => {
     function incoming(nodes: string[]) {

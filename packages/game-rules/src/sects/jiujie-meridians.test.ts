@@ -62,7 +62,7 @@ describe('九劫还原修正回归', () => {
     expect(b.unit('s').combatFacts!.jiujie_sweep_rank).toBe(single ? 1 : 3);
     expect(b.log().filter(e => e.type === 'damage' && e.sourceId === 's' && e.targetId !== 's')).toHaveLength(count);
     expect(hits(b, 't3')).toHaveLength(1);
-    expect(b.unit('s').attrs.mp).toBe(100000 - (20 * count + 10));
+    expect(b.unit('s').attrs.mp).toBe(100000 - 218 * (1 + .5 * (count - 1)));
   });
 
   it.each(['law', 'thunder'])('雷醒包含回合末持续伤害（%s）', path => {
@@ -110,7 +110,7 @@ describe('九劫还原修正回归', () => {
     const b = createBattle(input);
     b.unit('s').cooldowns![S('tribulation')] = 0;
     res(b).current = 2;
-    b.unit('s').attrs.mp = 149;
+    b.unit('s').attrs.mp = 871;
     const rngBefore = b.snapshot().rngState;
     expect(b.queryCommands('s').skills.find(s => s.skillId === S('tribulation'))?.ready).toBe(false);
     expect(b.snapshot().rngState).toBe(rngBefore);
@@ -118,7 +118,7 @@ describe('九劫还原修正回归', () => {
     expect(b.unit('s').attrs.hp).toBe(100000);
     expect(res(b).current).toBe(2);
     expect(b.unit('s').combatFacts?.jiujie_single_rank).toBeUndefined();
-    b.unit('s').attrs.mp = 150;
+    b.unit('s').attrs.mp = 872;
     vi.spyOn(SeededRng.prototype, 'next').mockReturnValue(0.999);
     round(b, { s: cmd('tribulation', ['t6']) });
     expect(b.unit('s').combatFacts!.jiujie_sweep_rank).toBe(5);
@@ -249,7 +249,7 @@ describe('九劫基础循环与指令',()=>{
     round(b,{s:cmd('protection',['a'])});
     round(b,{t:{type:'attack',target:'a'}});
     expect(b.log().some(e=>e.type==='protectTrigger'&&e.protectorId==='s'&&e.originalTargetId==='a')).toBe(true);
-    expect(st(b,'a','protection')).toBeDefined();expect(b.unit('s').attrs.mp).toBe(99960);
+    expect(st(b,'a','protection')).toBeDefined();expect(b.unit('s').attrs.mp).toBe(99828);
   });
   it('乱神下施法失败转普攻时仍随机选目标，允许误击队友',()=>{
     noProc(); const {b}=setup();
@@ -365,8 +365,8 @@ describe('踏雷雷印与经脉',()=>{
     noProc();const {b}=setup('thunder',['2.3','3.3','5.3']);const before=effectiveAttrs(b.unit('s'));round(b,{s:cmd('divine_guardian',['s'])});const after=effectiveAttrs(b.unit('s'));
     expect(before.magicAtk).toBe(1030);expect(before.magicDef).toBe(276);expect(before.speed).toBe(1005);expect(after.magicAtk-before.magicAtk).toBe(216);expect(after.magicDef-before.magicDef).toBe(90);
   });
-  it('洞真需主动消耗行动与80法力，六项属性刷新不叠加',()=>{
-    noProc();const {b}=setup('thunder',['6.1']);round(b,{s:cmd('insight',['s'])});expect(st(b,'s','insight')?.attrMods.physicalAtk).toBe(360);round(b,{s:cmd('insight',['s'])});expect(b.unit('s').statuses.filter(s=>s.id===T('insight'))).toHaveLength(1);expect(b.unit('s').attrs.mp).toBe(99840);
+  it('洞真需主动消耗行动与成长法力费用，六项属性刷新不叠加',()=>{
+    noProc();const {b}=setup('thunder',['6.1']);round(b,{s:cmd('insight',['s'])});expect(st(b,'s','insight')?.attrMods.physicalAtk).toBe(360);round(b,{s:cmd('insight',['s'])});expect(b.unit('s').statuses.filter(s=>s.id===T('insight'))).toHaveLength(1);expect(b.unit('s').attrs.mp).toBe(99666);
   });
   it('存档恢复保留灌注、实际重数记录和冷却',()=>{
     noProc();const {b,input}=setup('law');res(b).current=3;round(b,{s:cmd('strike_2')});

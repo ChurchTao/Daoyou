@@ -168,6 +168,7 @@ class Parser {
     }
     if (this.op() !== ")") throw new Error(`missing ) after ${name}`)
     this.i++
+    if (name === ExprFn.Ceil) return Math.ceil(args[0] ?? 0)
     if (name === ExprFn.Floor) return Math.floor(args[0] ?? 0)
     if (name === ExprFn.Min) return Math.min(...args)
     if (name === ExprFn.Max) return Math.max(...args)
@@ -216,6 +217,7 @@ class Parser {
         .flatMap(unit => unit.tags.filter(tag => tag.startsWith(prefix) && !own.has(tag))) ?? []).size
     }
     if (name === 'enemyCount') return this.env.state?.units.filter(u => u.side !== this.env.source.side && !u.flags.dead && !u.flags.downed && !u.flags.escaped && !u.flags.benched).length ?? 0
+    if (name === 'allyStandingPlayers') return this.env.state?.units.filter(u => u.side === this.env.source.side && u.kind === 'player' && isStanding(u)).length ?? 0
     if (name === 'allyStandingPets') return this.env.state?.units.filter(u => u.side === this.env.source.side && u.kind === 'pet' && isStanding(u)).length ?? 0
     if (name === 'ownStandingPet') return this.env.state?.units.some(u => u.kind === 'pet' && u.ownerId === this.env.source.id && isStanding(u)) ? 1 : 0
     if (name === 'ownPetHp' || name === 'ownPetMaxHp') {

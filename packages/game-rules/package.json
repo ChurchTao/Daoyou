@@ -29,6 +29,7 @@
     "./combat/encounter/host": "./dist/combat/encounter/host.js",
     "./combat/log": "./dist/combat/battle-log.js",
     "./combat/playback": "./dist/public/combat/playback.js",
+    "./combat/pvp": "./dist/combat/pvp.js",
     "./combat/presentation": "./dist/combat/presentation.js",
     "./combat/projection": "./dist/public/combat/projection.js",
     "./combat/public-build": "./dist/combat/public-build.js",
