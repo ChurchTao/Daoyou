@@ -477,17 +477,39 @@ describe('无相经脉条件与代价', () => {
     round(calm, { s: skill('stars') });
     expect(damage(calm)).toHaveLength(3);
   });
-  it('魔威加命中属性而非概率；猎灵、暴烈仅强化指定攻击', () => {
-    const { b, input } = setup('wrath', ['5.1']);
-    let hit = 0;
-    input.ruleset.formulas.physicalHitChance = (source) => {
-      hit = source.attrs.hit;
-      return 1;
-    };
-    round(b, { s: skill('strike') });
-    expect(hit).toBe(b.unit('s').attrs.hit + 360);
-    round(b, { s: { type: 'attack', target: 't' } });
-    expect(hit).toBe(b.unit('s').attrs.hit);
+  it.each([
+    { move: 'strike', fierce: 3, breachSource: undefined, ignoresDefense: true },
+    { move: 'stars', fierce: 2, breachSource: 'a', ignoresDefense: true },
+    { move: 'strike', fierce: 3, breachSource: 's', ignoresDefense: false },
+    { move: 'stars', fierce: 2, breachSource: 's', ignoresDefense: false },
+    { move: 'strike', fierce: 1, breachSource: undefined, ignoresDefense: false },
+    { move: 'stars', fierce: undefined, breachSource: undefined, ignoresDefense: false },
+  ])('魔威的 $move 穿透取决于法相与破绽归属 $fierce $breachSource', ({
+    move, fierce, breachSource, ignoresDefense,
+  }) => {
+    const { b } = setup('wrath', ['5.1']);
+    const { b: expected } = setup('wrath', ['5.1']);
+    expected.unit('s').passives = expected.unit('s').passives.filter(
+      (id) => id !== 'wuxiang.passive.wrath.5.1',
+    );
+    if (ignoresDefense) expected.unit('t2').attrs.physicalDef = 270;
+
+    for (const battle of [b, expected]) {
+      if (fierce !== undefined) enter(battle, fierce);
+      if (breachSource) battle.applyStatus('t2', T('breach'), 5, breachSource);
+      round(battle, { s: skill(move, 't2') });
+    }
+
+    const targets = b.log().flatMap((event) =>
+      event.type === 'damage' && event.sourceId === 's' ? [event.targetId] : [],
+    );
+    expect(targets[0]).toBe('t2');
+    expect(targets).toHaveLength(move === 'strike' ? 1 : 3);
+    expect(damage(b)).toEqual(damage(expected));
+    expect(b.unit('t2').attrs.physicalDef).toBe(300);
+  });
+
+  it('猎灵、暴烈仅强化指定攻击', () => {
     const base = setup().b,
       hunt = setup('wrath', ['2.2']).b;
     for (const x of [base, hunt]) {

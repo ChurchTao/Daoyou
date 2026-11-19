@@ -41,7 +41,8 @@ export type StrikeInput = {
   defendFactor?: number
   skillId?: string
   isPrimary?: boolean
-  cannotMiss?: boolean
+  /** The ordinary attack command rolls against the target's dodge. */
+  checkHit?: boolean
   cannotKill?: boolean
   origin?: DamageOriginType
   /** 同一次多段里的序号。贤影只拦截第 0 段。 */
@@ -65,14 +66,14 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   if (!input.healInstead && (input.segmentIndex ?? 0) === 0 && interceptHostileAction(ctx, source, target, skillId, origin)) return
   const modifiers = combatModifiers(ctx, source, { target, skill, skillId, kind: input.kind, origin, percentageDamage: input.percentageDamage })
   const defenseModifiers = combatModifiers(ctx, target, { target: source, skill, skillId, kind: input.kind, origin, percentageDamage: input.percentageDamage })
-  src.hit += modifierValue(modifiers, 'hitAdd', source, target, skill, ctx)
+  if (input.checkHit) src.hit += modifierValue(modifiers, 'hitAdd', source, target, skill, ctx)
   src.physicalAtk += modifierValue(modifiers, 'physicalAttackAdd', source, target, skill, ctx)
   dst.physicalDef += modifierValue(defenseModifiers, 'physicalDefenseAdd', target, source, skill, ctx)
   dst.magicDef += modifierValue(defenseModifiers, 'magicDefenseAdd', target, source, skill, ctx)
   const protector = input.kind === DamageKind.Physical && !input.healInstead && !modifiers.some(m => m.ignoreProtection) ? findProtector(ctx, target) : undefined
   if (protector) ctx.emit({ type: EventType.ProtectTrigger, protectorId: protector.id, originalTargetId: target.id })
 
-  if (!input.cannotMiss && input.kind !== DamageKind.Fixed && !rollHit(ctx, source, target, src, dst, input.kind)) return
+  if (input.checkHit && !rollAttackHit(ctx, source, target, src, dst, skillId)) return
   if (spellAttack) (target.combatFacts ??= {})[`spellHitRound:${source.id}`] = ctx.state.round;
 
   const fury = input.kind === DamageKind.Physical && ctx.rng.chance(src.physicalFuryRate + modifierValue(modifiers, 'physicalFuryChanceAdd', source, target, skill, ctx))
@@ -248,34 +249,26 @@ function withAttrs(unit: Unit, attrs: ReturnType<typeof effectiveAttrs>): Unit {
   return { ...unit, attrs }
 }
 
-function rollHit(
+function rollAttackHit(
   ctx: BattleContext,
   source: Unit,
   target: Unit,
   src: ReturnType<typeof effectiveAttrs>,
   dst: ReturnType<typeof effectiveAttrs>,
-  kind: DamageKindType,
+  skillId: string | undefined,
 ): boolean {
-  const formulas = ctx.rules.formulas
-  const chance =
-    kind === DamageKind.Physical
-      ? formulas.physicalHitChance(withAttrs(source, src), withAttrs(target, dst))
-      : formulas.spellHitChance(withAttrs(source, src), withAttrs(target, dst))
+  const chance = ctx.rules.formulas.physicalHitChance(withAttrs(source, src), withAttrs(target, dst))
   const hitRoll = ctx.hooks.emit(HookName.OnHitRoll, {
     source,
     target,
-    kind,
-    skillId: inputSkillId(ctx),
+    kind: DamageKind.Physical,
+    skillId,
     chance,
     origin: ctx.suppressHooks > 0 ? DamageOrigin.HookDerived : DamageOrigin.ActionDirect,
   })
   if (ctx.rng.chance(Math.min(1, Math.max(0, hitRoll.chance ?? chance)))) return true
-  ctx.emit({ type: EventType.Miss, sourceId: source.id, targetId: target.id, kind })
+  ctx.emit({ type: EventType.Miss, sourceId: source.id, targetId: target.id, kind: DamageKind.Physical })
   return false
-}
-
-function inputSkillId(ctx: BattleContext): string | undefined {
-  return ctx.currentAction?.skillId
 }
 
 function computeBase(

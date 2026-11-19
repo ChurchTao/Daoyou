@@ -18,7 +18,7 @@ const groupSpell = 'beast.thunderstorm';
 const spellRepeat = 'beast.spell-combo';
 const fixedAttack = 'beast.wind-strike';
 
-function setup(pathId = 'xiaoyue.path.bond', nodes: string[] = [], withPet = true, extraStatuses: StatusDef[] = [], petSpellHitChance?: () => number, options: { physicalHitChance?: () => number; reflection?: boolean } = {}) {
+function setup(pathId = 'xiaoyue.path.bond', nodes: string[] = [], withPet = true, extraStatuses: StatusDef[] = [], petSpellHitChance?: () => number, options: { reflection?: boolean } = {}) {
   const progress = createEmptySectCombatProgressV6('xiaoyue', pathId,
     Object.fromEntries(definition.methods.map(method => [method.id, 180])));
   progress.meridianDepth = 7;
@@ -54,7 +54,7 @@ function setup(pathId = 'xiaoyue.path.bond', nodes: string[] = [], withPet = tru
     seed: 43,
     versions,
     ruleset: { ...createDaoyouRuleset({ formulas: {
-      physicalHitChance: options.physicalHitChance ?? (() => 1), sealHitChance: () => 1,
+      physicalHitChance: () => 1, sealHitChance: () => 1,
       ...(petSpellHitChance ? { spellHitChance: petSpellHitChance } : {}),
       fluctuationMin: 1, fluctuationMax: 1, physicalFluctuationMin: 1, physicalFluctuationMax: 1,
     } }), deferredPlayerCommands: true },
@@ -143,23 +143,25 @@ describe('啸岳岭同契与真实灵兽', () => {
     expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(false);
   });
 
-  it('狮搏命中护盾或敌宠也赋予狮魂；落空和无在场本宠不赋予', () => {
+  it('狮搏命中护盾或敌宠也赋予狮魂；被拦截或无在场本宠时没有狮魂', () => {
     const shielded = setup();
     const petTarget = setup();
-    const missed = setup('xiaoyue.path.bond', [], true, [], undefined, { physicalHitChance: () => 0 });
+    const guard = { id: 'hostile-guard', kind: 'hostile-guard', name: '拦截', interceptHostileAction: true };
+    const intercepted = setup('xiaoyue.path.bond', [], true, [guard]);
     const noPet = setup('xiaoyue.path.bond', [], false);
-    for (const battle of [shielded, petTarget, missed, noPet])
+    for (const battle of [shielded, petTarget, intercepted, noPet])
       round(battle, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });
     shielded.unit('t0').barriers.push({ id: 'test.shield', kind: 'shield', name: '护盾', current: 100000,
       remainingRounds: 3, appliedRound: shielded.state.round, sourceId: 't0' });
     round(shielded, { s: cast(XIAOYUE_SKILL_ID.LionStrike) });
     round(petTarget, { s: cast(XIAOYUE_SKILL_ID.LionStrike, ['enemyPet']) });
-    round(missed, { s: cast(XIAOYUE_SKILL_ID.LionStrike) });
+    intercepted.applyStatus('t0', guard.id, 1, 't0');
+    round(intercepted, { s: cast(XIAOYUE_SKILL_ID.LionStrike) });
     round(noPet, { s: cast(XIAOYUE_SKILL_ID.LionStrike) });
     expect(shielded.unit('t0').attrs.hp).toBe(100000);
     for (const battle of [shielded, petTarget])
       expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(true);
-    for (const battle of [missed, noPet])
+    for (const battle of [intercepted, noPet])
       expect(battle.log().some(event => event.type === 'statusApplied' && event.statusId === lionSoul)).toBe(false);
   });
 
@@ -211,19 +213,19 @@ describe('啸岳岭同契与真实灵兽', () => {
     expect(enhanced.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(false);
   });
 
-  it('直接固定伤害和原施法全部落空后的法连不消耗狮魂', () => {
+  it('固定伤害保留狮魂，群法与法连逐目标命中并在主动施法时消耗狮魂', () => {
     vi.spyOn(SeededRng.prototype, 'chance').mockImplementation(probability => probability >= 1);
-    let spellRolls = 0;
-    const battle = setupSpellPet([], () => ++spellRolls > 3 ? 1 : 0);
+    const spellHitChance = vi.fn(() => 0);
+    const battle = setupSpellPet([], spellHitChance);
     battle.applyStatus('ownPet', lionSoul, 99, 's');
     round(battle, { ownPet: cast(fixedAttack) });
     expect(hits(battle, 'ownPet').map(hit => hit.kind)).toEqual(['fixed']);
     expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(true);
 
     round(battle, { ownPet: cast(groupSpell) });
-    expect(spellRolls).toBe(6);
-    expect(hits(battle, 'ownPet').map(hit => hit.kind)).toEqual(['fixed', 'spell', 'spell', 'spell']);
-    expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(true);
+    expect(spellHitChance).not.toHaveBeenCalled();
+    expect(hits(battle, 'ownPet').map(hit => hit.kind)).toEqual(['fixed', ...Array(6).fill('spell')]);
+    expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(false);
   });
 
   it('图腾只在狮魂实际赋予原本宠时建立主人与灵兽的同契标记', () => {

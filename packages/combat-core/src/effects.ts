@@ -550,7 +550,6 @@ function handleHit(
           effect.type === EffectType.PhysicalHit || effect.type === EffectType.SpellHit
             ? evalExpr(effect.defenseIgnore ?? 0, env)
             : 0,
-        cannotMiss: effect.type === EffectType.PhysicalHit ? effect.cannotMiss : kind === DamageKind.Fixed,
         cannotKill: effect.cannotKill,
         formula,
         skillLevel: env.skillLevel,

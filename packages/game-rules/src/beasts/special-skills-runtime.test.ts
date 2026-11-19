@@ -145,14 +145,14 @@ describe('灵兽特殊技能首轮战斗', () => {
     },
   );
 
-  it('摧山耗蓝等级加20，仍按物理命中规则而非无视防御', () => {
+  it('摧山耗蓝等级加20，伤害仍计算物理防御', () => {
     const session = battle({ skills: ['beast.mountain-breaker'] });
     cast(session, 'beast.mountain-breaker');
     expect(session.unit('source').attrs.mp).toBe(970);
     expect(damages(session)[0]).toMatchObject({ amount: 25 });
   });
 
-  it('摧山临时命中仅作用于自身，不泄漏给普攻或其他主动技能', () => {
+  it('普攻可落空，摧山与普通物理技能必中', () => {
     const other: SkillDef = {
       id: 'test.physical',
       name: '普通物理技能',
@@ -163,32 +163,29 @@ describe('灵兽特殊技能首轮战斗', () => {
     const source = actor('source', 0, {
       skills: ['beast.mountain-breaker', other.id],
     });
-    source.attrs.hit = 100;
     const session = battle(
       source,
       {},
       [],
       [other],
       createDaoyouRuleset({
-        formulas: {
-          physicalHitChance: (source) => (source.attrs.hit >= 130 ? 1 : 0),
-        },
+        formulas: { physicalHitChance: () => 0 },
       }),
     );
     session.submit('source', { type: 'attack', target: 'target' });
     session.submit('target', { type: 'defend' });
     session.lockAndResolve();
-    cast(session, other.id);
     expect(damages(session)).toHaveLength(0);
+    cast(session, other.id);
+    cast(session, 'beast.mountain-breaker');
+    expect(damages(session)).toHaveLength(2);
     expect(
       session
         .log()
         .filter(
           (event) => event.type === 'miss' && event.sourceId === 'source',
         ),
-    ).toHaveLength(2);
-    cast(session, 'beast.mountain-breaker');
-    expect(damages(session)).toHaveLength(1);
+    ).toHaveLength(1);
   });
 
   it.each([

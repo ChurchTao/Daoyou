@@ -59,7 +59,9 @@ export function manualMechanismSummary(
       ? description.indexOf('，', firstSeparator + 1)
       : firstSeparator;
   const condition =
-    separator < 0 ? '受到封印时' : description.slice(0, separator);
+    separator < 0
+      ? (effect.type === 'evasion' ? '受到普通攻击时' : '受到封印时')
+      : description.slice(0, separator);
   const kinds =
     'kinds' in effect
       ? effect.kinds
@@ -76,7 +78,7 @@ export function manualMechanismSummary(
         : {
             heal: '主动治疗量',
             barrier: '主动护盾量',
-            evasion: '敌方物理命中率',
+            evasion: '敌方普攻命中率',
             sealResist: '敌方封印成功率',
             restoreHp: '恢复最大气血',
             restoreMp: '恢复最大法力',

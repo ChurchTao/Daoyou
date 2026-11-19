@@ -20,7 +20,7 @@ function beastPassiveDescription(skill: SkillDef): string | undefined {
   const percent = (value: number) => Math.round(value * 100);
   switch (effect.type) {
     case 'flight':
-      return `命中数值提高 ${percent(effect.hitFactor - 1)}%，躲避数值提高 ${percent(effect.dodgeFactor - 1)}%；受到物理攻击时，对方最终命中概率再降低 ${percent(effect.evasionChance)}%。不影响法术、固定伤害或显式必中攻击，不增加速度。`;
+      return `命中数值提高 ${percent(effect.hitFactor - 1)}%，躲避数值提高 ${percent(effect.dodgeFactor - 1)}%。受到普通攻击时，对方最终命中概率再降低 ${percent(effect.evasionChance)}%。`;
     case 'fortune':
       return `受到物理或法术暴击时，暴击的额外伤害降低 ${percent(1 - effect.criticalExtraFactor)}%；基础2倍暴击变为 ${1 + effect.criticalExtraFactor} 倍。不降低暴击概率，不影响招财进宝的专属爆发。`;
     case 'coordination':
@@ -40,7 +40,7 @@ function beastPassiveDescription(skill: SkillDef): string | undefined {
     case 'allSeeing':
       return `依随机顺序施展自身已学会的主动攻击技能，不包含观照万象本身。观照万象本身不另耗法力，所调用技能各自按原规则选择目标、消耗法力并结算；法力不足时停止后续施展。冷却 ${effect.cooldownRounds} 回合，无物种或战斗回合门槛。`;
     case 'mountainBreaker':
-      return `消耗自身等级 + ${effect.costMpBase} 法力，攻击 1 个目标。本次命中临时增加自身等级 × 2 + 10；伤害按双方物理攻击之差计算，正差增益上限为自身等级 × 8。`;
+      return `消耗自身等级 + ${effect.costMpBase} 法力，攻击 1 个目标。伤害按双方物理攻击之差计算，正差增益上限为自身等级 × 8。`;
     case 'karmicRetribution':
       return `消耗自身等级 + ${effect.costMpBase} 法力，攻击 1 个目标。${percent(effect.evilChance)}% 概率触发恶报，造成普通物理伤害的 ${percent(effect.evilFactor)}%；恶报暴击为普通物理伤害的 ${percent(effect.evilFactor * 1.5)}%。其余概率触发善报，为目标恢复普通物理伤害的 ${percent(effect.goodFactor)}%；善报暴击恢复 ${percent(effect.goodFactor * 2)}%。`;
     case 'radiantBarrier':

@@ -72,6 +72,7 @@ export const wxModifier = z.strictObject({
   damageBonus: wxExpr.optional(),
   damageAdd: wxExpr.optional(),
   damageTakenBonus: wxExpr.optional(),
+  defenseIgnoreAdd: wxExpr.optional(),
   physicalAttackAdd: wxExpr.optional(),
   sealResistanceAdd: wxExpr.optional(),
   targetCountAdd: wxExpr.optional(),

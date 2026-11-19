@@ -39,6 +39,6 @@ export const HUNT_BOSSES = {
   shadowMarten: {
     name: '掠影妖貂',
     icon: 'icon:beast-moon-marten',
-    hint: '妖貂身法奇快，刀剑常落空。以法术攻它更稳，擅长必中招式的道友也可出手。',
+    hint: '妖貂身法奇快，普通攻击容易落空。用主动攻击技能可以稳稳命中。',
   },
 } as const satisfies Record<HuntBossId, { name: string; icon: string; hint: string }>;
