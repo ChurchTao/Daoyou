@@ -341,6 +341,27 @@ describe('踏雷雷印与经脉',()=>{
     noProc();const {b}=setup('thunder');round(b,{s:cmd('thunderstorm')});round(b,{s:cmd('thunderstorm')});
     const values=hits(b);expect(values[1]/values[0]).toBeCloseTo(1.12,2);expect(st(b,'t','electric')?.stacks).toBe(1);expect(b.unit('t').statuses.filter(s=>s.id===T('electric'))).toHaveLength(1);
   });
+  it.each<{ name: string; nodes: string[]; action: Command }>([
+    { name: '感电', nodes: ['1.2'], action: { type: 'defend' } },
+    { name: '乱流', nodes: ['1.3'], action: cmd('thunderstorm') },
+    { name: '雷波', nodes: ['1.1', '6.3'], action: { type: 'attack', target: 't' } },
+  ])('$name 施加普通雷印时保留同一施印者的赤雷印', ({ nodes, action }) => {
+    vi.spyOn(SeededRng.prototype, 'chance').mockImplementation(p => p >= 1 || (action.type === 'skill' && p === 0.1));
+    const random = vi.spyOn(SeededRng.prototype, 'next').mockReturnValue(0);
+    const { b } = setup('thunder', nodes);
+    random.mockReturnValue(0.2);
+    if (action.type !== 'defend') b.applyStatus('t', T('electric'), 5, 's');
+    b.applyStatus('t4', T('red'), 5, 's');
+    if (action.type === 'attack') b.unit('t').attrs.hp = 1;
+
+    round(b, { s: action });
+
+    expect(b.log()).toContainEqual(expect.objectContaining({
+      type: 'chanceResolved', branchId: 'jiujie.branch.red_mark', targetId: 't4', success: false,
+    }));
+    expect(st(b, 't4', 'red')).toBeDefined();
+    expect(st(b, 't4', 'electric')).toBeUndefined();
+  });
   it('有灌注群雷六目标，六霄节点保留普通群雷灌注，主动六霄消耗',()=>{
     noProc();const {b}=setup('thunder',['4.1']);res(b).current=2;
     round(b,{s:cmd('thunderstorm')});expect(res(b).current).toBe(2);expect(b.log().filter(e=>e.type==='damage'&&e.sourceId==='s')).toHaveLength(6);
