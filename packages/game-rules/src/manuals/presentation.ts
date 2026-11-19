@@ -45,7 +45,7 @@ export function manualMechanismDescription(
     case 'barrier':
       return `${prefix}宗门技能对主目标的护盾量+${value}%`;
     case 'evasion':
-      return `${prefix}直接物理攻击的命中概率-${value}%`;
+      return `${prefix}敌方普攻命中率-${value}%`;
     case 'sealResist':
       return `受到封印时，对方封印成功概率-${value}%`;
     case 'restoreHp':

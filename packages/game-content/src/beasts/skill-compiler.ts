@@ -81,7 +81,6 @@ export function compileBeastSkill(entry: BeastSkillContent): SkillDef {
         costMp: `level + ${e.costMpBase}`,
         tags: [SkillTag.Physical],
         formula: FormulaFamily.AttackDifference,
-        modifiers: [{ hitAdd: 'level * 2 + 10', when: { skillIds: [entry.id] } }],
         targeting: { side: TargetSide.Enemy, count: 1 },
         effects: [
           { type: EffectType.PhysicalHit, coeff: 1, power: 'level * 8' },

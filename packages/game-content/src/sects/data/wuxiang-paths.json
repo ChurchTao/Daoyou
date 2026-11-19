@@ -1,7 +1,7 @@
 {
   "$schema": "./wuxiang-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 3,
+  "contentRevision": 5,
   "passives": [
     {
       "id": "wuxiang.passive.compassion.1.1",
@@ -562,16 +562,25 @@
     {
       "id": "wuxiang.passive.wrath.5.1",
       "name": "魔威",
-      "description": "摧岳和劫火散华出手时，各自增加相当于本技能等级两倍的命中。",
+      "description": "魔相期间，施放摧岳或劫火散华时，若主目标身上没有你施加的[[wuxiang.status.breach]]，本击忽略主目标10%的物理防御。",
       "modifiers": [
         {
           "when": {
             "skillIds": [
               "wuxiang.skill.strike",
               "wuxiang.skill.stars"
-            ]
+            ],
+            "requireStatusIds": [
+              "wuxiang.status.demon"
+            ],
+            "requireKind": "physical",
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "targetSlot": "primary",
+            "expression": "1 - ownedTargetStatus.wuxiang.breach"
           },
-          "hitAdd": "skillLevel * 2"
+          "defenseIgnoreAdd": 0.1
         }
       ]
     },
@@ -1119,7 +1128,7 @@
           "name": "魔威",
           "layer": 5,
           "slot": 1,
-          "description": "摧岳和劫火散华出手时，各自增加相当于本技能等级两倍的命中。",
+          "description": "魔相期间，施放摧岳或劫火散华时，若主目标身上没有你施加的[[wuxiang.status.breach]]，本击忽略主目标10%的物理防御。",
           "passives": [
             "wuxiang.passive.wrath.5.1"
           ]

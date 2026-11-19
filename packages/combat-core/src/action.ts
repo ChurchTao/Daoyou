@@ -428,6 +428,7 @@ function resolvePhysicalAttack(
     power: 0,
     skillId: BUILTIN_SKILL_ID.Attack,
     isPrimary: true,
+    checkHit: true,
   });
   consumeDamagingActionStatuses(ctx, unit);
   ctx.hooks.emit(HookName.AfterAction, {

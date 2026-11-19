@@ -401,19 +401,11 @@ export function rankAutoActions(
               damage += amount;
               strikeDamage.push(amount);
             }
-            const chance = 'cannotMiss' in effect && effect.cannotMiss ? 1 :
-              kind === 'physical'
-                ? friendly
-                  ? formulas.physicalHitChance(source, target)
-                  : visiblePhysicalHitChance(source, target.level)
-                : kind === 'spell'
-                  ? formulas.spellHitChance(source, target)
-                  : 1;
             if (effect.type === 'physicalHit' && effect.healInstead) {
               const pool = friendly ? target.attrs.maxHp : source.attrs.maxHp;
               const healing = friendly
-                ? Math.min(Math.max(0, target.attrs.maxHp - target.wound - target.attrs.hp), damage * chance * recoveryFactor)
-                : damage * chance * recoveryFactor;
+                ? Math.min(Math.max(0, target.attrs.maxHp - target.wound - target.attrs.hp), damage * recoveryFactor)
+                : damage * recoveryFactor;
               benefits.survival += probability * (friendly ? 1 : -1) * healing / Math.max(1, pool) * 100;
               intentions.push({ ...intent, healing: healing * probability });
               continue;
@@ -441,10 +433,10 @@ export function rankAutoActions(
               largestHpHit = Math.max(largestHpHit, scaled - absorbed / barrierFactor);
             }
             const pool = friendly ? target.attrs.maxHp : source.attrs.maxHp;
-            offense = (friendly ? -1 : 1) * (damageValue(target, hpDamage * chance, effect.cannotKill) + removedBarrier / Math.max(1, pool) * 60 * chance);
+            offense = (friendly ? -1 : 1) * (damageValue(target, hpDamage, effect.cannotKill) + removedBarrier / Math.max(1, pool) * 60);
             wakingPenalties.set(target.id, Math.max(wakingPenalties.get(target.id) ?? 0,
-              wakePenalty(target, largestHpHit) * chance * probability));
-            intent.damage = hpDamage * chance * probability;
+              wakePenalty(target, largestHpHit) * probability));
+            intent.damage = hpDamage * probability;
           } else if (
             effect.type === 'revive' ||
             (effect.type === 'restoreHp' && effect.revive && !alive(target))
@@ -678,12 +670,7 @@ export function rankAutoActions(
           if (hook.requireKind && hook.requireKind !== kind) continue;
           if (!matchesWhen(candidateContext, hook.when, { source, target, skill, skillId: skill.id, kind, isPrimary: target.id === action.primaryTargetId })) continue;
           const chance = Math.min(1, Math.max(0, evalExpr(hook.chance ?? 1, expressionEnv(target))));
-          const hitChance = kind === 'physical'
-            ? target.side === source.side
-              ? formulas.physicalHitChance(source, target)
-              : visiblePhysicalHitChance(source, target.level)
-            : formulas.spellHitChance(source, target);
-          effects(hook.effects.filter(e => ['applyStatus', 'removeStatus', 'randomBranch'].includes(e.type)), [target], chance * hitChance);
+          effects(hook.effects.filter(e => ['applyStatus', 'removeStatus', 'randomBranch'].includes(e.type)), [target], chance);
         }
       }
     }
@@ -904,10 +891,9 @@ export function rankAutoActions(
                     const def = definitions.get(debuff.statusId);
                     if (!def?.consumeAfterDamagingAction || evalExpr(debuff.duration, { state: future.state, source: prepared, target, skillLevel: skillLevelOf(source, id), targets: 1 }) < 1 || target.statuses.some(status => status.id === def.id || status.kind === def.kind)) continue;
                     const reduction = Math.max(0, Math.min(1, 1 - Math.max(def.damageDealtPhysical ?? 1, def.damageDealtSpell ?? 1)));
-                    // A delayed application may miss, be dispelled, or affect a
-                    // different attacker. Credit only 35% of visible recent loss.
-                    const hitChance = kind === 'physical' ? visiblePhysicalHitChance(source, target.level) : formulas.spellHitChance(source, target);
-                    value = Math.max(value, chance * followupChance * hitChance * Math.min(uncovered, recentDamage) * reduction * 0.35 / maxHp * 100);
+                    // The delayed status may be dispelled or affect a different attacker.
+                    // Credit only 35% of visible recent loss.
+                    value = Math.max(value, chance * followupChance * Math.min(uncovered, recentDamage) * reduction * 0.35 / maxHp * 100);
                   }
                 }
               }

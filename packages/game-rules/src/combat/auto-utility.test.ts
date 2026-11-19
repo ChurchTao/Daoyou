@@ -157,7 +157,9 @@ describe('automatic defense preparation estimate', () => {
     expect(withPreparation.source).toEqual(before);
     const withoutPreparation = preparationFixture();
     withoutPreparation.source.passives = [];
-    expect(withoutPreparation.rank()[0].command.type).toBe('attack');
+    const ranked = withoutPreparation.rank();
+    expect(ranked[0].command).toMatchObject({ type: 'skill', skillId: withoutPreparation.attack.id });
+    expect(ranked[0].intents[0].damage).toBeGreaterThan(ranked.find(candidate => candidate.command.type === 'attack')!.intents[0].damage);
   });
 
   it('does not assign direct protection to an inert preparation marker', () => {
@@ -188,7 +190,7 @@ describe('automatic defense preparation estimate', () => {
       if (caseName === 'none') source.hpDamageThisRound = undefined;
       if (caseName === 'stale') source.hpDamageThisRound = { round: -1, amount: 500 };
       expect(rank().find(candidate => candidate.command.type === 'defend')!.benefits.survival).toBe(0.001);
-      expect(rank()[0].command.type).toBe('attack');
+      expect(rank()[0].command.type).toBe('skill');
     }
   });
 
@@ -215,7 +217,7 @@ describe('automatic defense preparation estimate', () => {
   it('still chooses a valuable attack over the conservative preparation benefit', () => {
     const { source, rank } = preparationFixture();
     source.attrs.physicalAtk = 1000;
-    expect(rank()[0].command.type).toBe('attack');
+    expect(rank()[0].command.type).toBe('skill');
     expect(rank().find(candidate => candidate.command.type === 'defend')!.benefits.survival).toBeGreaterThan(0.001);
   });
 

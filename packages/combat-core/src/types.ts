@@ -549,6 +549,7 @@ type EffectCore =
       /** Override the ordinary physical defending multiplier. */
       defendFactor?: number;
       mpDamageRatio?: number;
+      /** Retained for older skill definitions. Skill strikes always hit. */
       cannotMiss?: boolean;
       cannotKill?: boolean;
     }
@@ -1011,7 +1012,9 @@ export type FormulaSet = {
   spellBase(magicAtk: number, magicDef: number, power: number): number;
   /** 按 family 分发；未知 family 回退到 physical/spell */
   baseDamage(input: StrikeFormulaInput): number;
+  /** Used by ordinary attacks. */
   physicalHitChance(source: Unit, target: Unit): number;
+  /** Retained for formula-set compatibility. Skill strikes always hit. */
   spellHitChance(source: Unit, target: Unit): number;
   /** Final seal chance ceiling after skill and target multipliers; defaults to 1. */
   sealChanceCeil?: number;

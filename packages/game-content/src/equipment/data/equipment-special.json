@@ -1,7 +1,7 @@
 {
   "$schema": "./equipment-special.schema.json",
   "formatVersion": 1,
-  "contentRevision": 8,
+  "contentRevision": 9,
   "essences": [
     {
       "id": "dao_equipment.essence.cangfeng",
@@ -285,7 +285,7 @@
       "stackPolicy": "unique",
       "allowedSlots": ["footwear"],
       "effect": { "type": "dodgeChance", "value": 0.04 },
-      "description": "受到物理攻击时，闪避率提高{valuePercent}%。"
+      "description": "受到普通攻击时，闪避率提高{valuePercent}%。"
     },
     {
       "id": "dao_equipment.essence.juechen",

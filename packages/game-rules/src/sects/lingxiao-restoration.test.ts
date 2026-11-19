@@ -303,13 +303,15 @@ describe('经脉附加效果不要求穿透护盾', () => {
   function shield(b: Battle) {
     b.unit('t0').barriers.push({ id: 'shield', kind: 'shield', name: '护盾', current: 1000000, remainingRounds: 10, sourceId: 't0', appliedRound: 1 });
   }
-  it('翩鸿命中护盾仍驱散，未命中不驱散', () => {
-    for (const hit of [true, false]) {
+  it('翩鸿命中护盾仍驱散，被拦截时保留增益', () => {
+    const guard = { id: 'hostile-guard', kind: 'hostile-guard', name: '拦截', interceptHostileAction: true };
+    for (const intercepted of [false, true]) {
       const { input } = setup('zhanchen', ['2.1']);
-      const b = createBattle({ ...input, ruleset: { ...ruleset, formulas: { ...ruleset.formulas, physicalHitChance: () => hit ? 1 : 0 } } });
+      const b = createBattle({ ...input, statusDefs: [...input.statusDefs, guard] });
+      if (intercepted) b.applyStatus('t0', guard.id, 5, 't0');
       shield(b); b.applyStatus('t0', T('clarity'), 5, 't0'); round(b, cast('shadow_strike'));
       expect(b.unit('t0').attrs.hp).toBe(100000);
-      expect(b.unit('t0').statuses.some(s => s.id === T('clarity'))).toBe(!hit);
+      expect(b.unit('t0').statuses.some(s => s.id === T('clarity'))).toBe(intercepted);
     }
   });
   it('长驱命中护盾时仍按相同概率判定重创', () => {
