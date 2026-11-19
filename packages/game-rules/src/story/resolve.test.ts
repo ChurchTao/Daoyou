@@ -946,7 +946,14 @@ describe('volume one', () => {
       seen.push(current.id);
       current = getStoryChapter(current.next);
     }
-    expect(seen).toEqual(['mountain-ferry', 'mountain-flowers', 'mountain-bend', 'mountain-foothill', 'mountain-forge']);
+    expect(seen).toEqual([
+      'mountain-ferry',
+      'mountain-flowers',
+      'mountain-bend',
+      'mountain-foothill',
+      'mountain-forge',
+      'mountain-sparring',
+    ]);
     expect(seen.slice(0, 3).every((id) => getStoryChapter(id).gated)).toBe(true);
     expect(getStoryChapter('mountain-foothill').gated).toBeUndefined();
     expect(getStoryChapter('mountain-foothill').beats[0]).toMatchObject({

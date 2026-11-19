@@ -37,6 +37,7 @@ import mountainRegister from './data/mountain-register.json' with { type: 'json'
 import mountainAddress from './data/mountain-address.json' with { type: 'json' };
 import mountainChopsticks from './data/mountain-chopsticks.json' with { type: 'json' };
 import mountainForge from './data/mountain-forge.json' with { type: 'json' };
+import mountainSparring from './data/mountain-sparring.json' with { type: 'json' };
 
 const scripts = new Map<string, PerformanceScript>([
   ['arrival-fall', parsePerformanceScript(arrivalFall)],
@@ -69,6 +70,10 @@ const scripts = new Map<string, PerformanceScript>([
   ['mountain-address', parsePerformanceScript(mountainAddress)],
   ['mountain-chopsticks', parsePerformanceScript(mountainChopsticks)],
   ...mountainForge.map((entry): [string, PerformanceScript] => [
+    entry.id,
+    parsePerformanceScript(entry),
+  ]),
+  ...mountainSparring.map((entry): [string, PerformanceScript] => [
     entry.id,
     parsePerformanceScript(entry),
   ]),

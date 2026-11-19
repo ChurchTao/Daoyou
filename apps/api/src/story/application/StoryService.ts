@@ -37,7 +37,11 @@ import {
   type StoryResolution,
 } from '@daoyou/game-rules/story';
 import { storyGiftParts } from '@daoyou/game-content/story/gifts';
-import { getStoryChapter, OPENING_STORY_CHAPTER } from '@daoyou/game-content/story/catalog';
+import {
+  getStoryChapter,
+  OPENING_STORY_CHAPTER,
+  RESTING_STORY_CHAPTER,
+} from '@daoyou/game-content/story/catalog';
 import { STORY_EXTRA_GATES, STORY_SCENE_GATES } from '@daoyou/game-domain/story/gates';
 import { giveStarterBeast } from '@server/combat/application/starterBeastGift.js';
 import {
@@ -247,20 +251,35 @@ async function currentStory(
   const returning = rows.length !== history.length;
   const stored = rows.find((row) => row.status === 'active') ?? rows[0] ?? null;
   const past = rows.filter((row) => row !== stored);
-  const finishedMeal = past.some(
-    (row) => row.storyId === 'mountain-foothill' &&
-      row.status === 'completed' && row.acks.includes('mountain-chopsticks:done'),
-  );
-  const resumeAtForge = stored?.storyId === 'mountain-lodging' && finishedMeal &&
-    !past.some((row) => row.storyId === 'mountain-forge');
+  let base =
+    stored ??
+    (returning
+      ? openingStoryProgress(OPENING_STORY_CHAPTER)
+      : restingStoryProgress());
+  if (stored?.storyId === RESTING_STORY_CHAPTER) {
+    // 旧版本会在晚饭或拜师后停在同一个常驻幕，按已读的章节接回正篇。
+    const forge = past.find((row) => row.storyId === 'mountain-forge');
+    if (
+      !forge &&
+      past.some(
+        (row) =>
+          row.storyId === 'mountain-foothill' &&
+          row.status === 'completed' &&
+          row.acks.includes('mountain-chopsticks:done'),
+      )
+    ) {
+      base = openingStoryProgress('mountain-forge');
+    } else if (
+      forge?.status === 'completed' &&
+      !past.some((row) => row.storyId === 'mountain-sparring')
+    ) {
+      base = openingStoryProgress('mountain-sparring');
+    }
+  }
   return {
     rows,
     stored,
-    base: resumeAtForge ? openingStoryProgress('mountain-forge') :
-      (stored ??
-      (returning
-        ? openingStoryProgress(OPENING_STORY_CHAPTER)
-        : restingStoryProgress())),
+    base,
     carried: past.flatMap((row) => storyFlags(row.marks)),
     opened: returning
       ? [

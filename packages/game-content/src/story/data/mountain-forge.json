@@ -2,7 +2,7 @@
   "id": "mountain-forge",
   "title": "借炉的人",
   "track": "main",
-  "next": "mountain-lodging",
+  "next": "mountain-sparring",
   "beats": [
     {
       "id": "ladle",
@@ -10,7 +10,7 @@
       "script": "mountain-forge-ladle",
       "outcome": "done",
       "scene": "story",
-      "prompt": "带上木杆，跟同门去器坊。",
+      "prompt": "跟同门去器坊。",
       "href": "/game/story"
     },
     {
@@ -19,7 +19,7 @@
       "script": "mountain-forge-grip",
       "outcome": "done",
       "scene": "story",
-      "prompt": "请老师傅看看这根木杆。",
+      "prompt": "问问老师傅，能不能自己做一件法兵。",
       "href": "/game/story"
     },
     {
@@ -87,7 +87,7 @@
       "script": "mountain-forge-visit",
       "outcome": "done",
       "scene": "story",
-      "prompt": "再去找老师傅，问问手为什么又攥紧了。",
+      "prompt": "去请教老师傅，怎么练才能收招站稳。",
       "href": "/game/story"
     },
     {
@@ -96,7 +96,7 @@
       "script": "mountain-forge-apprentice",
       "outcome": "done",
       "scene": "story",
-      "prompt": "带着那两道握痕，再去找老师傅。",
+      "prompt": "再去器坊，请老师傅看看这几日练的那一招。",
       "href": "/game/story"
     }
   ]
