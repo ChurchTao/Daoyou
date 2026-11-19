@@ -40,7 +40,7 @@ const RETREAT_YEARS = [10, 20, 50, 100, 200] as const;
 const BREAKTHROUGH_TYPES = {
   forced: { label: '强行突破', color: 'text-crimson' },
   normal: { label: '常规突破', color: 'text-teal' },
-  perfect: { label: '圆满突破', color: 'text-amber-700' },
+  perfect: { label: '圆满突破', color: 'text-amber-700 dark:text-wood' },
 };
 const BOTTLENECK_REDUCTION = (1 - BOTTLENECK_EXP_PENALTY) * 100;
 
@@ -235,7 +235,7 @@ export function BreakthroughHelpContent({
         </div>
 
         <div>
-          <p className="font-medium text-amber-700">圆满突破</p>
+          <p className="font-medium text-amber-700 dark:text-wood">圆满突破</p>
           <p className="text-ink-secondary">
             修为达到 100%，且{COMPREHENSION_LABEL}至少达到{' '}
             {PERFECT_BREAKTHROUGH_INSIGHT}

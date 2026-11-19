@@ -99,7 +99,7 @@ function AttributeValue({
         <span
           className={cn(
             'ml-1 font-semibold',
-            modifier > 0 ? 'text-emerald-700' : 'text-violet-700',
+            modifier > 0 ? 'text-emerald-700 dark:text-teal' : 'text-violet-700 dark:text-realm-huashen',
           )}
         >
           {formatModifier(type, modifier)}

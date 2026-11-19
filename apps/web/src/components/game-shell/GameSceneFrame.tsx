@@ -36,7 +36,7 @@ function SceneSurface({
   return (
     <Tag
       className={cn(
-        'animate-fade-in bg-paper min-w-0 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.32),0_10px_30px_rgba(44,24,16,0.06)] md:px-5 md:py-5',
+        'animate-fade-in bg-paper shadow-paper-panel min-w-0 px-4 py-4 md:px-5 md:py-5',
         className,
       )}
     >
@@ -78,7 +78,7 @@ export function GameSceneInset({
   return (
     <section
       className={cn(
-        'bg-ink/4 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]',
+        'bg-ink/4 shadow-paper-inset',
         className,
       )}
     >

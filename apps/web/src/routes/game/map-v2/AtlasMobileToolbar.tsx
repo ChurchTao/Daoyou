@@ -184,7 +184,7 @@ export function AtlasMobileToolbar({
               if (resultsList.current) resultsList.current.scrollTop = 0;
               onQuery(event.target.value);
             }}
-            className="border-ink/25 focus:border-ink/60 min-h-11 w-full rounded-sm border bg-white/50 px-3 text-base outline-none"
+            className="border-ink/25 focus:border-ink/60 dark:bg-paper-2 dark:focus:border-crimson/70 placeholder:text-ink-secondary min-h-11 w-full rounded-sm border bg-white/50 px-3 text-base outline-none"
           />
         </label>
         {canFilter ? (

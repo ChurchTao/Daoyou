@@ -47,8 +47,8 @@ export function PaperTextureChoices({
                 className="flex h-20 flex-col items-center justify-center gap-2"
                 aria-hidden="true"
               >
-                <span className="text-ink/65 text-lg tracking-[0.2em]">
-                  万界
+                <span className="text-ink/65 text-base tracking-wider whitespace-nowrap sm:text-lg">
+                  万界道友
                 </span>
                 <span className="border-ink/20 w-10 border-t" />
               </PaperSurface>

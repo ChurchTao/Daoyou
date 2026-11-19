@@ -235,7 +235,7 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
             className={cn(
               'border-crimson/30 block w-full max-w-xs border text-left',
               packet.status === 'open'
-                ? 'bg-crimson/90 text-paper'
+                ? 'bg-crimson/90 text-on-crimson'
                 : 'bg-crimson/8 text-ink-secondary',
             )}
             onClick={() => onSelectRedPacket?.(packet.id)}
@@ -332,7 +332,7 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
           Array.isArray(message.payload.sides[0]) &&
           Array.isArray(message.payload.sides[1]) ? (
           <Link
-            className="border-ink/15 hover:border-teal block border border-dashed bg-white/55 px-3 py-2"
+            className="border-ink/15 hover:border-teal block border border-dashed bg-white/55 px-3 py-2 dark:bg-paper-2"
             to={`/combat-replay/${message.payload.shareCode}`}
           >
             <span className="text-teal font-semibold">

@@ -149,7 +149,7 @@ export function YieldCard({
           claim: () => void handleClaimYield(),
         })
       ) : (
-        <div className="border-ink/20 relative mb-6 overflow-hidden border bg-white/70 p-4">
+        <div className="border-ink/20 relative mb-6 overflow-hidden border bg-white/70 p-4 dark:bg-paper-2">
           <div className="relative z-10 flex items-center justify-between">
             <div>
               <div className="text-ink-primary flex items-center gap-1 text-lg font-bold">

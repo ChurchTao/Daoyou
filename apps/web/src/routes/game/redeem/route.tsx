@@ -114,7 +114,7 @@ export default function RedeemCodePage() {
           </div>
 
           {success && (
-            <p className="text-sm text-emerald-700">
+            <p className="text-sm text-emerald-700 dark:text-teal">
               兑换成功，奖励已送达传音玉简。
             </p>
           )}

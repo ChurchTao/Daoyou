@@ -410,7 +410,7 @@ function AtlasMap() {
 
   return (
     <div
-      className="relative h-full bg-[#eee7d8]"
+      className={`relative h-full bg-[#eee7d8] ${isAtlas ? '' : 'dark:bg-sheet'}`}
       style={
         { '--atlas-toolbar-bottom': `${toolbarBottom}px` } as CSSProperties
       }

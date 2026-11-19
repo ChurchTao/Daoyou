@@ -15,8 +15,8 @@ function StatusPill({
       className={cn(
         'rounded-full border px-2 py-0.5 text-[11px] tracking-[0.08em]',
         tone === 'ready'
-          ? 'border-emerald-700/25 bg-emerald-50 text-emerald-800'
-          : 'border-amber-700/25 bg-amber-50 text-amber-900',
+          ? 'border-emerald-700/25 bg-emerald-50 text-emerald-800 dark:border-teal/25 dark:bg-teal/8 dark:text-teal'
+          : 'border-amber-700/25 bg-amber-50 text-amber-900 dark:border-wood/25 dark:bg-wood/8 dark:text-wood',
       )}
     >
       {text}

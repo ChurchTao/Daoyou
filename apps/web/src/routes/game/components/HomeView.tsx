@@ -330,12 +330,12 @@ export function HomeView() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-3 py-3 md:px-6 md:py-4">
-      <article className="animate-fade-in bg-paper grid shadow-[inset_0_1px_0_rgba(255,255,255,0.32),0_10px_30px_rgba(44,24,16,0.06)] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-rows-[auto_1fr]">
-        <figure className="relative h-44 overflow-hidden sm:h-56 lg:col-start-1 lg:row-start-1 lg:aspect-[3/2] lg:h-auto">
+      <article className="animate-fade-in bg-paper shadow-paper-panel grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-rows-[auto_1fr]">
+        <figure className="relative isolate h-44 overflow-hidden sm:h-56 lg:col-start-1 lg:row-start-1 lg:aspect-[3/2] lg:h-auto dark:bg-[radial-gradient(ellipse_at_50%_0%,#334542,transparent_72%)]">
           <GameImage
             src="/assets/mystery/scenes/cave.webp"
             alt=""
-            className="absolute inset-0 size-full object-cover object-[center_72%] mix-blend-multiply"
+            className="absolute inset-0 size-full object-cover object-[center_72%] mix-blend-multiply dark:mix-blend-screen dark:[filter:grayscale(1)_invert(1)_brightness(0.48)]"
           />
           <figcaption className="from-paper absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t to-transparent px-5 pt-10 pb-2 md:px-7">
             <h1 className="font-heading text-ink text-3xl leading-tight">

@@ -116,7 +116,7 @@ function CultivationResultContent({
   const summary = retreatResult.summary as CultivationResult['summary'];
 
   return (
-    <div className="border-ink/10 space-y-3 border border-dashed bg-[rgba(255,252,245,0.78)] p-4 text-sm leading-7">
+    <div className="border-ink/10 space-y-3 border border-dashed bg-[rgba(255,252,245,0.78)] p-4 text-sm leading-7 dark:bg-paper-2">
       <p className="text-ink text-base font-medium">🌱 修炼有成</p>
       <p>修为增长：+{Number(summary.exp_gained)}</p>
       <p>当前进度：{formatPercentValue(summary.progress)}</p>
@@ -182,7 +182,7 @@ function BreakthroughResultContent({
   }, [summary.attributeGrowth]);
 
   return (
-    <div className="border-ink/10 space-y-3 border border-dashed bg-[rgba(255,252,245,0.78)] p-4 text-sm leading-7">
+    <div className="border-ink/10 space-y-3 border border-dashed bg-[rgba(255,252,245,0.78)] p-4 text-sm leading-7 dark:bg-paper-2">
       <p className="text-ink text-base font-medium">
         {summary.success ? '🌅 突破成功！' : '☁️ 冲关失败'}
       </p>

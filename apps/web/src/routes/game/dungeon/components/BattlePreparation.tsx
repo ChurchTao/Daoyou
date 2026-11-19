@@ -61,7 +61,7 @@ function Meter({
         <div
           className={cn(
             'h-full rounded-full transition-[width] duration-700',
-            tone === 'hp' ? 'bg-crimson' : 'bg-[#5d7380]',
+            tone === 'hp' ? 'bg-resource-hp' : 'bg-resource-mp',
           )}
           style={{ width: `${ratio * 100}%` }}
         />
@@ -199,7 +199,7 @@ export function BattlePreparation({
         <button
           type="button"
           disabled={processing}
-          className="border-ink/30 hover:bg-ink/5 rounded-md border bg-white/30 px-4 py-3 text-left transition-colors disabled:opacity-50"
+          className="border-ink/30 bg-muted hover:bg-ink/10 rounded-md border px-4 py-3 text-left transition-colors disabled:opacity-50"
           onClick={() => void onQuit()}
         >
           <div className="font-semibold">{copy.retreat}</div>

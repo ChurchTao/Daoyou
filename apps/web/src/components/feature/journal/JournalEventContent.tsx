@@ -9,7 +9,7 @@ const resourceStyles = {
   spiritStones: { label: '灵石', className: 'text-ink' },
   exp: { label: '修为', className: 'text-teal' },
   insight: { label: '感悟', className: 'text-resource-shield' },
-  reputation: { label: '声望', className: 'text-amber-700' },
+  reputation: { label: '声望', className: 'text-amber-700 dark:text-wood' },
   contribution: { label: '宗门贡献', className: 'text-teal' },
   qi: { label: '灵气', className: 'text-ink-secondary' },
 } as const;

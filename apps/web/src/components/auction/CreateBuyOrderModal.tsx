@@ -575,7 +575,7 @@ export function CreateBuyOrderModal({
                       <SpiritStones amount={priceCap} /> · 单次最多{' '}
                       <span className="font-mono">{maxQuantity}</span> 件
                     </p>
-                    <p className="text-amber-800 text-sm">
+                    <p className="text-amber-800 dark:text-wood text-sm">
                       本次冻结{' '}
                       {validNumbers ? (
                         <SpiritStones

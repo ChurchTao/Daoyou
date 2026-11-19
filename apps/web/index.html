@@ -42,12 +42,22 @@
     </script>
     <style>
       :root {
+        color-scheme: light;
         --app-surface-color: #f3efe7;
+        --app-boot-text: #2c1810;
+        --app-boot-glow: rgba(255, 253, 247, 0.94);
         --app-safe-top: env(safe-area-inset-top, 0px);
         --app-bottom-reserve: env(
           safe-area-max-inset-bottom,
           env(safe-area-inset-bottom, 0px)
         );
+      }
+
+      :root[data-theme='dark'] {
+        color-scheme: dark;
+        --app-surface-color: #151e1e;
+        --app-boot-text: #e9dfc9;
+        --app-boot-glow: #253432;
       }
 
       html,
@@ -93,21 +103,21 @@
         padding-right: calc(env(safe-area-inset-right, 0px) + 1rem);
         padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
         padding-left: calc(env(safe-area-inset-left, 0px) + 1rem);
-        color: #2c1810;
+        color: var(--app-boot-text);
         text-align: center;
         background:
           linear-gradient(
-            #f3efe7,
-            rgba(243, 239, 231, 0) 18%,
-            rgba(243, 239, 231, 0) 82%,
-            #f3efe7
+            var(--app-surface-color),
+            transparent 18%,
+            transparent 82%,
+            var(--app-surface-color)
           ),
           radial-gradient(
             circle at 49% 42%,
-            rgba(255, 253, 247, 0.94) 0,
-            rgba(243, 239, 231, 0) 75%
+            var(--app-boot-glow) 0,
+            var(--app-surface-color) 75%
           ),
-          #f3efe7;
+          var(--app-surface-color);
       }
 
       .app-boot-content {
@@ -124,6 +134,19 @@
         height: auto;
         user-select: none;
         filter: drop-shadow(0 7px 5px rgba(44, 24, 16, 0.12));
+      }
+
+      :root[data-theme='dark'] .app-boot-logo {
+        filter: brightness(1.2) drop-shadow(0 7px 9px rgba(0, 0, 0, 0.4));
+      }
+
+      :root[data-theme='dark']
+        :is(
+          .app-boot-title-image,
+          .app-boot-message-image,
+          .app-boot-motto img
+        ) {
+        filter: grayscale(1) invert(1) sepia(0.22);
       }
 
       .app-boot-title-lockup {
@@ -151,8 +174,16 @@
       }
 
       .ink-loading-bar {
-        --ink-loading-track: rgba(44, 24, 16, 0.14);
-        --ink-loading-segment: rgba(44, 24, 16, 0.82);
+        --ink-loading-track: color-mix(
+          in srgb,
+          var(--app-boot-text) 14%,
+          transparent
+        );
+        --ink-loading-segment: color-mix(
+          in srgb,
+          var(--app-boot-text) 82%,
+          transparent
+        );
 
         position: relative;
         height: 2px;
@@ -167,8 +198,16 @@
       }
 
       .ink-loading-bar[data-tone='accent'] {
-        --ink-loading-track: rgba(193, 18, 31, 0.1);
-        --ink-loading-segment: rgba(193, 18, 31, 0.92);
+        --ink-loading-track: color-mix(
+          in srgb,
+          var(--color-crimson, #c1121f) 10%,
+          transparent
+        );
+        --ink-loading-segment: color-mix(
+          in srgb,
+          var(--color-crimson, #c1121f) 92%,
+          transparent
+        );
       }
 
       .ink-loading-bar[data-size='boot'] {
@@ -251,7 +290,8 @@
 
       .app-boot-motto span {
         width: min(2.75rem, 12vw);
-        border-top: 1px solid rgba(44, 24, 16, 0.72);
+        border-top: 1px solid
+          color-mix(in srgb, var(--app-boot-text) 72%, transparent);
       }
 
       .app-boot-motto img {
@@ -306,6 +346,32 @@
         }
       }
     </style>
+    <script>
+      // Apply the browser-local theme before the boot screen can paint.
+      // Keep the storage key and supported versions in sync with game-setting.ts.
+      (() => {
+        let preference;
+        try {
+          const saved = JSON.parse(localStorage.getItem('game-setting'));
+          if (saved?.version === 1 || saved?.version === 2) {
+            preference = saved.colorScheme;
+          }
+        } catch {
+          // Use the system preference when storage is unavailable.
+        }
+
+        const root = document.documentElement;
+        const systemTheme = matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light';
+        root.dataset.theme =
+          preference === 'dark' || preference === 'light'
+            ? preference
+            : systemTheme;
+        document.querySelector('meta[name="theme-color"]').content =
+          getComputedStyle(root).getPropertyValue('--app-surface-color').trim();
+      })();
+    </script>
     <title>加载中…… | 万界道友</title>
   </head>
 

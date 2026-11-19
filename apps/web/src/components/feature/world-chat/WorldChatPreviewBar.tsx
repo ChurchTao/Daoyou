@@ -39,7 +39,7 @@ export function WorldChatPreviewBar() {
             <span className="text-ink">{previewBody}</span>
           </div>
           {newMessageCount > 0 ? (
-            <span className="bg-crimson text-bgpaper inline-flex min-w-4 shrink-0 items-center justify-center rounded-full px-1 text-[0.62rem] leading-4">
+            <span className="bg-crimson text-on-crimson inline-flex min-w-4 shrink-0 items-center justify-center rounded-full px-1 text-[0.62rem] leading-4">
               {newMessageCount}
             </span>
           ) : null}

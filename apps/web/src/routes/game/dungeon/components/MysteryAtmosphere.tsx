@@ -20,10 +20,10 @@ export function MysteryEventFlash({
   return createPortal(
     <div
       aria-hidden
-      className="mystery-event-flash bg-ink pointer-events-none fixed inset-0 z-40 flex items-center justify-center"
+      className="mystery-event-flash bg-scene-scrim pointer-events-none fixed inset-0 z-40 flex items-center justify-center"
       onAnimationEnd={() => setShownTurn(turn)}
     >
-      <span className="text-paper/70 text-2xl tracking-[1em]">变</span>
+      <span className="text-scene-ink/70 text-2xl tracking-[1em]">变</span>
     </div>,
     document.body,
   );
@@ -53,8 +53,8 @@ export function MysteryAnomalyVeil({
         style={{
           boxShadow:
             level > 0
-              ? `inset 0 0 ${120 + level * 220}px ${20 + level * 60}px rgba(44, 24, 16, ${0.35 + level * 0.4})`
-              : 'inset 0 0 0 0 rgba(44, 24, 16, 0)',
+              ? `inset 0 0 ${120 + level * 220}px ${20 + level * 60}px color-mix(in srgb, var(--color-scene-scrim) ${35 + level * 40}%, transparent)`
+              : 'inset 0 0 0 0 transparent',
         }}
       />
       {contained && !stamped ? (
@@ -107,11 +107,11 @@ export function MysteryReveal({
     <button
       type="button"
       aria-label="跳过"
-      className={`mystery-scene fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 px-8 text-center ${paper ? 'bg-paper text-ink' : 'bg-ink text-paper'}`}
+      className={`mystery-scene fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 px-8 text-center ${paper ? 'bg-paper text-ink' : 'bg-scene-scrim text-scene-ink'}`}
       onClick={onDone}
     >
       <span
-        className={`text-sm tracking-[0.6em] ${paper ? 'text-ink-secondary' : 'text-paper/60'}`}
+        className={`text-sm tracking-[0.6em] ${paper ? 'text-ink-secondary' : 'text-scene-ink/70'}`}
       >
         {eyebrow}
       </span>
@@ -126,15 +126,19 @@ export function MysteryReveal({
           />
         </span>
       ) : null}
-      <span className="mystery-reveal-name text-crimson text-4xl font-semibold tracking-[0.3em] md:text-5xl">
+      <span
+        className={`mystery-reveal-name text-4xl font-semibold tracking-[0.3em] md:text-5xl ${paper ? 'text-crimson' : 'mystery-reveal-accent'}`}
+      >
         {name}
       </span>
       <span
-        className={`mystery-reveal-text max-w-xl leading-8 ${paper ? 'text-ink/80' : 'text-paper/80'}`}
+        className={`mystery-reveal-text max-w-xl leading-8 ${paper ? 'text-ink/80' : 'text-scene-ink/80'}`}
       >
         {description}
       </span>
-      <span className={`text-xs ${paper ? 'text-ink/45' : 'text-paper/40'}`}>
+      <span
+        className={`text-xs ${paper ? 'text-ink-secondary' : 'text-scene-ink/65'}`}
+      >
         点一下继续
       </span>
     </button>,

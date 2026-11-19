@@ -56,7 +56,7 @@ export function HomeRoad({
                   {place.label}
                 </Link>
                 {fresh.includes(place.id) ? (
-                  <span className="bg-crimson text-paper ml-1.5 px-1 text-xs leading-5">
+                  <span className="bg-crimson text-on-crimson ml-1.5 px-1 text-xs leading-5">
                     新
                   </span>
                 ) : null}

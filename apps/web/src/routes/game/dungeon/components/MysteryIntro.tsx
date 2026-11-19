@@ -1,6 +1,7 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { cn } from '@app/lib/cn';
 import type { MysteryPlayerView } from '@daoyou/game-domain/dungeon/mystery';
+import { MysterySceneArt } from './MysterySceneArt';
 
 /** 开局一幕：正式进入故事之前，先交代这一局你是谁、来做什么、要查明什么。 */
 export function MysteryIntro({
@@ -17,12 +18,15 @@ export function MysteryIntro({
       <div
         className={cn(
           'flex items-center justify-center',
-          sceneUrl
-            ? 'aspect-[2/1] [mask-image:linear-gradient(to_bottom,transparent,black_18%)] bg-cover bg-bottom'
-            : 'py-6',
+          sceneUrl ? 'relative isolate aspect-[2/1]' : 'py-6',
         )}
-        style={sceneUrl ? { backgroundImage: `url(${sceneUrl})` } : undefined}
       >
+        {sceneUrl ? (
+          <MysterySceneArt
+            src={sceneUrl}
+            className="absolute inset-0 -z-10 size-full"
+          />
+        ) : null}
         <div className="text-center">
           <h2 className="text-2xl font-semibold tracking-[0.2em]">
             {view.title}

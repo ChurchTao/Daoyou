@@ -64,7 +64,7 @@ export function HomeDoors({
               {door.note}
             </span>
             {fresh.includes(door.id) ? (
-              <span className="bg-crimson text-paper absolute -top-1.5 -right-1.5 px-1 text-xs leading-5">
+              <span className="bg-crimson text-on-crimson absolute -top-1.5 -right-1.5 px-1 text-xs leading-5">
                 新
               </span>
             ) : null}

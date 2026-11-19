@@ -34,3 +34,10 @@
 .paper-surface[data-paper-texture='none']::before {
   content: none;
 }
+
+:root[data-theme='dark'] .paper-surface::before {
+  /* 只保留纤维的明暗，让纹理随墨底而显。 */
+  filter: grayscale(1) invert(1);
+  mix-blend-mode: screen;
+  opacity: 0.12;
+}

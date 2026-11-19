@@ -25,7 +25,7 @@ export function SectImmersiveFrame({
     <section
       className={cn(
         'bg-paper relative isolate h-full overflow-hidden',
-        !image && tone,
+        !image && tone && [tone, 'dark:bg-none'],
       )}
     >
       <title>{formatDocumentTitle(title)}</title>
