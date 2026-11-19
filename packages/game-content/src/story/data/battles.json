@@ -5,6 +5,7 @@
     "opponents": [
       {
         "name": "红眼山豕",
+        "icon": "icon:beast-rock-boar",
         "level": 1,
         "kind": "normal",
         "hp": 0.06,

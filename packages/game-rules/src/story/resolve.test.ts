@@ -469,8 +469,49 @@ describe('story resolver', () => {
     const view = presentStory(chapter, current, facts);
     expect(view.href).toBe('/game/sect/onboarding?entry=path&from=story');
     expect(view.guideLesson).toBeNull();
-    expect(resolveStory(chapter, current, { ...facts, sect_ready: true }).progress.beatId).toBe('roots');
+    const ready = { ...facts, sect_ready: true };
+    const afterClass = resolveStory(chapter, current, ready);
+    expect(presentStory(chapter, afterClass.progress, ready)).toMatchObject({
+      beatId: 'meal',
+      scriptId: 'mountain-chopsticks',
+      href: '/game/story',
+      guideLesson: null,
+      goals: [],
+    });
   });
+
+  it.each(['roots', 'errand'])(
+    'resumes from dinner for a chapter-four save at the removed %s beat',
+    (beatId) => {
+      const chapter = getStoryChapter('mountain-foothill');
+      const facts = emptyStoryFacts();
+      const saved = progress(beatId, {
+        storyId: chapter.id,
+        acks: [
+          'mountain-bamboo:done',
+          'mountain-letter-home:done',
+          'mountain-register:done',
+          'mountain-address:done',
+        ],
+        marks: beatId === 'errand' ? ['guide:first-attributes'] : [],
+      });
+      const resumed = rewindToUnwatchedPerformance(chapter, saved, facts);
+      expect(resumed).toEqual({ ...saved, beatId: 'meal' });
+      expect(presentStory(chapter, saved, facts).scriptId).toBe(
+        'mountain-chopsticks',
+      );
+      const ending = acknowledgePerformance(
+        chapter,
+        saved,
+        facts,
+        'mountain-chopsticks',
+        'done',
+      );
+      expect(ending.finished).toBe(true);
+      expect(ending.progress.marks).toEqual(saved.marks);
+      expect(ending.grants).toEqual([]);
+    },
+  );
 
   it.each(['hearth', 'forge', 'equip', 'bag'])(
     'requires the lesson as well as the real action at %s',

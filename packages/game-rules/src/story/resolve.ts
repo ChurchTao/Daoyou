@@ -152,14 +152,20 @@ function withBaselines(
     : progress;
 }
 
-function normalizeArrivalProgress(
+function normalizeChapterProgress(
   chapter: StoryChapter,
   progress: StoryProgress,
   facts?: StoryFacts,
 ): StoryProgress {
-  if (chapter.id !== 'arrival' || progress.storyId !== chapter.id) {
-    return progress;
+  if (progress.storyId !== chapter.id) return progress;
+  // 第四章旧存档已学完流派，接到初课后的晚饭。
+  if (
+    chapter.id === 'mountain-foothill' &&
+    (progress.beatId === 'roots' || progress.beatId === 'errand')
+  ) {
+    return { ...progress, beatId: 'meal' };
   }
+  if (chapter.id !== 'arrival') return progress;
   if (
     !chapter.beats.some((beat) => beat.id === progress.beatId) &&
     !legacyArrivalBeats.has(progress.beatId)
@@ -204,7 +210,7 @@ export function resolveStory(
     );
   }
 
-  progress = normalizeArrivalProgress(chapter, progress, facts);
+  progress = normalizeChapterProgress(chapter, progress, facts);
 
   let beatId = progress.beatId;
   let finished = false;
@@ -259,7 +265,7 @@ export function acknowledgePerformance(
     allowed: [],
   },
 ): StoryResolution {
-  progress = normalizeArrivalProgress(chapter, progress, facts);
+  progress = normalizeChapterProgress(chapter, progress, facts);
   const key = `${scriptId}:${outcome}`;
   if (progress.acks.includes(key)) {
     return resolveStory(chapter, progress, facts);
@@ -340,7 +346,7 @@ export function acknowledgeGuide(
   facts: StoryFacts,
   lesson: string,
 ): StoryResolution {
-  progress = normalizeArrivalProgress(chapter, progress, facts);
+  progress = normalizeChapterProgress(chapter, progress, facts);
   const beat = beatAt(chapter, progress.beatId);
   const wanted =
     (beat.kind === 'battle' && beat.lesson === lesson) ||
@@ -368,7 +374,7 @@ export function rewindToUnwatchedPerformance(
   if (progress.track !== chapter.track || progress.storyId !== chapter.id) {
     return progress;
   }
-  progress = normalizeArrivalProgress(chapter, progress, facts);
+  progress = normalizeChapterProgress(chapter, progress, facts);
   if (
     chapter.id === 'arrival' &&
     progress.beatId === 'entered' &&
@@ -401,7 +407,7 @@ export function presentStory(
   /** 演完的章节里开放过的入口。 */
   opened: readonly string[] = [],
 ): StoryView {
-  progress = normalizeArrivalProgress(chapter, progress, facts);
+  progress = normalizeChapterProgress(chapter, progress, facts);
   const beat = beatAt(chapter, progress.beatId);
   const shifted =
     beat.kind === 'life' &&

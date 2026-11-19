@@ -57,7 +57,7 @@
       "id": "path",
       "kind": "practice",
       "scene": "sect-onboarding",
-      "prompt": "随本宗教习选初习流派。",
+      "prompt": "去听早课，看看想先从哪一路学起。",
       "href": "/game/sect/onboarding?entry=path&from=story",
       "accept": [
         {
@@ -67,42 +67,12 @@
       ]
     },
     {
-      "id": "roots",
-      "kind": "practice",
-      "scene": "cultivator",
-      "prompt": "看一看根基，点数可以先留着。",
-      "href": "/game/cultivator?allocate=1&guide=first-attributes",
-      "accept": [
-        {
-          "type": "guide",
-          "lesson": "first-attributes"
-        }
-      ]
-    },
-    {
-      "id": "errand",
-      "kind": "objective",
-      "goals": [
-        {
-          "label": "交付一件宗门日常",
-          "need": {
-            "type": "count",
-            "count": "sect_dailies",
-            "atLeast": 1
-          }
-        }
-      ],
-      "scene": "sect-affairs",
-      "prompt": "领一件门中差事，做完回来交差。",
-      "href": "/game/sect/affairs"
-    },
-    {
       "id": "meal",
       "kind": "performance",
       "script": "mountain-chopsticks",
       "outcome": "done",
       "scene": "story",
-      "prompt": "晚饭有一碟炒黄豆。",
+      "prompt": "练到饭点了，方才一块儿练功的同门在等你。",
       "href": "/game/story"
     }
   ]

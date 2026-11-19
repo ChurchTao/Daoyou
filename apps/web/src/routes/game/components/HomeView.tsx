@@ -191,15 +191,14 @@ export function HomeView() {
     athand.push(
       <HomeAct
         key="attributes"
-        href="/game/cultivator/attributes"
-        lead="把根基落定"
+        href="/game/cultivator"
+        lead="查看属性"
         note={
           <>
-            还有{' '}
             <span className="font-mono font-semibold tracking-tight">
               {unallocated}
             </span>{' '}
-            点悬着
+            点可分配
           </>
         }
       />,

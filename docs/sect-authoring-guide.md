@@ -139,9 +139,9 @@ builder.setAbility(
 
 ## 入门演出
 
-各宗入门演出在[山门演出稿](../packages/game-content/src/performance/mountain-gate-arrivals.ts)中写抵达时的见闻和掌籍弟子的介绍。山门图可作为演出底图。进入名册前，玩家可重选去处，拜入由服务端准入策略和幂等事务处理。
+各宗入门演出在[山门演出稿](../packages/game-content/src/performance/mountain-gate-arrivals.ts)中写抵达时的见闻和名册前的问答。新人从刚听到或看见的事问起，掌籍弟子回答门里教什么，来历随问题带出来。山门图可作为演出底图。听完接引介绍，玩家可重选去处，拜入由服务端准入策略和幂等事务处理。
 
-[初习流派演出](../packages/game-content/src/performance/sect-first-path.ts)按当前宗门的流派编号取NPC台词，讲清打法和日后的切换方式。选项从服务端的流派列表生成，启用使用现有的构筑版本校验。已有流派的弟子在参悟处切换流派并管理经脉。
+[初习流派演出](../packages/game-content/src/performance/sect-first-path.ts)按当前宗门的流派编号取 NPC 台词。每一路用交手的例子讲清打法，在玩家选择前交代日后的切换方式。选项从服务端的流派列表生成，启用使用现有的构筑版本校验。已有流派的弟子在参悟处切换流派并管理经脉。
 
 ## 流派与节点
 

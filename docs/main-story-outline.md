@@ -22,7 +22,7 @@
 
 上述各段还须逐章写出人物的打算、当场发生的事、玩家的参与及后果，再写逐幕演出。真实游玩节奏留到章节与对应玩法排好后验证。首版的故事落点是渡口；卷三结束时玩家所处的小境界仍待校准。
 
-现有[境界表](../packages/constants/src/realms.ts)和[剧情目录](../packages/game-content/src/story/catalog.ts)分别定义境界与可注册的剧情章节。[章节推进](../apps/api/src/story/application/StoryService.ts)可在一章完成后跟随 `next` 进入下章。当前内容结束于[山脚小住](../packages/game-content/src/story/data/mountain-foothill.json)。后续发布章节时须覆盖已停在常驻幕的角色。
+现有[境界表](../packages/constants/src/realms.ts)和[剧情目录](../packages/game-content/src/story/catalog.ts)分别定义境界与可注册的剧情章节。[章节推进](../apps/api/src/story/application/StoryService.ts)可在一章完成后跟随 `next` 进入下章。第四章《自己报的名字》读完后进入[山中小住](../packages/game-content/src/story/data/mountain-lodging.json)。后续发布章节时须覆盖已停在常驻幕的角色。
 
 ## 世界与两世的因果（已定）
 
