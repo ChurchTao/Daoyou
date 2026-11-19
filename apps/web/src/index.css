@@ -81,9 +81,10 @@
 }
 
 :root {
-  /* 两档纸纹的独立底色；无纹理时沿用 --color-sheet。 */
-  --color-sheet-fine: #f7f5ef;
-  --color-sheet-classic: #f0e7d8;
+  /* 三档宣纸的底色。纯色纸底沿用 --color-sheet。 */
+  --color-sheet-fine: #f6f4ed;
+  --color-sheet-semi-sized: #f0e9dc;
+  --color-sheet-classic: #f4efe3;
 
   /* 正文先用中文字体，太极等已有符号保持文楷。系统表情排在雅黑之前，
      避免中文回退字体把表情画成黑白。图标另用 --font-emoji。 */
@@ -112,8 +113,6 @@
 
 /* 松烟墨底与暖白正文。朱砂保留操作语义，青玉与旧金用于收益和品阶。 */
 :root[data-theme='dark'] {
-  --color-sheet-fine: #182222;
-  --color-sheet-classic: #1b2524;
   --color-paper-2: #192323;
   --color-ink-secondary: #b8b4a3;
   --color-on-crimson: #251612;

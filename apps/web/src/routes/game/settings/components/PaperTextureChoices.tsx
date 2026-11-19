@@ -2,11 +2,12 @@ import { PaperSurface } from '@app/components/ui/PaperSurface';
 import type { PaperTexture } from '@app/lib/game-setting';
 import { useId } from 'react';
 
-const options: readonly { value: PaperTexture; label: string }[] = [
-  { value: 'fine', label: '细腻生宣' },
-  { value: 'classic', label: '古朴熟宣' },
-  { value: 'none', label: '无' },
-];
+const options = [
+  { value: 'fine', label: '生宣' },
+  { value: 'semi-sized', label: '半熟宣' },
+  { value: 'classic', label: '熟宣' },
+  { value: 'none', label: '无纹理' },
+] as const;
 
 export function PaperTextureChoices({
   value,
@@ -15,18 +16,12 @@ export function PaperTextureChoices({
   value: PaperTexture;
   onChange: (value: PaperTexture) => void;
 }) {
-  const id = useId();
+  const name = `${useId()}-paper-texture`;
 
   return (
-    <fieldset aria-describedby={`${id}-description`}>
+    <fieldset>
       <legend className="text-ink text-sm leading-6">纸底纹理</legend>
-      <p
-        id={`${id}-description`}
-        className="text-ink-secondary mt-1 text-xs leading-5"
-      >
-        选择喜欢的纸张质感，立即生效并保存在本机。
-      </p>
-      <div className="mt-3 grid max-w-lg grid-cols-3 gap-3">
+      <div className="mt-3 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
         {options.map((option) => (
           <label
             key={option.value}
@@ -34,7 +29,7 @@ export function PaperTextureChoices({
           >
             <input
               type="radio"
-              name={`${id}-paper-texture`}
+              name={name}
               value={option.value}
               checked={value === option.value}
               onChange={() => onChange(option.value)}

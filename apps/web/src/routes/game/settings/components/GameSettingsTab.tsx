@@ -83,7 +83,7 @@ export function GameSettingsTab() {
           />
         </label>
       </SettingsSection>
-      <SettingsSection>
+      <SettingsSection className="dark:hidden">
         <PaperTextureChoices
           value={paperTexture}
           onChange={(texture) => updateGameSettings({ paperTexture: texture })}

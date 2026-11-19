@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { syncViewportThemeColor } from './viewportColor';
 
 export type ColorScheme = 'system' | 'light' | 'dark';
-export type PaperTexture = 'fine' | 'classic' | 'none';
+export type PaperTexture = 'fine' | 'semi-sized' | 'classic' | 'none';
 
 /** Browser-local preferences. Never store credentials or battle progress here. */
 export interface GameSettings {
@@ -37,7 +37,7 @@ function normalizeImageOpacity(value: unknown): number {
 }
 
 function normalizePaperTexture(value: unknown): PaperTexture {
-  if (value === 'classic') return 'classic';
+  if (value === 'semi-sized' || value === 'classic') return value;
   // Preserve the former texture switch's disabled preference.
   if (value === 'none' || value === false) return 'none';
   return defaults.paperTexture;
