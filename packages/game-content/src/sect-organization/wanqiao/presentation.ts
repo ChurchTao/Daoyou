@@ -40,54 +40,6 @@ export const WANQIAO_SECT_PRESENTATION: SectPresentationTheme = {
   sectId: WANQIAO_SECT_ID,
   announcement:
     '藏音阁新录了几处山涧清声，诸位同门可往静听。山中诸务照常交付，归来时也请带回沿途所闻。',
-  onboarding: {
-    summary:
-      '从石隙、竹窍与呼吸中听取天地之声，修众窍共鸣与余音入微之法。心中有空处，方能听见新的变化。',
-    traits: ['听风观窍', '虚而能应', '余音入微'],
-    script: {
-      id: 'wanqiao-onboarding',
-      title: '一声从何而来',
-      theme: 'stillness',
-      backdrop: {
-        src: '/assets/sect/onboarding/wanqiao.webp',
-        alt: '万窍山空谷中山石多隙，竹林松树与静亭相依，横笛静置石上',
-      },
-      acts: [
-        {
-          id: 'hear-the-valley',
-          title: '谷中有声',
-          scene: '万窍山 · 山门',
-          body: '山径上无人奏乐，却有一长一短的声音从谷底传来。引路门人领你走近两块相倚的山石，指了指石间窄隙。来风穿过那里，便成了方才听见的声音。',
-          speaker: '引路门人：“先停一停，听它从何处来。”',
-          tone: 'mist',
-        },
-        {
-          id: 'leave-a-hollow',
-          title: '竹中有空',
-          scene: '万窍山 · 听风堂',
-          body: '长老递来一段中空的竹管。你按住一孔，声音低下去；松开手指，另一声随之而起。他将一根实心竹枝并放案边，示意你再试。竹枝仍是竹枝，案前却静了下来。',
-          speaker: '听风长老：“竹有窍，才容得下这一声。人修行，也须留些余地。”',
-          tone: 'stillness',
-        },
-        {
-          id: 'answer-among-hollows',
-          title: '众窍相应',
-          scene: '万窍山 · 鸣石坪',
-          body: '坪中门人吹出一缕清音，四周鸣石先后应答。另一人抬手止住箫声，石上的细纹却仍在轻颤。你凝神去听，那一点余音像是落在胸中，片刻后才渐渐散去。',
-          speaker: '传音师：“一声可以遍应众窍，也可以只留在细隙。天籁与入微，各有可听之处。”',
-          tone: 'mist',
-        },
-        {
-          id: 'listen-with-room',
-          title: '心中留白',
-          scene: '万窍山 · 观窍台',
-          body: '长老将《听万窍》交到你手中，请你在册上记下今日所闻。你写过风、石与竹，又空出半页。山谷仍有声响传来，这一次，你没有急着替它命名。',
-          speaker: '听风长老：“今日听见的，先记下。还未听见的，留待明日。”',
-          tone: 'stillness',
-        },
-      ],
-    },
-  },
   map: {
     image: '/assets/sect/wanqiao-map.webp',
     alt: '万窍山洞石、竹林与山涧间，听风堂、鸣石坪、诸院和山门由石径相连的水墨鸟瞰图',

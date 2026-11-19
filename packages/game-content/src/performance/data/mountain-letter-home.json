@@ -1,0 +1,128 @@
+{
+  "id": "mountain-letter-home",
+  "title": "有人往家走",
+  "requires": [],
+  "cast": {
+    "player": {
+      "name": "你"
+    },
+    "girl": {
+      "name": "青衣姑娘",
+      "portrait": "icon:portrait-disciple-f"
+    },
+    "boatman": {
+      "name": "盐船伙计"
+    },
+    "waiter": {
+      "name": "酒楼小二",
+      "portrait": "icon:portrait-merchant-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "山口集 · 临水的酒楼"
+    },
+    {
+      "type": "title",
+      "kicker": "自己报的名字",
+      "text": "有人往家走"
+    },
+    {
+      "type": "narration",
+      "text": "你跟着姑娘穿过鱼行。临水一座酒楼刚卸下门板，窗里有人把长竹篙往外递。姑娘扶了一把，从竹篙底下钻进去，把布套交给了窗下吃面的汉子。"
+    },
+    {
+      "type": "line",
+      "speaker": "girl",
+      "text": "给我爹的。他要问怎么还有猫叫，你叫他下回自己来听。"
+    },
+    {
+      "type": "line",
+      "speaker": "boatman",
+      "text": "好，给我吧。还有谁要捎东西？等我吃完这口就开船。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "上渡撑船的周叔，你认得么？"
+    },
+    {
+      "type": "line",
+      "speaker": "boatman",
+      "text": "老周啊，认得。去写罢，我把汤喝完。"
+    },
+    {
+      "type": "narration",
+      "text": "柜上有给客人包茶的纸。小二匀你一张，让你拿他记账的笔写。你趴在桌沿，先写周叔，托他把这纸捎回家。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "（写那座山的背面。）",
+          "jump": "peak"
+        },
+        {
+          "label": "（写咪咪。）",
+          "jump": "cat"
+        }
+      ]
+    },
+    {
+      "type": "mark",
+      "id": "peak"
+    },
+    {
+      "type": "letter",
+      "text": "那座山我绕过去啦，背面果真是平的。还瞧见有人在上头晒被子。婆婆要是不信，你念给她听。"
+    },
+    {
+      "type": "goto",
+      "mark": "fold"
+    },
+    {
+      "type": "mark",
+      "id": "cat"
+    },
+    {
+      "type": "letter",
+      "text": "我在路上得了一只猫，叫咪咪。昨晚它睡中间，我睡被角。等我回家，得给它单找条被子。"
+    },
+    {
+      "type": "mark",
+      "id": "fold"
+    },
+    {
+      "type": "narration",
+      "text": "你折了纸，又摊开，在底下挤了一行小字。等拜了师，我再写信，你们就知道往哪儿回了。盐船伙计已经站起来，一手扶着斗笠，腾出一只手接你的信。"
+    },
+    {
+      "type": "line",
+      "speaker": "girl",
+      "text": "我得回了。你几时带着猫上来，我再借它叫一声。"
+    },
+    {
+      "type": "narration",
+      "text": "姑娘走后，你也叫了碗面。三枚铜钱搁在桌上，咪咪拨掉一枚，你弯腰找了半天。"
+    },
+    {
+      "type": "line",
+      "speaker": "waiter",
+      "text": "钱搁这儿就成。你这包袱沉，放凳上吧。还走远路么？"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "我想找个地方拜师。你在这儿见的人多，知道往哪边走么？"
+    },
+    {
+      "type": "narration",
+      "text": "小二把灶头挂着的帘子掀了半幅，探进去请人替他照看片刻。你低头吃面，咪咪已经蹲到了空凳上。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

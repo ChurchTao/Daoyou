@@ -61,7 +61,6 @@ export function resolveSectPresentation(
     sectId,
     announcement:
       theme?.announcement ?? STANDARD_SECT_PRESENTATION.announcement,
-    onboarding: theme?.onboarding,
     map,
     facilityLabels: {
       ...STANDARD_SECT_PRESENTATION.facilityLabels,
@@ -146,31 +145,6 @@ export function resolveSectPresentation(
   }
   if (theme?.map?.image !== undefined) {
     assertNonBlank(`宗门 ${sectId} 地图资源`, theme.map.image);
-  }
-  if (resolved.onboarding) {
-    assertNonBlank(`宗门 ${sectId} 入门摘要`, resolved.onboarding.summary);
-    resolved.onboarding.traits.forEach((trait, index) =>
-      assertNonBlank(`宗门 ${sectId} 入门特色 ${index}`, trait),
-    );
-    assertNonBlank(`宗门 ${sectId} 演出标识`, resolved.onboarding.script.id);
-    assertNonBlank(`宗门 ${sectId} 演出标题`, resolved.onboarding.script.title);
-    assertNonBlank(
-      `宗门 ${sectId} 演出背景`,
-      resolved.onboarding.script.backdrop.src,
-    );
-    assertNonBlank(
-      `宗门 ${sectId} 演出背景替代文本`,
-      resolved.onboarding.script.backdrop.alt,
-    );
-    if (!resolved.onboarding.script.acts.length) {
-      throw new Error(`宗门 ${sectId} 入门演出至少需要一幕`);
-    }
-    for (const act of resolved.onboarding.script.acts) {
-      assertNonBlank(`宗门 ${sectId} 演出幕标识`, act.id);
-      assertNonBlank(`宗门 ${sectId} 演出幕名`, act.title);
-      assertNonBlank(`宗门 ${sectId} 演出场景`, act.scene);
-      assertNonBlank(`宗门 ${sectId} 演出正文`, act.body);
-    }
   }
   if (theme?.map?.alt !== undefined) {
     assertNonBlank(`宗门 ${sectId} 地图替代文本`, theme.map.alt);

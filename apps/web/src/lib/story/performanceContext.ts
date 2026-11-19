@@ -8,6 +8,7 @@ import {
 
 // 演出里按宗门换人的角色：填词的名字对应宗门哪间屋里的哪个人。
 const SECT_CAST = {
+  path_teacher: ['paths', 'guide'],
   receptionist: ['hall', 'registry'],
   alchemy_teacher: ['alchemy', 'keeper'],
   forge_teacher: ['refinery', 'keeper'],
@@ -68,6 +69,7 @@ export function storyPerformanceContext(
     name: cultivator.name,
     background: cultivator.background?.trim() || '尚无来处',
     origin: cultivator.origin?.trim() || '来历不详',
+    path_teacher: actorName('paths', 'guide', '引道长老'),
     receptionist: actorName('hall', 'registry', '接引师兄'),
     alchemy_teacher: actorName('alchemy', 'keeper', '丹房执事'),
     forge_teacher: actorName('refinery', 'keeper', '器坊执事'),

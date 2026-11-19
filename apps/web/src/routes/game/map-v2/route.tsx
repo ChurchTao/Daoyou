@@ -41,7 +41,7 @@ import {
   useState,
   type CSSProperties,
 } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { AtlasNodeKinds } from './AtlasNodeKinds';
 import { AtlasNodePanel } from './AtlasNodePanel';
 import type { AtlasController, AtlasView } from './AtlasPhaserRuntime';
@@ -57,6 +57,14 @@ const atlasFontText = [
 ].join('');
 
 export default function AtlasPage() {
+  const [params] = useSearchParams();
+  if (params.get('entry') === 'gate') {
+    return <Navigate to="/game/sect/onboarding?entry=gate" replace />;
+  }
+  return <AtlasMap />;
+}
+
+function AtlasMap() {
   const { mapMode } = useGameSettings();
   const root = useRef<HTMLDivElement>(null);
   const toolbar = useRef<HTMLElement>(null);

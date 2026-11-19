@@ -7,7 +7,6 @@ import cultivatorBasics from './data/cultivator-basics.json' with { type: 'json'
 import firstAttributes from './data/first-attributes.json' with { type: 'json' };
 import forgeFirstWeapon from './data/forge-first-weapon.json' with { type: 'json' };
 import inventoryBasics from './data/inventory-basics.json' with { type: 'json' };
-import sectFirstPath from './data/sect-first-path.json' with { type: 'json' };
 import sectDoor from './data/sect-door.json' with { type: 'json' };
 import mapQingxi from './data/map-qingxi.json' with { type: 'json' };
 import weaponEquip from './data/weapon-equip.json' with { type: 'json' };
@@ -27,7 +26,6 @@ const lessons = new Map<string, GuideLesson>([
   ['first-attributes', parseGuideLesson(firstAttributes)],
   ['forge-first-weapon', parseGuideLesson(forgeFirstWeapon)],
   ['inventory-basics', parseGuideLesson(inventoryBasics)],
-  ['sect-first-path', parseGuideLesson(sectFirstPath)],
   ['sect-door', parseGuideLesson(sectDoor)],
   ['weapon-equip', parseGuideLesson(weaponEquip)],
 ]);

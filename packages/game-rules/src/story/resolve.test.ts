@@ -461,7 +461,18 @@ describe('story resolver', () => {
     ).toBe('ember');
   });
 
-  it.each(['hearth', 'forge', 'equip', 'path', 'bag'])(
+  it('waits for actual path activation before continuing chapter four', () => {
+    const chapter = getStoryChapter('mountain-foothill');
+    const current = progress('path', { storyId: chapter.id });
+    const facts = emptyStoryFacts();
+    expect(resolveStory(chapter, current, facts).progress.beatId).toBe('path');
+    const view = presentStory(chapter, current, facts);
+    expect(view.href).toBe('/game/sect/onboarding?entry=path&from=story');
+    expect(view.guideLesson).toBeNull();
+    expect(resolveStory(chapter, current, { ...facts, sect_ready: true }).progress.beatId).toBe('roots');
+  });
+
+  it.each(['hearth', 'forge', 'equip', 'bag'])(
     'requires the lesson as well as the real action at %s',
     (beatId) => {
       const arrival = getStoryChapter('arrival');
@@ -596,7 +607,9 @@ describe('story resolver', () => {
     accept(resolveStory(arrival, current, facts), 'pouch');
 
     play('arrival-pouch', 'pouch', 'path');
-    guide('sect-first-path', 'path');
+    expect(presentStory(arrival, current, facts).href).toBe(
+      '/game/sect/onboarding?entry=path&from=story',
+    );
     facts.sect_ready = true;
     accept(resolveStory(arrival, current, facts), 'attributes');
     guide('first-attributes', 'bag');
@@ -889,10 +902,14 @@ describe('volume one', () => {
     let current = getStoryChapter(OPENING_STORY_CHAPTER);
     while (current.next && !seen.includes(current.id)) {
       seen.push(current.id);
-      expect(current.gated).toBe(true);
       current = getStoryChapter(current.next);
     }
-    expect(seen).toEqual(['mountain-ferry', 'mountain-flowers', 'mountain-bend']);
+    expect(seen).toEqual(['mountain-ferry', 'mountain-flowers', 'mountain-bend', 'mountain-foothill']);
+    expect(seen.slice(0, 3).every((id) => getStoryChapter(id).gated)).toBe(true);
+    expect(getStoryChapter('mountain-foothill').gated).toBeUndefined();
+    expect(getStoryChapter('mountain-foothill').beats[0]).toMatchObject({
+      id: 'rest', kind: 'performance', script: 'mountain-bamboo',
+    });
     expect(current.gated).toBeUndefined();
     expect(current.beats.at(-1)?.kind).toBe('life');
   });

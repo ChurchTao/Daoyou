@@ -186,18 +186,13 @@
       "kind": "practice",
       "accept": [
         {
-          "type": "guide",
-          "lesson": "sect-first-path"
-        },
-        {
           "type": "fact",
           "fact": "sect_ready"
         }
       ],
-      "scene": "sect-enlightenment-cliff",
+      "scene": "sect-onboarding",
       "prompt": "在悟道处选择宗门流派，开启传承后再准备下山。",
-      "href": "/game/sect/enlightenment-cliff?workspace=paths&guide=sect-first-path",
-      "mode": "all"
+      "href": "/game/sect/onboarding?entry=path&from=story"
     },
     {
       "id": "attributes",

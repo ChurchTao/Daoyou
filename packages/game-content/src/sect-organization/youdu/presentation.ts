@@ -30,66 +30,6 @@ export const YOUDU_SECT_PRESENTATION: SectPresentationTheme = {
   sectId: YOUDU_SECT_ID,
   announcement:
     '黑水沿岸近来魂灯摇曳，夜巡弟子须两人同行；若见失名游魂，先引至招魂司登记。',
-  onboarding: {
-    summary:
-      '黑水照影，幽灯唤魂。你将在敌人仍然站立时，一层层取走支撑其形神的力量。',
-    traits: ['蚀魂叠层', '魂伤越防', '禁疗耐控'],
-    script: {
-      id: 'youdu-onboarding',
-      title: '一叹入幽都',
-      theme: 'stillness',
-      backdrop: {
-        src: '/assets/sect/onboarding/youdu.webp',
-        alt: '幽都山门前，弟子沿三盏魂灯照亮的黑水石径入山，水中倒影与本人错开半步',
-      },
-      acts: [
-        {
-          id: 'black-water-shadow',
-          title: '黑水有影',
-          scene: '幽都 · 黑水石径',
-          body: '你沿北海石径入山。天上没有月，黑水却照出你的脸。水中那张脸比你迟了一息才抬眼。',
-          backgroundPosition: '48% 54%',
-          tone: 'stillness',
-        },
-        {
-          id: 'three-calls',
-          title: '三声唤名',
-          scene: '幽都 · 无日关',
-          body: '山门内有人依次唤出你的姓名、来处与心中最不愿失去之物。前两声都有回音，第三声落下时，身后的影子轻轻动了一下。',
-          speaker:
-            '引路人：“莫回头。能随一声呼唤离身的，未必是鬼，也可能是你自己。”',
-          backgroundPosition: '60% 45%',
-          tone: 'mist',
-        },
-        {
-          id: 'seven-lamps',
-          title: '七灯照身',
-          scene: '幽都 · 七魄台',
-          body: '七盏灯从暗处逐一亮起。你每走过一盏，脚步便轻一分，直到分不清是身体在前行，还是影子拖着身体。',
-          backgroundPosition: '35% 48%',
-          tone: 'stillness',
-        },
-        {
-          id: 'where-soul-returns',
-          title: '魂归何处',
-          scene: '幽都 · 幽都殿',
-          body: '殿中没有神像，只有一面黑水。掌门问你：若能唤走仇敌的魂，也能唤回他的魂，你以哪一声为本事？你承认自己尚不知道答案。',
-          backgroundPosition: '50% 38%',
-          tone: 'mist',
-        },
-        {
-          id: 'one-sigh-entry',
-          title: '一叹入门',
-          scene: '幽都 · 魂灯前',
-          body: '掌门吹灭其中一盏灯，灯焰却出现在你掌心。黑水里的倒影终于与你同时抬头。',
-          speaker:
-            '掌门：“先学叹息。唯有一声叹息，最容易让人忘记守住自己的魂。”',
-          backgroundPosition: '52% 44%',
-          tone: 'ember',
-        },
-      ],
-    },
-  },
   map: {
     image: '/assets/sect/youdu-map.webp',
     alt: '幽都宗门舆图，黑水穿过幽都殿、七魄台、照影场与山中诸院',

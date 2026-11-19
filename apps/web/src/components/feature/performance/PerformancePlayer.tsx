@@ -237,6 +237,7 @@ export function PerformancePlayer({
   onFinish,
   onExit,
   pictureFit = 'cover',
+  backdropStyle = 'panel',
   finishHint,
   finishPendingLabel = '落字中……',
   flags = [],
@@ -252,6 +253,7 @@ export function PerformancePlayer({
   onFinish: (outcome: string, chosen: string[]) => void;
   onExit: () => void;
   pictureFit?: 'cover' | 'contain';
+  backdropStyle?: 'panel' | 'wash';
   finishHint?: string;
   finishPendingLabel?: string;
   /** 开演前已经记下的标记。 */
@@ -373,7 +375,7 @@ export function PerformancePlayer({
 
       if (current.busy || onControl) return;
 
-      if (current.choosing && /^[1-4]$/.test(event.key)) {
+      if (current.choosing && /^[1-9]$/.test(event.key)) {
         const index = Number(event.key) - 1;
         if (index < current.optionCount) {
           event.preventDefault();
@@ -402,7 +404,8 @@ export function PerformancePlayer({
   }, [state.cursor, state.log.length, shown.length, choosing, closing]);
 
   const picture = state.backdrop.src;
-  const place = picture ? '' : state.backdrop.alt;
+  const backdropPanel = picture && backdropStyle === 'panel';
+  const place = backdropPanel ? '' : state.backdrop.alt;
   const faceOf = (actor?: string) =>
     actor === PLAYER_ACTOR
       ? (script.cast[actor]?.portrait ?? playerPortrait)
@@ -476,8 +479,14 @@ export function PerformancePlayer({
         </div>
       ) : null}
 
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        {picture ? (
+      {picture && backdropStyle === 'wash' ? (
+        <GameImage src={picture} alt="" purpose="artwork"
+          className="pointer-events-none absolute inset-0 size-full object-cover"
+          style={{ opacity: 0.1, objectPosition: state.backdrop.focus }}
+        />
+      ) : null}
+      <div className="relative flex min-h-0 flex-1 flex-col lg:flex-row">
+        {backdropPanel ? (
           <ScenePicture
             src={picture}
             alt={state.backdrop.alt}
@@ -505,7 +514,7 @@ export function PerformancePlayer({
                     open
                       ? cn(
                           'min-h-full flex-1 pb-6',
-                          picture
+                          backdropPanel
                             ? 'pt-6'
                             : 'pt-[max(var(--app-safe-top),3rem)]',
                         )
@@ -557,7 +566,7 @@ export function PerformancePlayer({
 
                   {open && choosing && cue?.type === 'choice' ? (
                     <div
-                      className="border-ink/10 flex flex-col border-t pt-3"
+                      className={cn('border-ink/10 border-t pt-3', cue.options.length > 4 ? 'grid grid-cols-2 gap-x-2' : 'flex flex-col')}
                       role="group"
                       aria-label="要怎么做"
                     >

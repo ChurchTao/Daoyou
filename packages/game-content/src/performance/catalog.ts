@@ -1,3 +1,7 @@
+import { createTavernConversation } from './tavern.js';
+export { createTavernConversation };
+export { createMountainGateArrival } from './mountain-gate-arrivals.js';
+export { createSectFirstPath } from './sect-first-path.js';
 import {
   parsePerformanceScript,
   type PerformanceScript,
@@ -26,6 +30,13 @@ import mountainThreePaintings from './data/mountain-three-paintings.json' with {
 import mountainTwoPeaks from './data/mountain-two-peaks.json' with { type: 'json' };
 import mountainWhitePaw from './data/mountain-white-paw.json' with { type: 'json' };
 
+import mountainBamboo from './data/mountain-bamboo.json' with { type: 'json' };
+import mountainLetterHome from './data/mountain-letter-home.json' with { type: 'json' };
+import mountainHighWater from './data/mountain-high-water.json' with { type: 'json' };
+import mountainRegister from './data/mountain-register.json' with { type: 'json' };
+import mountainAddress from './data/mountain-address.json' with { type: 'json' };
+import mountainChopsticks from './data/mountain-chopsticks.json' with { type: 'json' };
+
 const scripts = new Map<string, PerformanceScript>([
   ['arrival-fall', parsePerformanceScript(arrivalFall)],
   ['arrival-creek', parsePerformanceScript(arrivalCreek)],
@@ -49,6 +60,13 @@ const scripts = new Map<string, PerformanceScript>([
   ['mountain-companion', parsePerformanceScript(mountainCompanion)],
   ['mountain-spring', parsePerformanceScript(mountainSpring)],
   ['mountain-lamplight', parsePerformanceScript(mountainLamplight)],
+  ['mountain-bamboo', parsePerformanceScript(mountainBamboo)],
+  ['mountain-letter-home', parsePerformanceScript(mountainLetterHome)],
+  ['mountain-high-water', parsePerformanceScript(mountainHighWater)],
+  ['mountain-tavern', createTavernConversation()],
+  ['mountain-register', parsePerformanceScript(mountainRegister)],
+  ['mountain-address', parsePerformanceScript(mountainAddress)],
+  ['mountain-chopsticks', parsePerformanceScript(mountainChopsticks)],
   ...Object.values(BREAKTHROUGH_PERFORMANCES).map(
     (script): [string, PerformanceScript] => [script.id, script],
   ),

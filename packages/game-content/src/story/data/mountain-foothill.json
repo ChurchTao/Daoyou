@@ -1,14 +1,109 @@
 {
   "id": "mountain-foothill",
+  "title": "自己报的名字",
   "track": "main",
-  "title": "山脚小住",
+  "next": "mountain-lodging",
   "beats": [
     {
       "id": "rest",
-      "kind": "life",
-      "scene": "cave",
-      "prompt": "",
-      "href": "/game"
+      "kind": "performance",
+      "script": "mountain-bamboo",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "坡下有人叫了两声。",
+      "href": "/game/story"
+    },
+    {
+      "id": "letter",
+      "kind": "performance",
+      "script": "mountain-letter-home",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "给家里捎一封信。",
+      "href": "/game/story"
+    },
+    {
+      "id": "visit",
+      "kind": "performance",
+      "script": "mountain-register",
+      "outcome": "done",
+      "scene": "sect-onboarding",
+      "prompt": "在酒楼向小二打听各家山门。",
+      "href": "/game/sect/onboarding?entry=gate"
+    },
+    {
+      "id": "join",
+      "kind": "practice",
+      "scene": "sect-onboarding",
+      "prompt": "到看中的山门，亲自报上名字。",
+      "href": "/game/sect/onboarding?entry=gate",
+      "accept": [
+        {
+          "type": "fact",
+          "fact": "sect_joined"
+        }
+      ]
+    },
+    {
+      "id": "address",
+      "kind": "performance",
+      "script": "mountain-address",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "亲口报上你的名字。",
+      "href": "/game/story"
+    },
+    {
+      "id": "path",
+      "kind": "practice",
+      "scene": "sect-onboarding",
+      "prompt": "随本宗教习选初习流派。",
+      "href": "/game/sect/onboarding?entry=path&from=story",
+      "accept": [
+        {
+          "type": "fact",
+          "fact": "sect_ready"
+        }
+      ]
+    },
+    {
+      "id": "roots",
+      "kind": "practice",
+      "scene": "cultivator",
+      "prompt": "看一看根基，点数可以先留着。",
+      "href": "/game/cultivator?allocate=1&guide=first-attributes",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "first-attributes"
+        }
+      ]
+    },
+    {
+      "id": "errand",
+      "kind": "objective",
+      "goals": [
+        {
+          "label": "交付一件宗门日常",
+          "need": {
+            "type": "count",
+            "count": "sect_dailies",
+            "atLeast": 1
+          }
+        }
+      ],
+      "scene": "sect-affairs",
+      "prompt": "领一件门中差事，做完回来交差。",
+      "href": "/game/sect/affairs"
+    },
+    {
+      "id": "meal",
+      "kind": "performance",
+      "script": "mountain-chopsticks",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "晚饭有一碟炒黄豆。",
+      "href": "/game/story"
     }
   ]
 }

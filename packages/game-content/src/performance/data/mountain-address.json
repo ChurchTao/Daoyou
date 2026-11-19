@@ -1,0 +1,72 @@
+{
+  "id": "mountain-address",
+  "title": "回信有地方收了",
+  "requires": [
+    "name",
+    "receptionist"
+  ],
+  "cast": {
+    "player": {
+      "name": "你"
+    },
+    "clerk": {
+      "name": "{receptionist}"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "山门 · 名册前"
+    },
+    {
+      "type": "title",
+      "kicker": "自己报的名字",
+      "text": "回信有地方收了"
+    },
+    {
+      "type": "narration",
+      "text": "掌籍的人等你把气喘匀才蘸墨。"
+    },
+    {
+      "type": "line",
+      "speaker": "clerk",
+      "text": "名字？"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "{name}。"
+    },
+    {
+      "type": "line",
+      "speaker": "clerk",
+      "text": "来处呢？"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "河弯那儿，上渡下船，走过染坊。面棚漏雨的那张桌子，我从小就坐……"
+    },
+    {
+      "type": "narration",
+      "text": "他提着笔，等了片刻。"
+    },
+    {
+      "type": "line",
+      "speaker": "clerk",
+      "text": "写到上渡，成么？这一格就这么大。"
+    },
+    {
+      "type": "narration",
+      "text": "你这才住了口。册子挪过来，你认得自己的名字，下面一格还空着。桌上积着好几封家信。你想起自己托人捎的那张纸，向掌籍弟子讨了个裁下的边角，把寄到这里的地名一字一字抄好。墨还湿着，你沿着衣边轻轻扇。"
+    },
+    {
+      "type": "narration",
+      "text": "院里正在上早课。你寻到教习，后半句「往后跟您学么」还没问出来，他已经一手把你往里让，一手接住个打瞌睡栽下凳子的小弟子。孩子摸了摸脑袋，竟然接着往下背，一句都没背错。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

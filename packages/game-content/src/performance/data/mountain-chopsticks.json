@@ -1,0 +1,52 @@
+{
+  "id": "mountain-chopsticks",
+  "title": "筷子",
+  "requires": [],
+  "cast": {
+    "peer": {
+      "name": "同门",
+      "portrait": "icon:portrait-disciple-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "门内 · 晚饭"
+    },
+    {
+      "type": "title",
+      "kicker": "自己报的名字",
+      "text": "筷子"
+    },
+    {
+      "type": "narration",
+      "text": "头一件门中差事交了，你领到件公用的旧兵器。握处的旧藤皮磨出了一个浅窝，别人的大拇指比你的长。你拿布多缠了两圈，拿着它独自练到开饭。"
+    },
+    {
+      "type": "narration",
+      "text": "晚饭有一碟炒黄豆。你平日很会夹这个，今日第一颗掉进碗，第二颗掉到桌上。第三颗眼看夹住了，对座伸筷子把碟往你这头推了推。"
+    },
+    {
+      "type": "line",
+      "speaker": "peer",
+      "text": "手摊开看看。"
+    },
+    {
+      "type": "narration",
+      "text": "你右手虎口横着半道紫印。对座那位翻开自己手掌给你比，他的是一块硬茧，位置还比你浅些。"
+    },
+    {
+      "type": "line",
+      "speaker": "peer",
+      "text": "吃完带着你缠的那个柄，跟我去趟器坊。让那边的人瞧瞧。"
+    },
+    {
+      "type": "narration",
+      "text": "他夹走了桌上那颗黄豆。剩下半碗饭你换了左手，多少有些慢。等你把碗搁下，那人还在门口，替你拿着兵器。咪咪倒已经混熟了，蹲在他另一边肩上。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

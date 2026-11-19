@@ -129,7 +129,7 @@ const choiceOptionSchema = z
 const choiceCueSchema = z
   .object({
     type: z.literal('choice'),
-    options: z.array(choiceOptionSchema).min(1).max(4),
+    options: z.array(choiceOptionSchema).min(1).max(24),
     when: whenSchema.optional(),
   })
   .strict();

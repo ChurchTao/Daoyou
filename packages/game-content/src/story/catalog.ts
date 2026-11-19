@@ -4,6 +4,7 @@ import arrivalChapter from './data/arrival.json' with { type: 'json' };
 import mountainBend from './data/mountain-bend.json' with { type: 'json' };
 import mountainFerry from './data/mountain-ferry.json' with { type: 'json' };
 import mountainFlowers from './data/mountain-flowers.json' with { type: 'json' };
+import mountainLodging from './data/mountain-lodging.json' with { type: 'json' };
 import mountainFoothill from './data/mountain-foothill.json' with { type: 'json' };
 
 import { getPerformanceScript } from '../performance/catalog.js';
@@ -39,11 +40,12 @@ const chapters = new Map<string, StoryChapter>([
   ['mountain-ferry', parseChapter(mountainFerry)],
   ['mountain-flowers', parseChapter(mountainFlowers)],
   ['mountain-bend', parseChapter(mountainBend)],
+  ['mountain-lodging', parseChapter(mountainLodging)],
   ['mountain-foothill', parseChapter(mountainFoothill)],
 ]);
 
 export const OPENING_STORY_CHAPTER = 'mountain-ferry';
-export const RESTING_STORY_CHAPTER = 'mountain-foothill';
+export const RESTING_STORY_CHAPTER = 'mountain-lodging';
 
 for (const chapter of chapters.values()) {
   if (chapter.next && !chapters.has(chapter.next)) {

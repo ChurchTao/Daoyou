@@ -50,6 +50,10 @@ export default function StoryRoute() {
     return <Navigate to="/game" replace />;
   }
 
+  if (!leaving && story.story?.href && story.story.href !== '/game/story') {
+    return <Navigate to={story.story.href} replace />;
+  }
+
   const context = storyPerformanceContext(
     cultivator,
     player.data?.activeCultivator?.sectId,
