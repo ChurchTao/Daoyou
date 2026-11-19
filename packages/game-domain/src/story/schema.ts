@@ -111,8 +111,6 @@ const lessonIdSchema = z
   .max(80)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 
-export const STORY_CLASSROOMS = ['alchemy', 'refinery'] as const;
-
 const flagSchema = z
   .string()
   .trim()
@@ -177,8 +175,6 @@ const practiceBeatSchema = z
     hail: hailSchema,
     gift: giftSchema,
     lesson: lessonIdSchema.optional(),
-    // 破例一课：这一幕期间，身份不够的弟子也能进这间屋开一炉。
-    classroom: z.enum(STORY_CLASSROOMS).optional(),
     grant: z.string().trim().min(1).max(40).optional(),
     reward: z.string().trim().min(1).max(40).optional(),
   })
@@ -448,7 +444,6 @@ export const StoryViewSchema = z
     // 眼下是剧情战的话，是哪一场。
     battleId: z.string().nullable(),
     guideLesson: z.string().nullable(),
-    classroom: z.enum(STORY_CLASSROOMS).nullable(),
     targetItem: z
       .object({
         id: z.uuid(),

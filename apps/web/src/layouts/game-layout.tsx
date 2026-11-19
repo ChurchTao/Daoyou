@@ -227,9 +227,9 @@ export function GameActivityLayout() {
 
 export function GameNarrativeLayout() {
   return (
-    <main>
+    <PaperSurface as="main" className="min-h-dvh text-ink">
       <Outlet />
-    </main>
+    </PaperSurface>
   );
 }
 
@@ -238,10 +238,13 @@ export function GameMapLayout({
 }: {
   scrollContent?: boolean;
 }) {
+  const scene = resolveGameScene(useMatches());
+  const surface =
+    scene && scene.presentation !== 'immersive' ? 'paper' : 'scene';
   return (
     <main className="h-dvh">
-      <ImmersiveGameFrame scrollContent={scrollContent}>
-        <div className={scrollContent ? 'min-h-full' : 'h-full'}>
+      <ImmersiveGameFrame scrollContent={scrollContent} surface={surface}>
+        <div className="h-full">
           <SceneGate>
             <Outlet />
           </SceneGate>

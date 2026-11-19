@@ -39,8 +39,7 @@
       "prompt": "选图纸、青石和器形，核对用料后开炉。",
       "href": "/game/sect/refinery?workspace=craft&guide=forge-first-weapon",
       "lesson": "forge-first-weapon",
-      "accept": [{ "type": "fact", "fact": "weapon_forged" }],
-      "classroom": "refinery"
+      "accept": [{ "type": "fact", "fact": "weapon_forged" }]
     },
     {
       "id": "cool",
@@ -66,8 +65,7 @@
         "href": "/game/sect/refinery?workspace=craft"
       },
       "lesson": "weapon-equip",
-      "accept": [{ "type": "fact", "fact": "story_weapon_equipped" }],
-      "classroom": "refinery"
+      "accept": [{ "type": "fact", "fact": "story_weapon_equipped" }]
     },
     {
       "id": "try",

@@ -476,7 +476,6 @@ export function presentStory(
         }
       : null,
     guideLesson: pendingGuide(beat, progress),
-    classroom: beat.kind === 'practice' ? (beat.classroom ?? null) : null,
     ...(weaponId
       ? { targetItem: { id: weaponId, missingAction: missingItemAction } }
       : {}),

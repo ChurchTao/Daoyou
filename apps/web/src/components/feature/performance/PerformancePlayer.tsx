@@ -1,6 +1,7 @@
 import { InkButton } from '@app/components/ui';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { GameImage } from '@app/components/ui/GameImage';
+import { PaperSurface } from '@app/components/ui/PaperSurface';
 import { cn } from '@app/lib/cn';
 import { useTypewriter } from '@app/lib/hooks/useTypewriter';
 import {
@@ -451,8 +452,9 @@ export function PerformancePlayer({
   if (pages.at(-1)?.[0]?.page !== state.page) pages.push([]);
 
   return (
-    <section
-      className="bg-paper text-ink relative flex h-dvh flex-col overflow-hidden motion-safe:animate-[fade-in_0.5s_ease-out]"
+    <PaperSurface
+      as="section"
+      className="text-ink flex h-dvh flex-col overflow-hidden motion-safe:animate-[fade-in_0.5s_ease-out]"
       aria-label={script.title}
     >
       <h1 className="sr-only">{script.title}</h1>
@@ -622,6 +624,6 @@ export function PerformancePlayer({
           </div>
         </div>
       </div>
-    </section>
+    </PaperSurface>
   );
 }

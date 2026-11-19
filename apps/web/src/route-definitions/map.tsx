@@ -42,6 +42,7 @@ export const mapRoutes = (
           id: 'sect-foreign-gate',
           chrome: 'immersive',
           dock: 'hidden',
+          presentation: 'service',
         },
         '外宗山门',
       )}

@@ -122,8 +122,7 @@
       "prompt": "将备好的4份翠芽草一起入炉，完成炼丹后查看药性与用法。",
       "href": "/game/sect/alchemy?workspace=craft&guide=alchemy-first-furnace",
       "mode": "all",
-      "grant": "first-furnace-lesson",
-      "classroom": "alchemy"
+      "grant": "first-furnace-lesson"
     },
     {
       "id": "empty-hand",
@@ -151,8 +150,7 @@
       "prompt": "选好图纸和青石，核对消耗，再开炉铸出第一件兵器。",
       "href": "/game/sect/refinery?workspace=craft&guide=forge-first-weapon",
       "mode": "all",
-      "grant": "first-weapon",
-      "classroom": "refinery"
+      "grant": "first-weapon"
     },
     {
       "id": "equip",

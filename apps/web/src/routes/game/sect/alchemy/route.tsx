@@ -18,8 +18,11 @@ import { formatDocumentTitle } from '@app/lib/router/routeTitle';
 import { getSectBenefitMetric } from '@app/lib/sect/sectPresentation';
 import { STANDARD_SECT_PRESENTATION } from '@daoyou/game-rules/sect-organization';
 import { useNavigate, useSearchParams } from 'react-router';
-import { SectCraftBoundary } from '../components/SectCraftBoundary';
-import { SectPageLoading, SectScene } from '../components/SectScene';
+import {
+  SectPageLoading,
+  SectPermissionBoundary,
+  SectScene,
+} from '../components/SectScene';
 
 const registry = new SectNpcConversationRegistry([
   { key: 'sect.alchemy.craft', renderer: SectFacilityWorkspaceConversation },
@@ -27,13 +30,16 @@ const registry = new SectNpcConversationRegistry([
 
 export default function SectAlchemyPage() {
   return (
-    <SectCraftBoundary sceneKey="alchemy">
-      {(classroom) => <SectAlchemyBody classroom={classroom} />}
-    </SectCraftBoundary>
+    <SectPermissionBoundary
+      permission="sect.facility.alchemy.use"
+      sceneKey="alchemy"
+    >
+      <SectAlchemyBody />
+    </SectPermissionBoundary>
   );
 }
 
-function SectAlchemyBody({ classroom }: { classroom: boolean }) {
+function SectAlchemyBody() {
   const context = useSectContextQuery();
   const infrastructure = useSectInfrastructureQuery();
   const presentation = getSectPresentationForContext(context.data);
@@ -41,12 +47,12 @@ function SectAlchemyBody({ classroom }: { classroom: boolean }) {
   const navigate = useNavigate();
   if (!context.data || !infrastructure.data)
     return <SectPageLoading sceneKey="alchemy" />;
-  const effect = resolveSectBenefits(context.data, infrastructure.data)
-    .facilityEffects.alchemy;
-  const level = classroom ? 1 : getSectBenefitMetric(effect, 'level', 1);
-  const discountPercent = classroom
-    ? 0
-    : getSectBenefitMetric(effect, 'discount') * 100;
+  const benefits = resolveSectBenefits(context.data, infrastructure.data);
+  const level = getSectBenefitMetric(
+    benefits.facilityEffects.alchemy,
+    'level',
+    1,
+  );
   const scene = presentation.scenes.alchemy;
   if (searchParams.get('workspace') === 'craft')
     return (
@@ -56,7 +62,8 @@ function SectAlchemyBody({ classroom }: { classroom: boolean }) {
           <AlchemyCraftSessionProvider
             sectContext={{
               facilityLevel: level,
-              discountPercent,
+              discountPercent:
+                benefits.craftDiscounts['sect.craft.alchemy'] * 100,
               facilityLabel:
                 presentation.facilityLabels.alchemy ??
                 presentation.facilityLabels.workshop,

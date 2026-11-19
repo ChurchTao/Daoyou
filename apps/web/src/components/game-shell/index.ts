@@ -1,6 +1,5 @@
 export { CultivatorOverviewPanel } from './CultivatorOverviewPanel';
 export { GameBottomDock } from './GameBottomDock';
-export { GameImmersiveLoading } from './GameImmersiveLoading';
 export {
   GameLoadingState,
   type GameLoadingStateProps,
