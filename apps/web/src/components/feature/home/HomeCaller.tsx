@@ -26,7 +26,7 @@ export function HomeCaller({
   const face = hail
     ? (hail.portrait ?? storyCastFace(hail.by, sectId))
     : undefined;
-  const act = story.prompt.replace(/[。！]$/, '');
+  const act = story.actionLabel ?? story.prompt.replace(/[。！]$/, '');
 
   return (
     <section data-guide="home.story">

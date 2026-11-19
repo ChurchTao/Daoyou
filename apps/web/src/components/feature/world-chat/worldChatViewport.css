@@ -14,6 +14,9 @@
 
 [data-game-viewport][data-chat-keyboard] [data-game-bottom-chrome] {
   visibility: hidden;
+}
+
+[data-game-viewport][data-chat-keyboard] [data-game-bottom-chrome] * {
   pointer-events: none;
 }
 

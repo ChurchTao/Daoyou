@@ -12,6 +12,7 @@ export {
   acknowledgeBattle,
   acknowledgeGuide,
   acknowledgePerformance,
+  noteForgedStoryWeapon,
   noteStoryFact,
   presentStory,
   resolveStory,

@@ -48,7 +48,7 @@ function SectAlchemyBody({ classroom }: { classroom: boolean }) {
     ? 0
     : getSectBenefitMetric(effect, 'discount') * 100;
   const scene = presentation.scenes.alchemy;
-  if (classroom || searchParams.get('workspace') === 'craft')
+  if (searchParams.get('workspace') === 'craft')
     return (
       <>
         <title>{formatDocumentTitle(scene.title)}</title>
@@ -66,14 +66,12 @@ function SectAlchemyBody({ classroom }: { classroom: boolean }) {
             <FurnaceWorkspace
               onBack={() =>
                 navigate(
-                  classroom
-                    ? '/game/story'
-                    : createSectRoomNpcHref('/game/sect/alchemy', 'furnace'),
+                  createSectRoomNpcHref('/game/sect/alchemy', 'furnace'),
                   { replace: true },
                 )
               }
               onReturn={() =>
-                navigate(classroom ? '/game/story' : '/game/sect/alchemy', {
+                navigate('/game/sect/alchemy', {
                   replace: true,
                 })
               }

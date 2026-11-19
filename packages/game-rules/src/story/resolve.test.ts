@@ -9,6 +9,7 @@ import {
 import {
   acknowledgeGuide,
   acknowledgePerformance,
+  noteForgedStoryWeapon,
   noteStoryFact,
   presentStory,
   resolveStory,
@@ -945,7 +946,7 @@ describe('volume one', () => {
       seen.push(current.id);
       current = getStoryChapter(current.next);
     }
-    expect(seen).toEqual(['mountain-ferry', 'mountain-flowers', 'mountain-bend', 'mountain-foothill']);
+    expect(seen).toEqual(['mountain-ferry', 'mountain-flowers', 'mountain-bend', 'mountain-foothill', 'mountain-forge']);
     expect(seen.slice(0, 3).every((id) => getStoryChapter(id).gated)).toBe(true);
     expect(getStoryChapter('mountain-foothill').gated).toBeUndefined();
     expect(getStoryChapter('mountain-foothill').beats[0]).toMatchObject({
@@ -960,6 +961,49 @@ describe('volume one', () => {
       storyId: 'mountain-ferry',
       beatId: 'two-peaks',
       status: 'active',
+    });
+  });
+
+  it('supplies one furnace and requires the actual forged weapon to be worn', () => {
+    const chapter = getStoryChapter('mountain-forge');
+    const oldWeaponId = 'c73d5efe-a644-4326-97e0-fa8d87f078ca';
+    const newWeaponId = 'f509aa35-5bea-49d2-90a9-c7f1161d29b9';
+    const facts = { ...emptyStoryFacts(), weapon_equipped: true, equippedWeaponId: oldWeaponId };
+    const early = noteForgedStoryWeapon(chapter, openingStoryProgress(chapter.id), facts, oldWeaponId);
+    expect(early.progress.marks).toEqual([]);
+    let current = early.progress;
+    for (const scene of ['ladle', 'grip', 'borrow']) {
+      const next = acknowledgePerformance(chapter, current, facts, 'mountain-forge-' + scene, 'done');
+      expect(next.grants).toEqual(scene === 'borrow' ? ['first-weapon'] : []);
+      current = next.progress;
+    }
+    expect(current.beatId).toBe('forge');
+    expect(acknowledgePerformance(chapter, current, facts, 'mountain-forge-borrow', 'done').grants).toEqual([]);
+    expect(acknowledgeGuide(chapter, current, facts, 'forge-first-weapon').progress.beatId).toBe('forge');
+    const forged = noteForgedStoryWeapon(chapter, current, facts, newWeaponId);
+    expect(forged.progress.beatId).toBe('cool');
+    expect(presentStory(chapter, forged.progress, facts)).toMatchObject({
+      actionLabel: '听执事说话',
+      href: '/game/story',
+      indicatorFrom: ['/game/sect/refinery?workspace=craft'],
+    });
+    expect(StoryProgressSchema.safeParse(forged.progress).success).toBe(true);
+    const equip = acknowledgePerformance(chapter, forged.progress, facts, 'mountain-forge-cool', 'done');
+    expect(presentStory(chapter, equip.progress, facts)).toMatchObject({
+      beatId: 'equip',
+      href: `/game/inventory?guide=weapon-equip&item=${newWeaponId}`,
+      targetItem: {
+        id: newWeaponId,
+        missingAction: { href: '/game/sect/refinery?workspace=craft' },
+      },
+    });
+    expect(acknowledgeGuide(chapter, equip.progress, facts, 'weapon-equip').progress.beatId).toBe('equip');
+    const ready = { ...facts, equippedWeaponId: newWeaponId };
+    const worn = resolveStory(chapter, equip.progress, ready);
+    expect(presentStory(chapter, worn.progress, ready)).toMatchObject({
+      beatId: 'try',
+      actionLabel: '回院里试手',
+      indicatorFrom: ['/game/inventory', '/game/cave/storage/new?location=bag'],
     });
   });
 });

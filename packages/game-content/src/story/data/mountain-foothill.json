@@ -2,7 +2,7 @@
   "id": "mountain-foothill",
   "title": "自己报的名字",
   "track": "main",
-  "next": "mountain-lodging",
+  "next": "mountain-forge",
   "beats": [
     {
       "id": "rest",

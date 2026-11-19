@@ -15,6 +15,7 @@ export const STORY_FACT_IDS = [
   'qingxi_met',
   'weapon_forged',
   'weapon_equipped',
+  'story_weapon_equipped',
   'sect_joined',
   'sect_ready',
   'breakthrough_available',
@@ -46,6 +47,8 @@ export type StoryTrack = (typeof STORY_TRACKS)[number];
 export const STORY_STATUSES = ['active', 'completed'] as const;
 
 const progressMarkIds = ['arrival-v2'] as const;
+const STORY_WEAPON_PREFIX = 'weapon:';
+const storyWeaponIdSchema = z.uuid();
 
 export type StoryStatus = (typeof STORY_STATUSES)[number];
 
@@ -59,6 +62,21 @@ const unlocksSchema = z
 
 // 这一幕演完、做完、打完时给玩家的一份东西，写赠礼编号。
 const giftSchema = z.string().trim().min(1).max(40).optional();
+
+const taskIndicatorFields = {
+  actionLabel: z.string().trim().min(1).max(24).optional(),
+  indicatorFrom: z
+    .array(z.string().trim().max(120).regex(/^\/game(?:[/?]|$)/))
+    .min(1)
+    .max(4)
+    .optional(),
+};
+const taskActionSchema = z
+  .object({
+    label: z.string().trim().min(1).max(24),
+    href: z.string().trim().min(1).max(120),
+  })
+  .strict();
 
 // 招呼：洞府里，这一幕等着玩家的那个人说的一句话。名字里可以带演出的占位符。
 const hailSchema = z
@@ -79,6 +97,7 @@ const performanceBeatSchema = z
     scene: z.string().trim().min(1).max(40),
     prompt: z.string().max(80),
     href: z.string().trim().min(1).max(120),
+    ...taskIndicatorFields,
     unlocks: unlocksSchema,
     hail: hailSchema,
     gift: giftSchema,
@@ -152,6 +171,8 @@ const practiceBeatSchema = z
     scene: z.string().trim().min(1).max(40),
     prompt: z.string().trim().min(1).max(80),
     href: z.string().trim().min(1).max(120),
+    ...taskIndicatorFields,
+    missingItemAction: taskActionSchema.optional(),
     unlocks: unlocksSchema,
     hail: hailSchema,
     gift: giftSchema,
@@ -170,6 +191,7 @@ const lifeBeatSchema = z
     scene: z.string().trim().min(1).max(40),
     prompt: z.string().max(80),
     href: z.string().trim().min(1).max(120),
+    ...taskIndicatorFields,
     unlocks: unlocksSchema,
     hail: hailSchema,
     gift: giftSchema,
@@ -178,6 +200,7 @@ const lifeBeatSchema = z
         fact: factSchema,
         prompt: z.string().trim().min(1).max(80),
         href: z.string().trim().min(1).max(120),
+        ...taskIndicatorFields,
       })
       .strict()
       .optional(),
@@ -193,6 +216,7 @@ const waitBeatSchema = z
     scene: z.string().trim().min(1).max(40),
     prompt: z.string().trim().min(1).max(80),
     href: z.string().trim().min(1).max(120),
+    ...taskIndicatorFields,
     unlocks: unlocksSchema,
     hail: hailSchema,
     gift: giftSchema,
@@ -218,6 +242,7 @@ const objectiveBeatSchema = z
     scene: z.string().trim().min(1).max(40),
     prompt: z.string().trim().min(1).max(80),
     href: z.string().trim().min(1).max(120),
+    ...taskIndicatorFields,
     unlocks: unlocksSchema,
     hail: hailSchema,
     gift: giftSchema,
@@ -237,6 +262,7 @@ const battleBeatSchema = z
     scene: z.string().trim().min(1).max(40),
     prompt: z.string().trim().min(1).max(80),
     href: z.string().trim().min(1).max(120),
+    ...taskIndicatorFields,
     unlocks: unlocksSchema,
     hail: hailSchema,
     gift: giftSchema,
@@ -391,7 +417,9 @@ export const StoryProgressSchema = z
             /^flag:[a-z0-9]+(?:[-.:][a-z0-9]+)*$/.test(value) ||
             /^battle:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value) ||
             /^base:[a-z0-9-]+:[a-z_]+=\d+$/.test(value) ||
-            /^guide:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value),
+            /^guide:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value) ||
+            (value.startsWith(STORY_WEAPON_PREFIX) &&
+              storyWeaponIdSchema.safeParse(value.slice(STORY_WEAPON_PREFIX.length)).success),
           '剧情标记无法识别',
         ),
     ),
@@ -415,11 +443,19 @@ export const StoryViewSchema = z
     scene: z.string(),
     prompt: z.string(),
     href: z.string(),
+    ...taskIndicatorFields,
     scriptId: z.string().nullable(),
     // 眼下是剧情战的话，是哪一场。
     battleId: z.string().nullable(),
     guideLesson: z.string().nullable(),
     classroom: z.enum(STORY_CLASSROOMS).nullable(),
+    targetItem: z
+      .object({
+        id: z.uuid(),
+        missingAction: taskActionSchema.optional(),
+      })
+      .strict()
+      .optional(),
     // 这一幕等着玩家的人和他的一句话。没写就为空。
     hail: z
       .object({
@@ -466,6 +502,7 @@ export interface StoryStanding {
 }
 
 export type StoryFacts = Record<StoryFactId, boolean> & {
+  equippedWeaponId?: string;
   /** 眼下的境界。没给就当门槛没到。 */
   standing?: StoryStanding;
   /** 各项累计数眼下的值。 */
@@ -498,6 +535,15 @@ export function readBaseMark(
 }
 
 const FLAG_MARK = 'flag:';
+
+export function storyWeaponMark(weaponId: string) {
+  return STORY_WEAPON_PREFIX + storyWeaponIdSchema.parse(weaponId);
+}
+
+export function readStoryWeaponId(marks: readonly string[]) {
+  return marks.find((mark) => mark.startsWith(STORY_WEAPON_PREFIX))
+    ?.slice(STORY_WEAPON_PREFIX.length);
+}
 
 export function flagMark(flag: string): string {
   return `${FLAG_MARK}${flag}`;
@@ -533,6 +579,7 @@ export function emptyStoryFacts(): StoryFacts {
     qingxi_met: false,
     weapon_forged: false,
     weapon_equipped: false,
+    story_weapon_equipped: false,
     sect_joined: false,
     sect_ready: false,
     breakthrough_available: false,

@@ -7,6 +7,7 @@ import {
 import { useCombatV6Session } from '@app/components/feature/combat-v6/useCombatV6Session';
 import { useQiState } from '@app/components/feature/cultivator/useQiState';
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
+import { ImmersiveGameFrame } from '@app/components/game-shell/ImmersiveGameFrame';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { apiFetch } from '@app/lib/api/fetch';
@@ -18,7 +19,6 @@ import {
   useSectCombatState,
 } from '@app/lib/resources/player';
 import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
-import { StoryTracker } from '@app/components/feature/story/StoryTracker';
 import { useStory } from '@app/lib/story/useStory';
 import { REALM_ORDER } from '@daoyou/constants/realms';
 import type {
@@ -257,83 +257,89 @@ function WildRegion({ nodeId }: { nodeId: string }) {
   };
   if (!session) {
     return (
-      <div className="app-safe-area-page bg-paper text-ink h-full overflow-y-auto">
-        <nav
-          className="mx-auto flex max-w-[1120px] justify-end px-4 pt-2 sm:px-8"
-          aria-label="野外导航"
-        >
-          <InkButton href={codexHref ?? mapHref} variant="secondary">
-            {codexHref ? '返回图鉴' : '返回地图'}
-          </InkButton>
-        </nav>
-        {(error || build.error || qi.error || identity.error) && (
-          <div
-            className="text-crimson mx-auto max-w-2xl px-6 py-3 text-sm"
-            role="alert"
+      <ImmersiveGameFrame
+        scrollContent
+        showTask={!combat.loading && !!region && !region.settlingBattleId}
+      >
+        <div className="app-safe-area-page bg-paper text-ink min-h-full">
+          <nav
+            className="mx-auto flex max-w-[1120px] justify-end px-4 pt-2 sm:px-8"
+            aria-label="野外导航"
           >
-            {error || build.error || qi.error || identity.error}
-            <InkButton
-              onClick={() => void Promise.all([refresh(true), reloadRegion()])}
-            >
-              重新载入
+            <InkButton href={codexHref ?? mapHref} variant="secondary">
+              {codexHref ? '返回图鉴' : '返回地图'}
             </InkButton>
-          </div>
-        )}
-        {(combat.loading || !region) && !error ? (
-          <GameLoadingState variant="scene" message="正在踏入山野……" />
-        ) : region ? (
-          <>
-            {region.settlingBattleId && (
-              <p
-                className="text-ink-secondary text-center text-sm"
-                role="status"
+          </nav>
+          {(error || build.error || qi.error || identity.error) && (
+            <div
+              className="text-crimson mx-auto max-w-2xl px-6 py-3 text-sm"
+              role="alert"
+            >
+              {error || build.error || qi.error || identity.error}
+              <InkButton
+                onClick={() =>
+                  void Promise.all([refresh(true), reloadRegion()])
+                }
               >
-                上场战斗结算中，请稍候。
-              </p>
-            )}
-            {!region.settlingBattleId && <StoryTracker placement="slip" />}
-            {region.trainingSessionId && (
-              <p className="text-ink-secondary text-center text-sm">
-                请先
-                <Link to="/game/training-room" className="underline">
-                  结束当前训练
-                </Link>
-                。
-              </p>
-            )}
-            {realmLocked && (
-              <p
-                className="text-ink-secondary px-6 py-2 text-center text-sm"
-                role="status"
-              >
-                此处需要达到{region.realmRequirement}期后寻觅。
-              </p>
-            )}
-            <WildSeekingScene
-              region={region}
-              searching={searching}
-              starting={pending && !searching}
-              unavailable={
-                !cultivator ||
-                realmLocked ||
-                !!region.trainingSessionId ||
-                !!region.settlingBattleId
-              }
-              ownerLevel={
-                cultivator
-                  ? combatCharacterLevel(
-                      cultivator.realm,
-                      cultivator.realm_stage,
-                    )
-                  : null
-              }
-              qi={qi.state?.current ?? null}
-              onSearch={explore}
-              onStart={start}
-            />
-          </>
-        ) : null}
-      </div>
+                重新载入
+              </InkButton>
+            </div>
+          )}
+          {(combat.loading || !region) && !error ? (
+            <GameLoadingState variant="scene" message="正在踏入山野……" />
+          ) : region ? (
+            <>
+              {region.settlingBattleId && (
+                <p
+                  className="text-ink-secondary text-center text-sm"
+                  role="status"
+                >
+                  上场战斗结算中，请稍候。
+                </p>
+              )}
+              {region.trainingSessionId && (
+                <p className="text-ink-secondary text-center text-sm">
+                  请先
+                  <Link to="/game/training-room" className="underline">
+                    结束当前训练
+                  </Link>
+                  。
+                </p>
+              )}
+              {realmLocked && (
+                <p
+                  className="text-ink-secondary px-6 py-2 text-center text-sm"
+                  role="status"
+                >
+                  此处需要达到{region.realmRequirement}期后寻觅。
+                </p>
+              )}
+              <WildSeekingScene
+                region={region}
+                searching={searching}
+                starting={pending && !searching}
+                unavailable={
+                  !cultivator ||
+                  realmLocked ||
+                  !!region.trainingSessionId ||
+                  !!region.settlingBattleId
+                }
+                ownerLevel={
+                  cultivator
+                    ? combatCharacterLevel(
+                        cultivator.realm,
+                        cultivator.realm_stage,
+                      )
+                    : null
+                }
+                qi={qi.state?.current ?? null}
+                onSearch={explore}
+                onStart={start}
+              />
+            </>
+          ) : null}
+        </div>
+      </ImmersiveGameFrame>
     );
   }
   return (

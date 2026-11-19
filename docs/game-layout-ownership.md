@@ -45,6 +45,7 @@
 - 根画布只画纯色，不给 `body` 增加安全区 padding。Provider 外壳不拥有高度或背景；普通完整场景使用 `min-height:100dvh`，画布与固定工作区使用 `height:100dvh`，保留各自滚动方式。
 - 系统顶部绘色层仅有 `index.html` 中 `#root` 外的 `.app-system-top`，由首帧的 iOS 独立运行标记启用；真实 fullscreen 关闭。屏幕顶部控件读取 `--app-safe-top`，左右及底部仍使用系统 inset。非纸色场景用 `AppViewportColor` 同步根底色和 theme-color，退出恢复纸色，不按 URL 另建主题注册表。
 - 主流程 bottom chrome 统一拥有不透明背景、最大底部安全区留白及定位；`GameBottomDock` 只负责业务间距。main 使用实测 `--game-bottom-offset`，不再额外叠加底部 inset；聊天键盘仍由场景独立处理。Portal 弹层保留自己的安全区；`InkModal`、`InkDetailDrawer` 与 `AdminDialog` 共享可视视口测量及计数式 body 滚动锁。
+- `GameTaskIndicator` 仅在当前任务的目标场景和剧情配置声明的衔接场景出现。常规壳把它悬在聊天和底栏上方，沉浸壳在底部为同一条提示留出空间。洞府正文保留当前主线入口，教学期间暂停悬浮条的跳转操作。演出、战斗和结算沿用自己的独立界面。功能页通过正常操作推进任务，可接受通用物品定位参数 `item`。
 - 跨平台审计、已实施的清理规则、本地验证及真机待验收项见 [PWA 视口梳理](pwa-viewport-audit.md)。
 - 冷启动壳由 `index.html` 提供首字节后的静态反馈，React Router 根路由使用同构的 `AppBootScreen` 承接懒加载与初始 loader 阶段
 - `routes/game/components/` 只保留真正属于某个页面的私有组件；跨两个以上路由族复用的组件不得继续放在 `routes/**`

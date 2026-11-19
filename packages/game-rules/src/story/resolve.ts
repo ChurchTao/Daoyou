@@ -5,8 +5,10 @@ import {
   chapterUnlocks,
   flagMark,
   readBaseMark,
+  readStoryWeaponId,
   standingReaches,
   storyFlags,
+  storyWeaponMark,
   STORY_MARK_FACT_IDS,
   type StoryBattleOutcome,
   type StoryBeat,
@@ -55,6 +57,10 @@ function factReady(
   progress: StoryProgress,
   facts: StoryFacts,
 ): boolean {
+  if (fact === 'story_weapon_equipped') {
+    return Boolean(facts.equippedWeaponId &&
+      facts.equippedWeaponId === readStoryWeaponId(progress.marks));
+  }
   if (markFacts.has(fact)) return progress.marks.some((mark) => mark === fact);
   return facts[fact];
 }
@@ -340,6 +346,29 @@ export function noteStoryFact(
   );
 }
 
+export function noteForgedStoryWeapon(
+  chapter: StoryChapter,
+  progress: StoryProgress,
+  facts: StoryFacts,
+  weaponId: string,
+): StoryResolution {
+  if (chapter.id !== 'mountain-forge')
+    return noteStoryFact(chapter, progress, facts, 'weapon_forged');
+  // 只认借炉后实际铸出的成品。试手前如重铸，改用新铸成的法兵。
+  if (progress.beatId !== 'forge' && progress.beatId !== 'cool' && progress.beatId !== 'equip')
+    return resolveStory(chapter, progress, facts);
+  const previous = readStoryWeaponId(progress.marks);
+  const marks = previous
+    ? progress.marks.filter((mark) => mark !== storyWeaponMark(previous))
+    : progress.marks;
+  return noteStoryFact(
+    chapter,
+    { ...progress, marks: [...marks, storyWeaponMark(weaponId)] },
+    facts,
+    'weapon_forged',
+  );
+}
+
 export function acknowledgeGuide(
   chapter: StoryChapter,
   progress: StoryProgress,
@@ -413,8 +442,19 @@ export function presentStory(
     beat.kind === 'life' &&
     beat.when &&
     factReady(beat.when.fact, progress, facts)
-      ? { prompt: beat.when.prompt, href: beat.when.href }
-      : { prompt: beat.prompt, href: beat.href };
+      ? beat.when
+      : beat;
+  const weaponId = beat.kind === 'practice' && beat.accept.some(
+    (entry) => entry.type === 'fact' && entry.fact === 'story_weapon_equipped',
+  ) ? readStoryWeaponId(progress.marks) : undefined;
+  const missingItemAction =
+    weaponId && beat.kind === 'practice' ? beat.missingItemAction : undefined;
+  let href = shifted.href;
+  if (weaponId) {
+    const target = new URL(href, 'http://story.local');
+    target.searchParams.set('item', weaponId);
+    href = target.pathname + target.search + target.hash;
+  }
   return {
     track: progress.track,
     chapterId: chapter.id,
@@ -423,7 +463,9 @@ export function presentStory(
     kind: beat.kind,
     scene: beat.scene,
     prompt: shifted.prompt,
-    href: shifted.href,
+    href,
+    ...(shifted.actionLabel ? { actionLabel: shifted.actionLabel } : {}),
+    ...(shifted.indicatorFrom ? { indicatorFrom: shifted.indicatorFrom } : {}),
     scriptId: beat.kind === 'performance' ? beat.script : null,
     battleId: beat.kind === 'battle' ? beat.battle : null,
     hail: beat.hail
@@ -435,6 +477,9 @@ export function presentStory(
       : null,
     guideLesson: pendingGuide(beat, progress),
     classroom: beat.kind === 'practice' ? (beat.classroom ?? null) : null,
+    ...(weaponId
+      ? { targetItem: { id: weaponId, missingAction: missingItemAction } }
+      : {}),
     unlocked: chapter.gated
       ? [...new Set([...opened, ...chapterUnlocks(chapter, beat.id)])]
       : null,

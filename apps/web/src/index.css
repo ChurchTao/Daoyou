@@ -172,7 +172,7 @@ body {
   border-top: 1px dashed var(--color-battle-rule-strong);
 }
 
-/* One owner for dock background and system clearance. Reserve the maximum
+/* One position for floating tasks and dock. Reserve the maximum
    inset so Chrome's moving system bar changes position instead of padding. */
 .game-bottom-chrome {
   position: fixed;
@@ -180,7 +180,6 @@ body {
   right: 0;
   bottom: calc(env(safe-area-inset-bottom, 0px) - var(--app-bottom-reserve));
   left: 0;
-  padding-bottom: var(--app-bottom-reserve);
 }
 
 .game-bottom-chrome:empty {

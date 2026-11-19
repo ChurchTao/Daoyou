@@ -8,7 +8,7 @@ export function resolveMapReturnHref(href: string, state: unknown): string {
   if (!/^\/game\/map(?:-v2)?(?:\?|$)/.test(href)) return href;
   const params = new URLSearchParams(target.split('?')[1]);
   const requested = new URLSearchParams(href.split('?')[1]);
-  for (const key of ['nodeId', 'intent']) {
+  for (const key of ['nodeId', 'intent', 'guide']) {
     const value = requested.get(key);
     if (value) params.set(key, value);
   }

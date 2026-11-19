@@ -28,6 +28,7 @@ import {
   acknowledgeBattle,
   acknowledgeGuide,
   acknowledgePerformance,
+  noteForgedStoryWeapon,
   noteStoryFact,
   openingStoryProgress,
   presentStory,
@@ -63,6 +64,7 @@ function isStoryMarkFact(fact: StoryFactId): fact is StoryMarkFact {
 
 function sameProgress(left: StoryProgress, right: StoryProgress): boolean {
   return (
+    left.storyId === right.storyId &&
     left.beatId === right.beatId &&
     left.status === right.status &&
     left.acks.join('\n') === right.acks.join('\n') &&
@@ -187,6 +189,7 @@ async function readStoryFacts(
   facts.sect_joined = memberships.length > 0;
   facts.sect_ready = Boolean(memberships[0]?.pathId);
   facts.weapon_equipped = weapons.length > 0;
+  facts.equippedWeaponId = weapons[0]?.id;
   facts.breakthrough_available = rows[0]?.stage === '圆满';
   if (rows[0]) {
     facts.standing = {
@@ -244,14 +247,20 @@ async function currentStory(
   const returning = rows.length !== history.length;
   const stored = rows.find((row) => row.status === 'active') ?? rows[0] ?? null;
   const past = rows.filter((row) => row !== stored);
+  const finishedMeal = past.some(
+    (row) => row.storyId === 'mountain-foothill' &&
+      row.status === 'completed' && row.acks.includes('mountain-chopsticks:done'),
+  );
+  const resumeAtForge = stored?.storyId === 'mountain-lodging' && finishedMeal &&
+    !past.some((row) => row.storyId === 'mountain-forge');
   return {
     rows,
     stored,
-    base:
-      stored ??
+    base: resumeAtForge ? openingStoryProgress('mountain-forge') :
+      (stored ??
       (returning
         ? openingStoryProgress(OPENING_STORY_CHAPTER)
-        : restingStoryProgress()),
+        : restingStoryProgress())),
     carried: past.flatMap((row) => storyFlags(row.marks)),
     opened: returning
       ? [
@@ -289,8 +298,14 @@ async function settle(
   const rewardIds = [...resolved.grants];
   let dirty = !stored || !sameProgress(stored, resolved.progress);
   if (dirty) {
-    if (stored) await updateCultivatorStory(cultivatorId, resolved.progress, tx);
-    else await insertCultivatorStory(cultivatorId, resolved.progress, tx);
+    if (stored?.storyId === resolved.progress.storyId) {
+      await updateCultivatorStory(cultivatorId, resolved.progress, tx);
+    } else {
+      if (stored) {
+        await updateCultivatorStory(cultivatorId, { ...stored, status: 'completed' }, tx);
+      }
+      await insertCultivatorStory(cultivatorId, resolved.progress, tx);
+    }
   }
 
   // 一章演完就接下一章；下一章开头若已满足，也一并走过去。
@@ -424,6 +439,16 @@ export const StoryService = {
       view: settled.view,
       changes: storyChanges(cultivatorId, settled.view, settled.effect),
     };
+  },
+
+  async noteForgedWeapon(cultivatorId: string, weaponId: string, tx: DbTransaction) {
+    await lockCultivatorForStateMutation(tx, cultivatorId);
+    const settled = await settle(cultivatorId, tx, (chapter, progress, facts) =>
+      noteForgedStoryWeapon(chapter, progress, facts, weaponId),
+    );
+    return settled.dirty
+      ? { changes: storyChanges(cultivatorId, settled.view, settled.effect) }
+      : null;
   },
 
   async reconcile(

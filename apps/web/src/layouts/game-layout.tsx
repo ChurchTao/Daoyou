@@ -1,13 +1,14 @@
 import { realtimeClient } from '@app/lib/realtime/realtimeClient';
 import { GuideOverlay } from '@app/components/feature/guide/GuideOverlay';
 import { SceneGate } from '@app/components/feature/story/SceneGate';
-import { StoryTracker } from '@app/components/feature/story/StoryTracker';
 import { HuntTeamBar } from '@app/components/feature/hunts/HuntTeamBar';
 import { WorldChatPreviewBar } from '@app/components/feature/world-chat/WorldChatPreviewBar';
 import { WorldChatFeedProvider } from '@app/components/feature/world-chat/useWorldChatFeedModel';
 import { GameBottomDock } from '@app/components/game-shell/GameBottomDock';
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
+import { GameTaskIndicator } from '@app/components/game-shell/GameTaskIndicator';
 import { GameTopHud } from '@app/components/game-shell/GameTopHud';
+import { ImmersiveGameFrame } from '@app/components/game-shell/ImmersiveGameFrame';
 import { RealtimeConnectionToasts } from '@app/components/game-shell/RealtimeConnectionToasts';
 import { useGameHudModel } from '@app/components/game-shell/useGameHudModel';
 import { InkButton } from '@app/components/ui/InkButton';
@@ -174,23 +175,26 @@ function GameViewportBody({ scene }: { scene: GameSceneHandle | null }) {
         </div>
         <RealtimeConnectionToasts />
         <GuideOverlay />
-        <PaperSurface
+        <div
           data-game-bottom-chrome
           ref={bottomChromeRef}
-          className="game-bottom-chrome"
+          className="game-bottom-chrome pointer-events-none"
         >
-          <WorldChatPreviewBar />
-          <GameBottomDock
-            sceneId={scene?.id ?? null}
-            unreadMailCount={hud?.unreadMailCount ?? 0}
-            hasUnallocatedAttributePoints={
-              hud?.hasUnallocatedAttributePoints ?? false
-            }
-            isExpanded={isDockExpanded}
-            onToggleExpanded={toggleDockExpanded}
-            dockMode={scene?.dock ?? 'core'}
-          />
-        </PaperSurface>
+          <GameTaskIndicator />
+          <PaperSurface className="pointer-events-auto pb-(--app-bottom-reserve) empty:hidden">
+            <WorldChatPreviewBar />
+            <GameBottomDock
+              sceneId={scene?.id ?? null}
+              unreadMailCount={hud?.unreadMailCount ?? 0}
+              hasUnallocatedAttributePoints={
+                hud?.hasUnallocatedAttributePoints ?? false
+              }
+              isExpanded={isDockExpanded}
+              onToggleExpanded={toggleDockExpanded}
+              dockMode={scene?.dock ?? 'core'}
+            />
+          </PaperSurface>
+        </div>
       </WorldChatFeedProvider>
       </AuthProvider>
     </PaperSurface>
@@ -235,21 +239,16 @@ export function GameMapLayout({
   scrollContent?: boolean;
 }) {
   return (
-    <div className="bg-scene relative h-dvh overflow-hidden">
-      <main
-        className={
-          scrollContent
-            ? 'h-full overflow-x-hidden overflow-y-auto'
-            : 'h-full overflow-hidden'
-        }
-      >
-        <SceneGate>
-          <Outlet />
-        </SceneGate>
-      </main>
-      <StoryTracker placement="slip" />
+    <main className="h-dvh">
+      <ImmersiveGameFrame scrollContent={scrollContent}>
+        <div className={scrollContent ? 'min-h-full' : 'h-full'}>
+          <SceneGate>
+            <Outlet />
+          </SceneGate>
+        </div>
+      </ImmersiveGameFrame>
       <GuideOverlay />
-    </div>
+    </main>
   );
 }
 
