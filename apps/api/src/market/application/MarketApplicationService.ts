@@ -11,6 +11,7 @@ import {
 } from '@server/market/application/MarketService.js';
 import type { PlayerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
 import { eq } from 'drizzle-orm';
+import { StoryService } from '@server/story/application/StoryService.js';
 
 type PreparedPurchaseCommand<T> = {
   commit(tx: DbTransaction): Promise<{
@@ -33,6 +34,7 @@ export async function executeMarketPurchaseCommand<T>(
     .where(eq(cultivators.id, cultivatorId))
     .limit(1);
   if (!currency) throw new Error('坊市结算后角色不存在');
+  const story = await StoryService.noteFact(cultivatorId, 'market_bought', tx);
   return {
     result: committed.result,
     resourceChanges: [
@@ -47,6 +49,7 @@ export async function executeMarketPurchaseCommand<T>(
         operation: 'merge',
         payload: { spiritStones: currency.spiritStones },
       },
+      ...(story?.changes ?? []),
     ],
   };
 }

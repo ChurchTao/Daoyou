@@ -142,7 +142,7 @@ function BattleRankingCardComponent({
   return (
     <article
       className={cn(
-        'group border-ink/25 hover:border-crimson/30 relative min-w-0 overflow-hidden border border-dashed bg-white/30 transition-colors',
+        'group border-ink/25 hover:border-crimson/30 relative min-w-0 overflow-hidden border border-dashed bg-white/30 transition-colors dark:bg-ink/4',
         isSelf && 'border-crimson/30 bg-amber-200/30',
       )}
     >
@@ -243,8 +243,8 @@ function ItemRankingCardComponent({
   return (
     <article
       className={cn(
-        'group border-ink/25 hover:border-crimson/30 relative min-w-0 overflow-hidden border border-dashed bg-white/30 transition-colors',
-        variant === 'podium' && 'border-gold/30 bg-gold/15',
+        'group border-ink/25 hover:border-crimson/30 relative min-w-0 overflow-hidden border border-dashed bg-white/30 transition-colors dark:bg-ink/4',
+        variant === 'podium' && 'border-gold/30 bg-gold/15 dark:bg-gold/10',
       )}
     >
       <div className="grid min-w-0 gap-2 px-3 py-3 lg:grid-cols-[4.75rem_minmax(0,1fr)_6.25rem] lg:items-start lg:gap-4 lg:px-4 lg:py-3">
@@ -313,9 +313,9 @@ function WealthRankingCardComponent({
   return (
     <article
       className={cn(
-        'group border-ink/25 hover:border-crimson/30 relative min-w-0 overflow-hidden border border-dashed bg-white/30 transition-colors',
+        'group border-ink/25 hover:border-crimson/30 relative min-w-0 overflow-hidden border border-dashed bg-white/30 transition-colors dark:bg-ink/4',
         isSelf && 'border-crimson/30 bg-amber-200/30',
-        variant === 'podium' && 'border-gold/30 bg-gold/15',
+        variant === 'podium' && 'border-gold/30 bg-gold/15 dark:bg-gold/10',
       )}
     >
       <div className="grid min-w-0 gap-2 px-3 py-3 lg:grid-cols-[4.75rem_minmax(0,1fr)_8.5rem] lg:items-start lg:gap-4 lg:px-4 lg:py-3">

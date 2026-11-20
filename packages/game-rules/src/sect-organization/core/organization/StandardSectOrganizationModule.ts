@@ -1,7 +1,7 @@
 import type { SectOrganizationTheme } from '@daoyou/game-domain/sects';
 import type { RealmType } from '@daoyou/constants/realms';
 
-import { SECT_RANK_METHOD_CAP } from '../domain/index.js';
+import { hasSectRank, SECT_RANK_METHOD_CAP } from '../domain/index.js';
 
 import type { SectDiscipleRank, SectRankRequirement } from '../domain/index.js';
 
@@ -37,8 +37,8 @@ const capabilities = new StandardSectCapabilityPolicy(
     'sect.construction.view': 'registered',
     'sect.construction.donate': 'registered',
     'sect.facility.cultivation.use': 'outer',
-    'sect.facility.alchemy.use': 'inner',
-    'sect.facility.refinery.use': 'inner',
+    'sect.facility.alchemy.use': 'registered',
+    'sect.facility.refinery.use': 'registered',
     'sect.spirit_vein.view': 'registered',
     'sect.herb_garden.view': 'registered',
     'sect.cave.view': 'inner',
@@ -678,7 +678,9 @@ class StandardSectBenefitPolicy implements SectBenefitPolicy {
         craftContext === SECT_CRAFT_CONTEXTS.refinery
           ? 'sect.facility.refinery.use'
           : 'sect.facility.alchemy.use',
-      discount: Math.min(0.2, level * 0.02 + (rank === 'true' ? 0.1 : 0)),
+      discount: hasSectRank(rank, 'inner')
+        ? Math.min(0.2, level * 0.02 + (rank === 'true' ? 0.1 : 0))
+        : 0,
     };
   }
 

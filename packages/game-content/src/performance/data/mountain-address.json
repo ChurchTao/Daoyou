@@ -1,0 +1,88 @@
+{
+  "id": "mountain-address",
+  "title": "回信有地方收了",
+  "requires": ["name", "receptionist", "path_teacher"],
+  "cast": {
+    "player": {
+      "name": "你"
+    },
+    "clerk": {
+      "name": "{receptionist}"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "山门 · 名册前"
+    },
+    {
+      "type": "title",
+      "kicker": "自己报的名字",
+      "text": "回信有地方收了"
+    },
+    {
+      "type": "narration",
+      "text": "掌籍的人等你把气喘匀才蘸墨。"
+    },
+    {
+      "type": "line",
+      "speaker": "clerk",
+      "text": "名字？"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "{name}。"
+    },
+    {
+      "type": "line",
+      "speaker": "clerk",
+      "text": "来处呢？"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "河弯那儿，上渡下船，走过染坊。面棚漏雨的那张桌子，我从小就坐……"
+    },
+    {
+      "type": "narration",
+      "text": "掌籍的提着笔，等了片刻。"
+    },
+    {
+      "type": "line",
+      "speaker": "clerk",
+      "text": "写到上渡，成么？这一格就这么大。"
+    },
+    {
+      "type": "narration",
+      "text": "掌籍的在册子上写好「上渡」，把册子转过来给你看。你认得自己的名字。桌角压着几封家信，你想起自己托盐船捎走的那张纸。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "我答应家里，拜了师就告诉他们往哪儿回信。我能抄个地址么？"
+    },
+    {
+      "type": "line",
+      "speaker": "clerk",
+      "text": "能啊。照这封信上的地址抄，再写上你自己的名字。以后有人捎信来，我就知道该给谁了。"
+    },
+    {
+      "type": "narration",
+      "text": "掌籍的抽出一封信，拿手指给你看信封上写地名的那一行。你讨了张纸，一字一字抄下来。"
+    },
+    {
+      "type": "line",
+      "speaker": "clerk",
+      "text": "早课还没散。你去找{path_teacher}，就说我给你记过名了。"
+    },
+    {
+      "type": "narration",
+      "text": "你把抄好的地址收进怀里，往院里去。前排坐得满满的，有人瞧见你在门边张望，往旁边挪了半张凳子。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

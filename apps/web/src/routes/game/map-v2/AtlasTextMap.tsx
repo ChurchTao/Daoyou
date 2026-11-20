@@ -8,7 +8,7 @@ import {
   getAtlasCategory,
   hasAtlasMap,
 } from '@daoyou/game-rules/world/atlas';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type CSSProperties } from 'react';
 import { AtlasNodePanel } from './AtlasNodePanel';
 import { ATLAS_CATEGORY_STYLE } from './atlasMarkerStyle';
 
@@ -101,10 +101,12 @@ export function AtlasTextMap({
               >
                 <summary className="hover:bg-ink/5 min-h-12 cursor-pointer rounded-sm px-3 py-2 text-sm focus-visible:outline-2">
                   <span
-                    className="ml-1 inline-flex items-center gap-2 align-middle"
-                    style={{
-                      color: `#${style.color.toString(16).padStart(6, '0')}`,
-                    }}
+                    className="dark:text-ink ml-1 inline-flex items-center gap-2 align-middle text-(--atlas-category-color)"
+                    style={
+                      {
+                        '--atlas-category-color': `#${style.color.toString(16).padStart(6, '0')}`,
+                      } as CSSProperties
+                    }
                   >
                     <GameIcon value={style.icon} className="text-3xl" />
                     {style.name}

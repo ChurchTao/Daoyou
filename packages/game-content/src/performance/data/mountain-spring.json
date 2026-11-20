@@ -1,0 +1,35 @@
+{
+  "id": "mountain-spring",
+  "title": "山脚的住处",
+  "requires": [],
+  "cast": {
+    "herb": {
+      "name": "采药人",
+      "portrait": "icon:portrait-elder-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "山脚 · 石室"
+    },
+    {
+      "type": "title",
+      "kicker": "过了那道弯",
+      "text": "山脚的住处"
+    },
+    {
+      "type": "narration",
+      "text": "你认过住处的泉眼，掬水洗掉手上的土。采药人把门口那半扇松了的竹帘卷高。"
+    },
+    {
+      "type": "line",
+      "speaker": "herb",
+      "text": "往后认这排石阶，走远了也好找回来。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

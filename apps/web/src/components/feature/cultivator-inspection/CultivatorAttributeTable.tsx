@@ -51,8 +51,8 @@ export function CultivatorAttributeTable({
                         className={cn(
                           'font-semibold',
                           row.modifier > 0
-                            ? 'text-emerald-700'
-                            : 'text-violet-700',
+                            ? 'text-emerald-700 dark:text-teal'
+                            : 'text-violet-700 dark:text-realm-huashen',
                         )}
                       >
                         {formatModifier(row.attrType, row.modifier)}
@@ -89,8 +89,8 @@ export function CultivatorAttributeTable({
                               className={cn(
                                 'font-semibold',
                                 row.modifier > 0
-                                  ? 'text-emerald-700'
-                                  : 'text-violet-700',
+                                  ? 'text-emerald-700 dark:text-teal'
+                                  : 'text-violet-700 dark:text-realm-huashen',
                               )}
                             >
                               {formatModifier(row.attrType, row.modifier)}

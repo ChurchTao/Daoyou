@@ -1,0 +1,52 @@
+{
+  "id": "mountain-ferry",
+  "track": "main",
+  "title": "捎个口信",
+  "beats": [
+    {
+      "id": "two-peaks",
+      "kind": "performance",
+      "script": "mountain-two-peaks",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "去渡口的面棚捎个口信。",
+      "href": "/game/story",
+      "unlocks": [
+        "settings",
+        "feedback",
+        "community",
+        "download",
+        "redeem"
+      ]
+    },
+    {
+      "id": "old-road",
+      "kind": "performance",
+      "script": "mountain-old-road",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "旧路",
+      "href": "/game/story"
+    },
+    {
+      "id": "rain",
+      "kind": "performance",
+      "script": "mountain-rain",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "灶后的雨",
+      "href": "/game/story"
+    },
+    {
+      "id": "half-painting",
+      "kind": "performance",
+      "script": "mountain-half-painting",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "少了半张的画",
+      "href": "/game/story"
+    }
+  ],
+  "gated": true,
+  "next": "mountain-flowers"
+}

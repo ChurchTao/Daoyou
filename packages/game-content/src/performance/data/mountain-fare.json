@@ -1,0 +1,129 @@
+{
+  "id": "mountain-fare",
+  "title": "这回往哪里走",
+  "requires": [],
+  "cast": {
+    "zhou": {
+      "name": "周叔",
+      "portrait": "icon:portrait-merchant-m"
+    },
+    "player": {
+      "name": "你"
+    },
+    "herb": {
+      "name": "采药人",
+      "portrait": "icon:portrait-elder-m"
+    },
+    "family": {
+      "name": "家里人"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "渡口 · 归家之前"
+    },
+    {
+      "type": "title",
+      "kicker": "三次花开",
+      "text": "这回往哪里走"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "周叔，我想去山门问问，该怎么走？"
+    },
+    {
+      "type": "line",
+      "speaker": "zhou",
+      "text": "那得往太岳山走。明儿歇，后天赶早，山脚采药的人到上渡卸筐，再沿北岸回去。诸宗开山收徒，他们熟路。等着，我给你喊一个。"
+    },
+    {
+      "type": "narration",
+      "text": "他冲正往回走的采药人招了招手。那人先低头看你的鞋。"
+    },
+    {
+      "type": "line",
+      "speaker": "herb",
+      "text": "鞋底还有多厚？干粮呢，有几顿？"
+    },
+    {
+      "type": "narration",
+      "text": "等你一样样答完，他才问你叫什么。你也跟他算清了脚程和船钱。回到家，你摸出那串铜钱，连今日新添的那枚也数上，够到山脚。若山门没进成，也够再坐一回回乡的船。你把归程的钱另系了个结。"
+    },
+    {
+      "type": "narration",
+      "text": "晚饭端上桌。你在心里排演了一路，真到开口时，能说的倒简单了。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "我想活久一些。",
+          "then": [
+            {
+              "type": "narration",
+              "text": "这话一出口，平时只跟你说添饭夹菜的人也放下了筷子。"
+            },
+            {
+              "type": "line",
+              "speaker": "player",
+              "text": "那棵树，花开一回要三十六年。他去看了三回。我也想有那么多日子。"
+            }
+          ]
+        },
+        {
+          "label": "我想亲眼看看弯外的山。",
+          "then": [
+            {
+              "type": "line",
+              "speaker": "player",
+              "text": "盐客跟周叔说的，压根儿就不是一座山的模样。我老盼着有人托我往那边捎东西……其实我自己就想去。"
+            }
+          ]
+        },
+        {
+          "label": "我问过路了，后天一早就走。",
+          "then": [
+            {
+              "type": "narration",
+              "text": "话说得颇稳，伸筷子时却夹了个空。你索性搁下碗，把盘缠摊开。"
+            },
+            {
+              "type": "line",
+              "speaker": "player",
+              "text": "这串另打了个结。要是没进成山门，我拿它买船票回家。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "narration",
+      "text": "过了一会儿，对面的人才开口。"
+    },
+    {
+      "type": "line",
+      "speaker": "family",
+      "text": "那明日呢？"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "去还伞。面铺答应送的信也要送。鞋还得补。"
+    },
+    {
+      "type": "narration",
+      "text": "碟里最后一块豆干落进你碗里。"
+    },
+    {
+      "type": "line",
+      "speaker": "family",
+      "text": "嗯。吃完去找锥子。我的眼睛，夜里穿不得针。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

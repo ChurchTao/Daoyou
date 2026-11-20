@@ -1,0 +1,106 @@
+{
+  "id": "mountain-bend",
+  "track": "main",
+  "title": "过了那道弯",
+  "beats": [
+    {
+      "id": "summit",
+      "kind": "performance",
+      "script": "mountain-summit",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "周叔少说了一句",
+      "href": "/game/story"
+    },
+    {
+      "id": "basket",
+      "kind": "performance",
+      "script": "mountain-basket",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "筐里还有一个",
+      "href": "/game/story"
+    },
+    {
+      "id": "fight",
+      "kind": "battle",
+      "battle": "v1-ambush",
+      "lesson": "story-battle-basics",
+      "scene": "story-battle",
+      "prompt": "有东西冲过来了。先应付过去。",
+      "href": "/game/story/battle?guide=story-battle-basics"
+    },
+    {
+      "id": "white-paw",
+      "kind": "performance",
+      "script": "mountain-white-paw",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "一小截白袜子",
+      "href": "/game/story"
+    },
+    {
+      "id": "companion",
+      "kind": "performance",
+      "script": "mountain-companion",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "到地方了",
+      "href": "/game/story",
+      "gift": "starter-beast"
+    },
+    {
+      "id": "cub",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "beast-pouch"
+        }
+      ],
+      "scene": "beasts",
+      "prompt": "打开灵兽袋，看看咪咪。",
+      "href": "/game/beasts?guide=beast-pouch",
+      "unlocks": [
+        "beasts",
+        "beast-room"
+      ]
+    },
+    {
+      "id": "spring",
+      "kind": "performance",
+      "script": "mountain-spring",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "山脚的住处",
+      "href": "/game/story",
+      "unlocks": [
+        "inn"
+      ]
+    },
+    {
+      "id": "home",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "cave-layout"
+        }
+      ],
+      "scene": "cave",
+      "prompt": "去洞府看看：认一认泉眼和出门的路。",
+      "href": "/game?guide=cave-layout"
+    },
+    {
+      "id": "lamplight",
+      "kind": "performance",
+      "script": "mountain-lamplight",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "明早走哪条路",
+      "href": "/game/story"
+    }
+  ],
+  "gated": true,
+  "next": "mountain-foothill"
+}

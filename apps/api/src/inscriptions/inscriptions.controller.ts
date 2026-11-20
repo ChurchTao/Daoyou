@@ -26,6 +26,7 @@ import { apiErrorFilter } from '../http/error-filter.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
 import { InscriptionsService } from './inscriptions.service.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 
 const InscriptionsErrors = apiErrorFilter((error) => {
   const lock = redisLockErrorResponse(error);
@@ -54,6 +55,7 @@ const InscriptionsErrors = apiErrorFilter((error) => {
 });
 
 @Controller('api/combat-v6/inscriptions')
+@StoryGate('inscriptions')
 @Access('active')
 @UseFilters(InscriptionsErrors)
 export class InscriptionsController {

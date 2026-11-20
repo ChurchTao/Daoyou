@@ -1,0 +1,416 @@
+[
+  {
+    "id": "mountain-sparring-tooth",
+    "title": "半颗牙",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "youth": {
+        "name": "少年",
+        "portrait": "icon:portrait-noble-m"
+      },
+      "sparrer": {
+        "name": "对练弟子",
+        "portrait": "icon:portrait-disciple-m"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "宗门 · 演武场"
+      },
+      {
+        "type": "title",
+        "kicker": "替我看一眼",
+        "text": "半颗牙"
+      },
+      {
+        "type": "narration",
+        "text": "你到演武场时，场上两柄木剑才撞了一下。一人抽剑退开，鞋跟在地上拖出一道白印。另一个本来还要追上去，伸手一摸嘴，倒先蹲下了。"
+      },
+      {
+        "type": "line",
+        "speaker": "sparrer",
+        "text": "打着你了？"
+      },
+      {
+        "type": "line",
+        "speaker": "youth",
+        "text": "等会儿。我少了半颗牙。"
+      },
+      {
+        "type": "narration",
+        "text": "你站在两人身后，方才只看见剑尖从袖口旁一闪。少年拿手在地上拢了两把，把一颗白石子拈起来看看，又丢了。咪咪伏在台阶上，盯着他一会儿摊开、一会儿合上的手。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "你脚边那颗，靠着草根的。"
+      },
+      {
+        "type": "narration",
+        "text": "少年往旁边挪了半步，捡起来在袖口擦了擦。那颗牙一头白，一头带着点血。"
+      },
+      {
+        "type": "line",
+        "speaker": "youth",
+        "text": "是它。你刚才站他背后吧？他那一下是先动肩，还是先换脚？"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "我光看剑了。那一下过去了，我才想起来师父叫我看哪儿。"
+      },
+      {
+        "type": "narration",
+        "text": "少年把半颗牙包进帕子，朝身边那块空地努努嘴。"
+      },
+      {
+        "type": "line",
+        "speaker": "youth",
+        "text": "明儿你站这边试试。我还得请他打刚才那一下。"
+      },
+      {
+        "type": "line",
+        "speaker": "sparrer",
+        "text": "你来归来，先把嘴里的血吐了。"
+      },
+      {
+        "type": "narration",
+        "text": "场边石槽里还有半瓢水。你舀起来递过去。少年漱过口，把瓢里的水倒净，搁回你够得着的地方。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mountain-sparring-footwork",
+    "title": "往旁边半步",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "youth": {
+        "name": "少年",
+        "portrait": "icon:portrait-noble-m"
+      },
+      "sparrer": {
+        "name": "对练弟子",
+        "portrait": "icon:portrait-disciple-m"
+      },
+      "attendant": {
+        "name": "来人",
+        "portrait": "icon:portrait-servant-m"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "宗门 · 演武场"
+      },
+      {
+        "type": "title",
+        "kicker": "替我看一眼",
+        "text": "往旁边半步"
+      },
+      {
+        "type": "narration",
+        "text": "隔天你再去，那两把木剑都搁在台阶上。少年在给剑柄缠布，缠好了便提起来递给对面的人。"
+      },
+      {
+        "type": "line",
+        "speaker": "youth",
+        "text": "昨儿那一下，照原样。"
+      },
+      {
+        "type": "narration",
+        "text": "两人分开站定。你原还站在对练弟子背后，这回从旁边绕了出去。地上一条石缝，恰好挨着他的后脚。"
+      },
+      {
+        "type": "choice",
+        "options": [
+          {
+            "label": "（站到石缝这头）",
+            "then": [
+              {
+                "type": "narration",
+                "text": "你退到石缝这头。两人的剑在你眼里叠到了一起，倒把脚下让得清楚。"
+              }
+            ]
+          },
+          {
+            "label": "（蹲下来，看他的鞋底）",
+            "then": [
+              {
+                "type": "narration",
+                "text": "你在台阶旁蹲下。从这儿看，鞋跟何时离了地，比看脚尖朝哪儿还清楚。"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "text": "对练弟子的后脚提起来，落到石缝另一边。肩是等脚落稳了才转的。少年还是递出了昨日那一剑，这回也还是落了空。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "脚先动。他后脚落到缝那边，你的剑才到。"
+      },
+      {
+        "type": "line",
+        "speaker": "sparrer",
+        "text": "对。你昨儿也只差这一点。可我的脚放下了，你就够不到了。"
+      },
+      {
+        "type": "narration",
+        "text": "少年没急着拾剑，走到你站过的地方，低头看那条缝。场外有人踩着石阶上来，手里搭着件干净袍子。"
+      },
+      {
+        "type": "line",
+        "speaker": "attendant",
+        "text": "少主，车还在山下。您这一嘴的伤，交给家里人看就是。剑给我吧。"
+      },
+      {
+        "type": "narration",
+        "text": "来人冲你和对练弟子都点了头，手却已经伸到了少年面前，像平日替他收笔收书那样。少年弯腰把自己的剑拾了起来。"
+      },
+      {
+        "type": "line",
+        "speaker": "youth",
+        "text": "车先回去。我还约了一场。"
+      },
+      {
+        "type": "line",
+        "speaker": "attendant",
+        "text": "那我怎么回话？"
+      },
+      {
+        "type": "line",
+        "speaker": "youth",
+        "text": "就说我输了，明儿还来。"
+      },
+      {
+        "type": "narration",
+        "text": "他把剑往肩上一搭，嘴角被剑穗扫了一下，疼得偏过脸去。对练弟子拎起水瓢，问他明日还是不是这个时辰。"
+      },
+      {
+        "type": "line",
+        "speaker": "youth",
+        "text": "照旧。你也来？"
+      },
+      {
+        "type": "narration",
+        "text": "后一句问的是你。你答应了，走前用鞋尖把那条石缝里的碎草拨了出去。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mountain-sparring-watch",
+    "title": "换我看你",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "youth": {
+        "name": "少年",
+        "portrait": "icon:portrait-noble-m"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "宗门 · 演武场"
+      },
+      {
+        "type": "title",
+        "kicker": "替我看一眼",
+        "text": "换我看你"
+      },
+      {
+        "type": "narration",
+        "text": "此后你几次路过演武场，少年手里总是那一剑。有一次对练的人还没到，他请你把脚落到缝那边，自己站在你侧后方看。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "你只练这一剑？"
+      },
+      {
+        "type": "line",
+        "speaker": "youth",
+        "text": "这一剑还差得远。你呢？上回背着件法兵来，怎么没见你用？"
+      },
+      {
+        "type": "narration",
+        "text": "你照师父教的，把那一招慢慢做了一遍。少年换了个地方，站近了看。你下意识加快了些，收招时又往前多跨了一步。"
+      },
+      {
+        "type": "line",
+        "speaker": "youth",
+        "text": "头一遍你停得挺稳。这回怎么急了？"
+      },
+      {
+        "type": "narration",
+        "text": "你低头看了看。再往前一点，鞋尖就要踩到他的脚。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "总觉得做得慢了，你在旁边等着呢。"
+      },
+      {
+        "type": "line",
+        "speaker": "youth",
+        "text": "慢些好。上回要是打得慢些，我也能看见他换脚。"
+      },
+      {
+        "type": "narration",
+        "text": "少年坐回石台，给你腾开地方。你喘匀了气，照头一遍的速度又做了一回。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "这回呢？"
+      },
+      {
+        "type": "line",
+        "speaker": "youth",
+        "text": "这回你停住了。我也看清了。"
+      },
+      {
+        "type": "choice",
+        "options": [
+          {
+            "label": "你不嫌我叫你等？",
+            "then": [
+              {
+                "type": "line",
+                "speaker": "youth",
+                "text": "我请你看了几回脚？你再歇一会儿也成。"
+              }
+            ]
+          },
+          {
+            "label": "哪里还能这样练？",
+            "then": [
+              {
+                "type": "line",
+                "speaker": "youth",
+                "text": "练功房有木桩。你有空就去。这把木剑我还得用一阵。"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "narration",
+        "text": "你又练了一遍。等抬眼时，场边来收木剑的人已经把空架子搬进了廊下。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mountain-sparring-supper",
+    "title": "锅底还热么",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "mentor": {
+        "name": "师父",
+        "portrait": "icon:portrait-elder-m"
+      },
+      "youth": {
+        "name": "少年",
+        "portrait": "icon:portrait-noble-m"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "器坊外 · 散场后"
+      },
+      {
+        "type": "title",
+        "kicker": "替我看一眼",
+        "text": "锅底还热么"
+      },
+      {
+        "type": "narration",
+        "text": "你回器坊，把在演武场看见的事说给师父听。老人正在收桌上的细锉，手上沾了灰。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "是脚先动。我换了个地方才看见。后来他也替我看了一回。"
+      },
+      {
+        "type": "line",
+        "speaker": "mentor",
+        "text": "他看见什么？"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "他一站近，我就急着使给他看，收招又多跨了一步。他肯等，我慢慢做就站稳了。"
+      },
+      {
+        "type": "narration",
+        "text": "师父把细锉放进抽屉，朝门口抬了抬下巴。那少年正倚着廊柱等你。"
+      },
+      {
+        "type": "line",
+        "speaker": "mentor",
+        "text": "今天问清了。去吃饭吧。"
+      },
+      {
+        "type": "narration",
+        "text": "你们赶到饭堂时，桌上的碗都收了。少年揭开灶边的盖子，里头只剩一瓢洗锅水。"
+      },
+      {
+        "type": "line",
+        "speaker": "youth",
+        "text": "锅底也叫人刮干净了。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "丹房在找人接晚班。管一顿饭，方才收木剑的人说的。"
+      },
+      {
+        "type": "line",
+        "speaker": "youth",
+        "text": "要两个人么？"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "过去问问。我也没吃上。"
+      },
+      {
+        "type": "narration",
+        "text": "少年把盖子放回去，先替你扶住正要合上的门。过了饭堂这段廊子，丹房的窗还亮着。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  }
+]

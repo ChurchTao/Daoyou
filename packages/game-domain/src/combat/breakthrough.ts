@@ -9,3 +9,10 @@ export interface BreakthroughSnapshot extends PveRestoredState {
   playerId: string;
   input: PresentedBattleInput;
 }
+
+/** 剧情战的战局快照，和破境试炼同一种存法。 */
+export interface StoryBattleSnapshot extends PveRestoredState {
+  version: 'story-v6-battle-v1';
+  playerId: string;
+  input: PresentedBattleInput;
+}

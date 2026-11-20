@@ -1,0 +1,45 @@
+{
+  "id": "mountain-flowers",
+  "track": "main",
+  "title": "三次花开",
+  "beats": [
+    {
+      "id": "three-paintings",
+      "kind": "performance",
+      "script": "mountain-three-paintings",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "第二张最难画",
+      "href": "/game/story"
+    },
+    {
+      "id": "learn",
+      "kind": "performance",
+      "script": "mountain-learn",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "你从什么地方学起",
+      "href": "/game/story"
+    },
+    {
+      "id": "fare",
+      "kind": "performance",
+      "script": "mountain-fare",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "这回往哪里走",
+      "href": "/game/story"
+    },
+    {
+      "id": "ferry",
+      "kind": "performance",
+      "script": "mountain-ferry",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "上渡见",
+      "href": "/game/story"
+    }
+  ],
+  "gated": true,
+  "next": "mountain-bend"
+}

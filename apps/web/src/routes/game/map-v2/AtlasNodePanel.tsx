@@ -1,8 +1,10 @@
 import type { MapNodeAction } from '@app/components/feature/map/mapActions';
 import { WildNodePreview } from '@app/components/feature/map/WildNodePreview';
 import { InkButton } from '@app/components/ui/InkButton';
-import { getAtlasCategory } from '@daoyou/game-rules/world/atlas';
+import { useStory } from '@app/lib/story/useStory';
+import { storyGateOpen } from '@daoyou/game-domain/story/gates';
 import { type WorldMapLocation } from '@daoyou/game-domain/world/map';
+import { getAtlasCategory } from '@daoyou/game-rules/world/atlas';
 import { resolveDungeonMapConfig } from '@daoyou/game-rules/world/dungeon';
 import { AtlasNodeKinds } from './AtlasNodeKinds';
 
@@ -17,6 +19,11 @@ export function AtlasNodePanel({
   onClose: () => void;
 }) {
   const category = getAtlasCategory(location);
+  // 新手期舆图上什么都看得见，但主线还没带到的秘境和坊市先不让进。
+  const unlocked = useStory().story?.unlocked;
+  const shut =
+    (category === 'dungeon' || category === 'market') &&
+    !storyGateOpen(unlocked, category);
   const dungeon =
     category === 'dungeon' && !('sect_id' in location)
       ? resolveDungeonMapConfig(location)
@@ -55,7 +62,11 @@ export function AtlasNodePanel({
           ))}
         </div>
       </div>
-      {actions.length ? (
+      {shut ? (
+        <p className="text-ink-secondary border-ink/10 mt-3 shrink-0 border-t pt-3 text-sm leading-6">
+          你还不认得去那里的路。跟着主线走，到时候自然会来。
+        </p>
+      ) : actions.length ? (
         <div className="border-ink/10 mt-3 shrink-0 border-t pt-2">
           {actions.map((action) => (
             <InkButton

@@ -1,0 +1,6 @@
+[
+  {
+    "id": "starter-beast",
+    "parts": [{ "type": "beast", "species": "combat.wild.species.mimi" }]
+  }
+]

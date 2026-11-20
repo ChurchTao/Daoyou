@@ -1,3 +1,4 @@
+import { storySceneOpen } from '@daoyou/game-domain/story/gates';
 import type { GameSceneGroup } from '@app/lib/router/routeTitle';
 
 export interface GameSceneNavItem {
@@ -43,7 +44,7 @@ const coreDockSceneOrder = [
 ] as const;
 
 const expandedMenuColumns = [
-  ['cultivation', 'sect', 'adventure', 'combat'],
+  ['cultivation', 'sect', 'adventure', 'combat', 'legacy'],
   ['trade', 'social', 'message', 'service'],
 ] as const satisfies readonly (readonly GameSceneGroup[])[];
 
@@ -62,11 +63,6 @@ export const gameDockGroups: GameNavGroup[] = [
         id: 'storage',
         sceneLabel: '洞府储藏室',
         href: '/game/cave/storage/new?location=storage',
-      },
-      {
-        id: 'legacy-storage',
-        sceneLabel: '洞府宝库',
-        href: '/game/cave/storage',
       },
       {
         id: 'cultivator',
@@ -132,21 +128,6 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '阵纹室',
         href: '/game/inscriptions',
         expandedDockLabel: '🔶 阵纹室',
-      },
-      {
-        id: 'artifact-migration',
-        sceneLabel: '旧法宝焕新',
-        href: '/game/artifact-migration',
-      },
-      {
-        id: 'manual-migration',
-        sceneLabel: '旧功法传承',
-        href: '/game/manual-migration',
-      },
-      {
-        id: 'seed-migration',
-        sceneLabel: '旧灵种转化',
-        href: '/game/seed-migration',
       },
       { id: 'story', sceneLabel: '入世' },
       { id: 'story-preview', sceneLabel: '看演出' },
@@ -266,17 +247,12 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '🪞 蜃楼幻境',
       },
       {
-        id: 'tasks',
-        sceneLabel: '任务中心',
-        href: '/game/tasks',
-        expandedDockLabel: '📜 任务中心',
-      },
-      {
         id: 'inquiry',
         sceneLabel: '秘境探查',
         href: '/game/inquiry',
       },
       { id: 'wild', sceneLabel: '野外寻觅', href: '/game/map-v2' },
+      { id: 'story-battle', sceneLabel: '交手' },
       {
         id: 'hunt',
         sceneLabel: '结伴讨伐',
@@ -429,6 +405,40 @@ export const gameDockGroups: GameNavGroup[] = [
     ],
   },
   {
+    key: 'legacy',
+    title: '旧道具转化',
+    scenes: [
+      {
+        id: 'legacy-storage',
+        sceneLabel: '洞府宝库',
+        href: '/game/cave/storage',
+        expandedDockLabel: '旧藏宝库',
+        expandedDockIcon: '📦',
+      },
+      {
+        id: 'artifact-migration',
+        sceneLabel: '旧法宝焕新',
+        href: '/game/artifact-migration',
+        expandedDockLabel: '旧法宝焕新',
+        expandedDockIcon: '⚒️',
+      },
+      {
+        id: 'manual-migration',
+        sceneLabel: '旧功法传承',
+        href: '/game/manual-migration',
+        expandedDockLabel: '旧功法传承',
+        expandedDockIcon: '📜',
+      },
+      {
+        id: 'seed-migration',
+        sceneLabel: '旧灵种转化',
+        href: '/game/seed-migration',
+        expandedDockLabel: '旧灵种转化',
+        expandedDockIcon: '🌱',
+      },
+    ],
+  },
+  {
     key: 'service',
     title: '玩家服务',
     scenes: [
@@ -533,13 +543,19 @@ export function getCoreDockItems(): GameDockLink[] {
   });
 }
 
-export function getExpandedDockGroups(): GameDockGroupLinks[] {
+/** unlocked 是主线眼下开放的场景；为空表示不设限。 */
+export function getExpandedDockGroups(
+  unlocked?: readonly string[] | null,
+): GameDockGroupLinks[] {
   return gameDockGroups
     .map((group) => ({
       key: group.key,
       title: group.title,
       actions: group.scenes.flatMap((scene) => {
         if (!scene.href || !scene.expandedDockLabel) {
+          return [];
+        }
+        if (!storySceneOpen(unlocked, scene.id)) {
           return [];
         }
 
@@ -556,8 +572,10 @@ export function getExpandedDockGroups(): GameDockGroupLinks[] {
     .filter((group) => group.actions.length > 0);
 }
 
-export function getExpandedDockColumns(): GameDockGroupLinks[][] {
-  const groups = getExpandedDockGroups();
+export function getExpandedDockColumns(
+  unlocked?: readonly string[] | null,
+): GameDockGroupLinks[][] {
+  const groups = getExpandedDockGroups(unlocked);
   const byKey = new Map(groups.map((group) => [group.key, group]));
   const used = new Set<GameSceneGroup>();
   const columns = expandedMenuColumns.map((keys) =>

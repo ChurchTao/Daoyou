@@ -159,7 +159,7 @@ export function AtlasToolbar(props: AtlasToolbarProps) {
             {regionName}
           </span>
           <div
-            className={`border-ink/20 focus-within:border-ink/60 flex min-w-0 items-center rounded-sm border bg-white/45 transition-colors focus-within:bg-white/75 ${searchOpen ? 'border-ink/50' : ''}`}
+            className={`border-ink/20 focus-within:border-ink/60 dark:bg-paper-2 dark:focus-within:border-crimson/70 dark:focus-within:bg-sheet flex min-w-0 items-center rounded-sm border bg-white/45 transition-colors focus-within:bg-white/75 ${searchOpen ? 'border-ink/50' : ''}`}
           >
             <label htmlFor="atlas-location-search" className="sr-only">
               搜索地点

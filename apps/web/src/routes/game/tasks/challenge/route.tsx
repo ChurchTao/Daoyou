@@ -101,7 +101,7 @@ function TaskChallenge({ taskId }: { taskId?: string }) {
         busy={combat.pending}
         error={combat.error}
         onFinish={() => void start()}
-        onExit={() => navigate('/game/tasks')}
+        onExit={() => navigate('/game/retreat')}
       />
     );
   }
@@ -118,8 +118,8 @@ function TaskChallenge({ taskId }: { taskId?: string }) {
         void combat.refresh(true);
         void reload();
       }}
-      back="/game/tasks"
-      backLabel="返回任务中心"
+      back="/game/retreat"
+      backLabel="返回静室"
     >
       {session?.settlement === 'pending' ? (
         <InkButton
@@ -143,7 +143,7 @@ function TaskChallenge({ taskId }: { taskId?: string }) {
           onAuto={combat.submitAuto}
           onClose={() => {
             if (session.settlement === 'settled' && !combat.playing)
-              navigate('/game/tasks', { replace: true });
+              navigate('/game/retreat', { replace: true });
           }}
           endAction={
             session.settlement === 'settled' &&
@@ -156,8 +156,8 @@ function TaskChallenge({ taskId }: { taskId?: string }) {
               </InkButton>
             ) : undefined
           }
-          back="/game/tasks"
-          backLabel="返回任务中心"
+          back="/game/retreat"
+          backLabel="返回静室"
         />
       ) : taskId && !combat.error && !tasksLoading ? (
         <div className="space-y-4 text-sm leading-7">
@@ -166,7 +166,7 @@ function TaskChallenge({ taskId }: { taskId?: string }) {
               ? '破境准备已齐，可回静室正式冲关。'
               : task
                 ? (stage?.description ?? '请先完成当前破境准备。')
-                : '没有找到这份破境卷宗，请返回任务中心重新查看。'}
+                : '没有找到这份破境卷宗，请回静室重新核对。'}
           </p>
           {stage?.objectives
             .filter((objective) => !objective.completed)
@@ -177,7 +177,7 @@ function TaskChallenge({ taskId }: { taskId?: string }) {
             ))}
           <InkButton
             href={
-              task?.status === 'completed' ? '/game/retreat' : '/game/tasks'
+              '/game/retreat'
             }
           >
             {task?.status === 'completed' ? '回静室冲关' : '查看准备'}

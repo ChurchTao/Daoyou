@@ -76,7 +76,7 @@ export function AuctionBuyOrderActions({
       </p>
       {isOwner ? (
         <>
-          <p className="text-amber-800">
+          <p className="text-amber-800 dark:text-wood">
             撤单后剩余冻结{' '}
             <SpiritStones amount={refund} className="font-semibold" />。
           </p>
@@ -139,7 +139,7 @@ export function AuctionBuyOrderActions({
             </p>
           )}
           {quote ? (
-            <p className="text-amber-800">
+            <p className="text-amber-800 dark:text-wood">
               成交额 <SpiritStones amount={quote.grossAmount} /> · 税费{' '}
               <SpiritStones amount={quote.feeAmount} /> · 实得{' '}
               <SpiritStones amount={quote.sellerAmount} className="font-semibold" />

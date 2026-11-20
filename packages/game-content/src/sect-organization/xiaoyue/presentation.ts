@@ -39,53 +39,6 @@ const hotspotPositions: Record<string, { left: string; top: string }> = {
 export const XIAOYUE_SECT_PRESENTATION: SectPresentationTheme = {
   sectId: XIAOYUE_SECT_ID,
   announcement: '演武坪今日开放试招。门人与灵兽可各按自己的步伐入坪；山中差事仍照常交付。',
-  onboarding: {
-    summary: '百兽崖与山林万类平等相处，观灵兽之形悟修炼与战法。百相化形修自身兽形，灵兽同契与自己的伙伴并肩进退。',
-    traits: ['观形悟法', '百相化形', '灵兽同契'],
-    script: {
-      id: 'xiaoyue-onboarding',
-      title: '入崖先听山',
-      theme: 'stillness',
-      backdrop: {
-        src: '/assets/sect/onboarding/xiaoyue.webp',
-        alt: '南疆十万大山的林海与赭色崖壁间，石径通往百兽崖山门',
-      },
-      acts: [
-        {
-          id: 'follow-the-ridge',
-          title: '沿崖而上',
-          scene: '百兽崖 · 山门',
-          body: '石径从十万大山的林海攀向崖顶。旧传山洪时，修士循兽群找到高地，兽群也沿修士凿出的石径脱险；百兽崖由此立宗。路边石槽至今为行人与山兽留着清水。',
-          speaker: '守门弟子：“崖上万类各有自己的路。先听山，再走你的路。”',
-          tone: 'mist',
-        },
-        {
-          id: 'learn-the-form',
-          title: '观形入道',
-          scene: '百兽崖 · 观形台',
-          body: '崖边的山兽伏身跃过裂岩，飞鸟顺风掠过山脊。教习只让你静看它们的筋骨、呼息与落点，再把所悟的形意练回自己身上。',
-          speaker: '观形教习：“山林万类皆可为师。先识其息，再学其形。”',
-          tone: 'stillness',
-        },
-        {
-          id: 'test-the-breath',
-          title: '各有步伐',
-          scene: '百兽崖 · 演武坪',
-          body: '一名弟子借兽形连击木桩，退开调息；另一名门人与自己的灵兽对望一眼，分别从两侧扑向同一处破绽。灵兽停步时，门人也收势等它。',
-          speaker: '演武教习：“修己身要知进退，同行者也要听得见彼此。”',
-          tone: 'mist',
-        },
-        {
-          id: 'walk-together',
-          title: '同路入山',
-          scene: '百兽崖 · 听山堂',
-          body: '听山长老将《百兽化形》交予你。堂前刻着崖中旧训：观形、同息、共守山林。门规要弟子尊重灵兽去留，结伴先听其意；平日轮值清山径、护水源。',
-          speaker: '听山长老：“百相化形修己身，灵兽同契重相应。先听清彼此的呼息，再择所行。”',
-          tone: 'stillness',
-        },
-      ],
-    },
-  },
   map: {
     image: '/assets/maps/xiaoyue-ridge.webp',
     alt: '百兽崖的林海与赭石崖壁间，听山堂、演武坪、诸院和山门由盘山石径相连的水墨舆图',

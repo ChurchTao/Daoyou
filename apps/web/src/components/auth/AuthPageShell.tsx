@@ -32,7 +32,7 @@ export function AuthPageShell({
     <PaperSurface className="relative overflow-hidden">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-20"
+        className="pointer-events-none absolute inset-0 opacity-20 dark:opacity-5"
         style={{
           backgroundImage: "url('/assets/light-grey-floral-motif.webp')",
           backgroundPosition: 'center top',

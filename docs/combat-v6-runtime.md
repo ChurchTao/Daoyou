@@ -6,16 +6,15 @@
 
 | 职责 | 实现 |
 | --- | --- |
-| 规则无关的确定性回合内核 | `packages/shared/src/engine/combat-v6/core` |
-| 当前人物投影 | `projection/project-character.ts` 的 `projectCharacterToCombatV6` |
-| 个人装备、功法和炼体 | `projection/project-character-equipment.ts`、`compose-character-manuals.ts`、`body-cultivation-v6.ts` |
-| 五宗门内容 | `content/index.ts` 的 `COMBAT_V6_SECT_DEFINITIONS`、`compileCurrentSectCombatV6`、`validateCombatV6SectRegistry` |
-| 当前战斗规则 | `rules-daoyou/index.ts` 的 `daoyouRulesetV6` |
-| 版本戳 | `version.ts`；只保留基础投影、当前人物构筑及当前模式版本 |
-| 模式编排 | `encounter`、`wild`、`sect`、`breakthrough`、`dungeon`、`tower`、`ranking` 和共享擂台模块 |
-| 权威装配和入场 | `apps/api/src/combat/application/CombatV6BuildService.ts` 及各模式服务 |
-| Redis 运行态 | `CombatV6RuntimeStore.ts` 及各模式运行态，保留 CAS、占用锁与幂等结算 |
-| 终局与回放 | `apps/api/src/runtime/messaging/combatV6Messaging.ts`、`combatV6ReplayRepository.ts` |
+| 规则无关的确定性回合内核 | [combat-core](../packages/combat-core/src) |
+| 人物、个人道装、功法与炼体投影 | [角色投影](../packages/game-rules/src/combat/projection) |
+| 宗门内容 | [宗门注册表](../packages/game-content/src/sects/registry.ts) |
+| 战斗规则与自动战术 | [daoyouRulesetV6](../packages/game-rules/src/combat/daoyou/index.ts)、[公共 AUTO](../packages/game-rules/src/combat/auto.ts) |
+| 版本戳 | [战斗版本](../packages/game-domain/src/combat/versions.ts) |
+| 模式编排 | [共享战斗规则](../packages/game-rules/src/combat)及 API 中各玩法的入场、状态和结算服务 |
+| 权威装配和入场 | [CombatV6BuildService](../apps/api/src/combat/application/CombatV6BuildService.ts)及各模式服务 |
+| Redis 运行态 | [CombatV6RuntimeStore](../apps/api/src/combat/application/CombatV6RuntimeStore.ts)及各模式运行态，保留 CAS、占用锁与幂等结算 |
+| 终局与回放 | [终局消息](../apps/api/src/runtime/messaging/combatV6Messaging.ts)、[回放仓储](../apps/api/src/lib/repositories/combatV6ReplayRepository.ts) |
 
 个人道装、功法和灵兽属于角色，宗门心法和经脉属于成员关系。纯投影允许无宗门输入，战斗入场仍由服务器检查。气血／法力遵守 `full` / `persistent` 策略；属性变化不能隐式回满资源。
 

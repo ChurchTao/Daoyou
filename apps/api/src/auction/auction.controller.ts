@@ -29,8 +29,10 @@ import {
 } from './auction-errors.js';
 import { BuyOrdersSchema, ListingsSchema } from './auction-input.js';
 import { AuctionService } from './auction.service.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 
 @Controller('api/auction')
+@StoryGate('auction')
 @Access('active')
 export class AuctionController {
   constructor(

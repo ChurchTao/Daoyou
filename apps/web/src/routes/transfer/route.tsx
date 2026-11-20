@@ -73,12 +73,12 @@ function TransferVista({ mode, onBack }: { mode: 'import' | 'export'; onBack: ()
     <div className="absolute top-0 left-0 w-full px-[max(1.25rem,env(safe-area-inset-left))] pt-[max(1rem,env(safe-area-inset-top))] sm:pl-[max(1.5rem,env(safe-area-inset-left))]">
       <div className="max-w-xl">
         <div className="flex flex-wrap gap-x-4 gap-y-1">
-          <InkButton href="/game" className="text-paper hover:text-white">返回游戏</InkButton>
-          <InkButton className="text-paper hover:text-white" onClick={onBack}>返回跨界入口</InkButton>
+          <InkButton href="/game" className="text-scene-ink hover:text-white">返回游戏</InkButton>
+          <InkButton className="text-scene-ink hover:text-white" onClick={onBack}>返回跨界入口</InkButton>
         </div>
         <div className="mt-5 sm:mt-8">
-          <p className="text-sm tracking-[0.28em] text-paper [text-shadow:0_1px_10px_rgba(8,5,4,0.85)] sm:tracking-[0.32em]">撕裂虚空 · 跨界飞升</p>
-          <h1 id="transfer-vista-title" className="font-heading mt-3 text-5xl text-paper [text-shadow:0_2px_14px_rgba(8,5,4,0.9)] sm:mt-4 sm:text-6xl">{arrival ? '降临此界' : '飞升离界'}</h1>
+          <p className="text-sm tracking-[0.28em] text-scene-ink [text-shadow:0_1px_10px_rgba(8,5,4,0.85)] sm:tracking-[0.32em]">撕裂虚空 · 跨界飞升</p>
+          <h1 id="transfer-vista-title" className="font-heading mt-3 text-5xl text-scene-ink [text-shadow:0_2px_14px_rgba(8,5,4,0.9)] sm:mt-4 sm:text-6xl">{arrival ? '降临此界' : '飞升离界'}</h1>
         </div>
       </div>
     </div>

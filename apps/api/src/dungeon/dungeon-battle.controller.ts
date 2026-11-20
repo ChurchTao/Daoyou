@@ -29,6 +29,7 @@ import {
   DungeonSubmitErrors,
 } from './dungeon-errors.js';
 import { DungeonService } from './dungeon.service.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 
 const BattleIdSchema = z.object({
   battleId: z.string().min(1),
@@ -36,6 +37,7 @@ const BattleIdSchema = z.object({
 });
 
 @Controller('api/dungeon/battle')
+@StoryGate('dungeon')
 @Access('active')
 export class DungeonBattleController {
   constructor(

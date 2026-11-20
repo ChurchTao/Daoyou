@@ -26,6 +26,7 @@ import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
 import { ChatError } from './application/chatError.js';
 import { WorldChatService } from './world-chat.service.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 
 export const SendErrors = apiErrorFilter((error) => {
   if (error instanceof ZodError) return undefined;
@@ -66,6 +67,7 @@ export const ReadErrors = apiErrorFilter((error) => {
 });
 
 @Controller('api/world-chat')
+@StoryGate('world-chat')
 export class WorldChatController {
   constructor(
     @Inject(WorldChatService) private readonly chat: WorldChatService,

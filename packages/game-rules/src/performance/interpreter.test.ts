@@ -161,4 +161,122 @@ describe('performance interpreter', () => {
     expect(restarted.finished).toBe(false);
     expect(restarted.cursor).toBe(1);
   });
+
+  describe('page, memory and branches', () => {
+    const play = parsePerformanceScript({
+      id: 'page',
+      title: '纸页',
+      requires: [],
+      cast: { elder: { name: '许伯', portrait: 'icon:portrait-elder-m' } },
+      cues: [
+        { type: 'scene', alt: '溪边' },
+        { type: 'title', kicker: '太岳山', text: '溪边' },
+        { type: 'line', speaker: 'elder', text: '学过？' },
+        {
+          type: 'choice',
+          options: [
+            {
+              label: '没有。',
+              set: 'said-no',
+              then: [{ type: 'line', speaker: 'elder', text: '嗯。' }],
+            },
+            { label: '（摇头）' },
+          ],
+        },
+        { type: 'aside', text: '不是梦。' },
+        { type: 'narration', text: '他记得。', when: { flag: 'said-no' } },
+        {
+          type: 'narration',
+          text: '他没看见。',
+          when: { flag: 'said-no', absent: true },
+        },
+        { type: 'scene', alt: '洞府' },
+        { type: 'letter', title: '告示', text: '月末考校。' },
+        { type: 'recall', lines: ['学过？', '嗯。'] },
+        { type: 'end', outcome: 'done' },
+      ],
+    });
+
+    function run(choice: number, flags: string[] = []) {
+      let state = createPerformanceState(play, {}, flags);
+      for (let step = 0; step < 40 && !state.ending; step += 1) {
+        state =
+          currentPerformanceCue(play, state)?.type === 'choice'
+            ? reducePerformance(play, {}, state, { type: 'choose', index: choice })
+            : reducePerformance(play, {}, state, { type: 'advance' });
+      }
+      return state;
+    }
+
+    it('plays the lines under the chosen option, then rejoins', () => {
+      const state = run(0);
+      expect(state.flags).toEqual(['said-no']);
+      expect(state.log.map((entry) => `${entry.kind}:${entry.text}`)).toEqual([
+        'title:溪边',
+        'line:学过？',
+        'said:没有。',
+        'line:嗯。',
+        'aside:不是梦。',
+        'narration:他记得。',
+        'letter:月末考校。',
+        'recall:学过？\n嗯。',
+      ]);
+    });
+
+    it('skips the other branch and reads flags both ways', () => {
+      const state = run(1);
+      expect(state.flags).toEqual([]);
+      expect(state.log.map((entry) => entry.text)).toEqual([
+        '溪边',
+        '学过？',
+        '（摇头）',
+        '不是梦。',
+        '他没看见。',
+        '月末考校。',
+        '学过？\n嗯。',
+      ]);
+    });
+
+    it('starts with flags remembered from earlier plays', () => {
+      expect(run(1, ['said-no']).log.map((entry) => entry.text)).toContain(
+        '他记得。',
+      );
+    });
+
+    it('turns the page on a new scene and keeps who spoke', () => {
+      const state = run(0);
+      expect(state.page).toBe(1);
+      expect(state.log.find((entry) => entry.kind === 'letter')).toMatchObject({
+        page: 1,
+        heading: '告示',
+      });
+      expect(state.log[0]).toMatchObject({ page: 0, heading: '太岳山' });
+      expect(state.log[1]).toMatchObject({ actor: 'elder', speaker: '许伯' });
+    });
+
+    it('rejects an option that points two ways', () => {
+      expect(() =>
+        parsePerformanceScript({
+          id: 'two',
+          title: '两头',
+          requires: [],
+          cast: {},
+          cues: [
+            { type: 'scene', alt: '画' },
+            {
+              type: 'choice',
+              options: [
+                {
+                  label: '去',
+                  outcome: 'gone',
+                  then: [{ type: 'narration', text: '走了。' }],
+                },
+              ],
+            },
+            { type: 'end', outcome: 'done' },
+          ],
+        }),
+      ).toThrow();
+    });
+  });
 });

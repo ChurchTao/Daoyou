@@ -72,6 +72,7 @@ export default function InventoryV6() {
     : undefined;
   const [params, setParams] = useSearchParams();
   const route = useLocation();
+  const focusedItemId = params.get('item');
   const location =
     params.get('location') === 'bag'
       ? 'bag'
@@ -202,6 +203,13 @@ export default function InventoryV6() {
   function clearSelection() {
     setSelectedIds(new Set());
   }
+  function showLocation(location: 'bag' | 'storage') {
+    const next = new URLSearchParams(params);
+    next.set('location', location);
+    setParams(next);
+    setPage(0);
+    setData(undefined);
+  }
   function toggleSelection(id: string) {
     setSelectedIds((current) => {
       const next = new Set(current);
@@ -285,8 +293,7 @@ export default function InventoryV6() {
           }
           onSlot={(slot) => {
             if (location !== 'bag') {
-              setParams({ location: 'bag' });
-              setData(undefined);
+              showLocation('bag');
             }
             setPage(0);
             setFilter({ kind: 'equipment' });
@@ -313,9 +320,7 @@ export default function InventoryV6() {
                     }
                     onClick={() => {
                       clearSelection();
-                      setParams({ location: value });
-                      setPage(0);
-                      setData(undefined);
+                      showLocation(value);
                       setSlotFilter(undefined);
                     }}
                   >
@@ -496,9 +501,11 @@ export default function InventoryV6() {
                 badge:
                   entry && selectedIds.has(entry.id)
                     ? '已选'
-                    : entry?.equipped
-                      ? '穿'
-                      : undefined,
+                    : entry && entry.id === focusedItemId
+                      ? '已定位'
+                      : entry?.equipped
+                        ? '穿'
+                        : undefined,
                 onQuickAction:
                   selecting && entry
                     ? () => toggleSelection(entry.id)

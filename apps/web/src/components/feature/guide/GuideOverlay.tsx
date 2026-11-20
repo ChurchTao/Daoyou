@@ -266,6 +266,25 @@ function GuideSession({
     setState(next);
   }, [lesson, state, storageKey]);
 
+  // 页面已经走到后面去了（比如刷新后直接落在战斗里）：
+  // 眼前这一步要指的东西不在，后面某一步的却在，就从那一步接着教。
+  useEffect(() => {
+    if (!lesson || !anchor || hole || state.finished) return;
+    const timer = window.setInterval(() => {
+      if (document.querySelector(`[data-guide="${anchor}"]`)) return;
+      const ahead = lesson.steps.findIndex(
+        (entry, index) =>
+          index > state.cursor &&
+          entry.type !== 'end' &&
+          document.querySelector(`[data-guide="${entry.anchor}"]`),
+      );
+      if (ahead < 0) return;
+      writeStoredGuideCursor(storageKey, ahead);
+      setState({ cursor: ahead, finished: false });
+    }, 600);
+    return () => window.clearInterval(timer);
+  }, [anchor, hole, lesson, state.cursor, state.finished, storageKey]);
+
   useEffect(() => {
     if (!lesson || step?.type !== 'press') return;
     const expectedAnchor = step.anchor;
@@ -299,7 +318,11 @@ function GuideSession({
       ? below
       : above > 72
         ? above
-        : Math.max(72, window.innerHeight - bottomReserve - calloutHeight);
+        : // 高亮区太高，上下都放不下：放在它中间，不压住两头的内容。
+          Math.min(
+            Math.max(72, hole.top + hole.height / 2 - calloutHeight / 2),
+            Math.max(72, window.innerHeight - bottomReserve - calloutHeight),
+          );
   const calloutLeft = Math.min(
     Math.max(16, hole?.left ?? 16),
     window.innerWidth - calloutWidth - 16,

@@ -7,6 +7,7 @@ export function completeStoryPerformanceCommand(args: {
   cultivatorId: string;
   scriptId: string;
   outcome: string;
+  chosen: readonly string[];
 }) {
   return playerCommandExecutor.executeWithLock({
     userId: args.userId,
@@ -17,6 +18,7 @@ export function completeStoryPerformanceCommand(args: {
         args.cultivatorId,
         args.scriptId,
         args.outcome,
+        args.chosen,
         tx,
       );
       return {

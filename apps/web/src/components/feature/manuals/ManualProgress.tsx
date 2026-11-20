@@ -33,7 +33,7 @@ export function ManualProgress({
             ) : null}
             <span
               aria-hidden="true"
-              className={`${compact ? 'h-1 w-1 shrink-0' : 'flex h-7 min-w-0 flex-1 items-center justify-center font-mono text-xs'} rounded-sm border transition-colors duration-500 motion-reduce:transition-none ${n === level ? 'border-crimson bg-crimson text-paper' : n < level ? 'border-ink/70 bg-ink/70 text-paper' : n <= unlockedLevel ? 'border-ink/25 text-ink-secondary' : 'border-ink/10 text-ink/25'}`}
+              className={`${compact ? 'h-1 w-1 shrink-0' : 'flex h-7 min-w-0 flex-1 items-center justify-center font-mono text-xs'} rounded-sm border transition-colors duration-500 motion-reduce:transition-none ${n === level ? 'border-crimson bg-crimson text-on-crimson' : n < level ? 'border-ink/70 bg-ink/70 text-paper' : n <= unlockedLevel ? 'border-ink/25 text-ink-secondary' : 'border-ink/10 text-ink/25'}`}
             >
               {compact ? null : n}
             </span>

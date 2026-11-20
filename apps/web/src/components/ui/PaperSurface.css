@@ -1,36 +1,25 @@
-/* Extracted from the supplied paper photographs; source and processing notes in
-   /assets/textures/ATTRIBUTION.txt. Keep the texture behind content. */
+/* Neutral, translucent paper fibers sit over the CSS paper color.
+   See /assets/textures/ATTRIBUTION.txt for the export details. */
 .paper-surface {
   isolation: isolate;
   background: var(--color-sheet);
 }
 
-.paper-surface::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  pointer-events: none;
-  background-repeat: repeat;
-}
+:root:not([data-theme='dark']) .paper-surface {
+  background-size: 512px 512px;
 
-.paper-surface[data-paper-texture='fine'] {
-  background-color: var(--color-sheet-fine);
-}
+  &[data-paper-texture='fine'] {
+    background-color: var(--color-sheet-fine);
+    background-image: url('/assets/textures/xuan-sheng-fibers.webp');
+  }
 
-.paper-surface[data-paper-texture='fine']::before {
-  background-image: url('/assets/textures/xuan-fine.webp');
-}
+  &[data-paper-texture='semi-sized'] {
+    background-color: var(--color-sheet-semi-sized);
+    background-image: url('/assets/textures/xuan-ban-shu-fibers.webp');
+  }
 
-.paper-surface[data-paper-texture='classic'] {
-  background-color: var(--color-sheet-classic);
-}
-
-.paper-surface[data-paper-texture='classic']::before {
-  background-image: url('/assets/textures/xuan-classic-soft.webp');
-}
-
-.paper-surface[data-paper-texture='none']::before {
-  content: none;
+  &[data-paper-texture='classic'] {
+    background-color: var(--color-sheet-classic);
+    background-image: url('/assets/textures/xuan-shu-fibers.webp');
+  }
 }

@@ -37,6 +37,14 @@ export const combatRoutes = (
       )}
     />
     <Route
+      path="story/battle"
+      lazy={lazyRoute(() => import('@app/routes/game/story/battle/route'))}
+      handle={scene(
+        { id: 'story-battle', chrome: 'immersive', dock: 'hidden' },
+        '交手',
+      )}
+    />
+    <Route
       path="wild"
       lazy={lazyRoute(() => import('@app/routes/game/wild/route'))}
       handle={scene(

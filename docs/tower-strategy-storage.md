@@ -34,4 +34,4 @@
 
 部署时全部 API 实例应一起切换，不混跑新旧内容。仓库内容变更需构建/重启并更新内容标识；不支持同版本周中热改。未来是否保留历史解释器不在本次未发布玩法范围内。
 
-验证与限制见 [第二阶段实施记录](tower-phase-two-design.md) 和 [数值检查](tower-scaling-design.md)。
+验证范围见[数值检查](tower-scaling-design.md)，当前配置入口见[幻境内容配置](../packages/game-content/src/tower/data/README.md)。

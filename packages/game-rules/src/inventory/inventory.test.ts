@@ -199,6 +199,7 @@ describe('beast books', () => {
     '00000000-0000-4000-8000-000000000002',
     BEAST_SPECIES[0].id,
     1,
+    10,
   );
   it('replaces only the selected birth slot, without changing growth or capacity', () => {
     const next = learnBeastSkill(beast, BOOKS[2].id, 10, 0);

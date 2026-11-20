@@ -1,9 +1,12 @@
 import { useSyncExternalStore } from 'react';
+import { syncViewportThemeColor } from './viewportColor';
 
-export type PaperTexture = 'fine' | 'classic' | 'none';
+export type ColorScheme = 'system' | 'light' | 'dark';
+export type PaperTexture = 'fine' | 'semi-sized' | 'classic' | 'none';
 
 /** Browser-local preferences. Never store credentials or battle progress here. */
 export interface GameSettings {
+  colorScheme: ColorScheme;
   mapMode: 'atlas' | 'text';
   imageOpacity: number;
   paperTexture: PaperTexture;
@@ -15,6 +18,7 @@ export interface GameSettings {
 
 export const GAME_SETTING_STORAGE_KEY = 'game-setting';
 const defaults: Readonly<GameSettings> = {
+  colorScheme: 'system',
   mapMode: 'atlas',
   imageOpacity: 1,
   paperTexture: 'fine',
@@ -33,7 +37,7 @@ function normalizeImageOpacity(value: unknown): number {
 }
 
 function normalizePaperTexture(value: unknown): PaperTexture {
-  if (value === 'classic') return 'classic';
+  if (value === 'semi-sized' || value === 'classic') return value;
   // Preserve the former texture switch's disabled preference.
   if (value === 'none' || value === false) return 'none';
   return defaults.paperTexture;
@@ -47,6 +51,10 @@ function readSettings(): GameSettings {
     if (stored?.version === 1 || stored?.version === 2) {
       const keepCombatAuto = stored.keepCombatAuto === true;
       return {
+        colorScheme:
+          stored.colorScheme === 'light' || stored.colorScheme === 'dark'
+            ? stored.colorScheme
+            : defaults.colorScheme,
         mapMode: ['atlas', 'text'].includes(stored.mapMode)
           ? stored.mapMode
           : defaults.mapMode,
@@ -64,6 +72,7 @@ function readSettings(): GameSettings {
 
 function sameSettings(left: GameSettings, right: GameSettings) {
   return (
+    left.colorScheme === right.colorScheme &&
     left.mapMode === right.mapMode &&
     left.imageOpacity === right.imageOpacity &&
     left.paperTexture === right.paperTexture &&
@@ -128,4 +137,24 @@ export function updateGameSettings(patch: Partial<GameSettings>) {
 
 export function useGameSettings() {
   return useSyncExternalStore(subscribe, getSnapshot, () => defaults);
+}
+
+/** Keep the document in sync for the lifetime of the SPA, across all routes. */
+export function initializeGameColorScheme() {
+  const system = window.matchMedia('(prefers-color-scheme: dark)');
+  const root = document.documentElement;
+
+  function updateTheme() {
+    const { colorScheme } = getSnapshot();
+    const systemTheme = system.matches ? 'dark' : 'light';
+    const theme = colorScheme === 'system' ? systemTheme : colorScheme;
+
+    if (root.dataset.theme === theme) return;
+    root.dataset.theme = theme;
+    syncViewportThemeColor();
+  }
+
+  subscribe(updateTheme);
+  system.addEventListener('change', updateTheme);
+  updateTheme();
 }

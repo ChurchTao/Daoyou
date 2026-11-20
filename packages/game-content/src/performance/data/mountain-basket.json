@@ -1,0 +1,83 @@
+{
+  "id": "mountain-basket",
+  "title": "筐里还有一个",
+  "requires": [],
+  "cast": {
+    "herb": {
+      "name": "采药人",
+      "portrait": "icon:portrait-elder-m"
+    },
+    "player": {
+      "name": "你"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "山道 · 窄路"
+    },
+    {
+      "type": "title",
+      "kicker": "过了那道弯",
+      "text": "筐里还有一个"
+    },
+    {
+      "type": "narration",
+      "text": "采药人在前头歇脚。你撕下一块葱饼吃，忽然看见他背后伸出一只白爪，勾住了敞开的筐沿。爪子小得很，怎么找也看不见第二只。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "筐里漏出只脚。"
+    },
+    {
+      "type": "line",
+      "speaker": "herb",
+      "text": "你从早上才开始走，人家昨晚就上路了。让它睡。"
+    },
+    {
+      "type": "narration",
+      "text": "他把药筐卸到膝头。一张圆脸慢慢升起来，银灰的脑门上两只耳朵让筐盖压得一高一低。你嘴里还嚼着饼，它看你的嘴；等你咽了，它才看你的脸。"
+    },
+    {
+      "type": "line",
+      "speaker": "herb",
+      "text": "咪咪。"
+    },
+    {
+      "type": "narration",
+      "text": "那张脸又降下去了。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "你捡的？"
+    },
+    {
+      "type": "line",
+      "speaker": "herb",
+      "text": "山里收药，连筐称给我的。当天回去秤了三回都对不上，把药倒光，筐底还蹲着这么重的一只。"
+    },
+    {
+      "type": "line",
+      "speaker": "herb",
+      "text": "月底我还得把空筐还人。"
+    },
+    {
+      "type": "narration",
+      "text": "你想问猫还不还，他已经背起来往前去了。走到一段窄路，旧背带在他肩上一滑，筐沿磕了石头。猫从你脚边蹿过去，钻进坡下干草。"
+    },
+    {
+      "type": "narration",
+      "text": "草窝里响了一声闷哼。草尖一片片倒向路面。一头红眼山豕冲上来，鼻梁上还挂着半截枯茎。采药人的脚缠在脱落的背带里，一时站不起来。你离他只有一步。"
+    },
+    {
+      "type": "narration",
+      "text": "方才嚼剩的一点饼皮还贴在上牙膛。你没来得及咽，山豕已经近到能看清鼻孔了。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

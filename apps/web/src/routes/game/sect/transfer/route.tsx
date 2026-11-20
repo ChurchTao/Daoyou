@@ -105,10 +105,7 @@ export default function SectTransferPage() {
         message: `转宗成功，你现在已加入${preview.target.name}`,
         tone: 'success',
       });
-      navigate(
-        `/game/sect/onboarding?sectId=${encodeURIComponent(preview.target.sectId)}&entry=transfer`,
-        { replace: true },
-      );
+      navigate('/game/sect', { replace: true });
     } catch (reason) {
       pushToast({
         message: reason instanceof Error ? reason.message : '转宗失败',

@@ -1,11 +1,14 @@
 import { realtimeClient } from '@app/lib/realtime/realtimeClient';
 import { GuideOverlay } from '@app/components/feature/guide/GuideOverlay';
+import { SceneGate } from '@app/components/feature/story/SceneGate';
 import { HuntTeamBar } from '@app/components/feature/hunts/HuntTeamBar';
 import { WorldChatPreviewBar } from '@app/components/feature/world-chat/WorldChatPreviewBar';
 import { WorldChatFeedProvider } from '@app/components/feature/world-chat/useWorldChatFeedModel';
 import { GameBottomDock } from '@app/components/game-shell/GameBottomDock';
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
+import { GameTaskIndicator } from '@app/components/game-shell/GameTaskIndicator';
 import { GameTopHud } from '@app/components/game-shell/GameTopHud';
+import { ImmersiveGameFrame } from '@app/components/game-shell/ImmersiveGameFrame';
 import { RealtimeConnectionToasts } from '@app/components/game-shell/RealtimeConnectionToasts';
 import { useGameHudModel } from '@app/components/game-shell/useGameHudModel';
 import { InkButton } from '@app/components/ui/InkButton';
@@ -165,28 +168,33 @@ function GameViewportBody({ scene }: { scene: GameSceneHandle | null }) {
               scrollPaddingBottom: 'var(--game-bottom-offset)',
             }}
           >
-            <Outlet />
+            <SceneGate>
+              <Outlet />
+            </SceneGate>
           </main>
         </div>
         <RealtimeConnectionToasts />
         <GuideOverlay />
-        <PaperSurface
+        <div
           data-game-bottom-chrome
           ref={bottomChromeRef}
-          className="game-bottom-chrome"
+          className="game-bottom-chrome pointer-events-none"
         >
-          <WorldChatPreviewBar />
-          <GameBottomDock
-            sceneId={scene?.id ?? null}
-            unreadMailCount={hud?.unreadMailCount ?? 0}
-            hasUnallocatedAttributePoints={
-              hud?.hasUnallocatedAttributePoints ?? false
-            }
-            isExpanded={isDockExpanded}
-            onToggleExpanded={toggleDockExpanded}
-            dockMode={scene?.dock ?? 'core'}
-          />
-        </PaperSurface>
+          <GameTaskIndicator />
+          <PaperSurface className="pointer-events-auto pb-(--app-bottom-reserve) empty:hidden">
+            <WorldChatPreviewBar />
+            <GameBottomDock
+              sceneId={scene?.id ?? null}
+              unreadMailCount={hud?.unreadMailCount ?? 0}
+              hasUnallocatedAttributePoints={
+                hud?.hasUnallocatedAttributePoints ?? false
+              }
+              isExpanded={isDockExpanded}
+              onToggleExpanded={toggleDockExpanded}
+              dockMode={scene?.dock ?? 'core'}
+            />
+          </PaperSurface>
+        </div>
       </WorldChatFeedProvider>
       </AuthProvider>
     </PaperSurface>
@@ -197,7 +205,9 @@ export function GameCombatLayout() {
   return (
     <PaperSurface className="h-dvh overflow-hidden">
       <main className="h-full overflow-hidden">
-        <Outlet />
+        <SceneGate>
+          <Outlet />
+        </SceneGate>
       </main>
     </PaperSurface>
   );
@@ -207,7 +217,9 @@ export function GameActivityLayout() {
   return (
     <div className="bg-scene h-[100dvh] touch-none overflow-hidden overscroll-none">
       <main className="h-full overflow-hidden">
-        <Outlet />
+        <SceneGate>
+          <Outlet />
+        </SceneGate>
       </main>
     </div>
   );
@@ -215,9 +227,9 @@ export function GameActivityLayout() {
 
 export function GameNarrativeLayout() {
   return (
-    <main>
+    <PaperSurface as="main" className="min-h-dvh text-ink">
       <Outlet />
-    </main>
+    </PaperSurface>
   );
 }
 
@@ -226,19 +238,20 @@ export function GameMapLayout({
 }: {
   scrollContent?: boolean;
 }) {
+  const scene = resolveGameScene(useMatches());
+  const surface =
+    scene && scene.presentation !== 'immersive' ? 'paper' : 'scene';
   return (
-    <div className="bg-scene relative h-dvh overflow-hidden">
-      <main
-        className={
-          scrollContent
-            ? 'h-full overflow-x-hidden overflow-y-auto'
-            : 'h-full overflow-hidden'
-        }
-      >
-        <Outlet />
-      </main>
+    <main className="h-dvh">
+      <ImmersiveGameFrame scrollContent={scrollContent} surface={surface}>
+        <div className="h-full">
+          <SceneGate>
+            <Outlet />
+          </SceneGate>
+        </div>
+      </ImmersiveGameFrame>
       <GuideOverlay />
-    </div>
+    </main>
   );
 }
 
@@ -424,7 +437,9 @@ function GameDungeonLayoutBody() {
               : 'battle-scroll h-full overflow-y-auto'
           }
         >
-          <Outlet />
+          <SceneGate>
+            <Outlet />
+          </SceneGate>
         </main>
       </div>
     </PaperSurface>

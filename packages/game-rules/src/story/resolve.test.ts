@@ -2,10 +2,14 @@ import { StoryChapterSchema } from '@daoyou/game-content/authoring/story';
 import { describe, expect, it } from 'vitest';
 import { openingStoryProgress } from './progress.js';
 import { storyMarkForSignal } from './signals.js';
-import { getStoryChapter } from '@daoyou/game-content/story/catalog';
+import {
+  getStoryChapter,
+  OPENING_STORY_CHAPTER,
+} from '@daoyou/game-content/story/catalog';
 import {
   acknowledgeGuide,
   acknowledgePerformance,
+  noteForgedStoryWeapon,
   noteStoryFact,
   presentStory,
   resolveStory,
@@ -76,8 +80,8 @@ function progress(
 
 describe('story resolver', () => {
   it('loads the arrival chapter and opens on the first performance', () => {
-    const arrival = getStoryChapter();
-    const opening = openingStoryProgress();
+    const arrival = getStoryChapter('arrival');
+    const opening = openingStoryProgress('arrival');
     const view = presentStory(arrival, opening, emptyStoryFacts());
     expect(opening.track).toBe('main');
     expect(view.track).toBe('main');
@@ -285,7 +289,7 @@ describe('story resolver', () => {
   });
 
   it('sends an unstarted arrival record to the opening', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const unwatched = progress('entered', { storyId: 'arrival' });
     const rewound = rewindToUnwatchedPerformance(
       arrival,
@@ -310,7 +314,7 @@ describe('story resolver', () => {
     'steady',
     'grip',
   ])('migrates the removed arrival beat %s without losing progress', (beatId) => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const old = progress(beatId, {
       storyId: 'arrival',
       acks: ['arrival-fall:entered', 'arrival-scent:stayed'],
@@ -338,7 +342,7 @@ describe('story resolver', () => {
   });
 
   it('preserves the completed old arrival endpoint without replaying new lessons', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     for (const status of ['active', 'completed'] as const) {
       const old = progress('entered', {
         storyId: 'arrival',
@@ -364,7 +368,7 @@ describe('story resolver', () => {
   });
 
   it('migrates an old active record to the first missing real action', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const old = progress('grip', {
       storyId: 'arrival',
       acks: arrival.beats.flatMap((beat) =>
@@ -395,7 +399,7 @@ describe('story resolver', () => {
   });
 
   it('does not recheck passed live facts after the arrival revision is recorded', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const active = progress('seek', {
       storyId: 'arrival',
       acks: arrival.beats
@@ -416,7 +420,7 @@ describe('story resolver', () => {
   });
 
   it('accepts a Qingxi meeting without requiring a victory or a captured beast', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const fact = storyMarkForSignal({ type: 'wild.met', nodeId: 'SAT_TN_08' });
     expect(fact).toBe('qingxi_met');
     const current = progress('seek', {
@@ -443,7 +447,7 @@ describe('story resolver', () => {
   });
 
   it('requires a real sect membership while allowing its introductory lesson to be optional', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const current = progress('door', {
       storyId: 'arrival',
       marks: ['arrival-v2'],
@@ -458,10 +462,62 @@ describe('story resolver', () => {
     ).toBe('ember');
   });
 
-  it.each(['hearth', 'forge', 'equip', 'path', 'bag'])(
+  it('waits for actual path activation before continuing chapter four', () => {
+    const chapter = getStoryChapter('mountain-foothill');
+    const current = progress('path', { storyId: chapter.id });
+    const facts = emptyStoryFacts();
+    expect(resolveStory(chapter, current, facts).progress.beatId).toBe('path');
+    const view = presentStory(chapter, current, facts);
+    expect(view.href).toBe('/game/sect/onboarding?entry=path&from=story');
+    expect(view.guideLesson).toBeNull();
+    const ready = { ...facts, sect_ready: true };
+    const afterClass = resolveStory(chapter, current, ready);
+    expect(presentStory(chapter, afterClass.progress, ready)).toMatchObject({
+      beatId: 'meal',
+      scriptId: 'mountain-chopsticks',
+      href: '/game/story',
+      guideLesson: null,
+      goals: [],
+    });
+  });
+
+  it.each(['roots', 'errand'])(
+    'resumes from dinner for a chapter-four save at the removed %s beat',
+    (beatId) => {
+      const chapter = getStoryChapter('mountain-foothill');
+      const facts = emptyStoryFacts();
+      const saved = progress(beatId, {
+        storyId: chapter.id,
+        acks: [
+          'mountain-bamboo:done',
+          'mountain-letter-home:done',
+          'mountain-register:done',
+          'mountain-address:done',
+        ],
+        marks: beatId === 'errand' ? ['guide:first-attributes'] : [],
+      });
+      const resumed = rewindToUnwatchedPerformance(chapter, saved, facts);
+      expect(resumed).toEqual({ ...saved, beatId: 'meal' });
+      expect(presentStory(chapter, saved, facts).scriptId).toBe(
+        'mountain-chopsticks',
+      );
+      const ending = acknowledgePerformance(
+        chapter,
+        saved,
+        facts,
+        'mountain-chopsticks',
+        'done',
+      );
+      expect(ending.finished).toBe(true);
+      expect(ending.progress.marks).toEqual(saved.marks);
+      expect(ending.grants).toEqual([]);
+    },
+  );
+
+  it.each(['hearth', 'forge', 'equip', 'bag'])(
     'requires the lesson as well as the real action at %s',
     (beatId) => {
-      const arrival = getStoryChapter();
+      const arrival = getStoryChapter('arrival');
       const beat = arrival.beats.find((entry) => entry.id === beatId)!;
       if (beat.kind !== 'practice') throw new Error('教学幕不是实操');
       const current = progress(beatId, {
@@ -489,7 +545,7 @@ describe('story resolver', () => {
     ['hearth', 'first-furnace-lesson'],
     ['forge', 'first-weapon'],
   ])('issues a missing arrival bundle at %s exactly once', (beatId, grant) => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const current = progress(beatId, {
       storyId: 'arrival',
       marks: ['arrival-v2'],
@@ -503,7 +559,7 @@ describe('story resolver', () => {
   });
 
   it('funds the new furnace lesson once for an old player who only watched alchemy', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const facts = emptyStoryFacts();
     const old = progress('hearth', {
       storyId: 'arrival',
@@ -551,10 +607,10 @@ describe('story resolver', () => {
   });
 
   it('walks the complete arrival chain through real actions before the first outing', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const facts = emptyStoryFacts();
     const issued: string[] = [];
-    let current = openingStoryProgress();
+    let current = openingStoryProgress('arrival');
     const accept = (resolution: ReturnType<typeof resolveStory>, beatId: string) => {
       current = resolution.progress;
       issued.push(...resolution.grants);
@@ -593,7 +649,9 @@ describe('story resolver', () => {
     accept(resolveStory(arrival, current, facts), 'pouch');
 
     play('arrival-pouch', 'pouch', 'path');
-    guide('sect-first-path', 'path');
+    expect(presentStory(arrival, current, facts).href).toBe(
+      '/game/sect/onboarding?entry=path&from=story',
+    );
     facts.sect_ready = true;
     accept(resolveStory(arrival, current, facts), 'attributes');
     guide('first-attributes', 'bag');
@@ -603,7 +661,11 @@ describe('story resolver', () => {
     play('arrival-tracks', 'tracks', 'seek');
     accept(noteStoryFact(arrival, current, facts, 'qingxi_met'), 'remain');
     play('arrival-remain', 'remained', 'entered');
-    expect(issued).toEqual(['first-furnace-lesson', 'first-weapon']);
+    expect(issued).toEqual([
+      'first-furnace-lesson',
+      'first-weapon',
+      'starter-beast',
+    ]);
     expect(resolveStory(arrival, current, facts).grants).toEqual([]);
     expect(
       rewindToUnwatchedPerformance(arrival, current, emptyStoryFacts()).beatId,
@@ -611,7 +673,7 @@ describe('story resolver', () => {
   });
 
   it('still rejects an unknown arrival beat instead of treating it as legacy', () => {
-    const arrival = getStoryChapter();
+    const arrival = getStoryChapter('arrival');
     const unknown = progress('not-an-arrival-beat', { storyId: 'arrival' });
     expect(() => resolveStory(arrival, unknown, emptyStoryFacts())).toThrow(
       '剧情幕不存在：not-an-arrival-beat',
@@ -631,5 +693,324 @@ describe('story resolver', () => {
         'other',
       ),
     ).toThrow('演出结果不属于这一幕');
+  });
+});
+
+describe('chapters that hand over', () => {
+  const linked: StoryChapter = {
+    id: 'linked',
+    track: 'main',
+    title: '接章',
+    next: 'arrival',
+    beats: [
+      {
+        id: 'talk',
+        kind: 'performance',
+        script: 'linked-play',
+        outcome: 'go',
+        scene: 'story',
+        prompt: '先看完。',
+        href: '/game/story',
+      },
+      {
+        id: 'grow',
+        kind: 'wait',
+        until: { type: 'realm', realm: '炼气', stage: '后期' },
+        scene: 'retreat',
+        prompt: '修至炼气后期。',
+        href: '/game/retreat',
+      },
+    ],
+  };
+  const at = (beatId: string, extra: Partial<StoryProgress> = {}) =>
+    progress(beatId, { storyId: 'linked', ...extra });
+  const standing = (realm: '炼气' | '筑基', stage: '初期' | '后期') => ({
+    ...emptyStoryFacts(),
+    standing: { realm, stage },
+  });
+
+  it('holds on a wait beat until the realm is reached', () => {
+    const held = acknowledgePerformance(
+      linked,
+      at('talk'),
+      standing('炼气', '初期'),
+      'linked-play',
+      'go',
+    );
+    expect(held.progress.beatId).toBe('grow');
+    expect(held.finished).toBe(false);
+    expect(
+      presentStory(linked, held.progress, standing('炼气', '初期')),
+    ).toMatchObject({ kind: 'wait', prompt: '修至炼气后期。' });
+    expect(resolveStory(linked, held.progress, emptyStoryFacts()).finished).toBe(
+      false,
+    );
+  });
+
+  it('finishes the chapter once the last beat is satisfied', () => {
+    for (const facts of [standing('炼气', '后期'), standing('筑基', '初期')]) {
+      const done = resolveStory(linked, at('grow'), facts);
+      expect(done.finished).toBe(true);
+      expect(done.progress.status).toBe('completed');
+    }
+  });
+
+  it('keeps the flags a performance was allowed to set', () => {
+    const kept = acknowledgePerformance(
+      linked,
+      at('talk'),
+      emptyStoryFacts(),
+      'linked-play',
+      'go',
+      { flags: ['note.street', 'note.street'], allowed: ['note.street'] },
+    );
+    expect(kept.progress.marks).toEqual(['flag:note.street']);
+    expect(StoryProgressSchema.safeParse(kept.progress).success).toBe(true);
+    expect(
+      presentStory(linked, kept.progress, emptyStoryFacts(), ['old.flag']).flags,
+    ).toEqual(['old.flag', 'note.street']);
+  });
+
+  it('refuses a flag the performance never offers', () => {
+    expect(() =>
+      acknowledgePerformance(
+        linked,
+        at('talk'),
+        emptyStoryFacts(),
+        'linked-play',
+        'go',
+        { flags: ['made.up'], allowed: ['note.street'] },
+      ),
+    ).toThrow('演出里没有这个选择');
+  });
+
+  it('wants a chapter without a successor to rest on a life beat', () => {
+    const { next: _next, ...loose } = linked;
+    expect(StoryChapterSchema.safeParse(loose).success).toBe(false);
+  });
+});
+
+describe('objectives that count', () => {
+  const drill: StoryChapter = {
+    id: 'drill',
+    track: 'main',
+    title: '攒本事',
+    next: 'arrival',
+    beats: [
+      {
+        id: 'talk',
+        kind: 'performance',
+        script: 'drill-play',
+        outcome: 'go',
+        scene: 'story',
+        prompt: '先看完。',
+        href: '/game/story',
+      },
+      {
+        id: 'work',
+        kind: 'objective',
+        goals: [
+          {
+            label: '完成 3 次宗门日常',
+            need: { type: 'count', count: 'sect_dailies', atLeast: 3 },
+          },
+          {
+            label: '闭关 1 次',
+            need: { type: 'count', count: 'retreats', atLeast: 1 },
+          },
+        ],
+        scene: 'sect-affairs',
+        prompt: '为考校做准备。',
+        href: '/game/sect/affairs',
+      },
+    ],
+  };
+  const at = (beatId: string, extra: Partial<StoryProgress> = {}) =>
+    progress(beatId, { storyId: 'drill', ...extra });
+  const counted = (dailies: number, retreats: number) => ({
+    ...emptyStoryFacts(),
+    counts: { sect_dailies: dailies, retreats },
+  });
+
+  it('counts only what is done after the beat begins', () => {
+    const entered = acknowledgePerformance(
+      drill,
+      at('talk'),
+      counted(10, 4),
+      'drill-play',
+      'go',
+    );
+    expect(entered.progress.beatId).toBe('work');
+    expect(entered.progress.marks).toEqual([
+      'base:work:sect_dailies=10',
+      'base:work:retreats=4',
+    ]);
+    expect(StoryProgressSchema.safeParse(entered.progress).success).toBe(true);
+    expect(presentStory(drill, entered.progress, counted(12, 4)).goals).toEqual([
+      { label: '完成 3 次宗门日常', done: false, current: 2, target: 3 },
+      { label: '闭关 1 次', done: false, current: 0, target: 1 },
+    ]);
+    expect(resolveStory(drill, entered.progress, counted(13, 4)).finished).toBe(
+      false,
+    );
+    const done = resolveStory(drill, entered.progress, counted(15, 5));
+    expect(done.finished).toBe(true);
+    expect(presentStory(drill, done.progress, counted(15, 5)).goals).toEqual([
+      { label: '完成 3 次宗门日常', done: true, current: 3, target: 3 },
+      { label: '闭关 1 次', done: true, current: 1, target: 1 },
+    ]);
+  });
+
+  it('starts from zero when the beat has no baseline yet', () => {
+    expect(presentStory(drill, at('work'), counted(8, 2)).goals).toEqual([
+      { label: '完成 3 次宗门日常', done: false, current: 0, target: 3 },
+      { label: '闭关 1 次', done: false, current: 0, target: 1 },
+    ]);
+    const settled = resolveStory(drill, at('work'), counted(8, 2));
+    expect(settled.finished).toBe(false);
+    expect(settled.progress.marks).toContain('base:work:sect_dailies=8');
+  });
+
+  it('leaves other beats without goals', () => {
+    expect(presentStory(drill, at('talk'), emptyStoryFacts()).goals).toEqual([]);
+  });
+});
+
+describe('entries that open along the way', () => {
+  const gated: StoryChapter = {
+    id: 'gated',
+    track: 'main',
+    title: '入山',
+    next: 'arrival',
+    gated: true,
+    beats: [
+      {
+        id: 'talk',
+        kind: 'performance',
+        script: 'gated-play',
+        outcome: 'go',
+        scene: 'story',
+        prompt: '先看完。',
+        href: '/game/story',
+        unlocks: ['cave', 'cultivator'],
+      },
+      {
+        id: 'grow',
+        kind: 'wait',
+        until: { type: 'fact', fact: 'market_bought' },
+        scene: 'market',
+        prompt: '去坊市买一样东西。',
+        href: '/game/market',
+        unlocks: ['market'],
+      },
+    ],
+  };
+  const at = (beatId: string, extra: Partial<StoryProgress> = {}) =>
+    progress(beatId, { storyId: 'gated', ...extra });
+
+  it('lists what has opened up to the current beat', () => {
+    expect(
+      presentStory(gated, at('talk'), emptyStoryFacts(), [], ['inventory'])
+        .unlocked,
+    ).toEqual(['inventory', 'cave', 'cultivator']);
+    expect(presentStory(gated, at('grow'), emptyStoryFacts()).unlocked).toEqual([
+      'cave',
+      'cultivator',
+      'market',
+    ]);
+  });
+
+  it('sets no limit outside a gated chapter', () => {
+    expect(
+      presentStory(chapter, progress('watch'), emptyStoryFacts(), [], ['cave'])
+        .unlocked,
+    ).toBeNull();
+  });
+
+  it('moves on once a noted one-off fact is in', () => {
+    const bought = noteStoryFact(
+      gated,
+      at('grow'),
+      emptyStoryFacts(),
+      'market_bought',
+    );
+    expect(bought.finished).toBe(true);
+  });
+});
+
+describe('volume one', () => {
+  it('runs from the opening chapter to a resting beat', () => {
+    const seen: string[] = [];
+    let current = getStoryChapter(OPENING_STORY_CHAPTER);
+    while (current.next && !seen.includes(current.id)) {
+      seen.push(current.id);
+      current = getStoryChapter(current.next);
+    }
+    expect(seen).toEqual([
+      'mountain-ferry',
+      'mountain-flowers',
+      'mountain-bend',
+      'mountain-foothill',
+      'mountain-forge',
+      'mountain-sparring',
+    ]);
+    expect(seen.slice(0, 3).every((id) => getStoryChapter(id).gated)).toBe(true);
+    expect(getStoryChapter('mountain-foothill').gated).toBeUndefined();
+    expect(getStoryChapter('mountain-foothill').beats[0]).toMatchObject({
+      id: 'rest', kind: 'performance', script: 'mountain-bamboo',
+    });
+    expect(current.gated).toBeUndefined();
+    expect(current.beats.at(-1)?.kind).toBe('life');
+  });
+
+  it('opens a new character on the first beat of volume one', () => {
+    expect(openingStoryProgress()).toMatchObject({
+      storyId: 'mountain-ferry',
+      beatId: 'two-peaks',
+      status: 'active',
+    });
+  });
+
+  it('supplies one furnace and requires the actual forged weapon to be worn', () => {
+    const chapter = getStoryChapter('mountain-forge');
+    const oldWeaponId = 'c73d5efe-a644-4326-97e0-fa8d87f078ca';
+    const newWeaponId = 'f509aa35-5bea-49d2-90a9-c7f1161d29b9';
+    const facts = { ...emptyStoryFacts(), weapon_equipped: true, equippedWeaponId: oldWeaponId };
+    const early = noteForgedStoryWeapon(chapter, openingStoryProgress(chapter.id), facts, oldWeaponId);
+    expect(early.progress.marks).toEqual([]);
+    let current = early.progress;
+    for (const scene of ['ladle', 'grip', 'borrow']) {
+      const next = acknowledgePerformance(chapter, current, facts, 'mountain-forge-' + scene, 'done');
+      expect(next.grants).toEqual(scene === 'borrow' ? ['first-weapon'] : []);
+      current = next.progress;
+    }
+    expect(current.beatId).toBe('forge');
+    expect(acknowledgePerformance(chapter, current, facts, 'mountain-forge-borrow', 'done').grants).toEqual([]);
+    expect(acknowledgeGuide(chapter, current, facts, 'forge-first-weapon').progress.beatId).toBe('forge');
+    const forged = noteForgedStoryWeapon(chapter, current, facts, newWeaponId);
+    expect(forged.progress.beatId).toBe('cool');
+    expect(presentStory(chapter, forged.progress, facts)).toMatchObject({
+      actionLabel: '听执事说话',
+      href: '/game/story',
+      indicatorFrom: ['/game/sect/refinery?workspace=craft'],
+    });
+    expect(StoryProgressSchema.safeParse(forged.progress).success).toBe(true);
+    const equip = acknowledgePerformance(chapter, forged.progress, facts, 'mountain-forge-cool', 'done');
+    expect(presentStory(chapter, equip.progress, facts)).toMatchObject({
+      beatId: 'equip',
+      href: `/game/inventory?guide=weapon-equip&item=${newWeaponId}`,
+      targetItem: {
+        id: newWeaponId,
+        missingAction: { href: '/game/sect/refinery?workspace=craft' },
+      },
+    });
+    expect(acknowledgeGuide(chapter, equip.progress, facts, 'weapon-equip').progress.beatId).toBe('equip');
+    const ready = { ...facts, equippedWeaponId: newWeaponId };
+    const worn = resolveStory(chapter, equip.progress, ready);
+    expect(presentStory(chapter, worn.progress, ready)).toMatchObject({
+      beatId: 'try',
+      actionLabel: '回院里试手',
+      indicatorFrom: ['/game/inventory', '/game/cave/storage/new?location=bag'],
+    });
   });
 });
