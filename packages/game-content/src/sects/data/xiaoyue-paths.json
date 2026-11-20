@@ -1,7 +1,7 @@
 {
   "$schema": "./xiaoyue-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 4,
+  "contentRevision": 5,
   "passives": [
     {
       "id": "xiaoyue.passive.bond.foundation",
@@ -504,7 +504,7 @@
     {
       "id": "xiaoyue.passive.blood.4.1",
       "name": "九天",
-      "description": "你是队中唯一的百兽崖弟子时，鹏击伤害提高5%，命中也会提高。命中增加值为《观羽步》等级的平方除以60，舍去小数。",
+      "description": "你是队中唯一的百兽崖弟子时，鹏击伤害提高5%。普攻命中增加《观羽步》等级的平方除以60，舍去小数。",
       "modifiers": [
         {
           "hitAdd": "floor(knownSkillLevel.xiaoyue.passive.blood.4.1*knownSkillLevel.xiaoyue.passive.blood.4.1/60)",
@@ -1204,7 +1204,7 @@
     {
       "id": "xiaoyue.passive.bond.4.2",
       "name": "九天",
-      "description": "你是队中唯一的百兽崖弟子时，鹏击伤害提高5%，命中也会提高。命中增加值为《观羽步》等级的平方除以60，舍去小数。",
+      "description": "你是队中唯一的百兽崖弟子时，鹏击伤害提高5%。普攻命中增加《观羽步》等级的平方除以60，舍去小数。",
       "modifiers": [
         {
           "hitAdd": "floor(knownSkillLevel.xiaoyue.passive.bond.4.2*knownSkillLevel.xiaoyue.passive.bond.4.2/60)",
@@ -1860,7 +1860,7 @@
         {
           "id": "xiaoyue.node.blood.4.1",
           "name": "九天",
-          "description": "你是队中唯一的百兽崖弟子时，鹏击伤害提高5%，命中也会提高。命中增加值为《观羽步》等级的平方除以60，舍去小数。",
+          "description": "你是队中唯一的百兽崖弟子时，鹏击伤害提高5%。普攻命中增加《观羽步》等级的平方除以60，舍去小数。",
           "layer": 4,
           "slot": 1,
           "passives": [
@@ -2104,7 +2104,7 @@
         {
           "id": "xiaoyue.node.bond.4.2",
           "name": "九天",
-          "description": "你是队中唯一的百兽崖弟子时，鹏击伤害提高5%，命中也会提高。命中增加值为《观羽步》等级的平方除以60，舍去小数。",
+          "description": "你是队中唯一的百兽崖弟子时，鹏击伤害提高5%。普攻命中增加《观羽步》等级的平方除以60，舍去小数。",
           "layer": 4,
           "slot": 2,
           "passives": [

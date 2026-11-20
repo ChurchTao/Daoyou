@@ -8,7 +8,9 @@ import { createDaoyouRuleset } from '../combat/daoyou/index.js';
 import { createEmptySectCombatProgressV6 } from './build-state.js';
 import { compileSectDefinitionV6 } from './compiler.js';
 
-function setup(methodLevel = 180, enemies = 6, quick = false, enemyKind: 'npc' | 'player' = 'npc', options: { canonLevel?: number; hitChance?: number; nodes?: string[] } = {}) {
+const guard = { id: 'hostile-guard', kind: 'hostile-guard', name: '拦截', interceptHostileAction: true };
+
+function setup(methodLevel = 180, enemies = 6, quick = false, enemyKind: 'npc' | 'player' = 'npc', options: { canonLevel?: number; nodes?: string[] } = {}) {
   const progress = createEmptySectCombatProgressV6('xiaoyue', definition.paths[0].id,
     Object.fromEntries(definition.methods.map(method => [method.id, methodLevel])));
   if (options.canonLevel !== undefined) progress.methods['xiaoyue.method.canon'] = options.canonLevel;
@@ -27,12 +29,12 @@ function setup(methodLevel = 180, enemies = 6, quick = false, enemyKind: 'npc' |
     seed: 34,
     versions,
     ruleset: { ...createDaoyouRuleset({ formulas: {
-      physicalHitChance: () => options.hitChance ?? 1, sealHitChance: () => 1,
+      physicalHitChance: () => 1, sealHitChance: () => 1,
       fluctuationMin: 1, fluctuationMax: 1,
       physicalFluctuationMin: 1, physicalFluctuationMax: 1,
     } }), deferredPlayerCommands: true },
     skills: content.skills,
-    statusDefs: content.statusDefs,
+    statusDefs: [...content.statusDefs, guard],
     units: [
       { id: 's', name: '啸岳', side: 0, kind: 'player', level: 180,
         attrs: { hp: 10000, maxHp: 10000, mp: 10000, maxMp: 10000, speed: 1000, physicalAtk: 1000, physicalDef: 100 },
@@ -91,8 +93,9 @@ describe('百兽崖首场狮搏化形', () => {
     expect(battle.unit('s').statuses.some(status => status.id === XIAOYUE_STATUS_ID.Transform)).toBe(true);
   });
 
-  it('攻击落空仍完成化形，兽形到期后不能再次合并，须主动重开', () => {
-    const battle = setup(75, 1, false, 'player', { hitChance: 0 });
+  it('狮搏被拦截仍完成化形，兽形到期后不能再次合并，须主动重开', () => {
+    const battle = setup(75, 1, false, 'player');
+    battle.applyStatus('t0', guard.id, 1, 't0');
     round(battle, cast(XIAOYUE_SKILL_ID.LionStrike));
     expect(damage(battle, 's')).toHaveLength(0);
     expect(battle.unit('s').attrs.mp).toBe(9847);

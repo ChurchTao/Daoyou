@@ -1,7 +1,7 @@
 {
   "$schema": "./jiujie-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 5,
+  "contentRevision": 6,
   "passives": [
     {
       "id": "jiujie.passive.physical",
@@ -89,16 +89,12 @@
               ],
               "failureEffects": [
                 {
-                  "type": "removeStatus",
-                  "kinds": [
-                    "jiujie.status.red"
-                  ],
-                  "ownedOnly": true
-                },
-                {
                   "type": "applyStatus",
                   "statusId": "jiujie.status.electric",
-                  "duration": 3
+                  "duration": 3,
+                  "when": {
+                    "expression": "1 - ownedTargetStatus.jiujie.status.red"
+                  }
                 }
               ]
             }
@@ -495,16 +491,12 @@
               ],
               "failureEffects": [
                 {
-                  "type": "removeStatus",
-                  "kinds": [
-                    "jiujie.status.red"
-                  ],
-                  "ownedOnly": true
-                },
-                {
                   "type": "applyStatus",
                   "statusId": "jiujie.status.electric",
-                  "duration": 3
+                  "duration": 3,
+                  "when": {
+                    "expression": "1 - ownedTargetStatus.jiujie.status.red"
+                  }
                 }
               ]
             }
@@ -549,16 +541,12 @@
               ],
               "failureEffects": [
                 {
-                  "type": "removeStatus",
-                  "kinds": [
-                    "jiujie.status.red"
-                  ],
-                  "ownedOnly": true
-                },
-                {
                   "type": "applyStatus",
                   "statusId": "jiujie.status.electric",
-                  "duration": 3
+                  "duration": 3,
+                  "when": {
+                    "expression": "1 - ownedTargetStatus.jiujie.status.red"
+                  }
                 }
               ]
             }
@@ -723,16 +711,12 @@
               ],
               "failureEffects": [
                 {
-                  "type": "removeStatus",
-                  "kinds": [
-                    "jiujie.status.red"
-                  ],
-                  "ownedOnly": true
-                },
-                {
                   "type": "applyStatus",
                   "statusId": "jiujie.status.electric",
-                  "duration": 3
+                  "duration": 3,
+                  "when": {
+                    "expression": "1 - ownedTargetStatus.jiujie.status.red"
+                  }
                 }
               ]
             }

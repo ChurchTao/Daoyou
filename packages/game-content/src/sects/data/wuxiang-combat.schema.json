@@ -1051,6 +1051,9 @@
         "damageTakenBonus": {
           "$ref": "#/$defs/__schema2"
         },
+        "defenseIgnoreAdd": {
+          "$ref": "#/$defs/__schema2"
+        },
         "physicalAttackAdd": {
           "$ref": "#/$defs/__schema2"
         },

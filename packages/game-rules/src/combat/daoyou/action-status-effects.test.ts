@@ -122,13 +122,15 @@ describe('下一次伤害行动状态', () => {
     expect(b.unit('t').attrs.hp).toBe(barrier ? 10000 : 9850);
     if (barrier) expect(b.unit('t').barriers[0].current).toBe(850);
   });
-  it.each([0, 1])('混合伤害行动仅在物法实际命中时消耗：命中率 %s', (hit) => {
-    const mixed: SkillDef = { ...attack, effects: [{ type: 'fixedHit', power: 100 }, attack.effects[0], attack.effects[0]] };
-    const b = setup([mixed], [weak], hit);
+  it('混合技能的固定、物理与法术伤害均命中，并消耗弱化', () => {
+    const mixed: SkillDef = { ...attack, effects: [{ type: 'fixedHit', power: 100 }, { type: 'physicalHit', defendFactor: 1 }, attack.effects[0]] };
+    const b = setup([mixed], [weak], 0);
     b.applyStatus('s', 'weak', 5);
     round(b);
-    expect(b.unit('t').attrs.hp).toBe(hit ? 9800 : 9900);
-    expect(b.unit('s').statuses.some(s => s.id === 'weak')).toBe(!hit);
+    expect(b.unit('t').attrs.hp).toBe(9800);
+    expect(b.log().filter(event => event.type === 'hit').map(event => event.kind)).toEqual(['fixed', 'physical', 'spell']);
+    expect(b.log().some(event => event.type === 'miss')).toBe(false);
+    expect(b.unit('s').statuses.some(s => s.id === 'weak')).toBe(false);
   });
   it('整次多段攻击都受削弱，随后消耗；辅助行动不消耗', () => {
     const b = setup(
@@ -144,10 +146,10 @@ describe('下一次伤害行动状态', () => {
     round(b);
     expect(b.unit('t').attrs.hp).toBe(9700);
   });
-  it('全未命中不消耗，护盾完全吸收仍消耗', () => {
+  it('普攻落空时保留弱化，技能伤害被护盾完全吸收时消耗弱化', () => {
     const miss = setup([attack], [weak], 0);
     miss.applyStatus('s', 'weak', 5);
-    round(miss);
+    round(miss, { type: 'attack', target: 't' });
     expect(miss.unit('s').statuses.some((s) => s.id === 'weak')).toBe(true);
     const blocked = setup([attack], [weak]);
     blocked.applyStatus('s', 'weak', 5);
