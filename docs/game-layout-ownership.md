@@ -91,4 +91,4 @@
 
 临时旧功法传承页 `/game/manual-migration` 属于 `GameViewportLayout`，使用 `manual-migration` scene 与 workflow 正文；洞府“洞府内”快捷区固定显示入口，无待兑换资产时在页面内展示空状态。自选与一次性兑换领取在该页面完成，工具删除边界见 `docs/manual-migration.md`。
 
-临时旧法宝焕新页 `/game/artifact-migration` 属于 `GameViewportLayout`，使用 `artifact-migration` scene 与 workflow 正文；洞府“洞府内”快捷区固定显示入口，无待兑换资产时在页面内展示空状态。选部位、确认兑换和奖励预览在该页面完成，删除边界见 `docs/artifact-migration.md`。
+临时旧法宝焕新页 `/game/artifact-migration` 属于 `GameViewportLayout`，使用 `artifact-migration` scene 与 workflow 正文；洞府“洞府内”快捷区固定显示入口，无待兑换资产时在页面内展示空状态。选部位、确认兑换和奖励预览在该页面完成，保留范围见 [V6 旧资产功能](combat-v6-runtime.md#保留的旧资产功能)。

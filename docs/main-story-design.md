@@ -1,6 +1,6 @@
 # 主线章节与演出的接入
 
-世界观和卷纲见[创作底稿](./main-story-outline.md)，玩家可体验到的文本以[演出目录](../packages/game-content/src/performance/catalog.ts)为准。
+玩家可体验到的文本以[演出目录](../packages/game-content/src/performance/catalog.ts)为准。世界观、卷纲和创作稿保存在本地文稿目录。
 
 - 创角保存时将新角色指向 `OPENING_STORY_CHAPTER`。每章在[剧情目录](../packages/game-content/src/story/catalog.ts)注册，以 `next` 衔接；持久化的章、幕编号用于续读。新章内容进入目录时一起验证演出结局、入口和引用。
 - 在幕配置填写 `prompt` 和 `href`，需要明确的动作文字时填写 `actionLabel`。洞府提供续读入口，悬浮任务条出现在目标场景。若要在操作完成的原场景接续剧情，用 `indicatorFrom` 声明可显示提示的地址，可附工作区等查询参数。任务若指定物品，进度会提供该物品的定位，必要时使用配置里的 `missingItemAction`。新增剧情阶段时在配置中补齐，功能页面继续只提供本身的操作。

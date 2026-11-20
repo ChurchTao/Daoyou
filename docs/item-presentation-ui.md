@@ -2,6 +2,10 @@
 
 当前展示标准以 [物品预览 skill](../.agents/skills/daoyou-item-preview/SKILL.md) 及其分类基线为准。本文的日期小节保留历史实现和验收过程，其中旧操作、字段与字体方案不代表当前要求，不应据此恢复已删除的设计。
 
+## 背包刷新
+
+修改背包的业务事务显式提交 `inventory.bag` 变更，页面通过 `consumeResourceMutation` 或 `useResourceMutation` 消费响应，其他已打开页面通过实时资源事件刷新。交易走邮件交付时，实际入袋由领取附件结算。[鉴宝回收实现](../apps/api/src/inventory/application/BagRecycleService.ts) · [前端资源提交处理](../apps/web/src/lib/resources/mutations.ts)
+
 ## 旧宝库联通与退役边界（2026-09-15）
 
 - 功法典籍 `gongfa_manual`、神通秘术 `skill_manual` 继续作为材料保留，宝库取出转换为 `material.v1`，保留名称、分类、品质、五行、描述和数量；允许普通材料堆叠，不恢复旧抽取，不赋予炼丹或炼器用途。

@@ -215,5 +215,8 @@ sponsorkit/sponsors.json
 .turbo/
 /.playwright-mcp/
 
+# Local main story manuscripts.
+/story/
+
 # Keep the shared TypeScript config despite the case-insensitive *.BASE.* rule.
 !/tsconfig.base.json
