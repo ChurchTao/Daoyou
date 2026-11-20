@@ -1,4 +1,5 @@
 import { BeastSchema } from '@daoyou/game-rules/beasts/validation';
+import { getSectOrganizationDefinition } from '@daoyou/game-content/sect-organization/definitions';
 import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
 import { stripExpCapForStorage } from '@daoyou/game-rules/cultivation';
 import type { CultivationProgress } from '@daoyou/game-domain/character';
@@ -76,9 +77,11 @@ export async function importTransferSnapshot(tx: DbTransaction, userId: string, 
   });
 
   if (snapshot.sect) {
+    const { configVersion } = getSectOrganizationDefinition(snapshot.sect.sectId);
     const [membership] = await tx.insert(schema.sectMemberships).values({
       cultivatorId, sectId: snapshot.sect.sectId, status: 'active', joinedAt: new Date(),
       contribution: 0, lifetimeContribution: 0, discipleRank: 'registered', office: 'none',
+      configVersion,
     }).returning({ id: schema.sectMemberships.id });
     if (!membership) throw new Error('导入宗门成员身份失败');
     await tx.insert(schema.sectCombatStates).values({
