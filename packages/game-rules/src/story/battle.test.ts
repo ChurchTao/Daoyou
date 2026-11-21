@@ -1,3 +1,4 @@
+import { getPerformanceScript } from '@daoyou/game-content/performance/catalog';
 import { getStoryBattle } from '@daoyou/game-content/story/battles';
 import { getStoryChapter } from '@daoyou/game-content/story/catalog';
 import { emptyStoryFacts } from '@daoyou/game-domain/story';
@@ -107,6 +108,69 @@ describe('剧情战', () => {
     expect(at(false, battle.rescueAfter!)).toBeNull();
     expect(at(false, battle.rescueAfter! + 1)).toBe('rescued');
   });
+});
+
+describe('石滩首战', () => {
+  const chapter = getStoryChapter('mine-shift');
+  const crossing = getStoryChapter('mine-crossing');
+  const facts = emptyStoryFacts();
+
+  it.each(['won', 'rescued', 'lost'] as const)(
+    '按 %s 接第二章，赠礼在开打前结算一次',
+    (outcome) => {
+      const work = acknowledgePerformance(
+        chapter,
+        openingStoryProgress(chapter.id),
+        facts,
+        'mine-shift-work',
+        'done',
+      );
+      expect(work.grants).toEqual(['starter-beast']);
+      const bridge = acknowledgePerformance(
+        chapter,
+        work.progress,
+        facts,
+        'mine-shift-bridge',
+        'done',
+      );
+      expect(bridge.grants).toEqual([]);
+      expect(presentStory(chapter, bridge.progress, facts).battleId).toBe(
+        'mine-ambush',
+      );
+      const fought = acknowledgeBattle(
+        chapter,
+        bridge.progress,
+        facts,
+        'mine-ambush',
+        outcome,
+      );
+      expect(fought.finished).toBe(true);
+      const mark = 'battle.mine-ambush.' + outcome;
+      const flags = presentStory(chapter, fought.progress, facts).flags;
+      expect(flags).toEqual([mark]);
+
+      const next = presentStory(
+        crossing,
+        openingStoryProgress(crossing.id),
+        facts,
+        flags,
+      );
+      expect(next).toMatchObject({
+        scriptId: 'mine-crossing-shoal',
+        flags: [mark],
+      });
+      const cues = getPerformanceScript(next.scriptId!).cues;
+      expect(
+        cues.some(
+          (cue) =>
+            'when' in cue &&
+            cue.when &&
+            'flag' in cue.when &&
+            cue.when.flag === mark,
+        ),
+      ).toBe(true);
+    },
+  );
 });
 
 describe('入口总表', () => {

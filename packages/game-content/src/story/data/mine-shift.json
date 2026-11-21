@@ -1,0 +1,45 @@
+{
+  "id": "mine-shift",
+  "track": "main",
+  "title": "下工",
+  "beats": [
+    {
+      "id": "work",
+      "kind": "performance",
+      "script": "mine-shift-work",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "下工了，咪咪在矿棚外等你。",
+      "href": "/game/story",
+      "gift": "starter-beast",
+      "unlocks": [
+        "settings",
+        "feedback",
+        "community",
+        "download",
+        "redeem"
+      ]
+    },
+    {
+      "id": "bridge",
+      "kind": "performance",
+      "script": "mine-shift-bridge",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "带咪咪过木桥。",
+      "href": "/game/story"
+    },
+    {
+      "id": "fight",
+      "kind": "battle",
+      "battle": "mine-ambush",
+      "lesson": "story-battle-basics",
+      "scene": "story-battle",
+      "prompt": "山豕跟到了石滩。",
+      "actionLabel": "应付山豕",
+      "href": "/game/story/battle?guide=story-battle-basics"
+    }
+  ],
+  "gated": true,
+  "next": "mine-crossing"
+}

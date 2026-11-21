@@ -1,0 +1,398 @@
+[
+  {
+    "id": "mine-gate-study-lingxiao",
+    "title": "草绳荡过来",
+    "requires": [],
+    "cast": {
+      "guide": {
+        "name": "守坪弟子"
+      },
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "红尘剑宗 · 试剑坪"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "草绳荡过来"
+      },
+      {
+        "type": "narration",
+        "text": "试剑坪上吊着一根旧草绳，绳尾早已劈散了。一个少年连砍三剑，草绳荡回来，撞了他一下。守坪的弟子伸手截住绳子，等他站好，才撒手。"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "再来。"
+      },
+      {
+        "type": "narration",
+        "text": "少年这回等绳子荡到面前才出剑。截下来的那段落在咪咪脚边。你才低头，它已经叼起来了。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "这截还要么？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "让它玩吧。上头还有一截，够他练到吃饭。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-gate-study-wuxiang",
+    "title": "莲池边一只药碗",
+    "requires": [],
+    "cast": {
+      "guide": {
+        "name": "赤脚僧"
+      },
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "无相禅宗 · 莲池"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "莲池边一只药碗"
+      },
+      {
+        "type": "narration",
+        "text": "莲池边有人练拳，有人在等药。一个少年打木桩时擦伤了手，坐在池沿的赤脚和尚叫住他，把自己的干布递过去。"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "拿这个裹上。去帮我把那条凳子往里挪挪。"
+      },
+      {
+        "type": "narration",
+        "text": "长凳上坐着个老船工，碗沿挨着嘴，却总端不稳。和尚托着他的手腕，等那碗药喝到底才松手。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "他也是来练拳的？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "从前在这里练。如今一下雨，还得来讨碗药。"
+      },
+      {
+        "type": "narration",
+        "text": "你替老船工收了碗，随和尚往后院走。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-gate-study-tianyan",
+    "title": "檐下三盏灯",
+    "requires": [],
+    "cast": {
+      "guide": {
+        "name": "看灯弟子"
+      },
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "天衍圣地 · 昆吾山"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "檐下三盏灯"
+      },
+      {
+        "type": "narration",
+        "text": "昆吾山的雨刚停。檐下摆着三盏灯，灯芯都湿了。看灯的弟子往手边那盏灯上搁了一片青叶，灯就亮了。你原以为那叶子也要烧起来，等三盏都亮了，它还好端端搁在那儿。"
+      },
+      {
+        "type": "narration",
+        "text": "弟子把近处的两盏提进屋，回来时空着手。最远那盏还照着檐外的山路。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "那盏不收么？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "留着。采药的人还没回来，雾里好认路。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-gate-study-youdu",
+    "title": "雾里有人答应",
+    "requires": [],
+    "cast": {
+      "guide": {
+        "name": "提灯人"
+      },
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "幽都 · 无日关"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "雾里有人答应"
+      },
+      {
+        "type": "narration",
+        "text": "无日关的潮还没退。最下面那级石阶上坐着一位老妇人，手里捏着只布鞋。来接船的人在她身边蹲下来，把灯照着水面，请她再喊一回孩子的小名。"
+      },
+      {
+        "type": "narration",
+        "text": "她喊了声小满。雾里有人应她，声音跟隔着一层门板似的。她把鞋托高了些，问他还穿不穿得下。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "咱们还在这儿等么？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "她还有话呢。你要找名册，沿台阶右边走，那边干些。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-gate-study-jiujie",
+    "title": "等雷过了再走",
+    "requires": [],
+    "cast": {
+      "guide": {
+        "name": "守碑弟子"
+      },
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "九劫天宫 · 天阶"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "等雷过了再走"
+      },
+      {
+        "type": "narration",
+        "text": "上天阶前，背刀的弟子把你拦在石碑底下。你刚看见右手石槽里积着一点雨水，一道白光就落了进去。石阶闷响一声，震得你脚底发麻。"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "还没完。再等等。"
+      },
+      {
+        "type": "narration",
+        "text": "他把刀横在碑前。槽边游过来一点亮光，沿着刀鞘爬上去，照白了他扶刀的指头。你等着第二声响，他已经把刀收回去了。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "你天天在这儿等雷？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "今日轮我。你先上吧，等换班的人来了，我也回去吃饭。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-gate-study-bailu",
+    "title": "松庭里改一个字",
+    "requires": [],
+    "cast": {
+      "guide": {
+        "name": "抱书弟子"
+      },
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "白鹿书院 · 松庭"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "松庭里改一个字"
+      },
+      {
+        "type": "narration",
+        "text": "松树下一阵风卷走了案上几张纸。抱书的少年喊了声「定」，头一张悬在半空，剩下的已经飞过门槛。他把书往你手里一递，自个儿跑出去捡。"
+      },
+      {
+        "type": "narration",
+        "text": "捡回来的纸上沾了灰，他掸干净了，摊回矮案。你打眼一看，半页写的是同一个字，最下面那一横倒比上头的平。"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "劳驾，再替我压着一点，墨还没干。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "管名册的人也在这院里么？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "喏，隔壁那扇门。先生要是趴在案上，你先敲敲门。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-gate-study-wanqiao",
+    "title": "隔溪还有一声",
+    "requires": [],
+    "cast": {
+      "guide": {
+        "name": "青衣弟子"
+      },
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "万窍山 · 太岳深谷"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "隔溪还有一声"
+      },
+      {
+        "type": "narration",
+        "text": "溪上有雾，你朝对岸喊了声借路，竹屋里有人答「踩中间两块」。过了溪，屋前那个青衣弟子还叼着一截绳。你以为屋里还有旁人，窗台上的竹管却又把刚才那句说了一遍。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "方才是你在答应我？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "早上留的。编到一半腾不开手，只好请它替我招呼。"
+      },
+      {
+        "type": "narration",
+        "text": "咪咪凑过去叫了一声。她刚解下嘴里的绳，管里也传出一声猫叫，细得很。咪咪绕去窗台后头找，找了半晌才回来。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-gate-study-xiaoyue",
+    "title": "给鹿留一步",
+    "requires": [],
+    "cast": {
+      "guide": {
+        "name": "穿葛衣的弟子"
+      },
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "百兽崖 · 南坡"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "给鹿留一步"
+      },
+      {
+        "type": "narration",
+        "text": "上百兽崖的石径被一头小鹿挡住了。它几次伸蹄去试石坎，都缩了回来。穿葛衣的弟子就在旁边蹲着等，倒是老猿从坎下伸手托了一把，等它着了地才松手。"
+      },
+      {
+        "type": "narration",
+        "text": "你跟过去时放低了胳膊。咪咪探头闻了闻老猿，又顺着你的袖子爬回肩上。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "它不肯下来，我抱着进门行么？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "行。过了这道坎你走慢些，背阴的地方长苔。"
+      },
+      {
+        "type": "narration",
+        "text": "弟子伸手拉你上坎。你借力撑了一把，咪咪已经从你肩头跳过去了。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  }
+]

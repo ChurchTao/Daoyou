@@ -1,0 +1,27 @@
+{
+  "id": "mine-crossing",
+  "track": "main",
+  "title": "过河",
+  "beats": [
+    {
+      "id": "shoal",
+      "kind": "performance",
+      "script": "mine-crossing-shoal",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "去桥墩后面找咪咪。",
+      "href": "/game/story"
+    },
+    {
+      "id": "flight",
+      "kind": "performance",
+      "script": "mine-crossing-flight",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "抱稳咪咪，跟来人过河。",
+      "href": "/game/story"
+    }
+  ],
+  "gated": true,
+  "next": "mine-departure"
+}

@@ -947,17 +947,14 @@ describe('volume one', () => {
       current = getStoryChapter(current.next);
     }
     expect(seen).toEqual([
-      'mountain-ferry',
-      'mountain-flowers',
-      'mountain-bend',
-      'mountain-foothill',
-      'mountain-forge',
-      'mountain-sparring',
+      'mine-shift',
+      'mine-crossing',
+      'mine-departure',
+      'mine-gate',
     ]);
-    expect(seen.slice(0, 3).every((id) => getStoryChapter(id).gated)).toBe(true);
-    expect(getStoryChapter('mountain-foothill').gated).toBeUndefined();
-    expect(getStoryChapter('mountain-foothill').beats[0]).toMatchObject({
-      id: 'rest', kind: 'performance', script: 'mountain-bamboo',
+    expect(seen.every((id) => getStoryChapter(id).gated)).toBe(true);
+    expect(getStoryChapter('mine-gate').beats[0]).toMatchObject({
+      id: 'landing', kind: 'performance', script: 'mine-gate-landing',
     });
     expect(current.gated).toBeUndefined();
     expect(current.beats.at(-1)?.kind).toBe('life');
@@ -965,8 +962,8 @@ describe('volume one', () => {
 
   it('opens a new character on the first beat of volume one', () => {
     expect(openingStoryProgress()).toMatchObject({
-      storyId: 'mountain-ferry',
-      beatId: 'two-peaks',
+      storyId: 'mine-shift',
+      beatId: 'work',
       status: 'active',
     });
   });

@@ -619,6 +619,8 @@ export const StoryBattleSchema = z
     rescueAfter: z.number().int().min(1).max(20).optional(),
     // 不管玩家眼下带着多少伤，都按满气血满法力上场。
     fresh: z.boolean(),
+    // 剧情里伙伴不在场时，只投影角色本人。
+    solo: z.boolean().optional(),
   })
   .strict();
 

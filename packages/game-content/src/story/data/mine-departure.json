@@ -1,0 +1,65 @@
+{
+  "id": "mine-departure",
+  "track": "main",
+  "title": "报个名字",
+  "beats": [
+    {
+      "id": "care",
+      "kind": "performance",
+      "script": "mine-departure-care",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "抱咪咪去看看腿脚。",
+      "href": "/game/story"
+    },
+    {
+      "id": "cub",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "beast-pouch"
+        }
+      ],
+      "scene": "beasts",
+      "prompt": "打开灵兽袋，看看咪咪。",
+      "href": "/game/beasts?guide=beast-pouch",
+      "unlocks": [
+        "beasts",
+        "beast-room"
+      ]
+    },
+    {
+      "id": "ask",
+      "kind": "performance",
+      "script": "mine-departure-ask",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "把药包带给阿禾，顺路问问山门。",
+      "href": "/game/story"
+    },
+    {
+      "id": "routes",
+      "kind": "performance",
+      "script": "mine-departure-routes",
+      "outcome": "done",
+      "scene": "sect-onboarding",
+      "prompt": "看看阿禾留下的山门路帖。",
+      "href": "/game/sect/onboarding?entry=gate",
+      "unlocks": [
+        "sect"
+      ]
+    },
+    {
+      "id": "morning",
+      "kind": "performance",
+      "script": "mine-departure-morning",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "在客簿上留个名字，明早乘船。",
+      "href": "/game/story"
+    }
+  ],
+  "gated": true,
+  "next": "mine-gate"
+}

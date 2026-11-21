@@ -1,0 +1,210 @@
+[
+  {
+    "id": "mine-crossing-shoal",
+    "title": "桥墩下",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "guide": {
+        "name": "下山弟子",
+        "portrait": "icon:portrait-wanderer-m"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "断桥下 · 石滩"
+      },
+      {
+        "type": "title",
+        "kicker": "过河",
+        "text": "桥墩下"
+      },
+      {
+        "type": "narration",
+        "text": "山豕在石滩边倒下时，你还挡在那道石缝前。等它伏着半天没动，你才敢转过身，刚好看见咪咪从石缝里探出一只爪子。",
+        "when": {
+          "flag": "battle.mine-ambush.won"
+        }
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "先待里头，外面全是水。",
+        "when": {
+          "flag": "battle.mine-ambush.won"
+        }
+      },
+      {
+        "type": "narration",
+        "text": "你走到石滩尖上。桥两头的木板悬在河上，中间空出好大一截，够不着哪一头。打得过山豕，回家那几步还是得另想办法。",
+        "when": {
+          "flag": "battle.mine-ambush.won"
+        }
+      },
+      {
+        "type": "narration",
+        "text": "断梁上有人喊你。你仰头应了，有个年轻人沿着矿岸那半截桥走到缺口边，跳到了石滩上。",
+        "when": {
+          "flag": "battle.mine-ambush.won"
+        }
+      },
+      {
+        "type": "narration",
+        "text": "山豕又把你往桥墩边逼了一步。你已经退到石缝旁边，再往后就要踩到咪咪探出来的爪子。",
+        "when": {
+          "flag": "battle.mine-ambush.rescued"
+        }
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "靠墩站！",
+        "when": {
+          "flag": "battle.mine-ambush.rescued"
+        }
+      },
+      {
+        "type": "narration",
+        "text": "有人从断梁上跳下来，落在你身侧，用剑鞘拨开拱过来的獠牙。山豕脚下碎石一滚，滑进了水里。它挣扎着露出半截脊背，很快就给冲过了桥墩。",
+        "when": {
+          "flag": "battle.mine-ambush.rescued"
+        }
+      },
+      {
+        "type": "narration",
+        "text": "山豕把你掀到桥墩边。膝盖方才磕过，你撑了一把，还是跪了回去。听见它调头，你只来得及往石缝那边喊一声咪咪。",
+        "when": {
+          "flag": "battle.mine-ambush.lost"
+        }
+      },
+      {
+        "type": "narration",
+        "text": "有人从断梁上跃到石滩，一把将你拽开。你扶着桥墩喘过气，才看清那人挡在你身前，把山豕逼得直往水边退。它后脚滑进水里，转眼便被水卷走。",
+        "when": {
+          "flag": "battle.mine-ambush.lost"
+        }
+      },
+      {
+        "type": "narration",
+        "text": "你绕到桥墩背后叫咪咪。它在里面蹲了好一会儿，等你把手伸到石缝口，才踩着你的手腕爬出来。抱起来时，它肚子底下湿了一片。"
+      },
+      {
+        "type": "narration",
+        "text": "那人站在水边，朝对岸望了一眼。"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "晒网那头是你们村？"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "是。你能帮我叫条船么？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "抱稳它，腾只胳膊给我。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-crossing-flight",
+    "title": "双脚离地",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "guide": {
+        "name": "下山弟子",
+        "portrait": "icon:portrait-wanderer-m"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "故乡 · 河上"
+      },
+      {
+        "type": "title",
+        "kicker": "过河",
+        "text": "双脚离地"
+      },
+      {
+        "type": "narration",
+        "text": "你把咪咪换到左手。那人托住你的右肘。"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "走。"
+      },
+      {
+        "type": "narration",
+        "text": "你鞋底就离了石头。你慌忙把腿缩起来，低头去找水面，这才看见刚才那块石滩已经在脚后头了。"
+      },
+      {
+        "type": "narration",
+        "text": "下头漂来一截断桥板，你下意识想躲，桥板翻了个面，从鞋底下过去了。你连露出来的两颗弯钉都看得清。再抬头，岸上那人还在收最后一根晒网的竹竿，竹竿才抬起一头，你们已经从他跟前飞过去了。"
+      },
+      {
+        "type": "scene",
+        "alt": "故乡 · 村岸"
+      },
+      {
+        "type": "narration",
+        "text": "你还想回头看看飞了多远，右脚先踏进了岸上的软泥。原来已经到了。那人松开手，你又往前走了一步，鞋底踩实了才停下。平日走木桥还得走上一阵，这一回你连咪咪伸进袖口的爪子都没来得及抽出来。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "我也能学么？刚才那样过河。"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "你说御风？能学。我也是进了山门才学的。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "那我上哪儿找山门？"
+      },
+      {
+        "type": "narration",
+        "text": "那人抬手指了指下游。"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "你们村的渡口在那边吧？我这趟下山走了几个镇子，遇着好几家出来收徒的。船家常捎人去山脚，你先找他问路。"
+      },
+      {
+        "type": "narration",
+        "text": "你想着方才掉在石滩上，连一步水都没蹚过去。若自己会这一手，兴许也能这么抱着咪咪，把它从那片急水上带回来。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "我明早去问。"
+      },
+      {
+        "type": "narration",
+        "text": "咪咪到这时才把爪子收回去。你想起它跟着你从桥上摔下来，怕它摔伤了，便托着它湿漉漉的肚子，沿晒网架边的小路往药婆家去。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  }
+]

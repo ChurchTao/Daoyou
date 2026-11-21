@@ -15,5 +15,23 @@
     "defeat": "pass",
     "rescueAfter": 5,
     "fresh": true
+  },
+  {
+    "id": "mine-ambush",
+    "title": "桥下的石滩",
+    "solo": true,
+    "opponents": [
+      {
+        "name": "红眼山豕",
+        "icon": "icon:beast-rock-boar",
+        "level": 1,
+        "kind": "normal",
+        "hp": 0.06,
+        "attack": 0.35
+      }
+    ],
+    "defeat": "pass",
+    "rescueAfter": 5,
+    "fresh": true
   }
 ]

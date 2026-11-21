@@ -1,6 +1,7 @@
 import {
   parsePerformanceScript,
   type PerformanceCue,
+  type PerformanceScript,
 } from '@daoyou/game-domain/performance';
 import { getSectOrganizationDefinition } from '../sect-organization/definitions.js';
 import highWater from './data/mountain-high-water.json' with { type: 'json' };
@@ -202,7 +203,9 @@ export function createMountainGateArrival(
   sectId: string,
   admission: 'join' | 'member' | 'visit',
   backLabel: string,
+  options?: { study?: PerformanceScript; admissionBlock?: string },
 ) {
+  const { study, admissionBlock } = options ?? {};
   const { name } = getSectOrganizationDefinition(sectId);
   const entry = arrivals[sectId] ?? {
     title: '到了山门',
@@ -212,57 +215,67 @@ export function createMountainGateArrival(
   };
   const alt = name + ' · 山门';
   const src = getMountainGateBackdrop(sectId);
-  const gate = sectId === 'lingxiao' ? parsePerformanceScript(highWater) : null;
+  const gate =
+    sectId === 'lingxiao' && !study ? parsePerformanceScript(highWater) : null;
   const introduction: GateLine[] = introductions[sectId]?.lines ?? [
     ['player', '想在这儿学艺，该去问谁？'],
     ['clerk', '门里有教习带新弟子。你若想留下，我给你指路。'],
   ];
-  const arrivalCues: PerformanceCue[] = gate
-    ? gate.cues.slice(0, -1)
-    : [
-        { type: 'scene', alt, src },
-        { type: 'title', kicker: '自己报的名字', text: entry.title },
-        { type: 'narration', text: entry.arrival },
-        { type: 'line', speaker: 'guide', text: entry.reply },
-      ];
-  const options: Extract<PerformanceCue, { type: 'choice' }>['options'] = [];
+  const arrivalCues: PerformanceCue[] = study
+    ? study.cues
+        .slice(0, -1)
+        .map((cue) => (cue.type === 'scene' ? { ...cue, src } : cue))
+    : gate
+      ? gate.cues.slice(0, -1)
+      : [
+          { type: 'scene', alt, src },
+          { type: 'title', kicker: '自己报的名字', text: entry.title },
+          { type: 'narration', text: entry.arrival },
+          { type: 'line', speaker: 'guide', text: entry.reply },
+        ];
+  const choices: Extract<PerformanceCue, { type: 'choice' }>['options'] = [];
   if (admission !== 'visit') {
-    options.push({
+    choices.push({
       label: admission === 'join' ? '拜入' + name : '回本宗核名',
       outcome: 'enter',
     });
   }
-  options.push({ label: backLabel, outcome: 'back' });
+  choices.push({ label: backLabel, outcome: 'back' });
   return parsePerformanceScript({
-    id: 'mountain-gate-' + sectId,
-    title: gate?.title ?? entry.title,
-    requires: ['receptionist'],
+    id: study ? 'mine-gate-study-' + sectId : 'mountain-gate-' + sectId,
+    title: study?.title ?? gate?.title ?? entry.title,
+    requires: ['receptionist', ...(study?.requires ?? [])],
     cast: {
-      ...gate?.cast,
       player: { name: '你' },
       guide: { name: entry.speaker ?? '山门弟子' },
+      ...gate?.cast,
+      ...study?.cast,
       clerk: { name: '{receptionist}' },
     },
     cues: [
       ...arrivalCues,
       { type: 'scene', alt: name + ' · 名册前', src },
-      {
-        type: 'narration',
-        text: '你走到名册前。案后的人搁了笔，把旁边的凳子往你这边推了推。',
-      },
-      {
-        type: 'line',
-        speaker: 'clerk',
-        text:
-          admission === 'join'
-            ? '是来问拜师的事？坐吧，想知道什么，尽管问。'
-            : '坐吧。门里有什么事想问？',
-      },
-      ...introduction.map(([speaker, text]): PerformanceCue => ({
-        type: 'line',
-        speaker,
-        text,
-      })),
+      ...(study
+        ? []
+        : ([
+            {
+              type: 'narration',
+              text: '你走到名册前。案后的人搁了笔，把旁边的凳子往你这边推了推。',
+            },
+            {
+              type: 'line',
+              speaker: 'clerk',
+              text:
+                admission === 'join'
+                  ? '是来问拜师的事？坐吧，想知道什么，尽管问。'
+                  : '坐吧。门里有什么事想问？',
+            },
+            ...introduction.map(([speaker, text]): PerformanceCue => ({
+              type: 'line',
+              speaker,
+              text,
+            })),
+          ] satisfies PerformanceCue[])),
       {
         type: 'line',
         speaker: 'clerk',
@@ -281,7 +294,10 @@ export function createMountainGateArrival(
             },
           ]
         : []),
-      { type: 'choice', options },
+      ...(admission === 'visit' && admissionBlock
+        ? [{ type: 'narration' as const, text: admissionBlock }]
+        : []),
+      { type: 'choice', options: choices },
       { type: 'end', outcome: 'done' },
     ],
   });

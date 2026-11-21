@@ -1,4 +1,12 @@
 import {
+  createMountainGateArrival,
+  getMineGateStudy,
+  getPerformanceScript,
+  MINE_ROAD_SCRIPT,
+  mineRoadFlag,
+} from '@daoyou/game-content/performance/catalog';
+import { SECT_ORGANIZATION_DEFINITIONS } from '@daoyou/game-content/sect-organization/definitions';
+import {
   fillPerformanceScript,
   parsePerformanceScript,
   type PerformanceScript,
@@ -54,6 +62,72 @@ function playToChoice(filled: PerformanceScript) {
   }
   return state;
 }
+
+describe('主线的八宗问路和到访', () => {
+  const sects = Object.values(SECT_ORGANIZATION_DEFINITIONS);
+
+  it('问过一家能折回问另一家，只有收下路帖才记录去处', () => {
+    const road = getPerformanceScript(MINE_ROAD_SCRIPT);
+    const menu = playToChoice(road);
+    const firstChoice = currentPerformanceCue(road, menu);
+    if (firstChoice?.type !== 'choice') throw new Error('渡口缺少问路选项');
+    expect(firstChoice.options).toHaveLength(sects.length);
+    for (const [index, sect] of sects.entries()) {
+      let state = reducePerformance(road, {}, menu, { type: 'choose', index });
+      for (
+        let step = 0;
+        step < 10 && currentPerformanceCue(road, state)?.type !== 'choice';
+        step++
+      ) {
+        state = reducePerformance(road, {}, state, { type: 'advance' });
+      }
+      const question = firstChoice.options[index].label;
+      expect(question).toContain(sect.name);
+      expect(state.log.slice(menu.log.length)).toEqual([
+        expect.objectContaining({ kind: 'said', text: question }),
+        expect.objectContaining({ kind: 'line', speaker: '阿禾' }),
+      ]);
+      const back = reducePerformance(road, {}, state, {
+        type: 'choose',
+        index: 1,
+      });
+      expect(currentPerformanceCue(road, back)).toEqual(firstChoice);
+      expect(back.log.at(-1)?.text).toBe('（再问一家）');
+      expect(back.flags).toEqual([]);
+      const chosen = reducePerformance(road, {}, state, {
+        type: 'choose',
+        index: 0,
+      });
+      expect(chosen.outcome).toBe('done');
+      expect(chosen.flags).toEqual([mineRoadFlag(sect.id)]);
+    }
+  });
+
+  it('每宗在确认拜入前播放自己的见闻和问答', () => {
+    const visits = sects.map(({ id, name }) => {
+      const study = getMineGateStudy(id);
+      expect(study.id).toBe('mine-gate-study-' + id);
+      const visit = createMountainGateArrival(id, 'join', '再看看别家', {
+        study,
+      });
+      const choice = visit.cues.findIndex((cue) => cue.type === 'choice');
+      expect(visit.cues.slice(0, choice)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'line', speaker: 'guide' }),
+          expect.objectContaining({ type: 'line', speaker: 'player' }),
+        ]),
+      );
+      expect(visit.cues[choice]).toMatchObject({
+        options: [
+          { label: '拜入' + name, outcome: 'enter' },
+          { outcome: 'back' },
+        ],
+      });
+      return visit.title;
+    });
+    expect(new Set(visits).size).toBe(sects.length);
+  });
+});
 
 describe('performance interpreter', () => {
   it('fills declared actor names and rejects undeclared actor tokens', () => {
@@ -129,8 +203,12 @@ describe('performance interpreter', () => {
     expect(state.ending).toBe(true);
     expect(state.finished).toBe(false);
     expect(state.outcome).toBeUndefined();
-    expect(reducePerformance(filled, context, state, { type: 'advance' })).toEqual(state);
-    expect(reducePerformance(filled, context, state, { type: 'finish' })).toMatchObject({
+    expect(
+      reducePerformance(filled, context, state, { type: 'advance' }),
+    ).toEqual(state);
+    expect(
+      reducePerformance(filled, context, state, { type: 'finish' }),
+    ).toMatchObject({
       finished: true,
       outcome: 'entered',
     });
@@ -202,7 +280,10 @@ describe('performance interpreter', () => {
       for (let step = 0; step < 40 && !state.ending; step += 1) {
         state =
           currentPerformanceCue(play, state)?.type === 'choice'
-            ? reducePerformance(play, {}, state, { type: 'choose', index: choice })
+            ? reducePerformance(play, {}, state, {
+                type: 'choose',
+                index: choice,
+              })
             : reducePerformance(play, {}, state, { type: 'advance' });
       }
       return state;

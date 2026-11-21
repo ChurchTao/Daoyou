@@ -1,0 +1,227 @@
+[
+  {
+    "id": "mine-departure-care",
+    "title": "先看咪咪",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "healer": {
+        "name": "药婆"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "故乡 · 药婆家"
+      },
+      {
+        "type": "title",
+        "kicker": "报个名字",
+        "text": "先看咪咪"
+      },
+      {
+        "type": "narration",
+        "text": "药婆正要收门板，见你抱着咪咪来，把已经搭上门槛的那一块又搬了下来。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "它跟我从桥上摔下来了。"
+      },
+      {
+        "type": "narration",
+        "text": "你把咪咪往桌上一搁，想让药婆看看，它倒先往你怀里退，两只前爪勾住了衣襟。"
+      },
+      {
+        "type": "line",
+        "speaker": "healer",
+        "text": "你扶着，我从后脚看起。"
+      },
+      {
+        "type": "narration",
+        "text": "药婆拿干布擦掉它肚皮上的水，把后脚一只只摸过。摸到第二只，咪咪蹬开她的手，往你胳膊底下钻。药婆在桌边挪过一张矮凳。"
+      },
+      {
+        "type": "line",
+        "speaker": "healer",
+        "text": "你把手挪挪，叫它自己下来。"
+      },
+      {
+        "type": "narration",
+        "text": "咪咪还伏着。你跟它说家里有鱼，把早上倒扣在灶旁那只碗也想了一遍。它这才松爪，从桌沿跳到凳上，又从凳上落地，贴着药婆的鞋绕了半圈。"
+      },
+      {
+        "type": "line",
+        "speaker": "healer",
+        "text": "这下放心了？"
+      },
+      {
+        "type": "narration",
+        "text": "药婆把布挂到炉边。"
+      },
+      {
+        "type": "line",
+        "speaker": "healer",
+        "text": "回去擦干了再吃。你小时候抱它来，一条鱼也要请我给你俩分，你怕自己把它那半截分小了。"
+      },
+      {
+        "type": "narration",
+        "text": "你刚要起身，她又叫你把裤腿卷上去，瞧了一眼膝盖上的青印。"
+      },
+      {
+        "type": "line",
+        "speaker": "healer",
+        "text": "我说怎么走得这么慢。还往哪儿去？"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "想去渡口问个路。阿禾这个时候还在么？"
+      },
+      {
+        "type": "line",
+        "speaker": "healer",
+        "text": "在。窗下那包药你帮我给他，明早他要捎到下游去。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-departure-ask",
+    "title": "渡口问路",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "he": {
+        "name": "阿禾"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "故乡 · 渡口"
+      },
+      {
+        "type": "title",
+        "kicker": "报个名字",
+        "text": "渡口问路"
+      },
+      {
+        "type": "narration",
+        "text": "你把咪咪往怀里一拢，拿上药包去了渡口。阿禾正在船头系缆绳，听见你喊，把船往码头边拉近了些，才伸手来接药。"
+      },
+      {
+        "type": "line",
+        "speaker": "he",
+        "text": "你明早还去矿上？桥断了，送人过去的船得另找。我这条要先去下游。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "我想去山门。刚才救我们的人带我飞过河。他说御风是在山里学的。我也想去学。"
+      },
+      {
+        "type": "narration",
+        "text": "阿禾把药包放进船篷，转头看了看断桥那边，像在算从石滩到岸上究竟有多远。"
+      },
+      {
+        "type": "line",
+        "speaker": "he",
+        "text": "他还抱着你家猫？"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "我抱猫。他就托了我一条胳膊。"
+      },
+      {
+        "type": "line",
+        "speaker": "he",
+        "text": "你倒有空看。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "我起先哪敢看。等敢往下看，都到河中间了。"
+      },
+      {
+        "type": "narration",
+        "text": "阿禾让你上船坐会儿。他明早要在山脚的渡埠卸药，那地方下船走几步便有分岔，进山的人到了那里各走各的。船上还留着几张招徒的路帖，是前些日子从这里坐船回山的人托他留下的，碰见有人问路时正好用得上。"
+      },
+      {
+        "type": "line",
+        "speaker": "he",
+        "text": "你随便翻。我认得去各家山门的路。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-departure-morning",
+    "title": "早渡",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "故乡 · 渡船"
+      },
+      {
+        "type": "title",
+        "kicker": "报个名字",
+        "text": "早渡"
+      },
+      {
+        "type": "narration",
+        "text": "你挑出一张想先去看的。阿禾就着帖上的小图，指给你看从渡埠到头一个岔口该怎么走，又叫你临走在客簿上写个名字，他明早给你留位。"
+      },
+      {
+        "type": "narration",
+        "text": "册子上一行是去下游办货的，底下还有人要捎个空坛子。你找了条空行，把自己的名字写了进去。"
+      },
+      {
+        "type": "scene",
+        "alt": "故乡 · 灶边"
+      },
+      {
+        "type": "narration",
+        "text": "回到家，早上那只碗还倒扣在灶旁。你揭开碗，鱼皮已经软了，焦的那一角还粘在碗边。咪咪等在桌脚下，你照旧挑了刺，把它那半条给它。等你把早起要带的东西收好，它连碗边那点汁都舔干净了。"
+      },
+      {
+        "type": "scene",
+        "alt": "故乡 · 早渡"
+      },
+      {
+        "type": "narration",
+        "text": "次日你到渡口时，阿禾正在船上挨个点名。岸上有人提着个空坛子，听见阿禾喊你，便抱着坛子往旁边让。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "在。"
+      },
+      {
+        "type": "narration",
+        "text": "你把路帖揣进怀里，抱着咪咪踩过跳板，上了船。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  }
+]

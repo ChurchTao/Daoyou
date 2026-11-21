@@ -23,10 +23,11 @@ export default function StoryBattlePage() {
   // 这次进页面亲手打过的一场。只凭它判断要不要留在结算画面上。
   const [fought, setFought] = useState<string | null>(null);
   const settled = session?.settlement === 'settled';
-  const live = session && !settled ? session.sessionId : null;
+  const live =
+    session && !settled && session.battleId === wanted ? session.sessionId : null;
   if (live && fought !== live) setFought(live);
-  const mine =
-    session && (!settled || fought === session.sessionId) ? session : null;
+  // 主线资源可能先于战报更新，留住本页已经接手的战局直到结算播完。
+  const mine = session && (live || fought === session.sessionId) ? session : null;
 
   const start = () =>
     run(async () => {

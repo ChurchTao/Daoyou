@@ -19,7 +19,10 @@ import {
 } from '@server/lib/repositories/storyRepository.js';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
 import { getGuideLesson } from '@daoyou/game-content/guide/catalog';
-import { getPerformanceScript } from '@daoyou/game-content/performance/catalog';
+import {
+  getPerformanceScript,
+  MINE_ROAD_SCRIPT,
+} from '@daoyou/game-content/performance/catalog';
 import { performanceFlags } from '@daoyou/game-domain/performance';
 import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import {
@@ -40,7 +43,6 @@ import { storyGiftParts } from '@daoyou/game-content/story/gifts';
 import {
   getStoryChapter,
   OPENING_STORY_CHAPTER,
-  RESTING_STORY_CHAPTER,
 } from '@daoyou/game-content/story/catalog';
 import { STORY_EXTRA_GATES, STORY_SCENE_GATES } from '@daoyou/game-domain/story/gates';
 import { giveStarterBeast } from '@server/combat/application/starterBeastGift.js';
@@ -244,38 +246,21 @@ async function currentStory(
   tx: DbExecutor | DbTransaction,
 ) {
   const history = await listCultivatorStories(cultivatorId, 'main', tx);
-  // 两套旧主线的章幕与新版无对应关系。保留原记录，另记新版进度。
+  // 旧主线的章幕与新版无对应关系。保留原记录，另记新版进度。
   const rows = history.filter(
-    (row) => row.storyId !== 'arrival' && !row.storyId.startsWith('v1-'),
+    ({ storyId }) =>
+      storyId !== 'arrival' &&
+      !storyId.startsWith('v1-') &&
+      !storyId.startsWith('mountain-'),
   );
   const returning = rows.length !== history.length;
   const stored = rows.find((row) => row.status === 'active') ?? rows[0] ?? null;
   const past = rows.filter((row) => row !== stored);
-  let base =
+  const base =
     stored ??
     (returning
       ? openingStoryProgress(OPENING_STORY_CHAPTER)
       : restingStoryProgress());
-  if (stored?.storyId === RESTING_STORY_CHAPTER) {
-    // 旧版本会在晚饭或拜师后停在同一个常驻幕，按已读的章节接回正篇。
-    const forge = past.find((row) => row.storyId === 'mountain-forge');
-    if (
-      !forge &&
-      past.some(
-        (row) =>
-          row.storyId === 'mountain-foothill' &&
-          row.status === 'completed' &&
-          row.acks.includes('mountain-chopsticks:done'),
-      )
-    ) {
-      base = openingStoryProgress('mountain-forge');
-    } else if (
-      forge?.status === 'completed' &&
-      !past.some((row) => row.storyId === 'mountain-sparring')
-    ) {
-      base = openingStoryProgress('mountain-sparring');
-    }
-  }
   return {
     rows,
     stored,
@@ -390,6 +375,9 @@ export const StoryService = {
     chosen: readonly string[],
     tx: DbTransaction,
   ): Promise<{ view: StoryView; changes: ResourceChangeDescriptor[] }> {
+    if (scriptId === MINE_ROAD_SCRIPT && chosen.length !== 1) {
+      throw new Error('请选一张山门路帖');
+    }
     await lockCultivatorForStateMutation(tx, cultivatorId);
     const allowed = performanceFlags(getPerformanceScript(scriptId));
     const settled = await settle(cultivatorId, tx, (chapter, progress, facts) =>

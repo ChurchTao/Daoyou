@@ -68,6 +68,7 @@ export function createStoryBattleHost(
   battle: StoryBattle,
   seed: number,
 ) {
+  if (battle.solo) player = { ...player, beasts: undefined };
   const projected = projectCharacterToCombatV6({
     ...player,
     side: 0,

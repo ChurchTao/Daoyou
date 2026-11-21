@@ -1,7 +1,3 @@
-import { createTavernConversation } from './tavern.js';
-export { createTavernConversation };
-export { createMountainGateArrival } from './mountain-gate-arrivals.js';
-export { createSectFirstPath } from './sect-first-path.js';
 import {
   parsePerformanceScript,
   type PerformanceScript,
@@ -29,14 +25,29 @@ import mountainSummit from './data/mountain-summit.json' with { type: 'json' };
 import mountainThreePaintings from './data/mountain-three-paintings.json' with { type: 'json' };
 import mountainTwoPeaks from './data/mountain-two-peaks.json' with { type: 'json' };
 import mountainWhitePaw from './data/mountain-white-paw.json' with { type: 'json' };
+import { createMineRoadChoice, MINE_ROAD_SCRIPT } from './mine-road.js';
+import { createTavernConversation } from './tavern.js';
+export {
+  createMineRoadChoice,
+  MINE_ROAD_SCRIPT,
+  mineRoadFlag,
+} from './mine-road.js';
+export { createMountainGateArrival } from './mountain-gate-arrivals.js';
+export { createSectFirstPath } from './sect-first-path.js';
+export { createTavernConversation };
 
-import mountainBamboo from './data/mountain-bamboo.json' with { type: 'json' };
-import mountainLetterHome from './data/mountain-letter-home.json' with { type: 'json' };
-import mountainHighWater from './data/mountain-high-water.json' with { type: 'json' };
-import mountainRegister from './data/mountain-register.json' with { type: 'json' };
+import mineCrossing from './data/mine-crossing.json' with { type: 'json' };
+import mineDeparture from './data/mine-departure.json' with { type: 'json' };
+import mineGateSchools from './data/mine-gate-schools.json' with { type: 'json' };
+import mineGate from './data/mine-gate.json' with { type: 'json' };
+import mineShift from './data/mine-shift.json' with { type: 'json' };
 import mountainAddress from './data/mountain-address.json' with { type: 'json' };
+import mountainBamboo from './data/mountain-bamboo.json' with { type: 'json' };
 import mountainChopsticks from './data/mountain-chopsticks.json' with { type: 'json' };
 import mountainForge from './data/mountain-forge.json' with { type: 'json' };
+import mountainHighWater from './data/mountain-high-water.json' with { type: 'json' };
+import mountainLetterHome from './data/mountain-letter-home.json' with { type: 'json' };
+import mountainRegister from './data/mountain-register.json' with { type: 'json' };
 import mountainSparring from './data/mountain-sparring.json' with { type: 'json' };
 
 const scripts = new Map<string, PerformanceScript>([
@@ -77,6 +88,17 @@ const scripts = new Map<string, PerformanceScript>([
     entry.id,
     parsePerformanceScript(entry),
   ]),
+  [MINE_ROAD_SCRIPT, createMineRoadChoice()],
+  ...[
+    ...mineShift,
+    ...mineCrossing,
+    ...mineDeparture,
+    ...mineGate,
+    ...mineGateSchools,
+  ].map((entry): [string, PerformanceScript] => [
+    entry.id,
+    parsePerformanceScript(entry),
+  ]),
   ...Object.values(BREAKTHROUGH_PERFORMANCES).map(
     (script): [string, PerformanceScript] => [script.id, script],
   ),
@@ -92,4 +114,11 @@ export function getPerformanceScript(id: string): PerformanceScript {
   const script = scripts.get(id);
   if (!script) throw new Error(`演出不存在：${id}`);
   return script;
+}
+
+export function getMineGateStudy(sectId: string): PerformanceScript {
+  return (
+    scripts.get('mine-gate-study-' + sectId) ??
+    getPerformanceScript('mine-gate-study')
+  );
 }

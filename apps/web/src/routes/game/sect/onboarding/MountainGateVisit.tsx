@@ -2,7 +2,10 @@ import { PerformancePlayer } from '@app/components/feature/performance/Performan
 import { apiFetch } from '@app/lib/api/fetch';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { fillStoryScript } from '@app/lib/story/performanceContext';
-import { createMountainGateArrival } from '@daoyou/game-content/performance/catalog';
+import {
+  createMountainGateArrival,
+  getMineGateStudy,
+} from '@daoyou/game-content/performance/catalog';
 import type { PerformanceContext } from '@daoyou/game-domain/performance';
 import type { StoryView } from '@daoyou/game-domain/story';
 import { useRef, useState } from 'react';
@@ -17,6 +20,7 @@ export function MountainGateVisit({
   sectId,
   sectName,
   activeSectId,
+  admissionBlock,
   portrait,
   context,
   origin,
@@ -27,6 +31,7 @@ export function MountainGateVisit({
   sectId: string;
   sectName: string;
   activeSectId: string | null;
+  admissionBlock?: string;
   portrait: string;
   context: PerformanceContext;
   origin: string;
@@ -40,7 +45,11 @@ export function MountainGateVisit({
   const joinAttempt = useRef(createSectJoinAttemptState());
   const back = () => navigate(origin, { replace: true });
   const [admission] = useState<'join' | 'member' | 'visit'>(() =>
-    !activeSectId ? 'join' : activeSectId === sectId ? 'member' : 'visit',
+    activeSectId === sectId
+      ? 'member'
+      : activeSectId || admissionBlock
+        ? 'visit'
+        : 'join',
   );
   const backLabel = '再看看别家';
 
@@ -74,13 +83,18 @@ export function MountainGateVisit({
           }),
         );
       }
-      if (chapterVisit && checkpoint?.scriptId === 'mountain-register') {
+      if (chapterVisit && checkpoint?.scriptId) {
         const next = await consumeResourceMutation<StoryView>(
-          await apiFetch('/api/story/performances/mountain-register/complete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ outcome: 'done', chosen: [] }),
-          }),
+          await apiFetch(
+            '/api/story/performances/' +
+              encodeURIComponent(checkpoint.scriptId) +
+              '/complete',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ outcome: 'done', chosen: [] }),
+            },
+          ),
         );
         navigate(next.href, { replace: true });
       } else {
@@ -100,7 +114,13 @@ export function MountainGateVisit({
   }
 
   const script = fillStoryScript(
-    createMountainGateArrival(sectId, admission, backLabel),
+    createMountainGateArrival(sectId, admission, backLabel, {
+      study:
+        checkpoint?.chapterId === 'mine-gate'
+          ? getMineGateStudy(sectId)
+          : undefined,
+      admissionBlock,
+    }),
     context,
     sectId,
   );

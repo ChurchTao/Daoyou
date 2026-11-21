@@ -8,6 +8,11 @@ import mountainLodging from './data/mountain-lodging.json' with { type: 'json' }
 import mountainFoothill from './data/mountain-foothill.json' with { type: 'json' };
 import mountainForge from './data/mountain-forge.json' with { type: 'json' };
 import mountainSparring from './data/mountain-sparring.json' with { type: 'json' };
+import mineShift from './data/mine-shift.json' with { type: 'json' };
+import mineCrossing from './data/mine-crossing.json' with { type: 'json' };
+import mineDeparture from './data/mine-departure.json' with { type: 'json' };
+import mineGate from './data/mine-gate.json' with { type: 'json' };
+import mineLodging from './data/mine-lodging.json' with { type: 'json' };
 
 import { getPerformanceScript } from '../performance/catalog.js';
 
@@ -46,10 +51,15 @@ const chapters = new Map<string, StoryChapter>([
   ['mountain-foothill', parseChapter(mountainFoothill)],
   ['mountain-forge', parseChapter(mountainForge)],
   ['mountain-sparring', parseChapter(mountainSparring)],
+  [mineShift.id, parseChapter(mineShift)],
+  [mineCrossing.id, parseChapter(mineCrossing)],
+  [mineDeparture.id, parseChapter(mineDeparture)],
+  [mineGate.id, parseChapter(mineGate)],
+  [mineLodging.id, parseChapter(mineLodging)],
 ]);
 
-export const OPENING_STORY_CHAPTER = 'mountain-ferry';
-export const RESTING_STORY_CHAPTER = 'mountain-lodging';
+export const OPENING_STORY_CHAPTER = 'mine-shift';
+export const RESTING_STORY_CHAPTER = 'mine-lodging';
 
 for (const chapter of chapters.values()) {
   if (chapter.next && !chapters.has(chapter.next)) {

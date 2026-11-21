@@ -1,0 +1,14 @@
+{
+  "id": "mine-lodging",
+  "track": "main",
+  "title": "山中小住",
+  "beats": [
+    {
+      "id": "rest",
+      "kind": "life",
+      "scene": "cave",
+      "prompt": "",
+      "href": "/game"
+    }
+  ]
+}
