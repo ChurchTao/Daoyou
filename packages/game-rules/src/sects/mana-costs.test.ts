@@ -19,7 +19,7 @@ describe('八宗门法力定价', () => {
   it('原有无耗蓝技能保留气血或战意代价，其余主动技能费用随心法成长', () => {
     const active = skills.filter(skill => !skill.tags.includes('passive'));
     expect(new Set(active.map(skill => skill.school)).size).toBe(8);
-    expect(active).toHaveLength(116);
+    expect(active).toHaveLength(117);
     for (const skill of active) {
       if (['bailu.skill.juqi', 'xiaoyue.skill.mana_breath', 'lingxiao.skill.triple', 'lingxiao.skill.waiting', 'lingxiao.skill.formation', 'wanqiao.skill.blood', 'bailu.skill.jinsheng', 'wuxiang.skill.cleanse'].includes(skill.id)) {
         expect(evalExpr(skill.costMp, { source }), skill.id).toBe(0);

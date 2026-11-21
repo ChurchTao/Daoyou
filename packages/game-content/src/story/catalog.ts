@@ -13,6 +13,8 @@ import mineCrossing from './data/mine-crossing.json' with { type: 'json' };
 import mineDeparture from './data/mine-departure.json' with { type: 'json' };
 import mineGate from './data/mine-gate.json' with { type: 'json' };
 import mineLodging from './data/mine-lodging.json' with { type: 'json' };
+import mineLesson from './data/mine-lesson.json' with { type: 'json' };
+import mineSparring from './data/mine-sparring.json' with { type: 'json' };
 
 import { getPerformanceScript } from '../performance/catalog.js';
 
@@ -38,6 +40,9 @@ function parseChapter(input: unknown): StoryChapter {
     if (!endings.has(beat.outcome)) {
       throw new Error(`剧情幕结果不属于演出：${beat.id}`);
     }
+    if (beat.retryLostBattle && !endings.has('retry')) {
+      throw new Error(`剧情幕缺少再试选项：${beat.id}`);
+    }
   }
   return chapter;
 }
@@ -55,6 +60,8 @@ const chapters = new Map<string, StoryChapter>([
   [mineCrossing.id, parseChapter(mineCrossing)],
   [mineDeparture.id, parseChapter(mineDeparture)],
   [mineGate.id, parseChapter(mineGate)],
+  [mineLesson.id, parseChapter(mineLesson)],
+  [mineSparring.id, parseChapter(mineSparring)],
   [mineLodging.id, parseChapter(mineLodging)],
 ]);
 

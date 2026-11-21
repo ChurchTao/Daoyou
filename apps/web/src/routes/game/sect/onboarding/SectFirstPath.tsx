@@ -77,6 +77,7 @@ export function SectFirstPath() {
       sectId,
       getSectPresentation(sectId).scenes.paths.title,
       build.paths,
+      story.story?.chapterId === 'mine-lesson',
     ),
     context,
     sectId,

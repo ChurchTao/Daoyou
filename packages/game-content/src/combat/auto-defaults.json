@@ -573,6 +573,11 @@
           ],
           "action": { "type": "skill", "skillId": "xiaoyue.skill.lion_strike" },
           "target": "lowestHpEnemy"
+        },
+        {
+          "conditions": [],
+          "action": { "type": "skill", "skillId": "xiaoyue.skill.tiger_pounce" },
+          "target": "lowestHpEnemy"
         }
       ]
     },
@@ -614,6 +619,11 @@
             { "type": "selfStatus", "kind": "xiaoyue.status.transform", "statusId": "xiaoyue.status.transform", "present": true }
           ],
           "action": { "type": "skill", "skillId": "xiaoyue.skill.lion_strike" },
+          "target": "lowestHpEnemy"
+        },
+        {
+          "conditions": [],
+          "action": { "type": "skill", "skillId": "xiaoyue.skill.tiger_pounce" },
           "target": "lowestHpEnemy"
         }
       ]

@@ -2,6 +2,7 @@ import {
   parsePerformanceScript,
   type PerformanceScript,
 } from '@daoyou/game-domain/performance';
+import type { CombatV6SectId } from '@daoyou/game-domain/combat';
 import { BREAKTHROUGH_PERFORMANCES } from './breakthrough.js';
 import arrivalCreek from './data/arrival-creek.json' with { type: 'json' };
 import arrivalEmber from './data/arrival-ember.json' with { type: 'json' };
@@ -27,6 +28,8 @@ import mountainTwoPeaks from './data/mountain-two-peaks.json' with { type: 'json
 import mountainWhitePaw from './data/mountain-white-paw.json' with { type: 'json' };
 import { createMineRoadChoice, MINE_ROAD_SCRIPT } from './mine-road.js';
 import { createTavernConversation } from './tavern.js';
+import { mineLessonScripts, morningLessons } from './mine-lessons.js';
+import { mineSparringScripts } from './mine-sparring.js';
 export {
   createMineRoadChoice,
   MINE_ROAD_SCRIPT,
@@ -99,10 +102,24 @@ const scripts = new Map<string, PerformanceScript>([
     entry.id,
     parsePerformanceScript(entry),
   ]),
+  ...[...mineLessonScripts(), ...mineSparringScripts()].map(
+    (script): [string, PerformanceScript] => [script.id, script],
+  ),
   ...Object.values(BREAKTHROUGH_PERFORMANCES).map(
     (script): [string, PerformanceScript] => [script.id, script],
   ),
 ]);
+
+const sectScripts = new Map(
+  (Object.keys(morningLessons) as CombatV6SectId[]).map((sectId) => [
+    sectId as string,
+    new Map(
+      [...mineLessonScripts(sectId), ...mineSparringScripts(sectId)].map(
+        (script) => [script.id, script],
+      ),
+    ),
+  ]),
+);
 
 export function listPerformanceScripts(): PerformanceScript[] {
   return [...scripts.values()].filter(
@@ -110,8 +127,12 @@ export function listPerformanceScripts(): PerformanceScript[] {
   );
 }
 
-export function getPerformanceScript(id: string): PerformanceScript {
-  const script = scripts.get(id);
+export function getPerformanceScript(
+  id: string,
+  sectId?: string | null,
+): PerformanceScript {
+  const script = (sectId ? sectScripts.get(sectId)?.get(id) : undefined) ??
+    scripts.get(id);
   if (!script) throw new Error(`演出不存在：${id}`);
   return script;
 }

@@ -17,3 +17,32 @@ export function getStoryBattle(id: string): StoryBattle {
   if (!battle) throw new Error(`没有这场剧情战：${id}`);
   return battle;
 }
+
+export const MINE_SPARRING_BATTLE = 'mine-sparring';
+
+export const MINE_SPARRING_MOVES = {
+  triple: 'lingxiao.skill.triple',
+  pierce: 'wuxiang.skill.pierce',
+  wood: 'tianyan.skill.wood',
+  fire: 'tianyan.skill.fire',
+  siphon: 'youdu.skill.siphon',
+  thunder: 'jiujie.skill.thunder_slash',
+  guard: 'jiujie.skill.divine_guardian',
+  poxie: 'bailu.skill.poxie',
+  fuyuan: 'bailu.skill.fuyuan',
+  rift: 'wanqiao.skill.pierce',
+  pounce: 'xiaoyue.skill.tiger_pounce',
+} as const;
+
+export type MineSparringEffect =
+  | keyof typeof MINE_SPARRING_MOVES
+  | 'wood-fire'
+  | 'fire-both'
+  | 'thunder-both'
+  | 'poxie-both'
+  | 'rift-echo'
+  | 'beast-followup';
+
+export function mineSparringFlag(effect: MineSparringEffect) {
+  return `battle.${MINE_SPARRING_BATTLE}.${effect}`;
+}

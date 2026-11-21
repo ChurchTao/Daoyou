@@ -164,6 +164,10 @@ function normalizeChapterProgress(
   facts?: StoryFacts,
 ): StoryProgress {
   if (progress.storyId !== chapter.id) return progress;
+  // 旧版第四章把初选流派放在投名和找住处之间。现在留到早课。
+  if (chapter.id === 'mine-gate' && progress.beatId === 'path') {
+    return { ...progress, beatId: 'home' };
+  }
   // 第四章旧存档已学完流派，接到初课后的晚饭。
   if (
     chapter.id === 'mountain-foothill' &&
@@ -280,6 +284,26 @@ export function acknowledgePerformance(
   if (beat.kind !== 'performance' || beat.script !== scriptId) {
     throw new Error('当前没有这场演出');
   }
+  if (outcome === 'retry' && beat.retryLostBattle) {
+    const previous = chapter.beats[chapter.beats.indexOf(beat) - 1];
+    if (
+      previous?.kind !== 'battle' ||
+      !progress.marks.includes(flagMark(battleFlag(previous.battle, 'lost'))) ||
+      chosen.flags.length > 0
+    )
+      throw new Error('只有这场试手落败后才能再试');
+    const prefix = flagMark(`battle.${previous.battle}.`);
+    return resolveStory(
+      chapter,
+      {
+        ...progress,
+        beatId: previous.id,
+        acks: progress.acks.filter((ack) => ack !== battleMark(previous.battle)),
+        marks: progress.marks.filter((mark) => !mark.startsWith(prefix)),
+      },
+      facts,
+    );
+  }
   if (beat.outcome !== outcome) throw new Error('演出结果不属于这一幕');
   if (chosen.flags.some((flag) => !chosen.allowed.includes(flag))) {
     throw new Error('演出里没有这个选择');
@@ -305,6 +329,7 @@ export function acknowledgeBattle(
   facts: StoryFacts,
   battleId: string,
   outcome: StoryBattleOutcome,
+  effects: readonly string[] = [],
 ): StoryResolution {
   const key = battleMark(battleId);
   if (progress.acks.includes(key)) return resolveStory(chapter, progress, facts);
@@ -318,9 +343,7 @@ export function acknowledgeBattle(
     {
       ...progress,
       acks: [...progress.acks, key],
-      marks: progress.marks.includes(mark)
-        ? progress.marks
-        : [...progress.marks, mark],
+      marks: [...new Set([...progress.marks, mark, ...effects.map(flagMark)])],
     },
     facts,
   );

@@ -3,7 +3,10 @@ import type {
   StoryBattleRuntime,
   StoryBattleSessionView,
 } from '@daoyou/contracts/combat/story-battle';
-import { getStoryBattle } from '@daoyou/game-content/story/battles';
+import {
+  getStoryBattle,
+  MINE_SPARRING_BATTLE,
+} from '@daoyou/game-content/story/battles';
 import { publicUnitAppearances } from '@daoyou/game-rules/combat/appearance';
 import { automaticCommands } from '@daoyou/game-rules/combat/auto';
 import { liveReplayDelta } from '@daoyou/game-rules/combat/playback';
@@ -15,6 +18,7 @@ import {
 } from '@daoyou/game-rules/combat/presentation';
 import {
   createStoryBattleHost,
+  mineSparringEffects,
   StoryBattleHost,
   storyBattleOutcome,
 } from '@daoyou/game-rules/story';
@@ -177,6 +181,9 @@ async function settle(actor: Actor, runtime: StoryBattleRuntime) {
         runtime.battleId,
         runtime.result!,
         tx,
+        runtime.battleId === MINE_SPARRING_BATTLE
+          ? mineSparringEffects(runtime.snapshot)
+          : [],
       );
       return new ResourceEventCommitter().commit(tx, {
         actor,

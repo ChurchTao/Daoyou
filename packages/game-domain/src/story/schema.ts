@@ -94,6 +94,8 @@ const performanceBeatSchema = z
     kind: z.literal('performance'),
     script: z.string().trim().min(1).max(80),
     outcome: z.string().trim().min(1).max(40),
+    // 可在这一幕选择重打上一幕实际落败的一场。
+    retryLostBattle: z.literal(true).optional(),
     scene: z.string().trim().min(1).max(40),
     prompt: z.string().max(80),
     href: z.string().trim().min(1).max(120),
@@ -304,7 +306,7 @@ export function createStoryChapterSchema({
           message: '没有下一章的章节要停在常驻幕上',
         });
       }
-      for (const beat of chapter.beats) {
+      for (const [index, beat] of chapter.beats.entries()) {
         if (ids.has(beat.id)) {
           context.addIssue({
             code: 'custom',
@@ -316,6 +318,16 @@ export function createStoryChapterSchema({
           context.addIssue({
             code: 'custom',
             message: `没有这场剧情战：${beat.battle}`,
+          });
+        }
+        if (
+          beat.kind === 'performance' &&
+          beat.retryLostBattle &&
+          chapter.beats[index - 1]?.kind !== 'battle'
+        ) {
+          context.addIssue({
+            code: 'custom',
+            message: `再试前须是剧情战：${beat.id}`,
           });
         }
         if (beat.gift) {
@@ -608,6 +620,7 @@ export const StoryBattleSchema = z
             // 在同级预设敌人的基础上乘多少。
             hp: z.number().min(0.05).max(5),
             attack: z.number().min(0.05).max(5),
+            speed: z.number().min(0.05).max(5).optional(),
           })
           .strict(),
       )

@@ -1,11 +1,20 @@
 import { getPerformanceScript } from '@daoyou/game-content/performance/catalog';
-import { getStoryBattle } from '@daoyou/game-content/story/battles';
+import {
+  getStoryBattle,
+  MINE_SPARRING_BATTLE,
+  MINE_SPARRING_MOVES,
+  mineSparringFlag,
+} from '@daoyou/game-content/story/battles';
 import { getStoryChapter } from '@daoyou/game-content/story/catalog';
+import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
+import type { CombatV6SectId } from '@daoyou/game-domain/combat';
 import { emptyStoryFacts } from '@daoyou/game-domain/story';
 import { storyGateOpen, storySceneOpen } from '@daoyou/game-domain/story/gates';
 import { describe, expect, it } from 'vitest';
 
-import { storyBattleOutcome } from './battle-host.js';
+import { createEmptySectCombatProgressV6, createFreshCombatV6MethodLevels } from '../sects/build-state.js';
+import { createStoryBattleHost, storyBattleOutcome } from './battle-host.js';
+import { mineSparringEffects } from './mine-sparring.js';
 import { openingStoryProgress } from './progress.js';
 import {
   acknowledgeBattle,
@@ -171,6 +180,71 @@ describe('石滩首战', () => {
       ).toBe(true);
     },
   );
+});
+
+describe('木人试手', () => {
+  const chapter = getStoryChapter('mine-sparring');
+  const battle = getStoryBattle(MINE_SPARRING_BATTLE);
+  const facts = emptyStoryFacts();
+  const entering = () => acknowledgePerformance(
+    chapter, openingStoryProgress(chapter.id), facts, 'mine-sparring-yard', 'done',
+  ).progress;
+
+  it.each(['won', 'lost'] as const)('按 %s 收场并继续到白水镇差帖', (outcome) => {
+    const fought = acknowledgeBattle(chapter, entering(), facts, battle.id, outcome);
+    expect(presentStory(chapter, fought.progress, facts)).toMatchObject({
+      scriptId: 'mine-sparring-verdict', flags: [`battle.mine-sparring.${outcome}`],
+    });
+    const watch = acknowledgePerformance(chapter, fought.progress, facts, 'mine-sparring-verdict', 'done');
+    const errand = acknowledgePerformance(chapter, watch.progress, facts, 'mine-sparring-watch', 'done');
+    expect(errand.progress.beatId).toBe('errand');
+  });
+
+  it('只在落败后允许再试，清掉前一场效果并照实记新战果', () => {
+    const lost = acknowledgeBattle(chapter, entering(), facts, battle.id, 'lost', [mineSparringFlag('triple')]);
+    const replay = acknowledgePerformance(chapter, lost.progress, facts, 'mine-sparring-verdict', 'retry');
+    expect(replay.progress.beatId).toBe('fight');
+    expect(replay.progress.marks).toEqual([]);
+    const won = acknowledgeBattle(chapter, replay.progress, facts, battle.id, 'won');
+    expect(presentStory(chapter, won.progress, facts).flags).toEqual(['battle.mine-sparring.won']);
+    expect(() => acknowledgePerformance(chapter, won.progress, facts, 'mine-sparring-verdict', 'retry'))
+      .toThrow('只有这场试手落败后才能再试');
+  });
+
+  const starterMoves = {
+    lingxiao: 'triple',
+    wuxiang: 'pierce',
+    tianyan: 'wood',
+    youdu: 'siphon',
+    jiujie: 'thunder',
+    bailu: 'poxie',
+    wanqiao: 'rift',
+    xiaoyue: 'pounce',
+  } as const;
+
+  it.each(Object.keys(starterMoves) as CombatV6SectId[])('%s 两路的新人都能施放早课神通', (sectId) => {
+    const move = starterMoves[sectId];
+    for (const path of COMBAT_V6_SECT_DEFINITIONS[sectId].paths) {
+      const host = createStoryBattleHost({
+        cultivator: {
+          id: 'student', name: '新弟子', realm: '炼气', realm_stage: '初期',
+          attributes: { vitality: 10, strength: 10, spirit: 10, endurance: 10, speed: 10, willpower: 10 },
+        },
+        sect: createEmptySectCombatProgressV6(sectId, path.id, createFreshCombatV6MethodLevels(sectId)),
+        equipment: {},
+        manuals: { version: 1, revision: 0, learned: [], build: { slots: [] } },
+      }, battle, 9);
+      const target = host.state.units.find((unit) => unit.side === 1)!.id;
+      host.submit(host.playerId, { type: 'skill', skillId: MINE_SPARRING_MOVES[move], targets: [target] });
+      host.resolveRound();
+      expect(mineSparringEffects(host.runtimeSnapshot())).toContain(mineSparringFlag(move));
+      if (sectId === 'tianyan') {
+        host.submit(host.playerId, { type: 'skill', skillId: MINE_SPARRING_MOVES.fire, targets: [target] });
+        host.resolveRound();
+        expect(mineSparringEffects(host.runtimeSnapshot())).toContain(mineSparringFlag('wood-fire'));
+      }
+    }
+  });
 });
 
 describe('入口总表', () => {

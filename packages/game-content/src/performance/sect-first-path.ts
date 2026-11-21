@@ -43,20 +43,30 @@ export function createSectFirstPath(
   sectId: string,
   place: string,
   paths: readonly SectCombatPathView[],
+  afterMorningDemo = false,
 ) {
+  const introduction: PerformanceCue[] = afterMorningDemo
+    ? [{
+        type: 'line',
+        speaker: 'teacher',
+        text: '方才场上的两路都看过了。你想先从哪一路练？',
+      }]
+    : [
+        {
+          type: 'line',
+          speaker: 'player',
+          text: '先生，听说门里有两种练法。我要怎么挑？',
+        },
+        ...paths.map((path): PerformanceCue => ({
+          type: 'line',
+          speaker: 'teacher',
+          text: lessons[path.id] ?? path.name + '。' + path.description,
+        })),
+      ];
   const cues: PerformanceCue[] = [
     { type: 'scene', alt: place, src: getMountainGateBackdrop(sectId) },
     { type: 'title', kicker: place, text: '先从哪一路学' },
-    {
-      type: 'line',
-      speaker: 'player',
-      text: '先生，听说门里有两种练法。我要怎么挑？',
-    },
-    ...paths.map((path): PerformanceCue => ({
-      type: 'line',
-      speaker: 'teacher',
-      text: lessons[path.id] ?? path.name + '。' + path.description,
-    })),
+    ...introduction,
     {
       type: 'line',
       speaker: 'player',

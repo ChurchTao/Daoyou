@@ -256,11 +256,17 @@ async function currentStory(
   const returning = rows.length !== history.length;
   const stored = rows.find((row) => row.status === 'active') ?? rows[0] ?? null;
   const past = rows.filter((row) => row !== stored);
+  const finishedGate = past.some(
+    (row) =>
+      row.storyId === 'mine-gate' && row.acks.includes('mine-gate-home:done'),
+  );
   const base =
-    stored ??
-    (returning
-      ? openingStoryProgress(OPENING_STORY_CHAPTER)
-      : restingStoryProgress());
+    stored?.storyId === 'mine-lodging' && finishedGate
+      ? openingStoryProgress('mine-lesson')
+      : stored ??
+        (returning
+          ? openingStoryProgress(OPENING_STORY_CHAPTER)
+          : restingStoryProgress());
   return {
     rows,
     stored,
@@ -398,10 +404,11 @@ export const StoryService = {
     battleId: string,
     outcome: StoryBattleOutcome,
     tx: DbTransaction,
+    effects: readonly string[] = [],
   ): Promise<{ view: StoryView; changes: ResourceChangeDescriptor[] }> {
     await lockCultivatorForStateMutation(tx, cultivatorId);
     const settled = await settle(cultivatorId, tx, (chapter, progress, facts) =>
-      acknowledgeBattle(chapter, progress, facts, battleId, outcome),
+      acknowledgeBattle(chapter, progress, facts, battleId, outcome, effects),
     );
     return {
       view: settled.view,

@@ -60,6 +60,14 @@ export const XIAOYUE_DEFINITION: SectDefinition = {
       unlock: { type: 'method', methodId: 'xiaoyue.method.canon', level: 1 },
     },
     {
+      id: 'xiaoyue.skill.tiger_pounce',
+      kind: 'active',
+      baseName: '虎扑',
+      description: '照山兽起脚的样子伏低猛扑，近身攻向一名敌人。',
+      role: 'generator',
+      unlock: { type: 'method', methodId: 'xiaoyue.method.canon', level: 1 },
+    },
+    {
       id: 'xiaoyue.skill.transform',
       kind: 'active',
       baseName: '兽形',

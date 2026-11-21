@@ -1,7 +1,7 @@
 {
   "$schema": "./skill-learning.schema.json",
   "formatVersion": 1,
-  "contentRevision": 11,
+  "contentRevision": 12,
   "skills": {
     "lingxiao.skill.triple": {
       "sourceMethodId": "lingxiao.method.canon",
@@ -1249,7 +1249,7 @@
     },
     "wanqiao.skill.pierce": {
       "sourceMethodId": "wanqiao.method.tone",
-      "unlockMethodLevel": 20
+      "unlockMethodLevel": 1
     },
     "wanqiao.skill.fissure": {
       "sourceMethodId": "wanqiao.method.tone",
@@ -1433,6 +1433,10 @@
     },
     "wanqiao.passive.subtlety.ziyang": {
       "sourceMethodId": "wanqiao.method.breath",
+      "unlockMethodLevel": 1
+    },
+    "xiaoyue.skill.tiger_pounce": {
+      "sourceMethodId": "xiaoyue.method.canon",
       "unlockMethodLevel": 1
     },
     "xiaoyue.skill.transform": {

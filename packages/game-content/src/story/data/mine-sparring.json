@@ -1,0 +1,54 @@
+{
+  "id": "mine-sparring",
+  "track": "main",
+  "title": "木人会还手",
+  "beats": [
+    {
+      "id": "yard",
+      "kind": "performance",
+      "script": "mine-sparring-yard",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "下午去练功场赴约，试试早课学的招。",
+      "actionLabel": "去练功场",
+      "href": "/game/story"
+    },
+    {
+      "id": "fight",
+      "kind": "battle",
+      "battle": "mine-sparring",
+      "scene": "story-battle",
+      "prompt": "举盾的木人封住了去路，矮的已经绕了过来。",
+      "actionLabel": "上场试手",
+      "href": "/game/story/battle"
+    },
+    {
+      "id": "verdict",
+      "kind": "performance",
+      "script": "mine-sparring-verdict",
+      "outcome": "done",
+      "retryLostBattle": true,
+      "scene": "story",
+      "prompt": "到场边歇口气。隔壁同门还等你替他看看。",
+      "actionLabel": "回到场边",
+      "href": "/game/story"
+    },
+    {
+      "id": "watch",
+      "kind": "performance",
+      "script": "mine-sparring-watch",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "轮到同门了，替他看一眼早上托你的事。",
+      "actionLabel": "看同门试手",
+      "href": "/game/story"
+    },
+    {
+      "id": "errand",
+      "kind": "life",
+      "scene": "cave",
+      "prompt": "",
+      "href": "/game"
+    }
+  ]
+}

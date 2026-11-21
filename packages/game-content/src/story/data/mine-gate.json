@@ -44,19 +44,6 @@
       "href": "/game/story"
     },
     {
-      "id": "path",
-      "kind": "practice",
-      "scene": "sect-onboarding",
-      "prompt": "听教习讲讲本宗的两路练法。",
-      "href": "/game/sect/onboarding?entry=path&from=story",
-      "accept": [
-        {
-          "type": "fact",
-          "fact": "sect_ready"
-        }
-      ]
-    },
-    {
       "id": "home",
       "kind": "performance",
       "script": "mine-gate-home",
@@ -67,5 +54,5 @@
     }
   ],
   "gated": true,
-  "next": "mine-lodging"
+  "next": "mine-lesson"
 }

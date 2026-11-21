@@ -11,9 +11,9 @@ import type { PerformanceContext } from '@daoyou/game-domain/performance';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
-function readScript(scriptId: string) {
+function readScript(scriptId: string, sectId?: string | null) {
   try {
-    return getPerformanceScript(scriptId);
+    return getPerformanceScript(scriptId, sectId);
   } catch {
     return null;
   }
@@ -101,7 +101,9 @@ export default function StoryPreviewRoute() {
   const profile = useCultivatorIdentity();
   const player = usePlayerSession();
   const [replay, setReplay] = useState(0);
-  const script = scriptId ? readScript(scriptId) : null;
+  const script = scriptId
+    ? readScript(scriptId, player.data?.activeCultivator?.sectId)
+    : null;
 
   if (!scriptId || !script) {
     return (

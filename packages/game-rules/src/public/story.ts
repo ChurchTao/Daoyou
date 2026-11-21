@@ -24,3 +24,4 @@ export {
   StoryBattleHost,
   storyBattleOutcome,
 } from '../story/battle-host.js';
+export { mineSparringEffects } from '../story/mine-sparring.js';

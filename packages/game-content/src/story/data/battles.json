@@ -33,5 +33,31 @@
     "defeat": "pass",
     "rescueAfter": 5,
     "fresh": true
+  },
+  {
+    "id": "mine-sparring",
+    "title": "木人试手",
+    "opponents": [
+      {
+        "name": "举盾木人",
+        "icon": "icon:portrait-training-dummy",
+        "level": 1,
+        "kind": "normal",
+        "hp": 0.30,
+        "attack": 0.70,
+        "speed": 0.60
+      },
+      {
+        "name": "矮木人",
+        "icon": "icon:portrait-training-dummy",
+        "level": 1,
+        "kind": "normal",
+        "hp": 0.23,
+        "attack": 0.55,
+        "speed": 1.30
+      }
+    ],
+    "defeat": "pass",
+    "fresh": true
   }
 ]

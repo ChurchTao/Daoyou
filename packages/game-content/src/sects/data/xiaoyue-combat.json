@@ -1,8 +1,9 @@
 {
   "$schema": "./xiaoyue-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 3,
+  "contentRevision": 4,
   "baseSkillIds": [
+    "xiaoyue.skill.tiger_pounce",
     "xiaoyue.skill.transform",
     "xiaoyue.skill.lion_strike",
     "xiaoyue.skill.eagle_strike",
@@ -16,6 +17,16 @@
     "xiaoyue.skill.foundation"
   ],
   "skills": [
+    {
+      "id": "xiaoyue.skill.tiger_pounce",
+      "name": "虎扑",
+      "school": "xiaoyue",
+      "description": "伏低身子，借后腿蹬地之力扑向一名敌人。物理伤害系数1.05，无须兽形。\n法力消耗为25＋心法等级×0.5，向上取整。",
+      "tags": ["physical"],
+      "targeting": { "side": "enemy", "count": 1 },
+      "effects": [{ "type": "physicalHit", "coeff": 1.05 }],
+      "costMp": "ceil(25+skillLevel*0.5)"
+    },
     {
       "id": "xiaoyue.skill.transform",
       "name": "兽形",

@@ -85,6 +85,8 @@ export function createStoryBattleHost(
     attrs.hp = attrs.maxHp = Math.max(1, Math.round(attrs.maxHp * spec.hp));
     attrs.physicalAtk = Math.max(1, Math.round(attrs.physicalAtk * spec.attack));
     attrs.magicAtk = Math.max(1, Math.round(attrs.magicAtk * spec.attack));
+    if (spec.speed !== undefined)
+      attrs.speed = Math.max(1, Math.round(attrs.speed * spec.speed));
     return {
       id: `story.enemy.${battle.id}.${slot}`,
       name: spec.name,

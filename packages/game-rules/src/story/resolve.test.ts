@@ -951,12 +951,14 @@ describe('volume one', () => {
       'mine-crossing',
       'mine-departure',
       'mine-gate',
+      'mine-lesson',
     ]);
-    expect(seen.every((id) => getStoryChapter(id).gated)).toBe(true);
+    expect(seen.slice(0, 4).every((id) => getStoryChapter(id).gated)).toBe(true);
     expect(getStoryChapter('mine-gate').beats[0]).toMatchObject({
       id: 'landing', kind: 'performance', script: 'mine-gate-landing',
     });
     expect(current.gated).toBeUndefined();
+    expect(current.id).toBe('mine-sparring');
     expect(current.beats.at(-1)?.kind).toBe('life');
   });
 

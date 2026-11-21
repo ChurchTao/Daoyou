@@ -59,7 +59,7 @@ export default function StoryRoute() {
     player.data?.activeCultivator?.sectId,
   );
   const script = fillStoryScript(
-    getPerformanceScript(scriptId),
+    getPerformanceScript(scriptId, player.data?.activeCultivator?.sectId),
     context,
     player.data?.activeCultivator?.sectId,
   );
@@ -81,7 +81,7 @@ export default function StoryRoute() {
           ? 'icon:cultivator-female-avatar'
           : 'icon:cultivator-male-avatar'
       }
-      finalLabel="继续"
+      finalLabel={script.id === 'mine-sparring-verdict' ? '留下看同门试手' : '继续'}
       exitLabel="稍后再看"
       busy={busy}
       error={error}
