@@ -24,10 +24,7 @@
       "scene": "beasts",
       "prompt": "打开灵兽袋，看看咪咪。",
       "href": "/game/beasts?guide=beast-pouch",
-      "unlocks": [
-        "beasts",
-        "beast-room"
-      ]
+      "unlocks": ["beasts", "beast-room"]
     },
     {
       "id": "ask",
@@ -44,11 +41,9 @@
       "script": "mine-departure-routes",
       "outcome": "done",
       "scene": "sect-onboarding",
-      "prompt": "看看阿禾留下的山门路帖。",
+      "prompt": "问问阿禾，你想去的山门是什么样子。",
       "href": "/game/sect/onboarding?entry=gate",
-      "unlocks": [
-        "sect"
-      ]
+      "unlocks": ["sect"]
     },
     {
       "id": "morning",

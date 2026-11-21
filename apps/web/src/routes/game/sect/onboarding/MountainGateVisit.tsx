@@ -51,7 +51,8 @@ export function MountainGateVisit({
         ? 'visit'
         : 'join',
   );
-  const backLabel = '再看看别家';
+  const backLabel =
+    checkpoint?.chapterId === 'mine-gate' ? '回接引亭' : '再看看别家';
 
   if (storyEntry && !chapterVisit && !saving) {
     return <Navigate to={checkpoint?.href ?? '/game'} replace />;

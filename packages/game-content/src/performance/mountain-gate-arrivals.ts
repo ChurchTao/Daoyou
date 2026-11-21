@@ -222,9 +222,16 @@ export function createMountainGateArrival(
     ['clerk', '门里有教习带新弟子。你若想留下，我给你指路。'],
   ];
   const arrivalCues: PerformanceCue[] = study
-    ? study.cues
-        .slice(0, -1)
-        .map((cue) => (cue.type === 'scene' ? { ...cue, src } : cue))
+    ? [
+        { type: 'scene', alt: '山脚 · 接引亭' },
+        {
+          type: 'narration',
+          text: '守阵的人问清你要去哪家，叫你抱稳咪咪。你踏进石阵，还能听见渡埠上叫卖的声音。再迈一步，身后就听不见人声了。你抬头看见了山门。',
+        },
+        ...study.cues
+          .slice(0, -1)
+          .map((cue) => (cue.type === 'scene' ? { ...cue, src } : cue)),
+      ]
     : gate
       ? gate.cues.slice(0, -1)
       : [
@@ -281,10 +288,12 @@ export function createMountainGateArrival(
         speaker: 'clerk',
         text:
           admission === 'join'
-            ? '想留下学，就把名字报给我，我给你登记。想去别家看看，也尽管去。'
+            ? '你若定了，我就给你记名。想再看看，也可以。'
             : admission === 'member'
               ? '要核名的话，把名字报给我，我在册上给你找找。'
-              : '有空再来坐。下山慢些，顺着来时的路走。',
+              : study
+                ? '有空再来。回去还走方才那座阵。'
+                : '有空再来坐。下山慢些，顺着来时的路走。',
       },
       ...(admission === 'join'
         ? [

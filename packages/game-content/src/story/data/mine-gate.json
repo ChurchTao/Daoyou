@@ -9,7 +9,7 @@
       "script": "mine-gate-landing",
       "outcome": "done",
       "scene": "story",
-      "prompt": "到了山脚，照路帖去看山门。",
+      "prompt": "早渡靠岸，去接引亭。",
       "href": "/game/story"
     },
     {
@@ -25,7 +25,7 @@
       "id": "join",
       "kind": "practice",
       "scene": "sect-onboarding",
-      "prompt": "在想留下的山门报上名字。",
+      "prompt": "选一家想留下学的山门。",
       "href": "/game/sect/onboarding?entry=gate&from=road",
       "accept": [
         {
