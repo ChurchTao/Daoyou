@@ -13,93 +13,78 @@ import { getMountainGateBackdrop } from './mountain-gate-arrivals.js';
 
 const won = { flag: `battle.${MINE_SPARRING_BATTLE}.won` };
 const lost = { flag: `battle.${MINE_SPARRING_BATTLE}.lost` };
-const withEffect = (effect: MineSparringEffect, cue: ReturnType<typeof describe> | ReturnType<typeof say>) =>
+type BattleLine = ReturnType<typeof describe> | ReturnType<typeof say>;
+
+const withEffect = (effect: MineSparringEffect, cue: BattleLine) =>
   ({ ...cue, when: { flag: mineSparringFlag(effect) } });
 const afterMove = (effect: MineSparringEffect, text: string) =>
   withEffect(effect, describe(text));
 
-const fightRecollections: Record<CombatV6SectId, PerformanceCue[]> = {
-  lingxiao: [
-    afterMove('triple', '方才使断尘，头一剑落下你险些把力都送出去。等第二剑追上，你才照教习说的把劲留到第三剑。虎口还在跳，手背上粘着一片碎屑。'),
-  ],
-  wuxiang: [
-    afterMove('pierce', '你还记得木拳在眼前晃过，等胸前那片木头从臂弯底下露出来，你才送出两指。隔着一截，木胸已经响了。手上连一点木灰也没有。'),
-  ],
+const battleDetails: Partial<Record<CombatV6SectId, PerformanceCue[]>> = {
   tianyan: [
-    afterMove('wood', '方才细藤从砖缝钻出来，搭住木人的脚踝。木脚在砖上拖过半步，你抬手还有工夫看一眼，腕上那道青印真留住了。'),
-    afterMove('wood-fire', '腕上的青印一热，你便将火送了出去。火落到木头上那声，比早上打练功靶还响。'),
-    afterMove('fire-both', '两只木人隔着几步，身前都焦了一块。你那一手火只放了一次。'),
-  ],
-  youdu: [
-    afterMove('siphon', '墨沿着符上那一竖晕开时，木人的拳照样举了起来。早上得等教习指给你看，方才你一见符黑了，就认出了该还手的时候。'),
+    afterMove('wood-fire', '火接出去时，腕上那点青色换成了火色。早课上你看见过一回，这次印留在自己手上。'),
   ],
   jiujie: [
-    afterMove('guard', '天罡护体一运起来，袖里就起了细碎的电光，手臂上的寒毛全立着。'),
-    afterMove('thunder', '方才手一麻，你险些松开五指。刃放低，雷才跟着刀背过去。你闻到了焦木味，手里却轻飘飘的，连刀柄在哪根指头底下都摸不准。'),
-    afterMove('thunder-both', '头一声才落，旁边又炸了一声。另一只木人身上也腾起了烟。'),
+    afterMove('thunder-both', '你记得头一声雷才响，另一只木人身上也跟着炸开了。'),
   ],
   bailu: [
-    afterMove('poxie', '破邪喊出头一个字，你还存着半口气。等第二个字说完，木人胸前啪的一声。你在场里听得清，自己那两个字一轻一重。'),
-    afterMove('poxie-both', '你只朝着其中一只开口。响过一声，旁边那只也跟着挨了一记。'),
-    afterMove('fuyuan', '念过复元，方才能把一口气吸到底，身上也松了些。'),
+    afterMove('poxie-both', '你只朝着其中一只开口，旁边那只身上也响了一声。'),
   ],
   wanqiao: [
-    afterMove('rift', '那一声比早上撕布还短。头一下就在木人身上响，隔了一会儿，石壁才送回来一点余音。这回你听清了。'),
-    afterMove('rift-echo', '木人迈出去以后，挨过一下的木节也跟着响。那声随木脚往前，跟石壁送回来的余音分得很清。'),
+    afterMove('rift-echo', '裂帛打中木人后，木头里又闷响了一次。两声都在木人身上，离石壁还有好几步。'),
   ],
   xiaoyue: [
-    afterMove('pounce', '方才两手刚要抬，后脚还在砖上滑。你多等了半拍，才蹬出去。掌根挨到木头那一下，力从脚底直顶到指尖。'),
-    afterMove('beast-followup', '等你在木人跟前落脚，跟你上场的灵兽也赶上来补了一击。又一声，打的还是同一只。'),
+    afterMove('beast-followup', '虎扑打中以后，跟你上场的灵兽也补了一击。两下都落在同一只木人身上。'),
   ],
 };
 
+type BattleReaction = readonly [MineSparringEffect, ...BattleLine[]];
 const reactions: Record<
   CombatV6SectId,
-  { win: readonly [MineSparringEffect, string, string]; lose: readonly [MineSparringEffect, string, string] }
+  { win: BattleReaction; lose: BattleReaction }
 > = {
   lingxiao: {
-    win: ['triple', '第三声我还当是木人打着你了。', '前两剑省下的劲都在那一声里。你看，我这手还在跳。'],
-    lose: ['triple', '那三下听得真切。我还当它就要倒了。', '早上劈过三剑，木桩还肯等我喘口气。'],
+    win: ['triple', say('peer', '听到第三声，我还以为又裂了一面盾。')],
+    lose: ['triple', say('player', '三剑都落下去了。下回我得想想先打哪只，早上的木桩可不用挑。')],
   },
   wuxiang: {
-    win: ['pierce', '隔着那么远，也能点准？', '就跟早上打板子一样，得先看准一块。'],
-    lose: ['pierce', '我看见你点中了，还以为它会停。', '我也等着它停呢。它一抬胳膊，我才想起来那点凹痕挡不了拳。'],
+    win: ['pierce', describe('破妄指打中的那一声，你在场里听得很清楚。隔着一截，你已经能点中会动的木人了。')],
+    lose: ['pierce', say('peer', '那一指打得实，我在外头都听见了。'), say('player', '点得中。下回还得顾着另一只。')],
   },
   tianyan: {
-    win: ['wood-fire', '你先留那点儿青的，就为了后头这把火？', '嗯。方才把火送出去的时候，我手腕还是热的。'],
-    lose: ['wood', '有一只我瞧见你拖住了。', '能绊住一只。下回我还得留神另一只走了几步。'],
+    win: ['fire-both', say('peer', '隔着那么几步，两只都烧着了。等我上场，也想这么试一回。')],
+    lose: ['wood', say('player', '藤绊得住一只。下回我还得多看一眼，另一只到了哪儿。')],
   },
   youdu: {
-    win: ['siphon', '我在门边只看见那张符。墨一散就能打？', '趁它还黑着。'],
-    lose: ['siphon', '我刚瞧见墨散开，还以为它要收手。', '早上教习就叫我看它那一拳。照打。'],
+    win: ['siphon', say('peer', '那张符一黑，我就想起早上接的那两拳。待会儿看我能不能早一点把手腾出来。')],
+    lose: ['siphon', say('peer', '早上光举盾，第一拳就给我砸坐下了。等我上去，也先让它那张符黑一黑。')],
   },
   jiujie: {
-    win: ['thunder', '我还以为今天又要领把新刀。', '刀好好的。焦味是从场里来的。'],
-    lose: ['thunder', '我只听见响。怎么，你那手也会麻？', '早上打练功板，可没有这么麻。'],
+    win: ['thunder', say('peer', '方才雷响，我先看了眼自己的鞋。早上那下真把我吓着了。')],
+    lose: ['thunder', say('player', '练功板挨了雷就待在那儿。木人打中了，我还得接着盯。')],
   },
   bailu: {
-    win: ['poxie', '你在里头喊得那么响，嗓子疼么？', '还好。第一字我没使多少劲。'],
-    lose: ['poxie', '我听你喊全了。', '它挨了也还会来。喊完得赶紧看它的手。'],
+    win: ['poxie', describe('那个「邪」字一落，木人身上便啪地响了一声。早上掀下来的是纸符，这回动的是一副木架。')],
+    lose: ['poxie', say('peer', '我听见你把两个字都说全了。换我站里头，木拳一伸过来，怕是话都顾不上说。')],
   },
   wanqiao: {
-    win: ['rift', '我方才耳朵还朝着墙。你在里头分得开？', '得先知道它走到哪儿。打在木头上，声音短。'],
-    lose: ['rift', '那一下我听准了。', '站在里头还能听见墙送回来一声。我可不能每回都等着把它听完。'],
+    win: ['rift', describe('裂帛打在木人身上的那声很短，像早上绷紧的布豁开一道口。你这回听得准，声是从木头里起的。')],
+    lose: ['rift', say('player', '那一声落哪儿，我听清了。下回得早点听木脚，等墙把声音送回来就晚了。')],
   },
   xiaoyue: {
-    win: ['pounce', '刚瞧见你要抬手，怎么还停了半拍？', '砖滑，踩稳才蹬得出去。'],
-    lose: ['pounce', '方才那一扑是挨着了的。我在外面都听见了。', '扑上去只要一蹬。落了脚还得站得住，我才想起这茬。'],
+    win: ['pounce', describe('虎扑结结实实打中时，你才知道早上推木桩那点力，用在会走的木人身上也够。')],
+    lose: ['pounce', say('player', '光想着要扑中。扑过去以后，下一步往哪儿站，我还得练。')],
   },
 };
 
 function verdictReaction(
   skip: string,
   outcome: typeof won,
-  [effect, question, reply]: (typeof reactions)[CombatV6SectId]['win'],
+  [effect, ...cues]: BattleReaction,
 ): PerformanceCue[] {
   return [
     { type: 'goto', mark: skip, when: { ...outcome, absent: true } },
-    withEffect(effect, say('peer', question)),
-    withEffect(effect, say('player', reply)),
+    ...cues.map((cue) => withEffect(effect, cue)),
     { type: 'mark', id: skip },
   ];
 }
@@ -138,14 +123,14 @@ const watched: Record<CombatV6SectId, PerformanceCue[]> = {
     say('peer', '那只跑过来，我就忘了嘴还张着。'),
   ],
   wanqiao: [
-    describe('同门送出第一声，两只木人还往前走，石壁却回了他一下。第二声才听见木头响，就在举盾那只的左肩。'),
-    describe('他出来一路朝墙看。你叫他站到你刚才的位置，先指石壁，再指场内。'),
-    say('player', '先这边。第二声才在木人身上。'),
+    describe('同门朝两只木人之间送出一声。声响从石壁折回来，木脚照旧往前走。他收住气，瞄着举盾那只的左肩又出了一招。这回木肩里短短地响了一声。'),
+    say('player', '你头一招叫墙送回来了。后来冲着它左肩那一招才打中。'),
   ],
   xiaoyue: [
     describe('同门还没伏低，两手已经伸出去。后脚擦着砖往外滑，人先往前栽了。他只好抢出一步，才赶在木人跟前把身子稳住。'),
     say('player', '手先到的。脚还在那儿滑。咪咪早上追绳头，你瞧它蹲下以后还等了等。'),
-    describe('同门屈了屈膝盖。咪咪见他又伏低了，立刻坐起来找那截绳子。'),
+    say('peer', '我还当脚蹬早了，原来手比脚还急。'),
+    describe('他伏低再比了一次，咪咪也从台阶上起来找早上那截绳子。'),
   ],
 };
 
@@ -172,8 +157,8 @@ export function mineSparringScripts(sectId?: CombatV6SectId) {
       describe('你刚跨过练功场的红线，同门就在身后喊你。'),
       say('peer', '打完等我一会儿。早上托你的事，别忘了。'),
       describe('教习扳开闸，棚里当啷一响。举盾的木人扶着棚柱站起来，把盾往身前一竖。你在矿上搬过差不多大的盖板，得两只手抱，它用一条胳膊就举到了下巴底下。'),
-      describe('咪咪耳朵一转，你心里立刻觉出它在催你往右看。矮的那只已经绕过盾沿，离你只剩几步。早上对着木桩，你还能细想怎么起手。眼下再等，它的拳就先到了。'),
-      { type: 'choice', options: [{ label: '（上场试手）', outcome: 'done' }] },
+      describe('咪咪耳朵一转，你心里立刻觉出它在催你往右看。矮的那只已经绕过盾沿，离你只剩几步。早上还能站稳了想怎么起手。眼下再等，它的拳就先到了。'),
+      { type: 'choice', options: [{ label: '（迎上去）', outcome: 'done' }] },
       { type: 'end', outcome: 'done' },
     ],
   });
@@ -191,12 +176,12 @@ export function mineSparringScripts(sectId?: CombatV6SectId) {
       },
       { ...say('peer', '坐这儿，看得见脚底下。我在外头听着，比早上轮到自己还急。'), when: won },
       {
-        ...describe('闸柄在身后一响，木人的拳停了。你还抬着胳膊，过了一会儿才听见教习叫你出来。他等你放下手，在你的名字旁写了个「负」。'),
+        ...describe('教习扳回闸柄，收住两只木人。试手簿摊在场边，他在你的名字旁写了个「负」。'),
         when: lost,
       },
       { ...say('teacher', '先坐会儿。想重来，等我把它们放回原位，随时喊我。'), when: lost },
-      { ...say('peer', '我待会儿就上。你坐着看就行，要是瞧见了，下来跟我说一声。'), when: lost },
-      ...(sectId ? fightRecollections[sectId] : []),
+      { ...say('peer', '来，坐我这儿。待会儿我上场，你从这边看就行。'), when: lost },
+      ...(sectId ? battleDetails[sectId] ?? [] : []),
       ...(sectId ? [
         ...verdictReaction('after-win', won, reactions[sectId].win),
         ...verdictReaction('after-loss', lost, reactions[sectId].lose),
@@ -220,15 +205,15 @@ export function mineSparringScripts(sectId?: CombatV6SectId) {
     cues: [
       scene,
       { type: 'title', text: '轮到同门' },
-      describe('教习把两个木人摆回棚下。同门进门以前还回头找你，你往门边让了让，好让他知道你坐在哪儿。闸又响了一声。'),
+      describe('教习把两个木人摆回棚下。同门进门以前还回头找你，你朝他招招手，让他知道你在场边。闸又响了一声。'),
       ...(sectId ? watched[sectId] : [
         describe('你记着早上答应他的事，一直看到他下场，才把自己瞧见的说给他听。'),
       ]),
-      describe('你们等教习把木人归位。同门去拿水，回来递给你一碗，另一只手上还多了张差帖。'),
+      describe('散场时，同门在门柱前停下，指着一张送药的差帖让你看。'),
       { type: 'letter', title: '白水镇送药差', text: '丹房有一匣药须送到白水镇药铺。两人同行。' },
-      say('peer', '你走过白水镇那条路么？'),
+      say('peer', '这趟要两个人。你替我看招看得细，要是肯去，我想跟你搭个伴。你走过那条路么？'),
       say('player', '没到过那儿。要是走水路，我知道该找谁问船。'),
-      say('peer', '你愿不愿意跟我领这张？我去问丹房，看看送的药该怎么带。'),
+      say('peer', '那我去丹房问问，这匣药该怎么带。'),
       describe('你想起阿禾也替药婆捎药。他要是知道你也开始替人送药，大概得先问你认不认路。'),
       say('player', '行。领差的人在哪儿？'),
       { type: 'end', outcome: 'done' },

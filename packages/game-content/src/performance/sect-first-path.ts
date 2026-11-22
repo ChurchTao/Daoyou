@@ -45,12 +45,18 @@ export function createSectFirstPath(
   paths: readonly SectCombatPathView[],
   afterMorningDemo = false,
 ) {
-  const introduction: PerformanceCue[] = afterMorningDemo
-    ? [{
+  const conversation: PerformanceCue[] = afterMorningDemo
+    ? [
+      {
         type: 'line',
         speaker: 'teacher',
-        text: '方才场上的两路都看过了。你想先从哪一路练？',
-      }]
+        text: '两路你都看过了。先挑一路试，往后想换，心法照用。',
+      },
+      {
+        type: 'letter',
+        text: '换流派不花灵石。两路经脉各自修炼，换回时可接着练。',
+      },
+    ]
     : [
         {
           type: 'line',
@@ -62,21 +68,21 @@ export function createSectFirstPath(
           speaker: 'teacher',
           text: lessons[path.id] ?? path.name + '。' + path.description,
         })),
+        {
+          type: 'line',
+          speaker: 'player',
+          text: '我要是先学一路，过些日子想换呢？',
+        },
+        {
+          type: 'line',
+          speaker: 'teacher',
+          text: '来找我就能换。灵石免了，心法照旧能用。两路的经脉各练各的，日后换回去，你还能接着练。',
+        },
       ];
   const cues: PerformanceCue[] = [
     { type: 'scene', alt: place, src: getMountainGateBackdrop(sectId) },
     { type: 'title', kicker: place, text: '先从哪一路学' },
-    ...introduction,
-    {
-      type: 'line',
-      speaker: 'player',
-      text: '我要是先学一路，过些日子想换呢？',
-    },
-    {
-      type: 'line',
-      speaker: 'teacher',
-      text: '来找我就能换。灵石免了，心法照旧能用。两路的经脉各练各的，日后换回去，你还能接着练。',
-    },
+    ...conversation,
     {
       type: 'choice',
       options: paths.map((path) => ({
