@@ -38,7 +38,7 @@ export function reasonText(reason: string) {
     sealed: '受封术影响',
     rooted: '物理行动受限',
     'no-target': '没有合法目标',
-    'revived-this-round': '复起当回合无法施展',
+    'revived-this-round': '复活当回合无法施展',
     'skill-condition': '当前状态不满足施放条件',
     cooldown: '神通尚在冷却中',
     'hp-requirement': '气血未达到施展要求',
@@ -49,7 +49,7 @@ export function reasonText(reason: string) {
     'flee-failed': '逃离失败',
     'capture-failed': '捕捉失败',
     'capture-capacity': '灵兽袋已满，请先空出空间，再继续捕捉。',
-    'revive-blocked': '当前无法复起',
+    'revive-blocked': '当前无法复活',
     'skill-not-known': '尚未掌握此技能',
     'passive-not-castable': '被动技能无法主动施展',
     'summon-invalid': '无法召出该灵兽',
@@ -259,8 +259,8 @@ export function appendBattleEntries(
         return {
           text:
             typeof e.hp === 'number'
-              ? `${name(e.unitId)}复起，恢复 ${e.hp} 气血`
-              : `${name(e.unitId)}复起`,
+              ? `${name(e.unitId)}复活，恢复 ${e.hp} 气血`
+              : `${name(e.unitId)}复活`,
           tone: 'heal',
         };
       case 'barrierChanged':

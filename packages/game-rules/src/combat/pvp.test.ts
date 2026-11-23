@@ -73,7 +73,7 @@ describe('PvP 久战衰减', () => {
     expect(b.unit('b').attrs.hp).toBe(1900);
   });
 
-  it('护盾不衰减，自然复活按复起回合衰减', () => {
+  it('护盾不衰减，自然复活按复活回合衰减', () => {
     const barrier = skill('shield', [{ type: 'applyBarrier', id: 'shield', kind: 'shield', name: '护盾', power: 500, duration: 3 }]);
     const config = input([barrier]);
     config.units.push({ id: 'pet', name: '灵兽', kind: 'pet', side: 0, ownerId: 'a', attrs: { hp: 0, maxHp: 1000 } });

@@ -50,8 +50,8 @@
 | `poison` | `chance`、`duration`、`hpRatio`、`mpRatio`、`immune` | 普攻中毒与高级毒性免疫 |
 | `miracle` | `immune` | 回合末净化或异常免疫 |
 | `concentration` | `physicalFactor`、`dodgeBonus` | 控制免疫、物伤代价与躲避 |
-| `ghost` | `delay` | 延迟复起、拒绝气血恢复和常规异常免疫 |
-| `exorcism` | `factor` | 对灵魂体物法增伤并阻止其复起 |
+| `ghost` | `delay` | 延迟复活、拒绝气血恢复和常规异常免疫 |
+| `exorcism` | `factor` | 对灵魂体物法增伤并阻止其复活 |
 | `denial` | `ghostDamageFactor`、`spellFactor` | 拒绝增益、异常免疫、灵魂体伤害及法抗倍率 |
 | `eternity` | `factor`、`maxExtra` | 合格增益延长倍率与额外回合上限 |
 | `stealth` | `minDuration`、`maxDuration`、`physicalFactor` | 首次出战隐身状态、禁法与物伤代价 |

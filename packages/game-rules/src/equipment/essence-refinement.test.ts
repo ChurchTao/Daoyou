@@ -68,7 +68,7 @@ function battleWith(
     statusDefs: [
       {
         id: 'ban',
-        name: '禁复起',
+        name: '禁复活',
         kind: 'ban',
         category: StatusCategory.Debuff,
         blocksRevive: true,
@@ -209,7 +209,7 @@ describe('器蕴精修', () => {
     resolve(battle);
     expect(battle.unit('self').attrs.hp).toBe(1000);
   });
-  it('回春不能复起倒地者', () => {
+  it('回春不能复活倒地者', () => {
     const p = passive('huichun');
     const battle = battleWith([p], [p.id]);
     battle.unit('self').attrs.hp = 0;

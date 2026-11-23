@@ -8,7 +8,7 @@ import { createDaoyouRuleset } from './daoyou/index.js';
 const P = (id: string) => `bailu.passive.${id}`;
 const T = (id: string) => `bailu.status.${id}`;
 const kill: SkillDef = { id: 'test.kill', name: '击倒', tags: ['spell'], targeting: { side: 'enemy', count: 1 }, effects: [{ type: 'fixedHit', power: 2000 }] };
-const revive: SkillDef = { id: 'test.revive', name: '复起', tags: ['support'], targeting: { side: 'ally', count: 1, includeDowned: true }, effects: [{ type: 'restoreHp', power: 5000, revive: true }] };
+const revive: SkillDef = { id: 'test.revive', name: '复活', tags: ['support'], targeting: { side: 'ally', count: 1, includeDowned: true }, effects: [{ type: 'restoreHp', power: 5000, revive: true }] };
 const contentSkills = [...definition.skills, ...definition.paths.flatMap(path => [
   ...path.foundationPassives ?? [], ...path.grantSkills ?? [],
   ...path.nodes.flatMap(node => [...node.passives ?? [], ...node.grantSkills ?? []]),
@@ -60,7 +60,7 @@ describe('白鹿倒地与资源交换', () => {
     }
   });
 
-  it('余论复起后每目标每轮只追击一次，快照恢复不重新发放机会', () => {
+  it('余论复活后每目标每轮只追击一次，快照恢复不重新发放机会', () => {
     const { b, input } = setup(['yulun']);
     b.applyStatus('t', T('mark'), 99, 's');
     round(b, { s: cast(kill.id, 't'), e: cast(revive.id, 't') });

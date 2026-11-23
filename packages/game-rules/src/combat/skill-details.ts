@@ -66,9 +66,9 @@ function beastPassiveDescription(skill: SkillDef): string | undefined {
     case 'unanticipated':
       return `使用本回合己方灵兽尚未施展过的技能时，伤害结果提高 ${percent(effect.factor - 1)}%；同一次群体攻击与灵法连击均获得加成，每回合重新判定。不限物种，不限入场回合。`;
     case 'ghost':
-      return `死亡后第 ${effect.delay} 个回合开始复起，气血恢复至可恢复上限。无法接受普通气血恢复，免疫控制、减益和持续伤害；涅槃重生失效。被镇魂击杀后无法复起，等待期间不计存活。`;
+      return `死亡后第 ${effect.delay} 个回合开始复活，气血恢复至可恢复上限。无法接受普通气血恢复，免疫控制、减益和持续伤害；涅槃重生失效。被镇魂击杀后无法复活，等待期间不计存活。`;
     case 'exorcism':
-      return `对灵魂体目标的物理和法术伤害提高 ${percent(effect.factor - 1)}%，击杀后阻止其本次复起。`;
+      return `对灵魂体目标的物理和法术伤害提高 ${percent(effect.factor - 1)}%，击杀后阻止其本次复活。`;
     case 'denial':
       return `免疫控制、减益和持续伤害，无法获得增益；灵魂体、涅槃重生、定神（均含高级版）及解厄、高级避厄失效。受到灵魂体造成的物理与法术伤害增加 ${percent(effect.ghostDamageFactor - 1)}%。${effect.spellFactor < 1 ? `所受法术伤害降低 ${percent(1 - effect.spellFactor)}%。` : ''}`;
     case 'poison':
@@ -145,7 +145,7 @@ const effectLabels: Record<SkillEffect['type'], string> = {
   heal: '治疗气血',
   restoreHp: '恢复气血',
   restoreMp: '恢复法力',
-  revive: '复起目标',
+  revive: '复活目标',
   applyStatus: '施加状态',
   removeStatus: '移除状态',
   copyStatus: '复制状态',

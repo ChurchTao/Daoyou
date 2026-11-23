@@ -120,8 +120,8 @@ describe('基础模组状态与回合边界', () => {
     expect(restored.snapshot()).toEqual(b.snapshot());
     expect(restored.log()).toEqual(b.log());
   });
-  it.each(['revive', 'restoreHp'] as const)('通过 %s 复起当回合禁止临渊，后续回合可用', type => {
-    const revive: SkillDef = { id: 'test.revive', name: '复起', tags: ['support'],
+  it.each(['revive', 'restoreHp'] as const)('通过 %s 复活当回合禁止临渊，后续回合可用', type => {
+    const revive: SkillDef = { id: 'test.revive', name: '复活', tags: ['support'],
       targeting: { side: 'ally', includeDowned: true },
       effects: [type === 'revive' ? { type, hp: 400 } : { type, power: 400, revive: true }] };
     const b = setup(1000, 'npc', [revive]);

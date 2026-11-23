@@ -105,7 +105,7 @@ function turn(
   b.lockAndResolve();
 }
 it.each(['beast.ghost', 'beast.advanced-ghost'])(
-  '%s 五回合复起、屏蔽涅槃重生且快照保留计时',
+  '%s 五回合复活、屏蔽涅槃重生且快照保留计时',
   (id) => {
     const data = input([id, 'beast.advanced-divine-revival']);
     const b = createBattle(data);
@@ -135,7 +135,7 @@ it.each(['beast.ghost', 'beast.advanced-ghost'])(
     expect(beastDeathIds(b.log())).toEqual(['pet']);
   },
 );
-it('禁复活在等待期间计时，到期才复起', () => {
+it('禁复活在等待期间计时，到期才复活', () => {
   const b = createBattle(input());
   b.applyStatus('beast:pet', 'ban', 5);
   b.unit('beast:pet').attrs.hp = 50;
@@ -148,7 +148,7 @@ it('禁复活在等待期间计时，到期才复起', () => {
 it.each([
   ['beast.exorcism', 150],
   ['beast.advanced-exorcism', 200],
-] as const)('%s 物法增伤并阻止复起', (id, damage) => {
+] as const)('%s 物法增伤并阻止复活', (id, damage) => {
   for (const spell of [false, true]) {
     const b = createBattle(input(['beast.ghost'], [id]));
     turn(b, true, spell);
@@ -206,7 +206,7 @@ it.each([
     }
   },
 );
-it('换宠取消等待复起，不在后备复活或出现两只出战宠', () => {
+it('换宠取消等待复活，不在后备复活或出现两只出战宠', () => {
   const b = createBattle(input());
   b.unit('beast:pet').attrs.hp = 1;
   turn(b, true);
@@ -263,7 +263,7 @@ it('外部治疗与普通复活不能绕过魂生恢复限制', () => {
   heal();
   expect(b.unit('beast:pet').flags.dead).toBe(true);
 });
-it('慑魂固定伤害不增幅，但归因于慑魂者的击杀仍阻止复起', () => {
+it('慑魂固定伤害不增幅，但归因于慑魂者的击杀仍阻止复活', () => {
   const data = input(['beast.ghost'], ['beast.advanced-exorcism']);
   data.skills.push({
     id: 'test.fixed',

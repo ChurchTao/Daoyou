@@ -95,7 +95,7 @@ describe('幽都基础模组还原', () => {
     expect(b.queryCommands('t').attackTargetIds).toContain('s');
     expect(effectiveAttrs(b.unit('t')).hit).toBe(b.unit('t').attrs.hit);
   });
-  it('复活只选倒地可复起目标，并附带增攻降防；禁复活目标不可选', () => {
+  it('复活只选倒地可复活目标，并附带增攻降防；禁复活目标不可选', () => {
     const { b } = setup(); b.unit('a').flags.downed = true; b.unit('a').attrs.hp = 0;
     const option = () => b.queryCommands('s').skills.find(s => s.skillId === S('revival'))!;
     expect(option().selectableTargetIds).toEqual(['a']);

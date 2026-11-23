@@ -76,9 +76,9 @@ describe('无双流派基础能力和剑意门槛', () => {
     ready(b); resource(b).current = 26; round(b, cast('triple')); expect(resource(b).current).toBe(27);
     ready(b); b.unit('s').attrs.hp = 5000; round(b, cast('triple')); expect(resource(b).current).toBe(27);
   });
-  it('剑意倒地保留、复起继承，快照恢复仍无上限', () => {
+  it('剑意倒地保留、复活继承，快照恢复仍无上限', () => {
     const kill: SkillDef = { id: 'kill', name: '击倒', tags: [], targeting: { side: 'enemy' }, effects: [{ type: 'fixedHit', power: 100000 }] };
-    const revive: SkillDef = { id: 'revive', name: '复起', tags: [], targeting: { side: 'ally', includeDowned: true }, effects: [{ type: 'revive', hpRatio: 1 }] };
+    const revive: SkillDef = { id: 'revive', name: '复活', tags: [], targeting: { side: 'ally', includeDowned: true }, effects: [{ type: 'revive', hpRatio: 1 }] };
     const { b, input } = setup('guiyi', [], [kill, revive]); resource(b).current = 26;
     b.unit('t0').skills = ['kill']; round(b, { type: 'defend' }, { t0: { type: 'skill', skillId: 'kill', targets: ['s'] } });
     expect(b.unit('s').flags.downed).toBe(true); expect(resource(b).current).toBe(26);
@@ -104,7 +104,7 @@ describe('无双流派基础能力和剑意门槛', () => {
     }
   });
   it('23层只豁免禁复活，不能自动复活；查询和施法一致', () => {
-    const revive: SkillDef = { id: 'revive', name: '复起', tags: [], targeting: { side: 'ally', onlyDowned: true, includeDowned: true, requireRevivable: true }, effects: [{ type: 'revive', hpRatio: .5 }] };
+    const revive: SkillDef = { id: 'revive', name: '复活', tags: [], targeting: { side: 'ally', onlyDowned: true, includeDowned: true, requireRevivable: true }, effects: [{ type: 'revive', hpRatio: .5 }] };
     const { input } = setup('guiyi', ['7.2'], [revive]);
     const b = createBattle({ ...input, statusDefs: [...input.statusDefs, { id: 'ban', name: '禁复活', kind: 'ban', blocksRevive: true, persistWhenDowned: true }] });
     b.applyStatus('s', 'ban', 10); b.unit('s').flags.downed = true; b.unit('s').attrs.hp = 0; b.unit('ally').skills = ['revive']; resource(b).current = 22;
