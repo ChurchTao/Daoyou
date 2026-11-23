@@ -61,7 +61,8 @@ export function storyPerformanceContext(
   },
   sectId?: string | null,
 ): PerformanceContext {
-  const rooms = sectId ? getSectPresentation(sectId).rooms : undefined;
+  const presentation = sectId ? getSectPresentation(sectId) : undefined;
+  const rooms = presentation?.rooms;
   const actorName = (room: string, role: string, fallback: string) =>
     rooms?.[room]?.actors.find((actor) => actor.roleKey === role)?.name ??
     fallback;
@@ -70,6 +71,10 @@ export function storyPerformanceContext(
     background: cultivator.background?.trim() || '尚无来处',
     origin: cultivator.origin?.trim() || '来历不详',
     path_teacher: actorName('paths', 'guide', '引道长老'),
+    archive_keeper: actorName('archive', 'keeper', '守阁长老'),
+    archive_name:
+      presentation?.map.hotspots.find(({ id }) => id === 'archive')?.label ??
+      '传承阁',
     receptionist: actorName('hall', 'registry', '接引师兄'),
     alchemy_teacher: actorName('alchemy', 'keeper', '丹房执事'),
     forge_teacher: actorName('refinery', 'keeper', '器坊执事'),

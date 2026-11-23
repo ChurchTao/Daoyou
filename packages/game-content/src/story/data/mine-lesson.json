@@ -46,13 +46,37 @@
       }
     },
     {
+      "id": "study-brief",
+      "kind": "performance",
+      "script": "mine-lesson-study-brief",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "问教习选定流派后该去哪里研习心法。",
+      "actionLabel": "请教研习心法",
+      "href": "/game/story",
+      "location": { "kind": "sect", "spotId": "arena" },
+      "entry": { "kind": "npc", "id": "instructor" },
+      "finishLabel": "依教习安排"
+    },
+    {
+      "id": "study",
+      "kind": "practice",
+      "scene": "sect-archive",
+      "prompt": "去本宗传承处找守阁前辈，把主心法研习至二级。",
+      "actionLabel": "研习主心法",
+      "href": "/game/sect/archive?npc=keeper",
+      "accept": [{ "type": "fact", "fact": "sect_primary_method_trained" }],
+      "location": { "kind": "sect", "spotId": "archive" },
+      "entry": { "kind": "npc", "id": "keeper" }
+    },
+    {
       "id": "form",
       "kind": "performance",
       "script": "mine-lesson-form",
       "outcome": "done",
       "scene": "story",
-      "prompt": "照教习的指点练一遍心法，翻看下午试手能用的招。",
-      "actionLabel": "跟教习练一遍",
+      "prompt": "主心法已经研习过。回演武处找教习，试试起手。",
+      "actionLabel": "请教习指点起手",
       "href": "/game/story",
       "location": {
         "kind": "sect",

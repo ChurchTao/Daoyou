@@ -85,6 +85,12 @@ function parseChapter(input: unknown): StoryChapter {
       }
     }
     if (beat.kind !== 'performance') continue;
+    if (
+      beat.playOnResume &&
+      (!beat.location || !beat.entry || beat.href !== '/game/story')
+    ) {
+      throw new Error(`续读演出缺少有效入口：${chapter.id}/${beat.id}`);
+    }
     const script = getPerformanceScript(beat.script);
     const endings = new Set(
       script.cues.flatMap((cue) => {

@@ -17,8 +17,11 @@ import {
   listCultivatorStories,
   updateCultivatorStory,
 } from '@server/lib/repositories/storyRepository.js';
+import { readSectMethodLevels } from '@server/lib/repositories/sectCombatRepository.js';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
+import { updateCultivationExp } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
 import { getGuideLesson } from '@daoyou/game-content/guide/catalog';
+import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
 import {
   getPerformanceScript,
   MINE_ROAD_SCRIPT,
@@ -70,6 +73,11 @@ import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import { grantInventory } from '@server/inventory/operations.js';
 
 type StoryMarkFact = (typeof STORY_MARK_FACT_IDS)[number];
+type StoryRewardEffect = {
+  items: boolean;
+  spiritStones: boolean;
+  cultivationExp: boolean;
+};
 
 function isStoryMarkFact(fact: StoryFactId): fact is StoryMarkFact {
   return (STORY_MARK_FACT_IDS as readonly string[]).includes(fact);
@@ -89,7 +97,7 @@ function sameProgress(left: StoryProgress, right: StoryProgress): boolean {
 function storyChanges(
   cultivatorId: string,
   view: StoryView,
-  effect: { items: boolean; spiritStones: boolean },
+  effect: StoryRewardEffect,
 ): ResourceChangeDescriptor[] {
   const scope = { kind: 'cultivator' as const, id: cultivatorId };
   const changes: ResourceChangeDescriptor[] = [
@@ -125,6 +133,14 @@ function storyChanges(
       operation: 'invalidate',
     });
   }
+  if (effect.cultivationExp) {
+    changes.push({
+      scope,
+      resourceTopic: 'player.progress',
+      eventType: 'progress.story.granted',
+      operation: 'invalidate',
+    });
+  }
   return changes;
 }
 
@@ -142,7 +158,11 @@ async function readStoryFacts(
         .limit(1),
     () =>
       tx
-        .select({ id: sectMemberships.id, pathId: sectCombatStates.activePathId })
+        .select({
+          id: sectMemberships.id,
+          sectId: sectMemberships.sectId,
+          pathId: sectCombatStates.activePathId,
+        })
         .from(sectMemberships)
         .leftJoin(
           sectCombatStates,
@@ -199,8 +219,19 @@ async function readStoryFacts(
     retreats: Number(retreats[0]?.value ?? 0),
   };
   facts.starter_beast = beasts.length > 0;
-  facts.sect_joined = memberships.length > 0;
-  facts.sect_ready = Boolean(memberships[0]?.pathId);
+  const membership = memberships[0];
+  facts.sect_joined = Boolean(membership);
+  facts.sect_ready = Boolean(membership?.pathId);
+  if (membership && Object.hasOwn(COMBAT_V6_SECT_DEFINITIONS, membership.sectId)) {
+    const sect = COMBAT_V6_SECT_DEFINITIONS[
+      membership.sectId as keyof typeof COMBAT_V6_SECT_DEFINITIONS
+    ];
+    const primary = sect.methods.find((method) => method.isPrimary);
+    if (primary) {
+      const levels = await readSectMethodLevels(membership.id, tx);
+      facts.sect_primary_method_trained = (levels[primary.id] ?? 0) >= 2;
+    }
+  }
   facts.weapon_equipped = weapons.length > 0;
   facts.equippedWeaponId = weapons[0]?.id;
   facts.breakthrough_available = rows[0]?.stage === '圆满';
@@ -217,8 +248,7 @@ async function applyRewards(
   cultivatorId: string,
   ids: readonly string[],
   tx: DbTransaction,
-): Promise<{ items: boolean; spiritStones: boolean }> {
-  // 一份赠礼可以由几样拼成：掉落包里的东西，或者一只灵兽。
+): Promise<StoryRewardEffect> {
   const parts = ids.flatMap((id) => storyGiftParts(id));
   for (const part of parts) {
     if (part.type === 'beast')
@@ -228,23 +258,34 @@ async function applyRewards(
     part.type === 'payout' ? [storyReward(part.payout, cultivatorId)] : [],
   );
   const items = rewards.flatMap((reward) => reward.items);
-  const stones = rewards.reduce((sum, reward) => sum + reward.spiritStones, 0);
+  const resources = parts.filter((part) => part.type === 'resources');
+  const stones =
+    rewards.reduce((sum, reward) => sum + reward.spiritStones, 0) +
+    resources.reduce((sum, part) => sum + part.spiritStones, 0);
+  const cultivationExp = resources.reduce((sum, part) => sum + part.cultivationExp, 0);
   if (items.length > 0) await grantInventory(cultivatorId, items, tx);
-  if (stones <= 0) return { items: items.length > 0, spiritStones: false };
-  const updated = await tx
-    .update(cultivators)
-    .set({
-      spirit_stones: sql`${cultivators.spirit_stones} + ${stones}`,
-    })
-    .where(
-      and(
-        eq(cultivators.id, cultivatorId),
-        sql`${cultivators.spirit_stones} <= ${2147483647 - stones}`,
-      ),
-    )
-    .returning({ id: cultivators.id });
-  if (!updated.length) throw new Error('灵石超过上限');
-  return { items: items.length > 0, spiritStones: stones > 0 };
+  if (stones > 0) {
+    const updated = await tx
+      .update(cultivators)
+      .set({ spirit_stones: sql`${cultivators.spirit_stones} + ${stones}` })
+      .where(
+        and(
+          eq(cultivators.id, cultivatorId),
+          sql`${cultivators.spirit_stones} <= ${2147483647 - stones}`,
+        ),
+      )
+      .returning({ id: cultivators.id });
+    if (!updated.length) throw new Error('灵石超过上限');
+  }
+  if (cultivationExp > 0) {
+    const [character] = await tx
+      .select({ userId: cultivators.userId })
+      .from(cultivators)
+      .where(eq(cultivators.id, cultivatorId));
+    if (!character) throw new Error('修真者不存在');
+    await updateCultivationExp(character.userId, cultivatorId, cultivationExp, undefined, tx);
+  }
+  return { items: items.length > 0, spiritStones: stones > 0, cultivationExp: cultivationExp > 0 };
 }
 
 // 主线眼下演到的那一章：还没演完的优先，否则取最近的一章。
@@ -310,7 +351,7 @@ async function settle(
   view: StoryView;
   dirty: boolean;
   rewardIds: string[];
-  effect: { items: boolean; spiritStones: boolean };
+  effect: StoryRewardEffect;
 }> {
   const { rows, stored, base, carried, opened } = await currentStory(
     cultivatorId,
@@ -359,7 +400,7 @@ async function settle(
   const effect =
     rewardIds.length > 0
       ? await applyRewards(cultivatorId, rewardIds, tx)
-      : { items: false, spiritStones: false };
+      : { items: false, spiritStones: false, cultivationExp: false };
   return {
     view: presentStory(chapter, resolved.progress, facts, flags, unlocks),
     dirty,
@@ -482,9 +523,11 @@ export const StoryService = {
   } | null> {
     if (!isStoryMarkFact(fact)) return null;
     await lockCultivatorForStateMutation(tx, cultivatorId);
-    // 这件事已经记过就不必再算一遍；买东西、用丹这类事会反复发生。
-    const { stored } = await currentStory(cultivatorId, tx);
-    if (stored?.marks.includes(fact)) return null;
+    // 研习须重新核对当前宗门的真实心法等级，旧的研习标记不足以判断。
+    if (fact !== 'sect_trained') {
+      const { stored } = await currentStory(cultivatorId, tx);
+      if (stored?.marks.includes(fact)) return null;
+    }
     const settled = await settle(cultivatorId, tx, (chapter, progress, facts) =>
       noteStoryFact(chapter, progress, facts, fact),
     );

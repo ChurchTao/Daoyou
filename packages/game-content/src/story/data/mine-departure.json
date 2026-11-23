@@ -1,5 +1,6 @@
 {
   "id": "mine-departure",
+  "completionGift": "mine-departure-complete",
   "track": "main",
   "title": "报个名字",
   "beats": [

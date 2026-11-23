@@ -5,7 +5,7 @@ import raw from './data/gifts.json' with { type: 'json' };
 
 /**
  * 赠礼：主线给玩家的一份东西，可以由几样拼成。
- * payout 是奖励包里的一份掉落（材料、道具、灵石），beast 是一只灵兽。
+ * 赠礼可以组合奖励包、灵兽和固定的修行资源。
  */
 const StoryGiftSchema = z
   .object({
@@ -23,6 +23,13 @@ const StoryGiftSchema = z
             .object({
               type: z.literal('beast'),
               species: z.string().trim().min(1).max(80),
+            })
+            .strict(),
+          z
+            .object({
+              type: z.literal('resources'),
+              cultivationExp: z.number().int().min(0).max(100000),
+              spiritStones: z.number().int().min(0).max(100000),
             })
             .strict(),
         ]),

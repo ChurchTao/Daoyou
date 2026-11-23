@@ -78,6 +78,8 @@ function StoryRead() {
 
   if (!finishing) {
     if (checkpoint.playHref) {
+      if (checkpoint.resumeHref && !location.search)
+        return <Navigate to={checkpoint.resumeHref} replace />;
       if (location.pathname + location.search !== checkpoint.playHref)
         return <Navigate to={checkpoint.href} replace />;
     } else if (checkpoint.href !== '/game/story') {

@@ -47,6 +47,7 @@ export function SectMemberMapLocation({
     })) ?? [];
   const entry =
     story?.entry && getSectStoryEntry(location.spot.id, story.entry);
+  const resident = roomActors.find(({ roleKey }) => roleKey === entry?.id);
   const castName = entry?.cast
     ? storyPerformanceContext({ name: '' }, sectId)[entry.cast]
     : undefined;
@@ -54,12 +55,14 @@ export function SectMemberMapLocation({
   const passageActor = passage && storyPassageActor(passage);
   const actor = entry
     ? {
-        id: entry.id,
-        name: castName ?? entry.name,
-        portrait: entry.cast
-          ? storyCastFace(`{${entry.cast}}`, sectId)
-          : undefined,
-        sigil: entry.kind === 'facility' ? 'icon:map-landmark' : '人',
+        id: resident?.id ?? entry.id,
+        name: resident?.name ?? castName ?? entry.name,
+        portrait:
+          resident?.portrait ??
+          (entry.cast ? storyCastFace(`{${entry.cast}}`, sectId) : undefined),
+        sigil:
+          resident?.sigil ??
+          (entry.kind === 'facility' ? 'icon:map-landmark' : '人'),
         identity: story.actionLabel ?? story.prompt,
         responsibility: '',
         status: { label: '主线' },
@@ -84,7 +87,7 @@ export function SectMemberMapLocation({
       actors={actors}
       onClose={location.onClose}
       onActivate={(id) => {
-        if (entry?.id !== id || !story?.playHref) return false;
+        if (actor?.id !== id || !story?.playHref) return false;
         void navigate(story.playHref);
         return true;
       }}

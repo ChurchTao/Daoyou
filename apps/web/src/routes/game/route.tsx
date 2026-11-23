@@ -16,7 +16,7 @@ export default function HomePage() {
     story.location.kind !== 'cave' &&
     !storySceneOpen(story.unlocked, 'map')
   ) {
-    return <Navigate to={story.href} replace />;
+    return <Navigate to={story.resumeHref ?? story.href} replace />;
   }
   return (
     <Suspense fallback={<GameSceneLoading message="正在进入洞府……" />}>

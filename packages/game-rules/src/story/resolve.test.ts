@@ -1,4 +1,12 @@
 import { StoryChapterSchema } from '@daoyou/game-content/authoring/story';
+import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
+import { storyGiftParts } from '@daoyou/game-content/story/gifts';
+import { getRealmStageLevel } from '@daoyou/game-domain/progression';
+import {
+  createEmptySectCombatProgressV6,
+  createFreshCombatV6MethodLevels,
+} from '../sects/build-state.js';
+import { sectV6Change } from '../sects/progression.js';
 import { describe, expect, it } from 'vitest';
 import { openingStoryProgress } from './progress.js';
 import { storyMarkForSignal } from './signals.js';
@@ -1086,6 +1094,92 @@ describe('entries that open along the way', () => {
 });
 
 describe('volume one', () => {
+  it('covers all methods through level 10 at each sect from the four opening chapter rewards', () => {
+    const chapterIds = [
+      'mine-shift',
+      'mine-crossing',
+      'mine-departure',
+      'mine-gate',
+    ];
+    const rewards = chapterIds.map((id) =>
+      storyGiftParts(getStoryChapter(id).completionGift!).find(
+        (part) => part.type === 'resources',
+      )!,
+    );
+    for (const [index, reward] of rewards.slice(1).entries()) {
+      expect(reward.cultivationExp).toBeGreaterThan(rewards[index].cultivationExp);
+      expect(reward.spiritStones).toBeGreaterThan(rewards[index].spiritStones);
+    }
+    const cultivationExp = rewards.reduce(
+      (total, reward) => total + reward.cultivationExp,
+      0,
+    );
+    const spiritStones = rewards.reduce(
+      (total, reward) => total + reward.spiritStones,
+      0,
+    );
+    const characterLevel = getRealmStageLevel('炼气', '初期');
+    for (const sect of Object.values(COMBAT_V6_SECT_DEFINITIONS)) {
+      let progress = createEmptySectCombatProgressV6(
+        sect.id,
+        sect.paths[0].id,
+        createFreshCombatV6MethodLevels(sect.id),
+      );
+      let remainingExp = cultivationExp;
+      let remainingStones = spiritStones;
+      const methods = [...sect.methods].sort(
+        (left, right) => Number(right.isPrimary) - Number(left.isPrimary),
+      );
+      for (const method of methods) {
+        const training = sectV6Change(progress, characterLevel, {
+          action: 'train',
+          membershipId: '00000000-0000-4000-8000-000000000001',
+          expectedRevision: 0,
+          methodId: method.id,
+          targetLevel: 10,
+        });
+        progress = training.progress;
+        remainingExp -= training.cost.cultivationExp;
+        remainingStones -= training.cost.spiritStones;
+        expect(training.cost.comprehensionInsight, sect.id).toBe(0);
+      }
+      expect(remainingExp, sect.id).toBeGreaterThanOrEqual(0);
+      expect(remainingStones, sect.id).toBeGreaterThanOrEqual(0);
+      expect(
+        Object.values(progress.methods).every((level) => level === 10),
+        sect.id,
+      ).toBe(true);
+    }
+  });
+
+  it('routes the unfinished old lesson through the archive and requires the current primary method level', () => {
+    const chapter = getStoryChapter('mine-lesson');
+    const facts = { ...emptyStoryFacts(), sect_ready: true };
+    const saved = progress('form', {
+      storyId: chapter.id,
+      acks: ['mine-lesson-morning:done'],
+      marks: ['sect_trained'],
+    });
+    const briefing = rewindToUnwatchedPerformance(chapter, saved, facts);
+    expect(briefing.beatId).toBe('study-brief');
+    const study = acknowledgePerformance(chapter, briefing, facts, 'mine-lesson-study-brief', 'done');
+    expect(presentStory(chapter, study.progress, facts)).toMatchObject({
+      beatId: 'study',
+      href: '/game/sect?spot=archive',
+      playHref: '/game/sect/archive?npc=keeper&chapter=mine-lesson&beat=study',
+      entry: { kind: 'npc', id: 'keeper' },
+    });
+    expect(noteStoryFact(chapter, study.progress, facts, 'sect_trained').progress.beatId)
+      .toBe('study');
+    expect(resolveStory(chapter, study.progress, {
+      ...facts,
+      sect_primary_method_trained: true,
+    }).progress.beatId).toBe('form');
+    const finished = { ...saved, acks: [...saved.acks, 'mine-lesson-form:done'] };
+    expect(rewindToUnwatchedPerformance(chapter, finished, facts).beatId).toBe('form');
+    expect(resolveStory(chapter, finished, facts).finished).toBe(true);
+  });
+
   it('can locate every shared story spot on each sect atlas', () => {
     const spots = new Set<string>();
     let chapter: StoryChapter | undefined = getStoryChapter(OPENING_STORY_CHAPTER);
@@ -1180,12 +1274,55 @@ describe('volume one', () => {
     });
   });
 
-  it('opens a new character on the first beat of volume one', () => {
-    expect(openingStoryProgress()).toMatchObject({
+  it('plays the end of the shift before sending the player to find Mimi', () => {
+    const opening = openingStoryProgress();
+    const chapter = getStoryChapter(opening.storyId);
+    const facts = emptyStoryFacts();
+    expect(opening).toMatchObject({
       storyId: 'mine-shift',
-      beatId: 'work',
+      beatId: 'clock-out',
       status: 'active',
     });
+    expect(presentStory(chapter, opening, facts)).toMatchObject({
+      href: '/game/map-v2?area=TN_MINE_VALLEY&place=mine-shed',
+      resumeHref: '/game/story?chapter=mine-shift&beat=clock-out',
+      entry: { kind: 'facility', id: 'weighing-station' },
+    });
+    const outside = acknowledgePerformance(
+      chapter,
+      opening,
+      facts,
+      'mine-shift-clock-out',
+      'done',
+    );
+    expect(outside.grants).toEqual([]);
+    const view = presentStory(chapter, outside.progress, facts);
+    expect(view).toMatchObject({
+      beatId: 'work',
+      href: '/game/map-v2?area=TN_MINE_VALLEY&place=mine-shed',
+      entry: { kind: 'npc', id: 'mimi' },
+    });
+    expect(view.resumeHref).toBeUndefined();
+    expect(rewindToUnwatchedPerformance(chapter, outside.progress, facts)).toEqual(
+      outside.progress,
+    );
+  });
+
+  it('shows the opening to unwatched saves and keeps completed scenes passed', () => {
+    const chapter = getStoryChapter();
+    const facts = emptyStoryFacts();
+    const unstarted = progress('work', { storyId: chapter.id });
+    expect(rewindToUnwatchedPerformance(chapter, unstarted, facts).beatId).toBe(
+      'clock-out',
+    );
+    const atBridge = progress('bridge', {
+      storyId: chapter.id,
+      acks: ['mine-shift-work:done'],
+      grants: ['starter-beast'],
+    });
+    const current = rewindToUnwatchedPerformance(chapter, atBridge, facts);
+    expect(current.beatId).toBe('bridge');
+    expect(resolveStory(chapter, current, facts).grants).toEqual([]);
   });
 
   it('supplies one furnace and requires the actual forged weapon to be worn', () => {

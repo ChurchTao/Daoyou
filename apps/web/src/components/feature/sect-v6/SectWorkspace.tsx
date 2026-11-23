@@ -5,19 +5,21 @@ import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import type { SectV6View } from '@daoyou/contracts/sects/combat';
 import type { SectV6Action } from '@daoyou/game-domain/sects/commands';
 import { useEffect, useRef, useState } from 'react';
+import { Navigate } from 'react-router';
 import { combatV6Request, mutationBody } from '../combat-v6/request';
 import { MeridianEditor } from './MeridianEditor';
 import { MethodsWorkbench } from './MethodsWorkbench';
-import { Navigate } from 'react-router';
 
 const endpoint = '/api/combat-v6/sect';
 export type SectWorkspaceMode = 'methods' | 'paths';
 export function SectWorkspace({
   mode,
   onExit,
+  nextAction,
 }: {
   mode: SectWorkspaceMode;
   onExit: () => void;
+  nextAction?: { href: string; label: string };
 }) {
   const [view, setView] = useState<SectV6View>();
   const [refresh, setRefresh] = useState(0);
@@ -120,10 +122,15 @@ export function SectWorkspace({
             />
           ) : (
             <>
-              <div className="flex justify-end">
+              <div className="flex flex-wrap justify-end gap-3">
                 <InkButton disabled={pending} onClick={onExit}>
                   返回
                 </InkButton>
+                {nextAction && !pending ? (
+                  <InkButton variant="primary" href={nextAction.href}>
+                    {nextAction.label}
+                  </InkButton>
+                ) : null}
               </div>
               {mode === 'paths' ? (
                 <Navigate to="/game/sect/onboarding?entry=path" replace />

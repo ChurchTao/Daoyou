@@ -129,7 +129,9 @@ export default function SectPage() {
           const { spot } = location;
           const storyAtSpot = spot.id === storySpotId ? story : undefined;
           const room =
-            (spot.id === 'gate' || spot.id === 'affairs') &&
+            (spot.id === 'gate' ||
+              spot.id === 'affairs' ||
+              (spot.id === 'archive' && storyAtSpot)) &&
             spot.permission &&
             permissions[spot.permission]?.granted
               ? presentation.rooms[spot.id]

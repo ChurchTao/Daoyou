@@ -127,9 +127,16 @@ describe('石滩首战', () => {
   it.each(['won', 'rescued', 'lost'] as const)(
     '按 %s 接第二章，赠礼在开打前结算一次',
     (outcome) => {
-      const work = acknowledgePerformance(
+      const clockOut = acknowledgePerformance(
         chapter,
         openingStoryProgress(chapter.id),
+        facts,
+        'mine-shift-clock-out',
+        'done',
+      );
+      const work = acknowledgePerformance(
+        chapter,
+        clockOut.progress,
         facts,
         'mine-shift-work',
         'done',
@@ -154,6 +161,8 @@ describe('石滩首战', () => {
         outcome,
       );
       expect(fought.finished).toBe(true);
+      expect(fought.grants).toEqual(['mine-shift-complete']);
+      expect(acknowledgeBattle(chapter, fought.progress, facts, 'mine-ambush', outcome).grants).toEqual([]);
       const mark = 'battle.mine-ambush.' + outcome;
       const flags = presentStory(chapter, fought.progress, facts).flags;
       expect(flags).toEqual([mark]);

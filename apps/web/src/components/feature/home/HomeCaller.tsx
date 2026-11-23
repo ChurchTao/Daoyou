@@ -66,11 +66,11 @@ export function HomeCaller({
       ) : null}
       <HomeAct
         href={
-          story.location?.kind === 'cave'
-            ? (story.playHref ?? story.href)
-            : story.href
+          story.resumeHref ??
+          (story.location?.kind === 'cave' ? story.playHref : undefined) ??
+          story.href
         }
-        lead={place ?? act}
+        lead={story.resumeHref ? act : (place ?? act)}
         guide="home.story-action"
       />
       {story.goals.length > 0 ? (

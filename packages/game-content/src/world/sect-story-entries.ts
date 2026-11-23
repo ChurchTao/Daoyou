@@ -19,6 +19,7 @@ const entries: Readonly<Record<string, readonly SectStoryEntry[]>> = {
     { kind: 'npc', id: 'neighbor', name: '隔壁同门' },
     { kind: 'facility', id: 'sparring-yard', name: '木人试手场' },
   ],
+  archive: [{ kind: 'npc', id: 'keeper', name: '守阁长老' }],
   alchemy: [{ kind: 'npc', id: 'dispensary-steward', name: '丹房值事' }],
   cave: [
     { kind: 'facility', id: 'home-door', name: '自己的洞府' },

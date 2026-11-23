@@ -2,5 +2,29 @@
   {
     "id": "starter-beast",
     "parts": [{ "type": "beast", "species": "combat.wild.species.mimi" }]
+  },
+  {
+    "id": "mine-shift-complete",
+    "parts": [
+      { "type": "resources", "cultivationExp": 400, "spiritStones": 1500 }
+    ]
+  },
+  {
+    "id": "mine-crossing-complete",
+    "parts": [
+      { "type": "resources", "cultivationExp": 800, "spiritStones": 3000 }
+    ]
+  },
+  {
+    "id": "mine-departure-complete",
+    "parts": [
+      { "type": "resources", "cultivationExp": 1200, "spiritStones": 4500 }
+    ]
+  },
+  {
+    "id": "mine-gate-complete",
+    "parts": [
+      { "type": "resources", "cultivationExp": 1600, "spiritStones": 6000 }
+    ]
   }
 ]

@@ -1,5 +1,6 @@
 {
   "id": "mine-gate",
+  "completionGift": "mine-gate-complete",
   "track": "main",
   "title": "先看看",
   "beats": [

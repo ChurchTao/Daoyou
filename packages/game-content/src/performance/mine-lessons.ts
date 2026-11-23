@@ -182,6 +182,21 @@ export function mineLessonScripts(sectId?: CombatV6SectId) {
       { type: 'end', outcome: 'done' },
     ],
   });
+  const studyBrief = parsePerformanceScript({
+    id: 'mine-lesson-study-brief',
+    title: '去读本门心法',
+    requires: ['path_teacher', 'archive_name', 'archive_keeper'],
+    cast,
+    cues: [
+      scene,
+      { type: 'title', kicker: '早课', text: '去读本门心法' },
+      say(
+        'teacher',
+        `既选定了，就去{archive_name}找{archive_keeper}。主心法${lesson?.method ?? ''}若还只在初阶，就在那里研习一级。带好灵石，练成后回来，我看你的起手。`,
+      ),
+      { type: 'end', outcome: 'done' },
+    ],
+  });
   const form = parsePerformanceScript({
     id: 'mine-lesson-form',
     title: '下午再试',
@@ -192,16 +207,8 @@ export function mineLessonScripts(sectId?: CombatV6SectId) {
       { type: 'title', kicker: '早课', text: '下午再试' },
       ...(lesson
         ? [
-            say('teacher', '昨晚说到御风，你眼下先试试把气留到起手。照着' + lesson.method + '来。'),
-            {
-              type: 'choice',
-              options: [{ label: '（研习' + lesson.method + '）' }],
-            },
+            say('teacher', '在阁里运过一遍气了吧？到我跟前来，把那口气留到起手。'),
             ...lesson.practice,
-            {
-              type: 'choice',
-              options: [{ label: '（翻看本门神通）' }],
-            },
             { type: 'letter', title: lesson.moves, text: lesson.note },
           ]
         : []),
@@ -213,5 +220,5 @@ export function mineLessonScripts(sectId?: CombatV6SectId) {
       { type: 'end', outcome: 'done' },
     ],
   });
-  return [morning, form];
+  return [morning, studyBrief, form];
 }

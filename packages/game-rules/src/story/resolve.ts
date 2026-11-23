@@ -28,6 +28,8 @@ import {
 
 const markFacts = new Set<StoryFactId>(STORY_MARK_FACT_IDS);
 const arrivalRevisionMark = 'arrival-v2';
+const mineClockOutAck = 'mine-shift-clock-out:done';
+const mineStudyBriefAck = 'mine-lesson-study-brief:done';
 const legacyArrivalBeats = new Set([
   'scent',
   'mouth',
@@ -173,6 +175,21 @@ function normalizeChapterProgress(
   facts?: StoryFacts,
 ): StoryProgress {
   if (progress.storyId !== chapter.id) return progress;
+  // 旧版的找咪咪演出已经交代过下工。读过它的存档直接从原处续读。
+  if (
+    chapter.id === 'mine-shift' &&
+    progress.acks.includes('mine-shift-work:done') &&
+    !progress.acks.includes(mineClockOutAck)
+  ) {
+    return { ...progress, acks: [...progress.acks, mineClockOutAck] };
+  }
+  if (
+    chapter.id === 'mine-lesson' &&
+    progress.acks.includes('mine-lesson-form:done') &&
+    !progress.acks.includes(mineStudyBriefAck)
+  ) {
+    return { ...progress, acks: [...progress.acks, mineStudyBriefAck] };
+  }
   // 旧版第四章把初选流派放在投名和找住处之间。现在留到早课。
   if (chapter.id === 'mine-gate' && progress.beatId === 'path') {
     return { ...progress, beatId: 'home' };
@@ -252,6 +269,7 @@ export function resolveStory(
     const index = chapter.beats.findIndex((entry) => entry.id === beatId);
     const next = chapter.beats[index + 1];
     if (!next) {
+      issuePayout(grants, issued, chapter.completionGift);
       finished = true;
       break;
     }
@@ -550,6 +568,9 @@ export function presentStory(
       ? { finishLabel: beat.finishLabel }
       : {}),
     ...(playHref ? { playHref } : {}),
+    ...(beat.kind === 'performance' && beat.playOnResume && playHref
+      ? { resumeHref: playHref }
+      : {}),
     ...(shifted.actionLabel ? { actionLabel: shifted.actionLabel } : {}),
     ...(shifted.indicatorFrom ? { indicatorFrom: shifted.indicatorFrom } : {}),
     ...(beat.kind === 'performance' && beat.exitHref

@@ -1,8 +1,28 @@
 {
   "id": "mine-shift",
+  "completionGift": "mine-shift-complete",
   "track": "main",
   "title": "下工",
   "beats": [
+    {
+      "id": "clock-out",
+      "kind": "performance",
+      "script": "mine-shift-clock-out",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "去记工台结一下这班的工。",
+      "href": "/game/story",
+      "playOnResume": true,
+      "unlocks": ["settings", "feedback", "community", "download", "redeem"],
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "mine-shed"
+      },
+      "actionLabel": "去记工台",
+      "entry": { "kind": "facility", "id": "weighing-station" },
+      "finishLabel": "去棚门口"
+    },
     {
       "id": "work",
       "kind": "performance",
@@ -12,13 +32,6 @@
       "prompt": "下工了，咪咪在矿棚外等你。",
       "href": "/game/story",
       "gift": "starter-beast",
-      "unlocks": [
-        "settings",
-        "feedback",
-        "community",
-        "download",
-        "redeem"
-      ],
       "location": {
         "kind": "area",
         "areaId": "TN_MINE_VALLEY",

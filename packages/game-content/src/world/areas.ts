@@ -30,6 +30,14 @@ const areaContent: Readonly<Record<string, MapAreaContent>> = {
               reply: '棚门口堆着几个空筐。你下工时，咪咪常在筐旁等你。',
             },
           ],
+          facilities: [
+            {
+              id: 'weighing-station',
+              name: '记工台',
+              purpose: '碎矿在这里过秤。',
+              details: '杆秤旁摊着记工簿，簿上记着今天最后一筐矿。',
+            },
+          ],
         },
       },
       {

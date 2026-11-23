@@ -18,6 +18,7 @@ export const STORY_FACT_IDS = [
   'story_weapon_equipped',
   'sect_joined',
   'sect_ready',
+  'sect_primary_method_trained',
   'breakthrough_available',
   'consumable_used',
   'market_bought',
@@ -129,6 +130,8 @@ const performanceBeatSchema = z
     outcome: z.string().trim().min(1).max(40),
     // 可在这一幕选择重打上一幕实际落败的一场。
     retryLostBattle: z.literal(true).optional(),
+    // 从主线入口续读时先播放，也可稍后从现场入口接续。
+    playOnResume: z.literal(true).optional(),
     finishLabel: z.string().trim().min(1).max(24).optional(),
     // 演出结束后先回到指定场景，由玩家在那里接续下一幕。
     exitHref: z
@@ -347,6 +350,7 @@ export function createStoryChapterSchema({
       id: z.string().trim().min(1).max(80),
       track: z.enum(STORY_TRACKS),
       title: z.string().trim().min(1).max(40),
+      completionGift: giftSchema,
       // 这一章演完之后接哪一章。不写就停在最后一幕。
       next: z.string().trim().min(1).max(80).optional(),
       // 这一章期间只显示已开放的入口。
@@ -359,6 +363,15 @@ export function createStoryChapterSchema({
     .superRefine((chapter, context) => {
       const ids = new Set<string>();
       const payouts = new Set<string>();
+      if (chapter.completionGift) {
+        if (!chapter.next || !hasStoryReward(chapter.completionGift)) {
+          context.addIssue({
+            code: 'custom',
+            message: `章末赠礼无效：${chapter.completionGift}`,
+          });
+        }
+        payouts.add(chapter.completionGift);
+      }
       if (!chapter.next && chapter.beats.at(-1)?.kind !== 'life') {
         context.addIssue({
           code: 'custom',
@@ -515,6 +528,7 @@ export const StoryViewSchema = z
     href: z.string(),
     ...taskIndicatorFields,
     playHref: z.string().optional(),
+    resumeHref: z.string().optional(),
     finishLabel: z.string().optional(),
     passage: passageActionSchema.optional(),
     exitHref: z.string().optional(),
@@ -654,6 +668,7 @@ export function emptyStoryFacts(): StoryFacts {
     story_weapon_equipped: false,
     sect_joined: false,
     sect_ready: false,
+    sect_primary_method_trained: false,
     breakthrough_available: false,
     consumable_used: false,
     market_bought: false,

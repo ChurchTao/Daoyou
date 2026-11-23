@@ -1,5 +1,6 @@
 {
   "id": "mine-crossing",
+  "completionGift": "mine-crossing-complete",
   "track": "main",
   "title": "过河",
   "beats": [
