@@ -1,7 +1,7 @@
 import { updateGameSettings, type GameSettings } from '@app/lib/game-setting';
 import type { ReactNode } from 'react';
 
-export interface SectMapBackAction {
+export interface LocalMapBackAction {
   label: string;
   onBack(): void;
 }
@@ -11,15 +11,17 @@ const toolbarButton =
 const toolbarGroup =
   'bg-paper/95 border-ink/15 pointer-events-auto flex min-w-0 items-center rounded-sm border p-0.5 shadow-sm backdrop-blur-sm';
 
-export function SectMapToolbar({
+export function LocalMapToolbar({
   title,
   backAction,
   mapMode,
+  directoryLabel = '设施名录',
   onOpenDirectory,
 }: {
   title: string;
-  backAction: SectMapBackAction;
+  backAction: LocalMapBackAction;
   mapMode?: GameSettings['mapMode'];
+  directoryLabel?: string;
   onOpenDirectory?(trigger: HTMLButtonElement): void;
 }) {
   return (
@@ -52,7 +54,7 @@ export function SectMapToolbar({
             onClick={(event) => onOpenDirectory(event.currentTarget)}
             className={toolbarButton}
           >
-            设施名录
+            {directoryLabel}
           </button>
         ) : null}
         {mapMode ? (
@@ -76,7 +78,7 @@ export function SectMapToolbar({
   );
 }
 
-export function SectMapText({ children }: { children: ReactNode }) {
+export function LocalMapText({ children }: { children: ReactNode }) {
   return (
     <div className="bg-paper absolute inset-0 overflow-y-auto overscroll-contain pt-[calc(var(--app-safe-top)+4.25rem)] pr-[max(env(safe-area-inset-right),1rem)] pb-[max(env(safe-area-inset-bottom),1rem)] pl-[max(env(safe-area-inset-left),1rem)]">
       <div className="mx-auto max-w-3xl">{children}</div>

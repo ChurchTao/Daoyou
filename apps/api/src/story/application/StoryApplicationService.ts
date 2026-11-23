@@ -1,6 +1,28 @@
+import type { CompleteStoryPassage } from '@daoyou/contracts/story';
 import type { StoryView } from '@daoyou/game-domain/story';
 import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
 import { StoryService } from '@server/story/application/StoryService.js';
+
+export function completeStoryPassageCommand(args: {
+  userId: string;
+  cultivatorId: string;
+  input: CompleteStoryPassage;
+}) {
+  return playerCommandExecutor.executeWithLock({
+    userId: args.userId,
+    cultivatorId: args.cultivatorId,
+    source: 'story_passage_complete',
+    allowEmpty: true,
+    command: async (tx) => {
+      const settled = await StoryService.completePassage(
+        args.cultivatorId,
+        args.input,
+        tx,
+      );
+      return { result: settled.view, resourceChanges: settled.changes };
+    },
+  });
+}
 
 export function completeStoryPerformanceCommand(args: {
   userId: string;

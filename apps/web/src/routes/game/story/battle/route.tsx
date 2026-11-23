@@ -6,7 +6,7 @@ import { InkButton } from '@app/components/ui';
 import { useStory } from '@app/lib/story/useStory';
 import type { StoryBattleSessionView } from '@daoyou/contracts/combat/story-battle';
 import { useEffect, useRef, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router';
+import { Navigate, useLocation, useNavigate } from 'react-router';
 
 const BASE = '/api/combat-v6/story-battle';
 
@@ -18,16 +18,22 @@ export default function StoryBattlePage() {
   const { story, loading: storyLoading, reload: reloadStory } = useStory();
   const combat = useCombatV6Session<StoryBattleSessionView>(BASE);
   const navigate = useNavigate();
+  const location = useLocation();
   const { session, run, acceptSession } = combat;
-  const wanted = story?.battleId ?? null;
+  const atBattleEntry =
+    !story?.playHref || location.pathname + location.search === story.playHref;
+  const wanted = atBattleEntry ? (story?.battleId ?? null) : null;
   // 这次进页面亲手打过的一场。只凭它判断要不要留在结算画面上。
   const [fought, setFought] = useState<string | null>(null);
   const settled = session?.settlement === 'settled';
   const live =
-    session && !settled && session.battleId === wanted ? session.sessionId : null;
+    session && !settled && session.battleId === wanted
+      ? session.sessionId
+      : null;
   if (live && fought !== live) setFought(live);
   // 主线资源可能先于战报更新，留住本页已经接手的战局直到结算播完。
-  const mine = session && (live || fought === session.sessionId) ? session : null;
+  const mine =
+    session && (live || fought === session.sessionId) ? session : null;
 
   const start = () =>
     run(async () => {
@@ -55,14 +61,18 @@ export default function StoryBattlePage() {
     if (settled) void reloadStory();
   }, [settled, reloadStory]);
 
-  if (ready && !wanted && !mine) return <Navigate to="/game" replace />;
+  if (ready && !wanted && !mine)
+    return <Navigate to={story?.location ? story.href : '/game'} replace />;
 
   const leave = () => {
     if (!story || story.kind === 'battle') return;
-    void navigate(story.kind === 'life' ? '/game' : story.href, {
-      replace: true,
-      viewTransition: true,
-    });
+    void navigate(
+      story.kind === 'life' && !story.location ? '/game' : story.href,
+      {
+        replace: true,
+        viewTransition: true,
+      },
+    );
   };
   const title = mine?.title ?? '交手';
 

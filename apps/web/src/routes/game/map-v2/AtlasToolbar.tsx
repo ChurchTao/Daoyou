@@ -1,13 +1,13 @@
 import { GameIcon } from '@app/components/ui/GameIcon';
-import type { GameSettings } from '@app/lib/game-setting';
 import { cn } from '@app/lib/cn';
+import type { GameSettings } from '@app/lib/game-setting';
+import type { WorldMapLocation } from '@daoyou/game-domain/world/map';
 import {
-  getAtlasRegion,
   ATLAS_CATEGORY_IDS,
   getAtlasCategory,
   type AtlasCategory,
+  type AtlasRegionId,
 } from '@daoyou/game-rules/world/atlas';
-import type { WorldMapLocation } from '@daoyou/game-domain/world/map';
 import {
   useEffect,
   useEffectEvent,
@@ -29,6 +29,15 @@ function subscribeViewport(listener: () => void) {
 }
 const readMobile = () => window.matchMedia(mobileQuery).matches;
 
+export interface AtlasSearchResult {
+  id: string;
+  name: string;
+  context?: string;
+  category: AtlasCategory;
+  regionId?: AtlasRegionId;
+  areaId?: string;
+}
+
 export interface AtlasToolbarProps {
   mapMode: GameSettings['mapMode'];
   onMapMode: (mode: GameSettings['mapMode']) => void;
@@ -39,7 +48,7 @@ export interface AtlasToolbarProps {
   canFilter: boolean;
   categories: AtlasCategory[];
   regionLocations: WorldMapLocation[];
-  results: WorldMapLocation[];
+  results: AtlasSearchResult[];
   query: string;
   searchAll: boolean;
   searchOpen: boolean;
@@ -52,7 +61,7 @@ export interface AtlasToolbarProps {
   onFilterOpen: () => void;
   onDismiss: () => void;
   onCategories: (types: AtlasCategory[]) => void;
-  onSelect: (id: string) => void;
+  onSelect: (result: AtlasSearchResult) => void;
 }
 
 export function AtlasToolbar(props: AtlasToolbarProps) {
@@ -325,30 +334,24 @@ export function AtlasToolbar(props: AtlasToolbarProps) {
                   }}
                 >
                   {results.map((location) => (
-                    <li key={location.id}>
+                    <li key={`${location.areaId ?? ''}/${location.id}`}>
                       <button
                         type="button"
-                        onClick={() => onSelect(location.id)}
+                        onClick={() => onSelect(location)}
                         className={cn(
                           control,
                           `w-full justify-start py-1.5 text-left`,
                         )}
                       >
                         <GameIcon
-                          value={
-                            ATLAS_CATEGORY_STYLE[getAtlasCategory(location)]
-                              .icon
-                          }
+                          value={ATLAS_CATEGORY_STYLE[location.category].icon}
                           className="text-[2rem]"
                         />
                         <span className="min-w-0 flex-1">
                           <span className="block">{location.name}</span>
                           <span className="text-ink-secondary block text-xs">
-                            {getAtlasRegion(location)?.name} ·{' '}
-                            {
-                              ATLAS_CATEGORY_STYLE[getAtlasCategory(location)]
-                                .name
-                            }
+                            {location.context} ·{' '}
+                            {ATLAS_CATEGORY_STYLE[location.category].name}
                           </span>
                         </span>
                         <GameIcon value="›" className="text-ink-secondary" />

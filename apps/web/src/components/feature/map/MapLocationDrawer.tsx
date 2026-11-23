@@ -6,11 +6,13 @@ import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 
-export function SectMapLocationPanel({
+export function MapLocationDrawer({
   title,
   description,
   footer,
   actors,
+  children,
+  onActivate,
   onClose,
   renderConversation,
 }: {
@@ -18,6 +20,8 @@ export function SectMapLocationPanel({
   description?: string;
   footer?: ReactNode;
   actors: readonly RoomActorView[];
+  children?: ReactNode;
+  onActivate?(id: string): boolean;
   onClose(): void;
   renderConversation(actorId: string, onExit: () => void): ReactNode;
 }) {
@@ -71,12 +75,15 @@ export function SectMapLocationPanel({
         </div>
       ) : (
         <div ref={roster} className="divide-ink/15 divide-y divide-dashed">
+          {children}
           {actors.map((actor) => (
             <button
               key={actor.id}
               type="button"
               data-map-actor={actor.id}
-              onClick={() => setActorId(actor.id)}
+              onClick={() => {
+                if (!onActivate?.(actor.id)) setActorId(actor.id);
+              }}
               className="hover:text-crimson focus-visible:outline-crimson flex min-h-16 w-full items-center gap-3 px-1 py-2.5 text-left focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
             >
               {actor.portrait || actor.appearance === 'facility' ? (

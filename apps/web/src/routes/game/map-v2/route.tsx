@@ -5,8 +5,7 @@ import {
 } from '@app/components/feature/hunts/HuntMapMarkers';
 import { useHunts } from '@app/components/feature/hunts/useHunts';
 import {
-  buildNodeActions,
-  buildSectLandmarkActions,
+  buildMapLocationActions,
   resolveMapIntent,
 } from '@app/components/feature/map/mapActions';
 import { WandererDrawer } from '@app/components/feature/wanderer/WandererDrawer';
@@ -21,11 +20,15 @@ import { bodyFontFamily } from '@app/lib/fonts';
 import { updateGameSettings, useGameSettings } from '@app/lib/game-setting';
 import { usePlayerSession } from '@app/lib/resources/player';
 import { type WandererState } from '@daoyou/contracts/wanderer';
-import { getWorldMapLocation } from '@daoyou/game-content/world/map';
+import {
+  getMapAreaContent,
+  getWorldMapLocation,
+} from '@daoyou/game-content/world/map';
 import { type HuntEvent } from '@daoyou/game-domain/hunts';
 import { huntMapHref } from '@daoyou/game-rules/hunts';
 import {
   ATLAS_REGIONS,
+  getAtlasCategory,
   getAtlasLocations,
   getAtlasRegion,
   getAtlasShortName,
@@ -42,13 +45,38 @@ import {
   type CSSProperties,
 } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
+import { AtlasArea } from './AtlasArea';
 import { AtlasNodeKinds } from './AtlasNodeKinds';
 import { AtlasNodePanel } from './AtlasNodePanel';
 import type { AtlasController, AtlasView } from './AtlasPhaserRuntime';
 import { AtlasTextMap } from './AtlasTextMap';
-import { AtlasToolbar } from './AtlasToolbar';
+import { AtlasToolbar, type AtlasSearchResult } from './AtlasToolbar';
+import { atlasAreaHref } from './areaNavigation';
 
 const locations = getAtlasLocations();
+const searchEntries = locations.flatMap<AtlasSearchResult>((location) => {
+  const region = getAtlasRegion(location);
+  const entry = {
+    id: location.id,
+    name: location.name,
+    context: region?.name,
+    category: getAtlasCategory(location),
+    regionId: region?.id,
+  };
+  const places =
+    'region' in location ? (getMapAreaContent(location.id)?.places ?? []) : [];
+  return [
+    entry,
+    ...places.map((place): AtlasSearchResult => ({
+      id: place.id,
+      name: place.name,
+      context: location.name,
+      category: 'landmark',
+      regionId: region?.id,
+      areaId: location.id,
+    })),
+  ];
+});
 // Region switches reuse the Canvas runtime, so prepare every map label once.
 const atlasFontText = [
   ...ATLAS_REGIONS.map((region) => region.name),
@@ -60,6 +88,18 @@ export default function AtlasPage() {
   const [params] = useSearchParams();
   if (params.get('entry') === 'gate') {
     return <Navigate to="/game/sect/onboarding?entry=gate" replace />;
+  }
+  const area = getWorldMapLocation(params.get('area') ?? '');
+  const nodeId = params.get('nodeId');
+  const node = nodeId ? getWorldMapLocation(nodeId) : undefined;
+  if (
+    area &&
+    'region' in area &&
+    (!nodeId ||
+      node?.id === area.id ||
+      (node && 'parent_id' in node && node.parent_id === area.id))
+  ) {
+    return <AtlasArea key={area.id} area={area} params={params} node={node} />;
   }
   return <AtlasMap />;
 }
@@ -165,6 +205,7 @@ function AtlasMap() {
     next.delete('hunt');
     next.delete('wanderer');
     next.delete('nodeId');
+    next.delete('area');
     if (id) next.set('region', id);
     else next.delete('region');
     setParams(next);
@@ -182,6 +223,7 @@ function AtlasMap() {
     if (!matchesAtlasCategories(location, categories)) next.set('types', 'all');
     next.delete('hunt');
     next.delete('wanderer');
+    next.delete('area');
     next.set('nodeId', id);
     next.set('region', targetRegion.id);
     setParams(next);
@@ -376,36 +418,48 @@ function AtlasMap() {
     loading,
   ]);
 
-  const actions =
-    selected && !('sect_id' in selected)
-      ? buildNodeActions(
-          {
-            selectedNodeId: selected.id,
-            isMainNode: 'region' in selected,
-            marketEnabled:
-              'market_config' in selected && !!selected.market_config?.enabled,
-          },
-          launch,
-        )
-      : selected && 'sect_id' in selected
-        ? buildSectLandmarkActions(
-            selected.sect_id,
-            player.data?.activeCultivator?.sectId ?? null,
-            launch,
-          )
-        : [];
+  const actions = selected
+    ? buildMapLocationActions(
+        selected,
+        player.data?.activeCultivator?.sectId ?? null,
+        launch,
+      )
+    : [];
+  if (selected && 'region' in selected) {
+    const areaHref = atlasAreaHref(mapParams, {
+      area: selected.id,
+      region: selectedRegion?.id,
+    });
+    const prioritizeMarket =
+      intent === 'market' && actions.some((action) => action.gate === 'market');
+    const enterArea = {
+      key: 'enter-area',
+      label: '进入区域',
+      onClick: () => navigate(areaHref),
+    };
+    if (prioritizeMarket) {
+      actions.push({ ...enterArea, variant: 'secondary' });
+    } else {
+      for (const action of actions) action.variant = 'secondary';
+      actions.unshift({ ...enterArea, variant: 'primary' });
+    }
+  }
   const regionLocations = locations.filter(
     (location) => getAtlasRegion(location)?.id === region?.id,
   );
   const visibleLocations = regionLocations.filter((location) =>
     matchesAtlasCategories(location, categories),
   );
-  const results = locations.filter((location) => {
-    if (!searchAll && !matchesAtlasCategories(location, categories))
+  const searchTerm = query.trim();
+  const results = searchEntries.filter((location) => {
+    if (
+      !searchAll &&
+      categories.length &&
+      !categories.includes(location.category)
+    )
       return false;
-    if (query.trim()) return location.name.includes(query.trim());
-    if (searchAll) return true;
-    return !region || getAtlasRegion(location)?.id === region.id;
+    if (searchTerm) return location.name.includes(searchTerm);
+    return searchAll || !region || location.regionId === region.id;
   });
 
   return (
@@ -504,7 +558,19 @@ function AtlasMap() {
           setFilterOpen(false);
         }}
         onCategories={updateCategories}
-        onSelect={(id) => selectNode(id, true)}
+        onSelect={(result) => {
+          if (result.areaId) {
+            navigate(
+              atlasAreaHref(mapParams, {
+                area: result.areaId,
+                site: result.id,
+                region: result.regionId,
+              }),
+            );
+          } else {
+            selectNode(result.id, true);
+          }
+        }}
       />
 
       {!isAtlas ? (

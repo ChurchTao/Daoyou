@@ -1,4 +1,6 @@
 /** Public world/map capabilities. Keep implementation files private. */
+export { getMapAreaContent, getMapPassage } from '../../world/areas.js';
+export { default as WORLD_MAP_DATA } from '../../world/data/map.json' with { type: 'json' };
 export {
   getAllMapNodes,
   getAllSatelliteNodes,
@@ -9,4 +11,3 @@ export {
   getWorldMapLocation,
   isSatelliteNode,
 } from '../../world/map.js';
-export { default as WORLD_MAP_DATA } from '../../world/data/map.json' with { type: 'json' };

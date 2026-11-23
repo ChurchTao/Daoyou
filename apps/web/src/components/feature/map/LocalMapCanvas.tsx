@@ -9,20 +9,23 @@ import {
   type RefObject,
 } from 'react';
 import {
-  SectMapText,
-  SectMapToolbar,
-  type SectMapBackAction,
-} from './SectMapChrome';
-import type { SectMapController, SectMapView } from './SectPhaserRuntime';
+  LocalMapText,
+  LocalMapToolbar,
+  type LocalMapBackAction,
+} from './LocalMapChrome';
+import type { LocalMapController, LocalMapView } from './LocalMapRuntime';
 
-interface SectMapCanvasProps {
+interface LocalMapCanvasProps {
   title: string;
-  backAction: SectMapBackAction;
+  backAction: LocalMapBackAction;
   image: string;
   alt: string;
   aspectRatio: number;
-  view: SectMapView;
-  controller: RefObject<SectMapController | null>;
+  mapLabel?: string;
+  directoryLabel?: string;
+  entryMarkerId?: string;
+  view: LocalMapView;
+  controller: RefObject<LocalMapController | null>;
   fallback: ReactNode;
   onSelect(id: string): void;
   onClear(): void;
@@ -33,12 +36,15 @@ interface SectMapCanvasProps {
 const mapControlClass =
   'text-ink-secondary hover:text-crimson focus-visible:outline-crimson flex size-11 items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-[-2px]';
 
-export function SectMapCanvas({
+export function LocalMapCanvas({
   title,
   backAction,
   image,
   alt,
   aspectRatio,
+  mapLabel = '宗门舆图',
+  directoryLabel,
+  entryMarkerId,
   view,
   controller,
   fallback,
@@ -46,7 +52,7 @@ export function SectMapCanvas({
   onClear,
   onOpenDirectory,
   onError,
-}: SectMapCanvasProps) {
+}: LocalMapCanvasProps) {
   const root = useRef<HTMLDivElement>(null);
   const [attempt, setAttempt] = useState(0);
   const [ready, setReady] = useState(false);
@@ -61,7 +67,7 @@ export function SectMapCanvas({
   useEffect(() => {
     let disposed = false;
     let failed = false;
-    let instance: SectMapController | undefined;
+    let instance: LocalMapController | undefined;
     const fail = (message: string) => {
       if (disposed || failed) return;
       failed = true;
@@ -72,19 +78,20 @@ export function SectMapCanvas({
       closeDirectoryOnError();
       setError(message);
     };
-    const timer = window.setTimeout(() => fail('宗门舆图加载超时。'), 15000);
+    const timer = window.setTimeout(() => fail(`${mapLabel}加载超时。`), 15000);
 
     void Promise.all([
-      import('./SectPhaserRuntime'),
+      import('./LocalMapRuntime'),
       document.fonts.load(`16px "${bodyFontFamily}"`, fontText).catch(() => []),
     ])
       .then(([runtime]) => {
         if (disposed || failed || !root.current) return;
-        const canvas = runtime.attachSectPhaser({
+        const canvas = runtime.attachLocalMap({
           root: root.current,
           image,
           aspectRatio,
-          ariaLabel: `${alt}。方向键切换设施，回车查看。`,
+          entryMarkerId,
+          ariaLabel: `${alt} 方向键切换地点，回车查看。`,
           view: readView(),
           onSelect: (id) => select(id),
           onClear: () => clear(),
@@ -105,14 +112,23 @@ export function SectMapCanvas({
         const selectedId = readView().selectedId;
         if (selectedId) instance.focus(selectedId);
       })
-      .catch(() => fail('宗门舆图暂时无法打开。'));
+      .catch(() => fail(`${mapLabel}暂时无法打开。`));
     return () => {
       disposed = true;
       window.clearTimeout(timer);
       controller.current = null;
       instance?.destroy();
     };
-  }, [alt, aspectRatio, attempt, controller, fontText, image]);
+  }, [
+    alt,
+    aspectRatio,
+    attempt,
+    controller,
+    entryMarkerId,
+    fontText,
+    image,
+    mapLabel,
+  ]);
 
   useEffect(() => {
     controller.current?.setView(view);
@@ -127,8 +143,8 @@ export function SectMapCanvas({
   if (error) {
     return (
       <>
-        <SectMapToolbar title={title} backAction={backAction} />
-        <SectMapText>
+        <LocalMapToolbar title={title} backAction={backAction} />
+        <LocalMapText>
           <div className="mb-3 flex items-center justify-between gap-3">
             <p role="status" className="text-ink-secondary text-sm">
               {error}
@@ -138,17 +154,18 @@ export function SectMapCanvas({
             </InkButton>
           </div>
           {fallback}
-        </SectMapText>
+        </LocalMapText>
       </>
     );
   }
 
   return (
     <>
-      <SectMapToolbar
+      <LocalMapToolbar
         title={title}
         backAction={backAction}
         mapMode="atlas"
+        directoryLabel={directoryLabel}
         onOpenDirectory={onOpenDirectory}
       />
       <div ref={root} className="absolute inset-0 overflow-hidden" />
@@ -157,7 +174,7 @@ export function SectMapCanvas({
           role="status"
           className="text-ink-secondary pointer-events-none absolute inset-0 flex items-center justify-center text-sm"
         >
-          宗门舆图展开中……
+          {mapLabel}展开中……
         </p>
       ) : null}
       {ready ? (
@@ -169,7 +186,7 @@ export function SectMapCanvas({
           <button
             type="button"
             className={mapControlClass}
-            aria-label="缩小宗门舆图"
+            aria-label={`缩小${mapLabel}`}
             onClick={() => controller.current?.zoomOut()}
           >
             −
@@ -177,7 +194,7 @@ export function SectMapCanvas({
           <button
             type="button"
             className={mapControlClass}
-            aria-label="放大宗门舆图"
+            aria-label={`放大${mapLabel}`}
             onClick={() => controller.current?.zoomIn()}
           >
             +
@@ -185,7 +202,7 @@ export function SectMapCanvas({
           <button
             type="button"
             className={mapControlClass}
-            aria-label="复位宗门舆图"
+            aria-label={`复位${mapLabel}`}
             onClick={() => controller.current?.reset()}
           >
             ↺

@@ -24,6 +24,7 @@ import {
   MINE_ROAD_SCRIPT,
 } from '@daoyou/game-content/performance/catalog';
 import { performanceFlags } from '@daoyou/game-domain/performance';
+import type { CompleteStoryPassage } from '@daoyou/contracts/story';
 import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import {
   storyReward,
@@ -31,12 +32,14 @@ import {
   acknowledgeBattle,
   acknowledgeGuide,
   acknowledgePerformance,
+  acknowledgeStoryPassage,
   noteForgedStoryWeapon,
   noteStoryFact,
   openingStoryProgress,
   presentStory,
   resolveStory,
   rewindToUnwatchedPerformance,
+  storyPassageMark,
   type StoryResolution,
 } from '@daoyou/game-rules/story';
 import { storyGiftParts } from '@daoyou/game-content/story/gifts';
@@ -385,6 +388,30 @@ export const StoryService = {
     const facts = await readStoryFacts(cultivatorId, tx);
     const progress = rewindToUnwatchedPerformance(chapter, base, facts);
     return presentStory(chapter, progress, facts, carried, opened);
+  },
+
+  async completePassage(
+    cultivatorId: string,
+    input: CompleteStoryPassage,
+    tx: DbTransaction,
+  ): Promise<{ view: StoryView; changes: ResourceChangeDescriptor[] }> {
+    await lockCultivatorForStateMutation(tx, cultivatorId);
+    const { rows } = await currentStory(cultivatorId, tx);
+    const mark = storyPassageMark(input.beatId, input.passageId);
+    if (
+      rows.some(
+        (row) => row.storyId === input.chapterId && row.acks.includes(mark),
+      )
+    ) {
+      return { view: await this.read(cultivatorId, tx), changes: [] };
+    }
+    const settled = await settle(cultivatorId, tx, (chapter, progress, facts) =>
+      acknowledgeStoryPassage(chapter, progress, facts, input),
+    );
+    return {
+      view: settled.view,
+      changes: storyChanges(cultivatorId, settled.view, settled.effect),
+    };
   },
 
   async completePerformance(

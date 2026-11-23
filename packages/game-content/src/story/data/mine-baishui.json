@@ -1,0 +1,71 @@
+{
+  "id": "mine-baishui",
+  "track": "main",
+  "title": "这船刚走",
+  "deferredUnlocks": ["alchemy", "refine", "sect-alchemy", "sect-refinery"],
+  "beats": [
+    {
+      "id": "ask",
+      "kind": "performance",
+      "script": "mine-baishui-ask",
+      "outcome": "done",
+      "scene": "map",
+      "prompt": "到山脚渡埠找阿禾，问去白水镇的船。",
+      "actionLabel": "向阿禾问船",
+      "finishLabel": "展开水路舆图",
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "foothill-pavilion"
+      },
+      "entry": { "kind": "npc", "id": "ahe" }
+    },
+    {
+      "id": "sail",
+      "kind": "passage",
+      "scene": "map",
+      "prompt": "沿着脚下这岸找，过了河弯该在哪儿换船？",
+      "actionLabel": "展开水路舆图",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "foothill-pavilion"
+      },
+      "passage": {
+        "id": "foothill-to-baishui",
+        "hint": "阿禾的船贴着这岸顺流走。沿岸看过河弯，找一找可以换船的渡埠。"
+      }
+    },
+    {
+      "id": "wait",
+      "kind": "performance",
+      "script": "mine-baishui-wait",
+      "outcome": "done",
+      "scene": "map",
+      "prompt": "已经到了白水渡。到泊位旁的石阶等客船。",
+      "actionLabel": "在石阶等船",
+      "finishLabel": "回白水渡石阶",
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "baishui-ferry"
+      },
+      "entry": { "kind": "facility", "id": "ferry-berth" }
+    },
+    {
+      "id": "returned",
+      "kind": "life",
+      "scene": "map",
+      "prompt": "补着红帆的货船靠回了白水渡。",
+      "actionLabel": "回白水渡石阶",
+      "href": "/game",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "baishui-ferry"
+      }
+    }
+  ]
+}

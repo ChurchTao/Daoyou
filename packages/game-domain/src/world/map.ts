@@ -120,3 +120,57 @@ export interface MapData {
 export type MapNodeInfo = MapNode | SatelliteNode;
 
 export type WorldMapLocation = MapNodeInfo | SectLandmark;
+
+export type MapPlaceRef =
+  | { kind: 'area'; areaId: string; placeId: string }
+  | { kind: 'sect'; spotId: string };
+
+export interface MapPassage {
+  id: string;
+  from: MapPlaceRef;
+  to: MapPlaceRef;
+  label: string;
+}
+
+export function sameMapPlace(left: MapPlaceRef, right: MapPlaceRef): boolean {
+  return left.kind === 'area'
+    ? right.kind === 'area' &&
+        left.areaId === right.areaId &&
+        left.placeId === right.placeId
+    : right.kind === 'sect' && left.spotId === right.spotId;
+}
+
+export interface MapAreaPlace {
+  id: string;
+  name: string;
+  description: string;
+  scene?: {
+    description: string;
+    npcs: readonly MapPlaceNpc[];
+    facilities?: readonly MapPlaceFacility[];
+  };
+}
+
+export interface MapPlaceNpc {
+  id: string;
+  name: string;
+  action: string;
+  reply: string;
+}
+
+export interface MapPlaceFacility {
+  id: string;
+  name: string;
+  purpose: string;
+  details: string;
+}
+
+export interface MapAreaContent {
+  artwork?: {
+    file: string;
+    alt: string;
+    title?: string;
+    anchors: Readonly<Record<string, readonly [number, number]>>;
+  };
+  places: readonly MapAreaPlace[];
+}

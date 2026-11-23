@@ -401,6 +401,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
     }
 
     pick(x: number, y: number) {
+      if (this.shownRegion !== view.region) return;
       const hits = this.hits(x, y);
       if (!hits.length) {
         args.onClear();
@@ -424,6 +425,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
     }
 
     key(event: KeyboardEvent) {
+      if (this.shownRegion !== view.region) return;
       if (event.key === 'Escape') {
         args.onClear();
         return;
@@ -650,6 +652,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
     }
 
     private layoutMarkers() {
+      if (this.shownRegion !== view.region) return;
       const camera = this.cameras.main;
       camera.preRender();
       const huntPoints: HuntMapPoint[] = [];

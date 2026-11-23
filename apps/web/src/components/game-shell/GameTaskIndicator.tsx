@@ -31,7 +31,7 @@ export function GameTaskIndicator() {
     story?.indicatorFrom?.some((source) =>
       matchesLocation(new URL(source, origin), current),
     );
-  const show = scene?.id !== 'cave' && related;
+  const show = scene?.id !== 'cave' && related && !(story?.location && onSite);
   const params = current.searchParams;
   const inStorage =
     params.get('location') !== 'bag' &&
@@ -87,7 +87,7 @@ export function GameTaskIndicator() {
   return (
     <aside
       aria-label="任务指示器"
-      className="border-ink/15 text-ink pointer-events-auto mx-auto mb-2 w-fit max-w-[calc(100%-2rem)] rounded-md border bg-white/95 px-4 py-1.5 backdrop-blur-sm dark:bg-paper/95"
+      className="border-ink/15 text-ink dark:bg-paper/95 pointer-events-auto mx-auto mb-2 w-fit max-w-[calc(100%-2rem)] rounded-md border bg-white/95 px-4 py-1.5 backdrop-blur-sm"
     >
       <div className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-0.5 leading-6">
         <span className="text-ink-secondary shrink-0 text-xs tracking-[0.2em]">

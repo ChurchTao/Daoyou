@@ -46,6 +46,15 @@ export function getAtlasLocations(): WorldMapLocation[] {
   ];
 }
 
+export function getAtlasAreaLocations(areaId: string): WorldMapLocation[] {
+  return [
+    ...getAllSatelliteNodes().filter((node) => node.parent_id === areaId),
+    ...getAllSectLandmarks().filter(
+      (landmark) => landmark.parent_id === areaId,
+    ),
+  ];
+}
+
 export function getAtlasRegion(location: WorldMapLocation) {
   const parent =
     'region' in location ? location : getWorldMapLocation(location.parent_id);

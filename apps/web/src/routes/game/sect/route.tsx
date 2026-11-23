@@ -5,10 +5,13 @@ import {
   useSectContextQuery,
   useSectInfrastructureQuery,
 } from '@app/components/feature/sect/sectResources';
+import { StoryLocationAction } from '@app/components/feature/story/StoryLocationAction';
 import { GameLoadingState } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui';
+import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { formatDocumentTitle } from '@app/lib/router/routeTitle';
 import { getSectPresentation } from '@app/lib/sect/sectPresentation';
+import { useStory } from '@app/lib/story/useStory';
 import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { SectImmersiveFrame } from './components/SectImmersiveFrame';
@@ -17,7 +20,11 @@ import { SectQueryError } from './components/SectScene';
 
 export default function SectPage() {
   const navigate = useNavigate();
-  const { state } = useLocation();
+  const { state, search } = useLocation();
+  const spotId = new URLSearchParams(search).get('spot');
+  const { story } = useStory();
+  const storySpotId =
+    story?.location?.kind === 'sect' ? story.location.spotId : undefined;
   const closeMap = () => navigate('/game', { replace: true });
 
   const context = useSectContextQuery();
@@ -79,12 +86,20 @@ export default function SectPage() {
     <>
       <title>{formatDocumentTitle(mapScene.title)}</title>
       <SectMap
+        key={spotId ?? 'map'}
         title={mapScene.title}
         backAction={{ label: '关闭地图', onBack: closeMap }}
-        initialSelectedId={
-          typeof state?.sectMapSpotId === 'string'
-            ? state.sectMapSpotId
+        storySpotId={storySpotId}
+        onCloseLocation={
+          spotId
+            ? () => void navigate('/game/sect', { replace: true })
             : undefined
+        }
+        initialSelectedId={
+          spotId ??
+          (typeof state?.sectMapSpotId === 'string'
+            ? state.sectMapSpotId
+            : undefined)
         }
         image={presentation.map.image}
         alt={presentation.map.alt}
@@ -96,6 +111,21 @@ export default function SectPage() {
         scenes={presentation.scenes}
         renderLocation={(location) => {
           const { spot } = location;
+          if (story && spot.id === storySpotId) {
+            return (
+              <InkDetailDrawer
+                isOpen
+                onClose={location.onClose}
+                title={spot.label}
+                description={story.prompt}
+                size="sm"
+                overlayClassName="bg-ink/20"
+                footer={location.footer}
+              >
+                <StoryLocationAction story={story} />
+              </InkDetailDrawer>
+            );
+          }
           if (
             (spot.id !== 'gate' && spot.id !== 'affairs') ||
             !spot.permission ||

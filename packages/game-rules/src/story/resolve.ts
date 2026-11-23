@@ -20,6 +20,12 @@ import {
 } from '@daoyou/game-domain/story';
 import { storyChapterUnlocks } from '@daoyou/game-domain/story/gates';
 
+import {
+  storyLocationHref,
+  storyPassageMark,
+  storyPlayHref,
+} from './location.js';
+
 const markFacts = new Set<StoryFactId>(STORY_MARK_FACT_IDS);
 const arrivalRevisionMark = 'arrival-v2';
 const legacyArrivalBeats = new Set([
@@ -85,6 +91,9 @@ function satisfied(
   }
   if (beat.kind === 'battle') {
     return progress.acks.includes(battleMark(beat.battle));
+  }
+  if (beat.kind === 'passage') {
+    return progress.acks.includes(storyPassageMark(beat.id, beat.passage.id));
   }
   if (beat.kind === 'practice') {
     const ready = beat.accept.map((acceptance) =>
@@ -322,6 +331,32 @@ export function acknowledgePerformance(
   );
 }
 
+export function acknowledgeStoryPassage(
+  chapter: StoryChapter,
+  progress: StoryProgress,
+  facts: StoryFacts,
+  input: { chapterId: string; beatId: string; passageId: string },
+): StoryResolution {
+  progress = normalizeChapterProgress(chapter, progress, facts);
+  const beat = beatAt(chapter, progress.beatId);
+  if (
+    chapter.id !== input.chapterId ||
+    beat.id !== input.beatId ||
+    beat.kind !== 'passage' ||
+    beat.passage.id !== input.passageId ||
+    (beat.location.kind === 'sect' && !facts.sect_joined)
+  )
+    throw new Error('当前没有这段行程');
+  const key = storyPassageMark(beat.id, beat.passage.id);
+  if (progress.acks.includes(key))
+    return resolveStory(chapter, progress, facts);
+  return resolveStory(
+    chapter,
+    { ...progress, acks: [...progress.acks, key] },
+    facts,
+  );
+}
+
 /** 剧情战打完了。结果记成标记，后面的演出可以照着分支。 */
 export function acknowledgeBattle(
   chapter: StoryChapter,
@@ -472,7 +507,15 @@ export function presentStory(
   ) ? readStoryWeaponId(progress.marks) : undefined;
   const missingItemAction =
     weaponId && beat.kind === 'practice' ? beat.missingItemAction : undefined;
-  let href = shifted.href;
+  const location = beat.location;
+  let href =
+    beat.kind === 'passage'
+      ? storyLocationHref(beat.location, Boolean(beat.passage.hint))
+      : location
+        ? storyLocationHref(location)
+        : 'href' in shifted
+          ? shifted.href
+          : beat.href;
   if (weaponId) {
     const target = new URL(href, 'http://story.local');
     target.searchParams.set('item', weaponId);
@@ -488,6 +531,20 @@ export function presentStory(
     scene: beat.scene,
     prompt: shifted.prompt,
     href,
+    ...(location ? { location } : {}),
+    ...(beat.entry ? { entry: beat.entry } : {}),
+    ...(beat.kind === 'passage' ? { passage: beat.passage } : {}),
+    ...(beat.kind === 'performance' && beat.finishLabel
+      ? { finishLabel: beat.finishLabel }
+      : {}),
+    ...(location && (beat.kind === 'performance' || beat.kind === 'battle')
+      ? {
+          playHref: storyPlayHref(beat.href, {
+            chapterId: chapter.id,
+            beatId: beat.id,
+          }),
+        }
+      : {}),
     ...(shifted.actionLabel ? { actionLabel: shifted.actionLabel } : {}),
     ...(shifted.indicatorFrom ? { indicatorFrom: shifted.indicatorFrom } : {}),
     ...(beat.kind === 'performance' && beat.exitHref ? { exitHref: beat.exitHref } : {}),

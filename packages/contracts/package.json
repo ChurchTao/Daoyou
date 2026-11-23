@@ -74,6 +74,7 @@
     "./shops/reputation": "./dist/reputationShop.js",
     "./shops/sect": "./dist/sectShop.js",
     "./spirit-field": "./dist/spiritField.js",
+    "./story": "./dist/story.js",
     "./sponsorship": "./dist/sponsorship.js",
     "./task": "./dist/task.js",
     "./transfer": "./dist/transfer.js",

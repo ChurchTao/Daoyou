@@ -1,3 +1,4 @@
+import { MapLocationDrawer } from '@app/components/feature/map/MapLocationDrawer';
 import { SectMap } from '@app/components/feature/sect/SectMap';
 import { useSectTasksQuery } from '@app/components/feature/sect/sectResources';
 import { usePlayerSession } from '@app/lib/resources/player';
@@ -9,7 +10,6 @@ import { productionSectRuntime } from '@daoyou/game-rules/sect-organization/prod
 import { lazy, useCallback } from 'react';
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import { SectImmersiveFrame } from '../components/SectImmersiveFrame';
-import { SectMapLocationPanel } from '../components/SectMapLocationPanel';
 
 const SectForeignGateConversation = lazy(async () => ({
   default: (await import('../foreign-gate/route')).SectForeignGateConversation,
@@ -84,7 +84,7 @@ export default function SectVisitPage() {
           const target = bounty?.battleTarget;
           if (spot.id !== 'gate' || !bounty || !target) return null;
           return (
-            <SectMapLocationPanel
+            <MapLocationDrawer
               key={spot.id}
               title={spot.label}
               description={description}

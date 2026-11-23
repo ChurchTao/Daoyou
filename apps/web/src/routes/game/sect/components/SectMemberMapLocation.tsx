@@ -1,7 +1,7 @@
+import { MapLocationDrawer } from '@app/components/feature/map/MapLocationDrawer';
 import { getSectRoomPortrait } from '@app/components/feature/sect/room/sectRoomPortrait';
 import type { SectRoomDefinition } from '@daoyou/game-rules/sect-organization';
 import { lazy, type ReactNode } from 'react';
-import { SectMapLocationPanel } from './SectMapLocationPanel';
 
 const SectGateMapConversation = lazy(async () => ({
   default: (await import('../gate/route')).SectGateMapConversation,
@@ -31,7 +31,7 @@ export function SectMemberMapLocation({
     room.key === 'gate' ? SectGateMapConversation : SectAffairsMapConversation;
 
   return (
-    <SectMapLocationPanel
+    <MapLocationDrawer
       title={location.spot.label}
       description={location.description}
       footer={location.footer}

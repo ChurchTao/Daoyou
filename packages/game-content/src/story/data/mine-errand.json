@@ -2,6 +2,7 @@
   "id": "mine-errand",
   "track": "main",
   "title": "明早再来拿药",
+  "next": "mine-baishui",
   "deferredUnlocks": ["alchemy", "refine", "sect-alchemy", "sect-refinery"],
   "beats": [
     {
@@ -39,17 +40,20 @@
       "kind": "performance",
       "script": "mine-errand-pickup",
       "outcome": "done",
-      "scene": "story",
-      "prompt": "天亮了，同门来敲门。",
+      "scene": "sect",
+      "prompt": "天亮了，和同门到丹房找值事取药匣。",
       "actionLabel": "去拿药匣",
+      "location": { "kind": "sect", "spotId": "alchemy" },
       "href": "/game/story"
     },
     {
       "id": "departure",
-      "kind": "life",
-      "scene": "cave",
-      "prompt": "",
-      "href": "/game"
+      "kind": "passage",
+      "scene": "sect",
+      "prompt": "同门提着药匣。一起下山，到接引亭找阿禾。",
+      "actionLabel": "去山门",
+      "location": { "kind": "sect", "spotId": "gate" },
+      "passage": { "id": "sect-gate-to-foothill" }
     }
   ]
 }

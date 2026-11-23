@@ -9,6 +9,7 @@ import {
 import {
   acknowledgeGuide,
   acknowledgePerformance,
+  acknowledgeStoryPassage,
   noteForgedStoryWeapon,
   noteStoryFact,
   presentStory,
@@ -23,6 +24,96 @@ import {
   type StoryProgress,
 } from '@daoyou/game-domain/story';
 import { storySceneOpen } from '@daoyou/game-domain/story/gates';
+
+describe('地点剧情与通路', () => {
+  it('保留第七章旧存档的章幕并结算山门出发', () => {
+    const chapter = getStoryChapter('mine-errand');
+    const saved = {
+      ...openingStoryProgress(chapter.id),
+      beatId: 'departure',
+      acks: [
+        'mine-errand-ask:done',
+        'mine-errand-home:done',
+        'mine-errand-evening:done',
+        'mine-errand-pickup:done',
+      ],
+    };
+    const facts = { ...emptyStoryFacts(), sect_joined: true };
+    const current = rewindToUnwatchedPerformance(chapter, saved, facts);
+    expect(presentStory(chapter, current, facts).href).toBe(
+      '/game/sect?spot=gate',
+    );
+    const request = {
+      chapterId: chapter.id,
+      beatId: 'departure',
+      passageId: 'sect-gate-to-foothill',
+    };
+    expect(() =>
+      acknowledgeStoryPassage(chapter, current, emptyStoryFacts(), request),
+    ).toThrow('当前没有这段行程');
+    const completed = acknowledgeStoryPassage(chapter, current, facts, request);
+    expect(completed.finished).toBe(true);
+    expect(completed.progress.acks).toContain(
+      'passage:departure:sect-gate-to-foothill',
+    );
+  });
+
+  it('先问船，再确认通路，到白水渡接演出并留在现场', () => {
+    const chapter = getStoryChapter('mine-baishui');
+    const facts = emptyStoryFacts();
+    const start = openingStoryProgress(chapter.id);
+    const request = {
+      chapterId: chapter.id,
+      beatId: 'sail',
+      passageId: 'foothill-to-baishui',
+    };
+    expect(() =>
+      acknowledgeStoryPassage(chapter, start, facts, request),
+    ).toThrow('当前没有这段行程');
+    expect(presentStory(chapter, start, facts)).toMatchObject({
+      entry: { kind: 'npc', id: 'ahe' },
+      playHref: '/game/story?chapter=mine-baishui&beat=ask',
+    });
+    const asked = acknowledgePerformance(
+      chapter,
+      start,
+      facts,
+      'mine-baishui-ask',
+      'done',
+    ).progress;
+    expect(presentStory(chapter, asked, facts).href).toContain(
+      'from=foothill-pavilion',
+    );
+    expect(() =>
+      acknowledgeStoryPassage(chapter, asked, facts, {
+        ...request,
+        passageId: 'sect-gate-to-foothill',
+      }),
+    ).toThrow('当前没有这段行程');
+    const arrived = acknowledgeStoryPassage(
+      chapter,
+      asked,
+      facts,
+      request,
+    ).progress;
+    expect(presentStory(chapter, arrived, facts)).toMatchObject({
+      href: '/game/map-v2?area=TN_YUE_01&place=baishui-ferry',
+      entry: { kind: 'facility', id: 'ferry-berth' },
+    });
+    const returned = acknowledgePerformance(
+      chapter,
+      arrived,
+      facts,
+      'mine-baishui-wait',
+      'done',
+    ).progress;
+    expect(presentStory(chapter, returned, facts)).toMatchObject({
+      beatId: 'returned',
+      kind: 'life',
+      location: { placeId: 'baishui-ferry' },
+    });
+  });
+});
 
 const chapter: StoryChapter = {
   id: 'sample',
@@ -954,6 +1045,7 @@ describe('volume one', () => {
       'mine-gate',
       'mine-lesson',
       'mine-sparring',
+      'mine-errand',
     ]);
     expect(seen.slice(0, 4).every((id) => getStoryChapter(id).gated)).toBe(
       true,
@@ -964,7 +1056,7 @@ describe('volume one', () => {
       script: 'mine-gate-landing',
     });
     expect(current.gated).toBeUndefined();
-    expect(current.id).toBe('mine-errand');
+    expect(current.id).toBe('mine-baishui');
     expect(current.beats.at(-1)?.kind).toBe('life');
   });
 

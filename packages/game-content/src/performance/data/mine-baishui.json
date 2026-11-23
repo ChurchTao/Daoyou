@@ -1,0 +1,103 @@
+[
+  {
+    "id": "mine-baishui-ask",
+    "title": "问船",
+    "requires": [],
+    "cast": {
+      "peer": { "name": "隔壁同门" },
+      "he": { "name": "阿禾" },
+      "player": { "name": "你" }
+    },
+    "cues": [
+      { "type": "scene", "alt": "接引亭 · 山脚渡埠" },
+      { "type": "title", "kicker": "这船刚走", "text": "山脚渡埠" },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "阿禾的船能一直坐到药铺门口么？"
+      },
+      {
+        "type": "narration",
+        "text": "同门提着药匣跟在你后面。你认得上山那天踩过的跳板，也认得拴船的两棵柳树。阿禾正在船上接空筐，听见你叫他，便把筐往里一摞，过来搭稳跳板。"
+      },
+      { "type": "line", "speaker": "he", "text": "回村？" },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "去白水镇送药。你这一趟走哪儿？"
+      },
+      { "type": "line", "speaker": "he", "text": "往下走，能捎一段。" },
+      {
+        "type": "narration",
+        "text": "阿禾从船篷底下取出一张叠了几折的舆图，铺在石阶上，叫你按住上边卷起来的角。"
+      },
+      {
+        "type": "line",
+        "speaker": "he",
+        "text": "这儿画着座亭子。你刚从哪儿下来？我这条船贴着咱们这边走，你顺着岸找找。"
+      },
+      { "type": "end", "outcome": "done" }
+    ]
+  },
+  {
+    "id": "mine-baishui-wait",
+    "title": "这船刚走",
+    "requires": [],
+    "cast": {
+      "peer": { "name": "隔壁同门" },
+      "boatman": { "name": "货船船夫" },
+      "porter": { "name": "岸上伙计" },
+      "player": { "name": "你" }
+    },
+    "cues": [
+      { "type": "scene", "alt": "白水渡 · 芦苇旁的石阶" },
+      { "type": "title", "text": "白水渡" },
+      {
+        "type": "narration",
+        "text": "过弯时水急，阿禾连撑了两篙才挨近岸。码头的木牌立在芦苇边，你刚认出头一个「白」字，就转身叫同门抱好药匣。阿禾沿岸继续往下游走，你们踩着湿石阶上了岸。"
+      },
+      {
+        "type": "narration",
+        "text": "石阶底下还泊着一只装货的船，帆上缝了巴掌大的一块红布。岸上有人踮脚递过去一筐青果。"
+      },
+      {
+        "type": "line",
+        "speaker": "porter",
+        "text": "到了对岸先卸这筐，别压坏了。"
+      },
+      {
+        "type": "narration",
+        "text": "船夫应了一声，朝你指指石柱，请你帮忙解缆。"
+      },
+      { "type": "choice", "options": [{ "label": "（帮他解缆）" }] },
+      {
+        "type": "narration",
+        "text": "你把绳圈摘下来递过去，看着他将船划向对岸。河心起了雾，船走远些，就只看得见帆上那块红布了。"
+      },
+      {
+        "type": "narration",
+        "text": "同门找了一级干石阶坐下，药匣还搁在腿上。你看见木牌后头有个摊子卖饼。"
+      },
+      { "type": "line", "speaker": "player", "text": "吃饼么？" },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "吃。饭堂那句‘回来再吃’说早了。给我也买个刚出锅的。"
+      },
+      {
+        "type": "narration",
+        "text": "卖饼的才把面贴上锅，石阶下便有人喊让一让，说船靠过来了。你以为是等的那条客船，回头却见芦苇朝两边倒开，一面帆从近岸的苇梢后头冒了出来。"
+      },
+      {
+        "type": "narration",
+        "text": "帆上那块红补丁正迎着风鼓起来。船头擦过方才拴过缆绳的石柱。船夫一扬手，湿绳落在你鞋边。"
+      },
+      {
+        "type": "line",
+        "speaker": "boatman",
+        "text": "白水镇到了。小兄弟，劳驾拴一下！"
+      },
+      { "type": "end", "outcome": "done" }
+    ]
+  }
+]

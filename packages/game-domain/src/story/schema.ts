@@ -63,10 +63,42 @@ const unlocksSchema = z
 // 这一幕演完、做完、打完时给玩家的一份东西，写赠礼编号。
 const giftSchema = z.string().trim().min(1).max(40).optional();
 
+const mapKey = z
+  .string()
+  .min(1)
+  .max(60)
+  .regex(/^[A-Za-z0-9_-]+$/);
+const storyLocationSchema = z.discriminatedUnion('kind', [
+  z
+    .object({ kind: z.literal('area'), areaId: mapKey, placeId: mapKey })
+    .strict(),
+  z.object({ kind: z.literal('sect'), spotId: mapKey }).strict(),
+]);
+const locationEntrySchema = z
+  .object({
+    kind: z.enum(['npc', 'facility']),
+    id: mapKey,
+  })
+  .strict();
+const passageActionSchema = z
+  .object({
+    id: mapKey,
+    hint: z.string().trim().min(1).max(100).optional(),
+  })
+  .strict();
+
 const taskIndicatorFields = {
+  location: storyLocationSchema.optional(),
+  entry: locationEntrySchema.optional(),
   actionLabel: z.string().trim().min(1).max(24).optional(),
   indicatorFrom: z
-    .array(z.string().trim().max(120).regex(/^\/game(?:[/?]|$)/))
+    .array(
+      z
+        .string()
+        .trim()
+        .max(120)
+        .regex(/^\/game(?:[/?]|$)/),
+    )
     .min(1)
     .max(4)
     .optional(),
@@ -96,8 +128,14 @@ const performanceBeatSchema = z
     outcome: z.string().trim().min(1).max(40),
     // 可在这一幕选择重打上一幕实际落败的一场。
     retryLostBattle: z.literal(true).optional(),
+    finishLabel: z.string().trim().min(1).max(24).optional(),
     // 演出结束后先回到指定场景，由玩家在那里接续下一幕。
-    exitHref: z.string().trim().max(120).regex(/^\/game(?:[/?]|$)/).optional(),
+    exitHref: z
+      .string()
+      .trim()
+      .max(120)
+      .regex(/^\/game(?:[/?]|$)/)
+      .optional(),
     scene: z.string().trim().min(1).max(40),
     prompt: z.string().max(80),
     href: z.string().trim().min(1).max(120),
@@ -269,6 +307,21 @@ const battleBeatSchema = z
   })
   .strict();
 
+const passageBeatSchema = z
+  .object({
+    id: mapKey,
+    kind: z.literal('passage'),
+    scene: z.string().trim().min(1).max(40),
+    prompt: z.string().trim().min(1).max(80),
+    ...taskIndicatorFields,
+    location: storyLocationSchema,
+    passage: passageActionSchema,
+    unlocks: unlocksSchema,
+    hail: hailSchema,
+    gift: giftSchema,
+  })
+  .strict();
+
 export const StoryBeatSchema = z.discriminatedUnion('kind', [
   performanceBeatSchema,
   battleBeatSchema,
@@ -276,6 +329,7 @@ export const StoryBeatSchema = z.discriminatedUnion('kind', [
   objectiveBeatSchema,
   waitBeatSchema,
   lifeBeatSchema,
+  passageBeatSchema,
 ]);
 
 export function createStoryChapterSchema({
@@ -431,7 +485,9 @@ export const StoryProgressSchema = z
             /^base:[a-z0-9-]+:[a-z_]+=\d+$/.test(value) ||
             /^guide:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value) ||
             (value.startsWith(STORY_WEAPON_PREFIX) &&
-              storyWeaponIdSchema.safeParse(value.slice(STORY_WEAPON_PREFIX.length)).success),
+              storyWeaponIdSchema.safeParse(
+                value.slice(STORY_WEAPON_PREFIX.length),
+              ).success),
           '剧情标记无法识别',
         ),
     ),
@@ -451,11 +507,15 @@ export const StoryViewSchema = z
       'objective',
       'wait',
       'life',
+      'passage',
     ]),
     scene: z.string(),
     prompt: z.string(),
     href: z.string(),
     ...taskIndicatorFields,
+    playHref: z.string().optional(),
+    finishLabel: z.string().optional(),
+    passage: passageActionSchema.optional(),
     exitHref: z.string().optional(),
     scriptId: z.string().nullable(),
     // 眼下是剧情战的话，是哪一场。
@@ -526,9 +586,7 @@ export function chapterUnlocks(chapter: StoryChapter, uptoBeatId?: string) {
   const end = uptoBeatId
     ? chapter.beats.findIndex((beat) => beat.id === uptoBeatId)
     : chapter.beats.length - 1;
-  return chapter.beats
-    .slice(0, end + 1)
-    .flatMap((beat) => beat.unlocks ?? []);
+  return chapter.beats.slice(0, end + 1).flatMap((beat) => beat.unlocks ?? []);
 }
 
 export function baseMark(beatId: string, count: StoryCountId, value: number) {
@@ -553,7 +611,8 @@ export function storyWeaponMark(weaponId: string) {
 }
 
 export function readStoryWeaponId(marks: readonly string[]) {
-  return marks.find((mark) => mark.startsWith(STORY_WEAPON_PREFIX))
+  return marks
+    .find((mark) => mark.startsWith(STORY_WEAPON_PREFIX))
     ?.slice(STORY_WEAPON_PREFIX.length);
 }
 

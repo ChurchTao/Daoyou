@@ -1,7 +1,7 @@
 import { bodyFontStack } from '@app/lib/fonts';
 import * as Phaser from 'phaser';
 
-interface SectMapMarker {
+export interface LocalMapMarker {
   id: string;
   label: string;
   x: number;
@@ -10,15 +10,15 @@ interface SectMapMarker {
   selectable: boolean;
 }
 
-export interface SectMapView {
-  markers: readonly SectMapMarker[];
+export interface LocalMapView {
+  markers: readonly LocalMapMarker[];
   selectedId: string | null;
   opacity: number;
   blocked?: boolean;
 }
 
-export interface SectMapController {
-  setView(view: SectMapView): void;
+export interface LocalMapController {
+  setView(view: LocalMapView): void;
   focus(id: string): void;
   zoomIn(): void;
   zoomOut(): void;
@@ -26,12 +26,13 @@ export interface SectMapController {
   destroy(): void;
 }
 
-interface SectMapArguments {
+interface LocalMapArguments {
   root: HTMLElement;
   image: string;
   aspectRatio: number;
+  entryMarkerId?: string;
   ariaLabel?: string;
-  view: SectMapView;
+  view: LocalMapView;
   onSelect(id: string): void;
   onClear(): void;
   onInteract?(): void;
@@ -41,13 +42,13 @@ interface SectMapArguments {
 
 type Point = { x: number; y: number };
 type MarkerDisplay = {
-  marker: SectMapMarker;
+  marker: LocalMapMarker;
   group: Phaser.GameObjects.Container;
   ring: Phaser.GameObjects.Arc;
   label: Phaser.GameObjects.Text;
 };
 
-const BACKGROUND = 'sect-map';
+const BACKGROUND = 'local-map';
 const PAPER = 0xfaf0db;
 const CINNABAR = 0x983c32;
 const LOCKED_INK = 0x655952;
@@ -60,19 +61,19 @@ const MAX_ZOOM = 3;
 const ZOOM_STEP = 1.3;
 const readPixelRatio = () => Math.min(window.devicePixelRatio || 1, 3);
 
-export function attachSectPhaser(args: SectMapArguments): SectMapController {
+export function attachLocalMap(args: LocalMapArguments): LocalMapController {
   let view = args.view;
   let pixelRatio = readPixelRatio();
   let destroyed = false;
   let pendingFocus: string | undefined;
-  const runtime: { scene?: SectMapScene } = {};
+  const runtime: { scene?: LocalMapScene } = {};
   const canvasLabel =
-    args.ariaLabel ?? '宗门舆图，方向键切换设施，回车选择，Escape 取消';
+    args.ariaLabel ?? '舆图，方向键切换地点，回车选择，Escape 取消';
 
-  class SectMapScene extends Phaser.Scene {
+  class LocalMapScene extends Phaser.Scene {
     private background!: Phaser.GameObjects.Image;
     private displays: MarkerDisplay[] = [];
-    private renderedMarkers?: SectMapView['markers'];
+    private renderedMarkers?: LocalMapView['markers'];
     private hoveredId?: string;
     private focusedId?: string;
     private mapWidth = 1;
@@ -82,7 +83,7 @@ export function attachSectPhaser(args: SectMapArguments): SectMapController {
 
     preload() {
       this.load.once(Phaser.Loader.Events.FILE_LOAD_ERROR, () => {
-        if (!destroyed) args.onError('宗门舆图加载未成，请重试。');
+        if (!destroyed) args.onError('舆图加载未成，请重试。');
       });
       this.load.image(BACKGROUND, args.image);
     }
@@ -112,7 +113,7 @@ export function attachSectPhaser(args: SectMapArguments): SectMapController {
       this.layoutMarkers();
     }
 
-    private addMarker(marker: SectMapMarker): MarkerDisplay {
+    private addMarker(marker: LocalMapMarker): MarkerDisplay {
       const color = marker.locked ? LOCKED_INK : CINNABAR;
       const dot = this.add.circle(0, 0, 8.5, color).setStrokeStyle(1.5, PAPER);
       const ring = this.add.circle(0, 0, 12, 0, 0).setStrokeStyle(1.5, color);
@@ -255,11 +256,11 @@ export function attachSectPhaser(args: SectMapArguments): SectMapController {
 
     reset() {
       this.atEntrance = true;
-      const gate = view.markers.find(({ id }) => id === 'gate');
+      const entrance = view.markers.find(({ id }) => id === args.entryMarkerId);
       this.placeCamera(
         {
-          x: this.mapWidth * (gate?.x ?? 0.5),
-          y: this.mapHeight * (gate?.y ?? 0.5),
+          x: this.mapWidth * (entrance?.x ?? 0.5),
+          y: this.mapHeight * (entrance?.y ?? 0.5),
         },
         this.minZoom,
       );
@@ -334,14 +335,14 @@ export function attachSectPhaser(args: SectMapArguments): SectMapController {
     private hit(
       point: Point,
       includeLabels = false,
-    ): SectMapMarker | undefined {
+    ): LocalMapMarker | undefined {
       const camera = this.cameras.main;
       const world = camera.getWorldPoint(point.x, point.y);
       const scale = pixelRatio / camera.zoom;
       const radius = HIT_RADIUS * scale;
       let distance = radius * radius;
-      let nearest: SectMapMarker | undefined;
-      let named: SectMapMarker | undefined;
+      let nearest: LocalMapMarker | undefined;
+      let named: LocalMapMarker | undefined;
       for (const { marker, group, label } of this.displays) {
         if (!marker.selectable) continue;
         if (includeLabels && label.visible) {
@@ -420,7 +421,7 @@ export function attachSectPhaser(args: SectMapArguments): SectMapController {
       this.focusedId = marker.id;
       canvas.setAttribute(
         'aria-label',
-        `${marker.label}，按回车选择，方向键切换设施`,
+        `${marker.label}，按回车选择，方向键切换地点`,
       );
       this.focus(marker.id, false);
       args.onInteract?.();
@@ -437,7 +438,7 @@ export function attachSectPhaser(args: SectMapArguments): SectMapController {
     banner: false,
     audio: { noAudio: true },
     input: { mouse: false, touch: false, keyboard: false },
-    scene: SectMapScene,
+    scene: LocalMapScene,
   });
   const canvas = game.canvas;
   canvas.tabIndex = 0;
@@ -580,7 +581,7 @@ export function attachSectPhaser(args: SectMapArguments): SectMapController {
   canvas.addEventListener(
     'webglcontextlost',
     () => {
-      if (!destroyed) args.onError('宗门舆图暂时无法显示，请重试。');
+      if (!destroyed) args.onError('舆图暂时无法显示，请重试。');
     },
     { signal },
   );

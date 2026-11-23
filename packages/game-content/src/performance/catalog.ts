@@ -1,8 +1,8 @@
+import type { CombatV6SectId } from '@daoyou/game-domain/combat';
 import {
   parsePerformanceScript,
   type PerformanceScript,
 } from '@daoyou/game-domain/performance';
-import type { CombatV6SectId } from '@daoyou/game-domain/combat';
 import { BREAKTHROUGH_PERFORMANCES } from './breakthrough.js';
 import arrivalCreek from './data/arrival-creek.json' with { type: 'json' };
 import arrivalEmber from './data/arrival-ember.json' with { type: 'json' };
@@ -26,10 +26,10 @@ import mountainSummit from './data/mountain-summit.json' with { type: 'json' };
 import mountainThreePaintings from './data/mountain-three-paintings.json' with { type: 'json' };
 import mountainTwoPeaks from './data/mountain-two-peaks.json' with { type: 'json' };
 import mountainWhitePaw from './data/mountain-white-paw.json' with { type: 'json' };
-import { createMineRoadChoice, MINE_ROAD_SCRIPT } from './mine-road.js';
-import { createTavernConversation } from './tavern.js';
 import { mineLessonScripts, morningLessons } from './mine-lessons.js';
+import { createMineRoadChoice, MINE_ROAD_SCRIPT } from './mine-road.js';
 import { mineSparringScripts } from './mine-sparring.js';
+import { createTavernConversation } from './tavern.js';
 export {
   createMineRoadChoice,
   MINE_ROAD_SCRIPT,
@@ -39,6 +39,7 @@ export { createMountainGateArrival } from './mountain-gate-arrivals.js';
 export { createSectFirstPath } from './sect-first-path.js';
 export { createTavernConversation };
 
+import mineBaishui from './data/mine-baishui.json' with { type: 'json' };
 import mineCrossing from './data/mine-crossing.json' with { type: 'json' };
 import mineDeparture from './data/mine-departure.json' with { type: 'json' };
 import mineErrand from './data/mine-errand.json' with { type: 'json' };
@@ -98,6 +99,7 @@ const scripts = new Map<string, PerformanceScript>([
     ...mineCrossing,
     ...mineDeparture,
     ...mineErrand,
+    ...mineBaishui,
     ...mineGate,
     ...mineGateSchools,
   ].map((entry): [string, PerformanceScript] => [
@@ -133,8 +135,8 @@ export function getPerformanceScript(
   id: string,
   sectId?: string | null,
 ): PerformanceScript {
-  const script = (sectId ? sectScripts.get(sectId)?.get(id) : undefined) ??
-    scripts.get(id);
+  const script =
+    (sectId ? sectScripts.get(sectId)?.get(id) : undefined) ?? scripts.get(id);
   if (!script) throw new Error(`演出不存在：${id}`);
   return script;
 }

@@ -1,30 +1,73 @@
 import { StoryChapterSchema } from './schema.js';
 
 import arrivalChapter from './data/arrival.json' with { type: 'json' };
-import mountainBend from './data/mountain-bend.json' with { type: 'json' };
-import mountainFerry from './data/mountain-ferry.json' with { type: 'json' };
-import mountainFlowers from './data/mountain-flowers.json' with { type: 'json' };
-import mountainLodging from './data/mountain-lodging.json' with { type: 'json' };
-import mountainFoothill from './data/mountain-foothill.json' with { type: 'json' };
-import mountainForge from './data/mountain-forge.json' with { type: 'json' };
-import mountainSparring from './data/mountain-sparring.json' with { type: 'json' };
-import mineShift from './data/mine-shift.json' with { type: 'json' };
+import mineBaishui from './data/mine-baishui.json' with { type: 'json' };
 import mineCrossing from './data/mine-crossing.json' with { type: 'json' };
 import mineDeparture from './data/mine-departure.json' with { type: 'json' };
 import mineErrand from './data/mine-errand.json' with { type: 'json' };
 import mineGate from './data/mine-gate.json' with { type: 'json' };
-import mineLodging from './data/mine-lodging.json' with { type: 'json' };
 import mineLesson from './data/mine-lesson.json' with { type: 'json' };
+import mineLodging from './data/mine-lodging.json' with { type: 'json' };
+import mineShift from './data/mine-shift.json' with { type: 'json' };
 import mineSparring from './data/mine-sparring.json' with { type: 'json' };
+import mountainBend from './data/mountain-bend.json' with { type: 'json' };
+import mountainFerry from './data/mountain-ferry.json' with { type: 'json' };
+import mountainFlowers from './data/mountain-flowers.json' with { type: 'json' };
+import mountainFoothill from './data/mountain-foothill.json' with { type: 'json' };
+import mountainForge from './data/mountain-forge.json' with { type: 'json' };
+import mountainLodging from './data/mountain-lodging.json' with { type: 'json' };
+import mountainSparring from './data/mountain-sparring.json' with { type: 'json' };
 
 import { getPerformanceScript } from '../performance/catalog.js';
 
 import { chapterUnlocks, type StoryChapter } from '@daoyou/game-domain/story';
-import { isStoryGate, storyChapterUnlocks, storySceneOpen } from '@daoyou/game-domain/story/gates';
+import {
+  isStoryGate,
+  storyChapterUnlocks,
+  storySceneOpen,
+} from '@daoyou/game-domain/story/gates';
+import { sameMapPlace, type MapPlaceRef } from '@daoyou/game-domain/world/map';
+import { getMapAreaContent, getMapPassage } from '../world/areas.js';
+
+function areaPlace(location: Extract<MapPlaceRef, { kind: 'area' }>) {
+  return getMapAreaContent(location.areaId)?.places.find(
+    ({ id }) => id === location.placeId,
+  );
+}
 
 function parseChapter(input: unknown): StoryChapter {
   const chapter = StoryChapterSchema.parse(input);
   for (const beat of chapter.beats) {
+    if (beat.entry && !beat.location) {
+      throw new Error(`剧情入口缺少地点：${chapter.id}/${beat.id}`);
+    }
+    if (beat.location?.kind === 'area') {
+      const place = areaPlace(beat.location);
+      const entries =
+        beat.entry?.kind === 'npc'
+          ? place?.scene?.npcs
+          : place?.scene?.facilities;
+      if (
+        !place ||
+        (beat.entry && !entries?.some(({ id }) => id === beat.entry?.id))
+      ) {
+        throw new Error(`剧情地点或现场入口不存在：${chapter.id}/${beat.id}`);
+      }
+    }
+    if (beat.kind === 'passage') {
+      const passage = getMapPassage(beat.passage.id);
+      if (
+        !passage ||
+        !sameMapPlace(passage.from, beat.location) ||
+        (passage.to.kind === 'area' && !areaPlace(passage.to)) ||
+        (beat.passage.hint &&
+          (passage.from.kind !== 'area' ||
+            passage.to.kind !== 'area' ||
+            passage.to.areaId !== passage.from.areaId))
+      ) {
+        throw new Error(`剧情通路配置无效：${chapter.id}/${beat.id}`);
+      }
+    }
     if (beat.kind !== 'performance') continue;
     const script = getPerformanceScript(beat.script);
     const endings = new Set(
@@ -64,6 +107,7 @@ const chapters = new Map<string, StoryChapter>([
   [mineLesson.id, parseChapter(mineLesson)],
   [mineSparring.id, parseChapter(mineSparring)],
   [mineErrand.id, parseChapter(mineErrand)],
+  [mineBaishui.id, parseChapter(mineBaishui)],
   [mineLodging.id, parseChapter(mineLodging)],
 ]);
 
@@ -77,6 +121,20 @@ for (const chapter of chapters.values()) {
   for (const gate of chapter.deferredUnlocks ?? []) {
     if (!isStoryGate(gate))
       throw new Error(`剧情章节延后的入口不存在：${chapter.id} → ${gate}`);
+  }
+  for (const [index, beat] of chapter.beats.entries()) {
+    if (beat.kind !== 'passage') continue;
+    const passage = getMapPassage(beat.passage.id);
+    const next =
+      chapter.beats[index + 1] ??
+      (chapter.next ? chapters.get(chapter.next)?.beats[0] : undefined);
+    if (
+      !passage ||
+      !next?.location ||
+      !sameMapPlace(passage.to, next.location)
+    ) {
+      throw new Error(`剧情通路抵达后没有对应地点：${chapter.id}/${beat.id}`);
+    }
   }
 }
 
