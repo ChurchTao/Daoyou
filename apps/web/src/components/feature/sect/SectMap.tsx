@@ -201,10 +201,7 @@ export function SectMap({
   );
   const selectedId = selected?.spot.id ?? null;
   const storySpot = hotspots.find(({ id }) => id === storySpotId);
-  const status =
-    mode === 'member' && storySpot ? (
-      <GameTaskIndicator map={{ place: storySpot.label }} />
-    ) : null;
+  const status = mode === 'member' && storySpot ? <GameTaskIndicator /> : null;
   useEffect(() => {
     if (selectedId !== null) return;
     const target = returnFocus.current;
@@ -308,8 +305,7 @@ export function SectMap({
             backAction={backAction}
             mapMode={image ? 'text' : undefined}
           />
-          <LocalMapText>
-            {!view.blocked ? status : null}
+          <LocalMapText footer={!view.blocked ? status : null}>
             {directory}
           </LocalMapText>
         </>

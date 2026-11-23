@@ -228,9 +228,16 @@ async function readStoryFacts(
       membership.sectId as keyof typeof COMBAT_V6_SECT_DEFINITIONS
     ];
     const levels = await readSectMethodLevels(membership.id, tx);
-    facts.sect_methods_at_lesson_level = sect.methods.every(
+    const completed = sect.methods.filter(
       ({ id }) => (levels[id] ?? 0) >= MINE_LESSON_METHOD_LEVEL,
-    );
+    ).length;
+    facts.sect_methods_at_lesson_level = completed === sect.methods.length;
+    facts.factProgress = {
+      sect_methods_at_lesson_level: {
+        current: completed,
+        target: sect.methods.length,
+      },
+    };
   }
   facts.weapon_equipped = weapons.length > 0;
   facts.equippedWeaponId = weapons[0]?.id;
@@ -531,7 +538,16 @@ export const StoryService = {
     const settled = await settle(cultivatorId, tx, (chapter, progress, facts) =>
       noteStoryFact(chapter, progress, facts, fact),
     );
-    if (!settled.dirty && settled.rewardIds.length === 0) return null;
+    const refreshTrainingProgress =
+      fact === 'sect_trained' &&
+      settled.view.kind === 'practice' &&
+      settled.view.goals.length > 0;
+    if (
+      !settled.dirty &&
+      settled.rewardIds.length === 0 &&
+      !refreshTrainingProgress
+    )
+      return null;
     return {
       view: settled.view,
       changes: storyChanges(cultivatorId, settled.view, settled.effect),

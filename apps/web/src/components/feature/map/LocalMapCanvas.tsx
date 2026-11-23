@@ -140,12 +140,13 @@ export function LocalMapCanvas({
     setError(null);
     setAttempt((value) => value + 1);
   };
+  const footer = !view.blocked ? status : null;
 
   if (error) {
     return (
       <>
         <LocalMapToolbar title={title} backAction={backAction} />
-        <LocalMapText>
+        <LocalMapText footer={footer}>
           <div className="mb-3 flex items-center justify-between gap-3">
             <p role="status" className="text-ink-secondary text-sm">
               {error}
@@ -154,7 +155,6 @@ export function LocalMapCanvas({
               重试舆图
             </InkButton>
           </div>
-          {!view.blocked ? status : null}
           {fallback}
         </LocalMapText>
       </>
@@ -171,11 +171,6 @@ export function LocalMapCanvas({
         onOpenDirectory={onOpenDirectory}
       />
       <MapCanvasSurface root={root} image={image} />
-      {status && !view.blocked ? (
-        <div className="pointer-events-none absolute inset-x-3 top-[calc(var(--app-safe-top)+4rem)] z-10 mx-auto max-w-[36rem]">
-          {status}
-        </div>
-      ) : null}
       {!ready ? (
         <p
           role="status"
@@ -184,42 +179,49 @@ export function LocalMapCanvas({
           {mapLabel}展开中……
         </p>
       ) : null}
-      {ready ? (
-        <div
-          role="group"
-          aria-label="舆图视野"
-          className="border-ink/15 divide-ink/10 bg-paper/95 absolute right-[max(env(safe-area-inset-right),0.75rem)] bottom-[max(env(safe-area-inset-bottom),0.75rem)] z-20 flex divide-x rounded-sm border text-xl shadow-sm backdrop-blur-sm"
-        >
-          <button
-            type="button"
-            className={mapControlClass}
-            aria-label={`缩小${mapLabel}`}
-            onClick={() => controller.current?.zoomOut()}
-          >
-            −
-          </button>
-          <button
-            type="button"
-            className={mapControlClass}
-            aria-label={`放大${mapLabel}`}
-            onClick={() => controller.current?.zoomIn()}
-          >
-            +
-          </button>
-          <button
-            type="button"
-            className={mapControlClass}
-            aria-label={`复位${mapLabel}`}
-            onClick={() => controller.current?.reset()}
-          >
-            ↺
-          </button>
+      {ready || footer ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 pb-[env(safe-area-inset-bottom)]">
+          {ready ? (
+            <div className="mb-3 flex items-end gap-2 pr-[max(env(safe-area-inset-right),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)]">
+              {gestureHintVisible && !view.selectedId ? (
+                <p className="bg-paper/95 text-ink-secondary px-2 py-1.5 text-xs md:hidden">
+                  单指拖动 · 双指缩放
+                </p>
+              ) : null}
+              <div
+                role="group"
+                aria-label="舆图视野"
+                className="border-ink/15 divide-ink/10 bg-paper/95 pointer-events-auto ml-auto flex shrink-0 divide-x rounded-sm border text-xl shadow-sm backdrop-blur-sm"
+              >
+                <button
+                  type="button"
+                  className={mapControlClass}
+                  aria-label={`缩小${mapLabel}`}
+                  onClick={() => controller.current?.zoomOut()}
+                >
+                  −
+                </button>
+                <button
+                  type="button"
+                  className={mapControlClass}
+                  aria-label={`放大${mapLabel}`}
+                  onClick={() => controller.current?.zoomIn()}
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  className={mapControlClass}
+                  aria-label={`复位${mapLabel}`}
+                  onClick={() => controller.current?.reset()}
+                >
+                  ↺
+                </button>
+              </div>
+            </div>
+          ) : null}
+          {footer}
         </div>
-      ) : null}
-      {ready && gestureHintVisible && !view.selectedId ? (
-        <p className="bg-paper/95 text-ink-secondary pointer-events-none absolute bottom-[max(env(safe-area-inset-bottom),0.75rem)] left-[max(env(safe-area-inset-left),0.75rem)] max-w-[calc(100%-10rem)] px-2 py-1.5 text-xs md:hidden">
-          单指拖动 · 双指缩放
-        </p>
       ) : null}
     </>
   );

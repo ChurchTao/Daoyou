@@ -62,10 +62,17 @@
       "id": "study",
       "kind": "practice",
       "scene": "sect-archive",
-      "prompt": "去本宗传承处找守阁前辈，把本宗所有心法研习到十级。",
+      "prompt": "把本宗所有心法研习到十级。",
       "actionLabel": "研习本宗心法",
       "href": "/game/sect/archive?npc=keeper",
-      "accept": [{ "type": "fact", "fact": "sect_methods_at_lesson_level" }],
+      "indicatorFrom": ["/game/sect/archive"],
+      "accept": [
+        {
+          "type": "fact",
+          "fact": "sect_methods_at_lesson_level",
+          "progressLabel": "已达十级"
+        }
+      ],
       "location": { "kind": "sect", "spotId": "archive" },
       "entry": { "kind": "npc", "id": "keeper" }
     },
@@ -78,6 +85,7 @@
       "prompt": "本宗心法都已到十级。回演武处找教习，试试起手。",
       "actionLabel": "请教习指点起手",
       "href": "/game/story",
+      "indicatorFrom": ["/game/sect/archive"],
       "location": {
         "kind": "sect",
         "spotId": "arena"

@@ -1170,14 +1170,26 @@ describe('volume one', () => {
       beatId: 'study',
       href: '/game/sect?spot=archive',
       playHref: '/game/sect/archive?npc=keeper&chapter=mine-lesson&beat=study',
+      indicatorFrom: ['/game/sect/archive'],
       entry: { kind: 'npc', id: 'keeper' },
     });
+    const practiceFacts = {
+      ...facts,
+      factProgress: { sect_methods_at_lesson_level: { current: 5, target: 6 } },
+    };
+    expect(presentStory(chapter, study.progress, practiceFacts).goals).toEqual([
+      { label: '已达十级', done: false, current: 5, target: 6 },
+    ]);
     expect(noteStoryFact(chapter, study.progress, facts, 'sect_trained').progress.beatId)
       .toBe('study');
-    expect(resolveStory(chapter, study.progress, {
+    const trainedFacts = {
       ...facts,
       sect_methods_at_lesson_level: true,
-    }).progress.beatId).toBe('form');
+    };
+    const trained = resolveStory(chapter, study.progress, trainedFacts);
+    expect(presentStory(chapter, trained.progress, trainedFacts)).toMatchObject(
+      { beatId: 'form', indicatorFrom: ['/game/sect/archive'], goals: [] },
+    );
     const skipped = { ...study.progress, beatId: 'form' };
     expect(presentStory(chapter, skipped, facts).beatId).toBe('study');
     expect(() =>

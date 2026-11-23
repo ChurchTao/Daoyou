@@ -15,13 +15,9 @@ export type SectWorkspaceMode = 'methods' | 'paths';
 export function SectWorkspace({
   mode,
   onExit,
-  nextAction,
-  studyTargetLevel,
 }: {
   mode: SectWorkspaceMode;
   onExit: () => void;
-  nextAction?: { href: string; label: string };
-  studyTargetLevel?: number;
 }) {
   const [view, setView] = useState<SectV6View>();
   const [refresh, setRefresh] = useState(0);
@@ -124,15 +120,10 @@ export function SectWorkspace({
             />
           ) : (
             <>
-              <div className="flex flex-wrap justify-end gap-3">
+              <div className="flex justify-end">
                 <InkButton disabled={pending} onClick={onExit}>
                   返回
                 </InkButton>
-                {nextAction && !pending ? (
-                  <InkButton variant="primary" href={nextAction.href}>
-                    {nextAction.label}
-                  </InkButton>
-                ) : null}
               </div>
               {mode === 'paths' ? (
                 <Navigate to="/game/sect/onboarding?entry=path" replace />
@@ -148,7 +139,6 @@ export function SectWorkspace({
                     view={view}
                     pending={pending}
                     act={act}
-                    studyTargetLevel={studyTargetLevel}
                   />
                 </>
               )}

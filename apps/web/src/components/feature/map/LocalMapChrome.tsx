@@ -78,10 +78,21 @@ export function LocalMapToolbar({
   );
 }
 
-export function LocalMapText({ children }: { children: ReactNode }) {
+export function LocalMapText({
+  children,
+  footer,
+}: {
+  children: ReactNode;
+  footer?: ReactNode;
+}) {
   return (
-    <div className="bg-paper absolute inset-0 overflow-y-auto overscroll-contain pt-[calc(var(--app-safe-top)+4.25rem)] pr-[max(env(safe-area-inset-right),1rem)] pb-[max(env(safe-area-inset-bottom),1rem)] pl-[max(env(safe-area-inset-left),1rem)]">
-      <div className="mx-auto max-w-3xl">{children}</div>
+    <div className="bg-paper absolute inset-0 flex flex-col pb-[env(safe-area-inset-bottom)]">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pt-[calc(var(--app-safe-top)+4.25rem)] pr-[max(env(safe-area-inset-right),1rem)] pb-4 pl-[max(env(safe-area-inset-left),1rem)]">
+        <div className="mx-auto max-w-3xl">{children}</div>
+      </div>
+      {footer ? (
+        <div className="shrink-0 pt-2 empty:hidden">{footer}</div>
+      ) : null}
     </div>
   );
 }

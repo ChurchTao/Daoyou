@@ -615,7 +615,21 @@ export function presentStory(
                 : null,
             target: goal.need.type === 'count' ? goal.need.atLeast : null,
           }))
-        : [],
+        : beat.kind === 'practice'
+          ? beat.accept.flatMap((entry) => {
+              if (entry.type !== 'fact' || !entry.progressLabel) return [];
+              const counter = facts.factProgress?.[entry.fact];
+              return counter
+                ? [
+                    {
+                      label: entry.progressLabel,
+                      done: factReady(entry.fact, progress, facts),
+                      ...counter,
+                    },
+                  ]
+                : [];
+            })
+          : [],
   };
 }
 

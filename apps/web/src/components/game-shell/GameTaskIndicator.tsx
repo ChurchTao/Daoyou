@@ -1,14 +1,22 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { cn } from '@app/lib/cn';
 import { useInventoryBag } from '@app/lib/resources/bag';
+import { usePlayerSession } from '@app/lib/resources/player';
 import { resolveGameScene } from '@app/lib/router/routeTitle';
+import { storyMapPlaceName } from '@app/lib/story/storyMapPlaceName';
 import { useStory } from '@app/lib/story/useStory';
+import { storySceneOpen } from '@daoyou/game-domain/story/gates';
 import { useLocation, useMatches } from 'react-router';
+
+function matchesPath(target: URL, current: URL) {
+  return (
+    target.pathname.replace(/\/$/, '') === current.pathname.replace(/\/$/, '')
+  );
+}
 
 function matchesLocation(target: URL, current: URL) {
   return (
-    target.pathname.replace(/\/$/, '') ===
-      current.pathname.replace(/\/$/, '') &&
+    matchesPath(target, current) &&
     [...target.searchParams].every(
       ([key, value]) =>
         key === 'guide' ||
@@ -18,40 +26,53 @@ function matchesLocation(target: URL, current: URL) {
   );
 }
 
-export function GameTaskIndicator({
-  map,
-}: {
-  map?: { place: string; hint?: string };
-}) {
+export function GameTaskIndicator() {
   const { story } = useStory();
   const location = useLocation();
   const scene = resolveGameScene(useMatches());
   const origin = window.location.origin;
   const current = new URL(location.pathname + location.search, origin);
+  const params = current.searchParams;
+  const place = story?.location;
   const target =
-    story && (story.prompt || map?.hint) ? new URL(story.href, origin) : null;
+    story && (story.prompt || story.passage?.hint)
+      ? new URL(story.href, origin)
+      : null;
   const activity = story?.playHref ? new URL(story.playHref, origin) : null;
   const onSite = Boolean(target && matchesLocation(target, current));
   const inActivity = Boolean(activity && matchesLocation(activity, current));
+  const inTargetMap =
+    !!target &&
+    matchesPath(target, current) &&
+    (place?.kind === 'sect' ||
+      (place?.kind === 'area' && params.get('area') === place.areaId));
+  const directions = inTargetMap && onSite ? story?.passage?.hint : undefined;
   const related =
     onSite ||
     inActivity ||
+    inTargetMap ||
     story?.indicatorFrom?.some((source) =>
       matchesLocation(new URL(source, origin), current),
     );
   const show =
-    Boolean(map) ||
-    (scene?.id !== 'cave' && related && !(story?.location && onSite));
-  const params = current.searchParams;
+    scene?.id !== 'cave' && related && (!place || !onSite || !!directions);
+  const canLinkToPlace =
+    show &&
+    !onSite &&
+    !(activity && matchesPath(activity, current)) &&
+    !!place &&
+    !story?.passage?.hint &&
+    (place.kind !== 'sect' || storySceneOpen(story?.unlocked, 'sect'));
+  const player = usePlayerSession(canLinkToPlace && place?.kind === 'sect');
   const inStorage =
     params.get('location') !== 'bag' &&
     (scene?.id === 'storage' || params.get('location') === 'storage');
-  const itemId = show && !map ? story?.targetItem?.id : undefined;
+  const itemId = show ? story?.targetItem?.id : undefined;
   const bag = useInventoryBag(Boolean(itemId));
 
   if (!story || !target || !show) return null;
 
-  const guide = map ? null : story.guideLesson;
+  const guide = story.guideLesson;
   const inLesson = Boolean(guide && params.get('guide') === guide);
   const actionTarget = inActivity && activity ? activity : target;
   if (!guide) actionTarget.searchParams.delete('guide');
@@ -68,9 +89,7 @@ export function GameTaskIndicator({
     !bag.data.equippedItems.some((entry) => entry.id === itemId);
   const recovery = missing ? story.targetItem?.missingAction : undefined;
   let action: { href: string; label: string } | undefined;
-  let prompt = map
-    ? (map.hint ?? `${map.place} · ${story.prompt}`)
-    : story.prompt;
+  let prompt = directions ?? story.prompt;
   if (missing) {
     prompt = inStorage
       ? '找到目标物品后，先取回随身物品。'
@@ -88,24 +107,28 @@ export function GameTaskIndicator({
     action = { href, label: '查看教学' };
   } else if ((onSite || inActivity) && item && params.get('item') !== item.id) {
     action = { href, label: '定位物品' };
+  } else if (canLinkToPlace) {
+    const name =
+      place?.kind === 'cave'
+        ? '洞府'
+        : storyMapPlaceName(place, player.data?.activeCultivator?.sectId);
+    if (name) {
+      action = {
+        href: target.pathname + target.search + target.hash,
+        label: `前往${name}`,
+      };
+    }
   }
 
   return (
     <aside
       aria-label="任务指示器"
-      className={cn(
-        'border-ink/15 text-ink bg-paper/95 mx-auto mb-2 w-fit rounded-sm border px-3 backdrop-blur-sm',
-        map
-          ? 'pointer-events-none max-w-full py-2 shadow-sm'
-          : 'pointer-events-auto max-w-[calc(100%-2rem)] py-1.5',
-      )}
+      className="border-ink/15 text-ink bg-paper/95 pointer-events-auto mx-auto mb-2 w-fit max-w-[calc(100%-2rem)] rounded-sm border px-3 py-1.5 backdrop-blur-sm"
     >
       <div className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-0.5 leading-6">
-        {!map ? (
-          <span className="text-ink-secondary shrink-0 text-xs tracking-[0.2em]">
-            {story.track === 'main' ? '主线' : '奇遇'}
-          </span>
-        ) : null}
+        <span className="text-ink-secondary shrink-0 text-xs tracking-[0.2em]">
+          {story.track === 'main' ? '主线' : '奇遇'}
+        </span>
         <div role="status" className="min-w-0 text-sm">
           {prompt}
           {item ? (
@@ -113,11 +136,7 @@ export function GameTaskIndicator({
           ) : null}
         </div>
         {!inLesson && action ? (
-          <InkButton
-            href={action.href}
-            variant="secondary"
-            className="min-h-11"
-          >
+          <InkButton href={action.href} variant="primary" className="min-h-11">
             {action.label}
           </InkButton>
         ) : null}
@@ -131,8 +150,11 @@ export function GameTaskIndicator({
           </InkButton>
         ) : null}
       </div>
-      {!map && story.goals.length > 0 ? (
-        <ul className="flex flex-wrap justify-center gap-x-3 text-sm leading-6">
+      {story.goals.length > 0 ? (
+        <ul
+          aria-live="polite"
+          className="flex flex-wrap justify-center gap-x-3 text-sm leading-6"
+        >
           {story.goals.map((goal) => (
             <li
               key={goal.label}

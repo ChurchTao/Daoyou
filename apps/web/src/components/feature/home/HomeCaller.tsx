@@ -1,9 +1,8 @@
 import { HomeAct, HomeLabel } from '@app/components/feature/home/HomeAct';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { cn } from '@app/lib/cn';
-import { getSectPresentation } from '@app/lib/sect/sectPresentation';
 import { storyCastFace } from '@app/lib/story/performanceContext';
-import { getMapAreaContent } from '@daoyou/game-content/world/map';
+import { storyMapPlaceName } from '@app/lib/story/storyMapPlaceName';
 import type { PerformanceContext } from '@daoyou/game-domain/performance';
 import type { StoryView } from '@daoyou/game-domain/story';
 
@@ -29,17 +28,7 @@ export function HomeCaller({
     ? (hail.portrait ?? storyCastFace(hail.by, sectId))
     : undefined;
   const act = story.actionLabel ?? story.prompt.replace(/[。！]$/, '');
-  const location = story.location;
-  const place =
-    location?.kind === 'area'
-      ? getMapAreaContent(location.areaId)?.places.find(
-          ({ id }) => id === location.placeId,
-        )?.name
-      : location?.kind === 'sect' && sectId
-        ? getSectPresentation(sectId).map.hotspots.find(
-            ({ id }) => id === location.spotId,
-          )?.label
-        : undefined;
+  const place = storyMapPlaceName(story.location, sectId);
 
   return (
     <section data-guide="home.story">

@@ -200,9 +200,7 @@ export function AtlasArea({
       未找到该地点，请从地点名录选择。
     </p>
   ) : storyPlace ? (
-    <GameTaskIndicator
-      map={{ place: storyPlace.name, hint: source ? directions : undefined }}
-    />
+    <GameTaskIndicator />
   ) : null;
 
   const directory = entries.length ? (
@@ -287,8 +285,7 @@ export function AtlasArea({
             backAction={backAction}
             mapMode={artwork ? mapMode : undefined}
           />
-          <LocalMapText>
-            {!view.blocked ? status : null}
+          <LocalMapText footer={!view.blocked ? status : null}>
             {directory}
           </LocalMapText>
         </>

@@ -198,6 +198,7 @@ const acceptanceSchema = z.discriminatedUnion('type', [
     .object({
       type: z.literal('fact'),
       fact: factSchema,
+      progressLabel: z.string().trim().min(1).max(40).optional(),
     })
     .strict(),
   z
@@ -560,7 +561,7 @@ export const StoryViewSchema = z
     fresh: z.array(z.string()),
     // 演出里选下并记住的标记，跨章节都认。
     flags: z.array(z.string()),
-    // 目标幕的各条目标。别的幕是空的。
+    // 当前幕展示给任务指示器的目标。
     goals: z.array(
       z
         .object({
@@ -596,6 +597,10 @@ export type StoryFacts = Record<StoryFactId, boolean> & {
   standing?: StoryStanding;
   /** 各项累计数眼下的值。 */
   counts?: Partial<Record<StoryCountId, number>>;
+  /** 带进度的事实由业务状态提供当前值和目标值。 */
+  factProgress?: Partial<
+    Record<StoryFactId, { current: number; target: number }>
+  >;
 };
 
 /** 一章里走到某一幕为止，沿途开放过的入口。不给幕就算整章。 */
