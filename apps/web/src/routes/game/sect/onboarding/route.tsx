@@ -20,6 +20,7 @@ import { productionSectRuntime } from '@daoyou/game-rules/sect-organization/prod
 import { useMemo, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { SectQueryError } from '../components/SectScene';
+import { MountainGateMap } from './MountainGateMap';
 import { MountainGateVisit } from './MountainGateVisit';
 import { SectFirstPath } from './SectFirstPath';
 
@@ -50,6 +51,7 @@ function MountainGate({
   fromRoad: boolean;
 }) {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const session = usePlayerSession();
   const profile = useCultivatorIdentity();
   const story = useStory();
@@ -129,6 +131,16 @@ function MountainGate({
     );
   }
 
+  if (
+    (choosingRoad || mineVisit) &&
+    checkpoint?.playHref &&
+    (!storyEntry ||
+      params.get('chapter') !== checkpoint.chapterId ||
+      params.get('beat') !== checkpoint.beatId)
+  ) {
+    return <Navigate to={checkpoint.href} replace />;
+  }
+
   const portrait =
     cultivator.gender === '女'
       ? 'icon:cultivator-female-avatar'
@@ -144,7 +156,7 @@ function MountainGate({
         exitLabel="稍后再看"
         busy={savingRoad}
         error={roadError}
-        onExit={() => navigate('/game')}
+        onExit={() => navigate(checkpoint.href, { replace: true })}
         onFinish={(outcome, chosen) => void saveRoad(outcome, chosen)}
       />
     );
@@ -156,7 +168,31 @@ function MountainGate({
           ?.id ?? activeSectId)
       : undefined);
   const selected = sects.find(({ id }) => id === selectedId);
+  const visitQuery =
+    mineVisit && checkpoint.playHref
+      ? new URLSearchParams(checkpoint.playHref.split('?')[1])
+      : undefined;
+  visitQuery?.delete('from');
+  const choicesHref = visitQuery ? entrance + '?' + visitQuery : origin;
+  const visitHref = (id: string, play = false) => {
+    const query = new URLSearchParams(visitQuery);
+    query.set('sectId', id);
+    if (play) query.set('view', 'arrival');
+    return entrance + '?' + query;
+  };
   if (selected && (mineVisit || available.has(selected.id))) {
+    if (mineVisit && params.get('view') !== 'arrival') {
+      return (
+        <MountainGateMap
+          key={selected.id}
+          sectId={selected.id}
+          sectName={selected.name}
+          backHref={checkpoint.href}
+          choicesHref={choicesHref}
+          playHref={visitHref(selected.id, true)}
+        />
+      );
+    }
     const admission = productionSectRuntime.registry
       .require(selected.id)
       .checkAdmission({
@@ -180,7 +216,8 @@ function MountainGate({
         admissionBlock={mineVisit ? admissionBlock : undefined}
         portrait={portrait}
         context={storyPerformanceContext(cultivator, selected.id)}
-        origin={origin}
+        origin={mineVisit ? checkpoint.href : origin}
+        exitHref={mineVisit ? visitHref(selected.id) : undefined}
         storyEntry={storyEntry}
         checkpoint={checkpoint}
         chapterVisit={Boolean(chapterVisit)}
@@ -189,7 +226,7 @@ function MountainGate({
   }
   if (storyEntry && !chapterVisit)
     return <Navigate to={checkpoint?.href ?? '/game'} replace />;
-  if (sectId) return <Navigate to={origin} replace />;
+  if (sectId) return <Navigate to={mineVisit ? choicesHref : origin} replace />;
 
   return (
     <PerformancePlayer
@@ -203,12 +240,16 @@ function MountainGate({
       playerPortrait={portrait}
       finalLabel="继续"
       exitLabel="稍后再问"
-      onExit={() => navigate('/game')}
+      onExit={() => navigate(mineVisit ? checkpoint.href : '/game')}
       onFinish={(id) => {
         if (
           mineVisit ? !sects.some((sect) => sect.id === id) : !available.has(id)
         )
           return;
+        if (mineVisit) {
+          navigate(visitHref(id), { replace: true });
+          return;
+        }
         const query = new URLSearchParams({ sectId: id });
         if (chapterVisit) query.set('entry', 'gate');
         navigate(entrance + '?' + query, { replace: true });

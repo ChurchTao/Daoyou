@@ -243,7 +243,11 @@ export function GameMapLayout({
     scene && scene.presentation !== 'immersive' ? 'paper' : 'scene';
   return (
     <main className="h-dvh">
-      <ImmersiveGameFrame scrollContent={scrollContent} surface={surface}>
+      <ImmersiveGameFrame
+        scrollContent={scrollContent}
+        surface={surface}
+        showTask={scene?.id !== 'map' && scene?.id !== 'sect'}
+      >
         <div className="h-full">
           <SceneGate>
             <Outlet />

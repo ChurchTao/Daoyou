@@ -15,12 +15,18 @@ import {
 import { useStory } from '@app/lib/story/useStory';
 import { getPerformanceScript } from '@daoyou/game-content/performance/catalog';
 import type { StoryView } from '@daoyou/game-domain/story';
+import { sameMapPlace } from '@daoyou/game-domain/world/map';
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
 
 const LEAVE_MS = 350;
 
 export default function StoryRoute() {
+  const { key } = useLocation();
+  return <StoryRead key={key} />;
+}
+
+function StoryRead() {
   const navigate = useNavigate();
   const location = useLocation();
   const story = useStory();
@@ -106,10 +112,7 @@ export default function StoryRoute() {
             ? 'icon:cultivator-female-avatar'
             : 'icon:cultivator-male-avatar'
         }
-        finalLabel={
-          checkpoint.finishLabel ??
-          (script.id === 'mine-sparring-verdict' ? '留下看同门试手' : '继续')
-        }
+        finalLabel={checkpoint.finishLabel ?? '继续'}
         exitLabel="稍后再看"
         busy={Boolean(finishing)}
         error={error}
@@ -135,15 +138,28 @@ export default function StoryRoute() {
           )
             .then((response) => consumeResourceMutation<StoryView>(response))
             .then((next) => {
-              // 接着还是演出就直接换幕；要回到游戏界面，先让纸页淡下去。
-              if (!exitHref && next.kind === 'performance' && !next.location) {
-                setFinishing(undefined);
-                void navigate(next.href, { replace: true });
+              const sameEntry =
+                checkpoint.location &&
+                next.location &&
+                sameMapPlace(checkpoint.location, next.location) &&
+                checkpoint.entry?.kind === next.entry?.kind &&
+                checkpoint.entry?.id === next.entry?.id;
+              if (
+                !exitHref &&
+                next.kind === 'performance' &&
+                (!next.location || (sameEntry && next.playHref))
+              ) {
+                void navigate(next.playHref ?? next.href, { replace: true });
                 return;
               }
               // 地点之间沿用当前的淡出，缩放和旋转时亦可直接恢复到目的地。
               setExitTo({
-                href: exitHref ?? next.href,
+                href:
+                  exitHref ??
+                  (sameEntry && checkpoint.finishLabel && next.kind === 'battle'
+                    ? next.playHref
+                    : undefined) ??
+                  next.href,
                 viewTransition: !checkpoint.location && !next.location,
               });
             })

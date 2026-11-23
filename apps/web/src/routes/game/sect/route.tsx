@@ -5,18 +5,22 @@ import {
   useSectContextQuery,
   useSectInfrastructureQuery,
 } from '@app/components/feature/sect/sectResources';
-import { StoryLocationAction } from '@app/components/feature/story/StoryLocationAction';
 import { GameLoadingState } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui';
-import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { formatDocumentTitle } from '@app/lib/router/routeTitle';
 import { getSectPresentation } from '@app/lib/sect/sectPresentation';
 import { useStory } from '@app/lib/story/useStory';
+import { storySceneOpen } from '@daoyou/game-domain/story/gates';
 import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { SectImmersiveFrame } from './components/SectImmersiveFrame';
 import { SectMemberMapLocation } from './components/SectMemberMapLocation';
 import { SectQueryError } from './components/SectScene';
+
+const FACILITY_STORY_GATES: Readonly<Record<string, string>> = {
+  alchemy: 'sect-alchemy',
+  refinery: 'sect-refinery',
+};
 
 export default function SectPage() {
   const navigate = useNavigate();
@@ -25,7 +29,11 @@ export default function SectPage() {
   const { story } = useStory();
   const storySpotId =
     story?.location?.kind === 'sect' ? story.location.spotId : undefined;
-  const closeMap = () => navigate('/game', { replace: true });
+  const beforeCave = storySpotId && !storySceneOpen(story?.unlocked, 'map');
+  const closeMap = () =>
+    navigate(beforeCave ? (story?.href ?? '/game') : '/game', {
+      replace: true,
+    });
 
   const context = useSectContextQuery();
   const infrastructure = useSectInfrastructureQuery();
@@ -82,13 +90,21 @@ export default function SectPage() {
   const permissions = context.data.permissions;
   const presentation = getSectPresentation(definition.id);
   const mapScene = presentation.scenes.map;
+  const hotspots = presentation.map.hotspots.map((spot) =>
+    storySceneOpen(story?.unlocked, FACILITY_STORY_GATES[spot.id])
+      ? spot
+      : { ...spot, locked: true },
+  );
   return (
     <>
       <title>{formatDocumentTitle(mapScene.title)}</title>
       <SectMap
         key={spotId ?? 'map'}
         title={mapScene.title}
-        backAction={{ label: '关闭地图', onBack: closeMap }}
+        backAction={{
+          label: beforeCave ? '回主线地点' : '关闭地图',
+          onBack: closeMap,
+        }}
         storySpotId={storySpotId}
         onCloseLocation={
           spotId
@@ -104,40 +120,27 @@ export default function SectPage() {
         image={presentation.map.image}
         alt={presentation.map.alt}
         aspectRatio={presentation.map.aspectRatio}
-        hotspots={presentation.map.hotspots}
+        hotspots={hotspots}
         facilities={facilities}
         permissions={permissions}
         rooms={presentation.rooms}
         scenes={presentation.scenes}
         renderLocation={(location) => {
           const { spot } = location;
-          if (story && spot.id === storySpotId) {
-            return (
-              <InkDetailDrawer
-                isOpen
-                onClose={location.onClose}
-                title={spot.label}
-                description={story.prompt}
-                size="sm"
-                overlayClassName="bg-ink/20"
-                footer={location.footer}
-              >
-                <StoryLocationAction story={story} />
-              </InkDetailDrawer>
-            );
-          }
-          if (
-            (spot.id !== 'gate' && spot.id !== 'affairs') ||
-            !spot.permission ||
-            !permissions[spot.permission]?.granted
-          )
-            return null;
-          const room = presentation.rooms[spot.id];
-          return room ? (
+          const storyAtSpot = spot.id === storySpotId ? story : undefined;
+          const room =
+            (spot.id === 'gate' || spot.id === 'affairs') &&
+            spot.permission &&
+            permissions[spot.permission]?.granted
+              ? presentation.rooms[spot.id]
+              : undefined;
+          return storyAtSpot || room ? (
             <SectMemberMapLocation
-              key={spot.id}
+              key={storyAtSpot?.beatId ?? spot.id}
               room={room}
               location={location}
+              story={storyAtSpot}
+              sectId={definition.id}
             />
           ) : null;
         }}

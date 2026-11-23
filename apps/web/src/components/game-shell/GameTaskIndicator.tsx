@@ -18,33 +18,44 @@ function matchesLocation(target: URL, current: URL) {
   );
 }
 
-export function GameTaskIndicator() {
+export function GameTaskIndicator({
+  map,
+}: {
+  map?: { place: string; hint?: string };
+}) {
   const { story } = useStory();
   const location = useLocation();
   const scene = resolveGameScene(useMatches());
   const origin = window.location.origin;
   const current = new URL(location.pathname + location.search, origin);
-  const target = story?.prompt ? new URL(story.href, origin) : null;
+  const target =
+    story && (story.prompt || map?.hint) ? new URL(story.href, origin) : null;
+  const activity = story?.playHref ? new URL(story.playHref, origin) : null;
   const onSite = Boolean(target && matchesLocation(target, current));
+  const inActivity = Boolean(activity && matchesLocation(activity, current));
   const related =
     onSite ||
+    inActivity ||
     story?.indicatorFrom?.some((source) =>
       matchesLocation(new URL(source, origin), current),
     );
-  const show = scene?.id !== 'cave' && related && !(story?.location && onSite);
+  const show =
+    Boolean(map) ||
+    (scene?.id !== 'cave' && related && !(story?.location && onSite));
   const params = current.searchParams;
   const inStorage =
     params.get('location') !== 'bag' &&
     (scene?.id === 'storage' || params.get('location') === 'storage');
-  const itemId = show ? story?.targetItem?.id : undefined;
+  const itemId = show && !map ? story?.targetItem?.id : undefined;
   const bag = useInventoryBag(Boolean(itemId));
 
   if (!story || !target || !show) return null;
 
-  const guide = story.guideLesson;
+  const guide = map ? null : story.guideLesson;
   const inLesson = Boolean(guide && params.get('guide') === guide);
-  if (!guide) target.searchParams.delete('guide');
-  const href = target.pathname + target.search + target.hash;
+  const actionTarget = inActivity && activity ? activity : target;
+  if (!guide) actionTarget.searchParams.delete('guide');
+  const href = actionTarget.pathname + actionTarget.search + actionTarget.hash;
   const item = itemId
     ? bag.data?.items.find((entry) => entry.id === itemId)
     : undefined;
@@ -57,7 +68,9 @@ export function GameTaskIndicator() {
     !bag.data.equippedItems.some((entry) => entry.id === itemId);
   const recovery = missing ? story.targetItem?.missingAction : undefined;
   let action: { href: string; label: string } | undefined;
-  let prompt = story.prompt;
+  let prompt = map
+    ? (map.hint ?? `${map.place} · ${story.prompt}`)
+    : story.prompt;
   if (missing) {
     prompt = inStorage
       ? '找到目标物品后，先取回随身物品。'
@@ -71,28 +84,28 @@ export function GameTaskIndicator() {
     }
   } else if (itemId && inStorage) {
     action = { href, label: '回随身物品' };
-  } else if (!onSite) {
-    action = {
-      href,
-      label:
-        story.actionLabel ??
-        (story.kind === 'performance' ? '继续剧情' : '前往'),
-    };
-  } else if (guide) {
+  } else if ((onSite || inActivity) && guide) {
     action = { href, label: '查看教学' };
-  } else if (item && params.get('item') !== item.id) {
+  } else if ((onSite || inActivity) && item && params.get('item') !== item.id) {
     action = { href, label: '定位物品' };
   }
 
   return (
     <aside
       aria-label="任务指示器"
-      className="border-ink/15 text-ink dark:bg-paper/95 pointer-events-auto mx-auto mb-2 w-fit max-w-[calc(100%-2rem)] rounded-md border bg-white/95 px-4 py-1.5 backdrop-blur-sm"
+      className={cn(
+        'border-ink/15 text-ink bg-paper/95 mx-auto mb-2 w-fit rounded-sm border px-3 backdrop-blur-sm',
+        map
+          ? 'pointer-events-none max-w-full py-2 shadow-sm'
+          : 'pointer-events-auto max-w-[calc(100%-2rem)] py-1.5',
+      )}
     >
       <div className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-0.5 leading-6">
-        <span className="text-ink-secondary shrink-0 text-xs tracking-[0.2em]">
-          {story.track === 'main' ? '主线' : '奇遇'}
-        </span>
+        {!map ? (
+          <span className="text-ink-secondary shrink-0 text-xs tracking-[0.2em]">
+            {story.track === 'main' ? '主线' : '奇遇'}
+          </span>
+        ) : null}
         <div role="status" className="min-w-0 text-sm">
           {prompt}
           {item ? (
@@ -100,21 +113,25 @@ export function GameTaskIndicator() {
           ) : null}
         </div>
         {!inLesson && action ? (
-          <InkButton href={action.href} variant="primary" className="min-h-11">
+          <InkButton
+            href={action.href}
+            variant="secondary"
+            className="min-h-11"
+          >
             {action.label}
           </InkButton>
         ) : null}
         {!inLesson && recovery ? (
           <InkButton
             href={recovery.href}
-            variant="primary"
+            variant="secondary"
             className="min-h-11"
           >
             {recovery.label}
           </InkButton>
         ) : null}
       </div>
-      {story.goals.length > 0 ? (
+      {!map && story.goals.length > 0 ? (
         <ul className="flex flex-wrap justify-center gap-x-3 text-sm leading-6">
           {story.goals.map((goal) => (
             <li

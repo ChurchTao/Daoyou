@@ -6,7 +6,7 @@ import { InkButton } from '@app/components/ui';
 import { useStory } from '@app/lib/story/useStory';
 import type { StoryBattleSessionView } from '@daoyou/contracts/combat/story-battle';
 import { useEffect, useRef, useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router';
+import { Navigate, useNavigate, useSearchParams } from 'react-router';
 
 const BASE = '/api/combat-v6/story-battle';
 
@@ -18,10 +18,12 @@ export default function StoryBattlePage() {
   const { story, loading: storyLoading, reload: reloadStory } = useStory();
   const combat = useCombatV6Session<StoryBattleSessionView>(BASE);
   const navigate = useNavigate();
-  const location = useLocation();
+  const [params] = useSearchParams();
   const { session, run, acceptSession } = combat;
   const atBattleEntry =
-    !story?.playHref || location.pathname + location.search === story.playHref;
+    !story?.playHref ||
+    (params.get('chapter') === story.chapterId &&
+      params.get('beat') === story.beatId);
   const wanted = atBattleEntry ? (story?.battleId ?? null) : null;
   // 这次进页面亲手打过的一场。只凭它判断要不要留在结算画面上。
   const [fought, setFought] = useState<string | null>(null);
@@ -70,7 +72,7 @@ export default function StoryBattlePage() {
       story.kind === 'life' && !story.location ? '/game' : story.href,
       {
         replace: true,
-        viewTransition: true,
+        viewTransition: !story.location,
       },
     );
   };
@@ -83,8 +85,8 @@ export default function StoryBattlePage() {
       loading={!mine && !combat.error}
       error={combat.error}
       onRetry={() => void combat.refresh(true)}
-      back="/game"
-      backLabel="回洞府"
+      back={story?.location ? story.href : '/game'}
+      backLabel={story?.location ? '回主线地点' : '回洞府'}
     >
       {mine ? (
         <CombatV6Battle

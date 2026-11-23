@@ -18,7 +18,18 @@
         "community",
         "download",
         "redeem"
-      ]
+      ],
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "mine-shed"
+      },
+      "actionLabel": "去找咪咪",
+      "entry": {
+        "kind": "npc",
+        "id": "mimi"
+      },
+      "finishLabel": "走到木桥"
     },
     {
       "id": "bridge",
@@ -27,7 +38,15 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "带咪咪过木桥。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "wooden-bridge"
+      },
+      "actionLabel": "带咪咪过木桥",
+      "finishLabel": "落到石滩",
+      "entry": { "kind": "facility", "id": "wooden-crossing" }
     },
     {
       "id": "fight",
@@ -37,7 +56,13 @@
       "scene": "story-battle",
       "prompt": "山豕跟到了石滩。",
       "actionLabel": "应付山豕",
-      "href": "/game/story/battle?guide=story-battle-basics"
+      "href": "/game/story/battle?guide=story-battle-basics",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "bridge-shoal"
+      },
+      "entry": { "kind": "facility", "id": "sheltered-pier" }
     }
   ],
   "gated": true,

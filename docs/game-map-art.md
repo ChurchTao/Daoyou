@@ -12,15 +12,18 @@
 | 南疆区域底画 | [nanjiang-region-v1.webp](../apps/web/public/assets/maps/nanjiang-region-v1.webp) | `/assets/maps/nanjiang-region-v1.webp` | 1536×1024 | 760,402 bytes | 已接入 |
 | 北境冰原区域底画 | [northland-region-v1.webp](../apps/web/public/assets/maps/northland-region-v1.webp) | `/assets/maps/northland-region-v1.webp` | 1536×1024 | 617,564 bytes | 已接入 |
 
-上述七张均为不透明背景图，不是节点图集，已接入 `/game/map-v2`。天南、乱星海、慕兰草原、大晋皇朝、南疆、北境冰原分别锚定现有 23 个、11 个、4 个、20 个、5 个、3 个地点。入口、地点、文字与命中区由交互层独立提供，锚点按各自构图确定，新版不绘制节点连线。一级地图另标注天澜草原、天沙大陆、五龙海、无边海、极西之地、飓风沙漠，均显示“未开放”并禁用进入；这六区底画尚未制作，仅标注地理名称。现有规格不约束后续素材。
+上述七张均为不透明背景图，不是节点图集，已接入 `/game/map-v2`。入口、地点、文字与命中区由交互层独立提供，锚点按各自构图确定，新版不绘制节点连线。一级地图另标注天澜草原、天沙大陆、五龙海、无边海、极西之地、飓风沙漠，均显示“未开放”并禁用进入；这六区底画尚未制作，仅标注地理名称。现有规格不约束后续素材。
 
 ## 主节点子地图
 
 | 用途 | 文件 | 静态 URL | 尺寸 | 大小 | 接入状态 |
 | --- | --- | --- | ---: | ---: | --- |
 | 太岳山脚至白水渡水路 | [taiyue-baishui-v1.webp](../apps/web/public/assets/maps/taiyue-baishui-v1.webp) | `/assets/maps/taiyue-baishui-v1.webp` | 1536×1024 | 514,998 bytes | 已接入 `/game/map-v2?area=TN_YUE_01`，三个地点热点由交互层叠加 |
+| 开篇故乡与矿坡河谷 | [mine-valley-v1.webp](../apps/web/public/assets/maps/mine-valley-v1.webp) | `/assets/maps/mine-valley-v1.webp` | 1536×1024 | 650,852 bytes | 已接入 `/game/map-v2?area=TN_MINE_VALLEY`，矿棚、木桥、石滩、药婆家和村口渡口由交互层叠加 |
 
 太岳底画可见山脚石亭、柳树、同岸芦苇渡埠和对岸白墙镇落。底画覆盖接引亭至白水渡水路，太岳山其余玩法在区域地点列表中。锚点见 [主节点区域内容](../packages/game-content/src/world/areas.ts)。
+
+矿坡河谷用河分出矿坡和村岸。木桥表示平日的道路，桥下石滩和村岸之间保留河水。桥断、遇袭和御风分别在对应的演出及战斗中呈现。药婆家和村口渡口同在村岸。
 
 ## 宗门独立舆图
 

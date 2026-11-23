@@ -123,21 +123,27 @@ export type WorldMapLocation = MapNodeInfo | SectLandmark;
 
 export type MapPlaceRef =
   | { kind: 'area'; areaId: string; placeId: string }
-  | { kind: 'sect'; spotId: string };
+  | { kind: 'sect'; spotId: string }
+  | { kind: 'cave' };
 
 export interface MapPassage {
   id: string;
   from: MapPlaceRef;
   to: MapPlaceRef;
   label: string;
+  entrance: { name: string; description: string };
 }
 
 export function sameMapPlace(left: MapPlaceRef, right: MapPlaceRef): boolean {
-  return left.kind === 'area'
-    ? right.kind === 'area' &&
-        left.areaId === right.areaId &&
-        left.placeId === right.placeId
-    : right.kind === 'sect' && left.spotId === right.spotId;
+  if (left.kind === 'area')
+    return (
+      right.kind === 'area' &&
+      left.areaId === right.areaId &&
+      left.placeId === right.placeId
+    );
+  if (left.kind === 'sect')
+    return right.kind === 'sect' && left.spotId === right.spotId;
+  return right.kind === 'cave';
 }
 
 export interface MapAreaPlace {
@@ -156,6 +162,8 @@ export interface MapPlaceNpc {
   name: string;
   action: string;
   reply: string;
+  portrait?: string;
+  storyOnly?: boolean;
 }
 
 export interface MapPlaceFacility {

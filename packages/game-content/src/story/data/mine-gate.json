@@ -10,7 +10,18 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "早渡靠岸，去接引亭。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "foothill-pavilion"
+      },
+      "actionLabel": "在柳树渡埠下船",
+      "entry": {
+        "kind": "facility",
+        "id": "foothill-landing"
+      },
+      "finishLabel": "去亭中看看"
     },
     {
       "id": "visit",
@@ -18,8 +29,18 @@
       "script": "mine-gate-study",
       "outcome": "done",
       "scene": "sect-onboarding",
-      "prompt": "去先前挑的山门看一看。",
-      "href": "/game/sect/onboarding?entry=gate&from=road"
+      "prompt": "到接引传送阵，按路帖去先前挑的山门。",
+      "href": "/game/sect/onboarding?entry=gate&from=road",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "foothill-pavilion"
+      },
+      "actionLabel": "持路帖去山门",
+      "entry": {
+        "kind": "facility",
+        "id": "sect-array"
+      }
     },
     {
       "id": "join",
@@ -32,7 +53,17 @@
           "type": "fact",
           "fact": "sect_joined"
         }
-      ]
+      ],
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "foothill-pavilion"
+      },
+      "actionLabel": "去想拜入的山门",
+      "entry": {
+        "kind": "facility",
+        "id": "sect-array"
+      }
     },
     {
       "id": "register",
@@ -41,7 +72,17 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "在名册前报上自己的名字。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "gate"
+      },
+      "actionLabel": "在名册前报上名字",
+      "entry": {
+        "kind": "npc",
+        "id": "register-keeper"
+      },
+      "finishLabel": "去找教习"
     },
     {
       "id": "home",
@@ -50,16 +91,34 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "找教习领洞府钥匙。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "arena"
+      },
+      "actionLabel": "找教习领洞府钥匙",
+      "entry": {
+        "kind": "npc",
+        "id": "instructor"
+      },
+      "finishLabel": "在洞府歇下"
     },
     {
       "id": "settle-in",
       "kind": "practice",
-      "accept": [{ "type": "guide", "lesson": "cave-first-steps" }],
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "cave-first-steps"
+        }
+      ],
       "scene": "cave",
       "prompt": "明早去练功院找教习。",
       "actionLabel": "去上早课",
-      "href": "/game?guide=cave-first-steps"
+      "href": "/game?guide=cave-first-steps",
+      "location": {
+        "kind": "cave"
+      }
     }
   ],
   "gated": true,

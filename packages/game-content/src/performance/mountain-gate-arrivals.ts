@@ -223,10 +223,10 @@ export function createMountainGateArrival(
   ];
   const arrivalCues: PerformanceCue[] = study
     ? [
-        { type: 'scene', alt: '山脚 · 接引亭' },
+        { type: 'scene', alt, src },
         {
           type: 'narration',
-          text: '守阵的人问清你要去哪家，叫你抱稳咪咪。你踏进石阵，还能听见渡埠上叫卖的声音。再迈一步，身后就听不见人声了。你抬头看见了山门。',
+          text: '你抱稳咪咪，走到山门跟前。方才踏过石阵，渡埠的叫卖声一下就远了。',
         },
         ...study.cues
           .slice(0, -1)

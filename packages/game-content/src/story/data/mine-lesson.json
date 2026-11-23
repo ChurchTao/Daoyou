@@ -13,7 +13,15 @@
       "scene": "story",
       "prompt": "带咪咪去上早课，看看本宗的两路练法。",
       "actionLabel": "去上早课",
-      "href": "/game/story"
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "arena"
+      },
+      "entry": {
+        "kind": "npc",
+        "id": "instructor"
+      }
     },
     {
       "id": "path",
@@ -22,7 +30,20 @@
       "prompt": "到教习面前，挑一路先练。",
       "actionLabel": "选先练的流派",
       "href": "/game/sect/onboarding?entry=path&from=story",
-      "accept": [{ "type": "fact", "fact": "sect_ready" }]
+      "accept": [
+        {
+          "type": "fact",
+          "fact": "sect_ready"
+        }
+      ],
+      "location": {
+        "kind": "sect",
+        "spotId": "arena"
+      },
+      "entry": {
+        "kind": "npc",
+        "id": "instructor"
+      }
     },
     {
       "id": "form",
@@ -32,7 +53,15 @@
       "scene": "story",
       "prompt": "照教习的指点练一遍心法，翻看下午试手能用的招。",
       "actionLabel": "跟教习练一遍",
-      "href": "/game/story"
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "arena"
+      },
+      "entry": {
+        "kind": "npc",
+        "id": "instructor"
+      }
     }
   ]
 }

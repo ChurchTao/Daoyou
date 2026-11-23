@@ -101,6 +101,14 @@
       "description": "天南第一禁地，内部充斥着空间裂缝，传闻有上古修士宝藏。"
     },
     {
+      "id": "TN_MINE_VALLEY",
+      "name": "矿坡河谷",
+      "region": "天南",
+      "realm_requirement": "炼气",
+      "tags": ["故乡", "渡口"],
+      "description": "矿工下工后沿车道过木桥回村。村口早渡顺流去山脚接引亭。"
+    },
+    {
       "id": "TN_BORDER_01",
       "name": "矿区·灵石矿",
       "region": "天南",

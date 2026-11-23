@@ -27,9 +27,18 @@ import {
   storySceneOpen,
 } from '@daoyou/game-domain/story/gates';
 import { sameMapPlace, type MapPlaceRef } from '@daoyou/game-domain/world/map';
+import { STANDARD_SECT_PRESENTATION } from '../sect-organization/standard/presentation.js';
 import { getMapAreaContent, getMapPassage } from '../world/areas.js';
+import { getMapNode } from '../world/map.js';
+import { getSectStoryEntry } from '../world/sect-story-entries.js';
+
+const sectSpots = new Set(
+  STANDARD_SECT_PRESENTATION.map.hotspots.map(({ id }) => id),
+);
 
 function areaPlace(location: Extract<MapPlaceRef, { kind: 'area' }>) {
+  const node = getMapNode(location.areaId);
+  if (!node || !('region' in node)) return undefined;
   return getMapAreaContent(location.areaId)?.places.find(
     ({ id }) => id === location.placeId,
   );
@@ -38,7 +47,7 @@ function areaPlace(location: Extract<MapPlaceRef, { kind: 'area' }>) {
 function parseChapter(input: unknown): StoryChapter {
   const chapter = StoryChapterSchema.parse(input);
   for (const beat of chapter.beats) {
-    if (beat.entry && !beat.location) {
+    if (beat.entry && (!beat.location || beat.location.kind === 'cave')) {
       throw new Error(`剧情入口缺少地点：${chapter.id}/${beat.id}`);
     }
     if (beat.location?.kind === 'area') {
@@ -53,6 +62,13 @@ function parseChapter(input: unknown): StoryChapter {
       ) {
         throw new Error(`剧情地点或现场入口不存在：${chapter.id}/${beat.id}`);
       }
+    }
+    if (
+      beat.location?.kind === 'sect' &&
+      (!sectSpots.has(beat.location.spotId) ||
+        (beat.entry && !getSectStoryEntry(beat.location.spotId, beat.entry)))
+    ) {
+      throw new Error(`宗门剧情地点或现场入口不存在：${chapter.id}/${beat.id}`);
     }
     if (beat.kind === 'passage') {
       const passage = getMapPassage(beat.passage.id);
@@ -143,9 +159,24 @@ for (const chapter of chapters.values()) {
   const opened: string[] = [];
   let chapter = chapters.get(OPENING_STORY_CHAPTER);
   const seen = new Set<string>();
-  while (chapter && !seen.has(chapter.id)) {
+  while (chapter) {
+    if (seen.has(chapter.id)) {
+      throw new Error(`主线章节循环接续：${chapter.id}`);
+    }
     seen.add(chapter.id);
     for (const beat of chapter.beats) {
+      if (!beat.location) {
+        throw new Error(`主线幕缺少地点：${chapter.id}/${beat.id}`);
+      }
+      if (
+        beat.location.kind !== 'cave' &&
+        (beat.kind === 'performance' ||
+          beat.kind === 'battle' ||
+          beat.kind === 'practice') &&
+        !beat.entry
+      ) {
+        throw new Error(`主线幕缺少现场入口：${chapter.id}/${beat.id}`);
+      }
       for (const gate of beat.unlocks ?? []) {
         if (!isStoryGate(gate))
           throw new Error(

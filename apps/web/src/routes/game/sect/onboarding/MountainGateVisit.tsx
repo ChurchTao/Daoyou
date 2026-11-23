@@ -24,6 +24,7 @@ export function MountainGateVisit({
   portrait,
   context,
   origin,
+  exitHref,
   storyEntry,
   checkpoint,
   chapterVisit,
@@ -35,6 +36,7 @@ export function MountainGateVisit({
   portrait: string;
   context: PerformanceContext;
   origin: string;
+  exitHref?: string;
   storyEntry: boolean;
   checkpoint?: StoryView;
   chapterVisit: boolean;
@@ -135,8 +137,8 @@ export function MountainGateVisit({
       finalLabel={admission === 'join' ? '拜入' + sectName : '继续'}
       busy={saving}
       error={error}
-      exitLabel={backLabel}
-      onExit={back}
+      exitLabel={exitHref ? '回山门舆图' : backLabel}
+      onExit={() => navigate(exitHref ?? origin, { replace: true })}
       onFinish={(outcome) => void finish(outcome)}
     />
   );

@@ -100,6 +100,7 @@ pnpm run db:migrate
 
 ## Data And Domain Rules
 
+- 设计或接入主线章节时遵循 [主线章节与演出的接入](docs/main-story-design.md)。逐幕落实地点、NPC 或设施入口、完成依据及返回落点。复用已有地点，重要通路与真实玩法由对应系统结算，迁移时保留已上线的章幕 ID。
 - Do not create parallel `src/db` or `apps/api/src/db`; DB entrypoints are `apps/api/src/lib/drizzle/db.ts` and `schema.ts`.
 - The main Drizzle Kit flow manages only `wanjiedaoyou_*` business tables. `drizzle.auth.config.ts` independently manages the fixed `better_auth` schema.
 - Nest `DatabaseModule` exposes the same Drizzle client through `DRIZZLE_DATABASE`; never create a second pool. `RuntimeService` closes `DatabaseService` only after draining requests and messaging.

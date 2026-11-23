@@ -5,6 +5,7 @@ export function storyLocationHref(
   location: MapPlaceRef,
   directions = false,
 ): string {
+  if (location.kind === 'cave') return '/game';
   if (location.kind === 'sect') {
     return `/game/sect?${new URLSearchParams({ spot: location.spotId })}`;
   }

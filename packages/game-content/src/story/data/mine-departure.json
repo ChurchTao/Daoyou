@@ -10,7 +10,17 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "抱咪咪去看看腿脚。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "herbalist-home"
+      },
+      "actionLabel": "请药婆看看咪咪",
+      "entry": {
+        "kind": "npc",
+        "id": "herbalist"
+      }
     },
     {
       "id": "cub",
@@ -24,7 +34,17 @@
       "scene": "beasts",
       "prompt": "打开灵兽袋，看看咪咪。",
       "href": "/game/beasts?guide=beast-pouch",
-      "unlocks": ["beasts", "beast-room"]
+      "unlocks": [
+        "beasts",
+        "beast-room"
+      ],
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "herbalist-home"
+      },
+      "actionLabel": "打开灵兽袋",
+      "entry": { "kind": "npc", "id": "herbalist" }
     },
     {
       "id": "ask",
@@ -33,7 +53,18 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "把药包带给阿禾，顺路问问山门。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "village-ferry"
+      },
+      "actionLabel": "向阿禾打听山门",
+      "entry": {
+        "kind": "npc",
+        "id": "ahe"
+      },
+      "finishLabel": "看看路帖"
     },
     {
       "id": "routes",
@@ -43,7 +74,19 @@
       "scene": "sect-onboarding",
       "prompt": "问问阿禾，你想去的山门是什么样子。",
       "href": "/game/sect/onboarding?entry=gate",
-      "unlocks": ["sect"]
+      "unlocks": [
+        "sect"
+      ],
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "village-ferry"
+      },
+      "actionLabel": "请阿禾讲讲路帖",
+      "entry": {
+        "kind": "npc",
+        "id": "ahe"
+      }
     },
     {
       "id": "morning",
@@ -52,7 +95,31 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "在客簿上留个名字，明早乘船。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "village-ferry"
+      },
+      "actionLabel": "在客簿上留名",
+      "entry": {
+        "kind": "facility",
+        "id": "passenger-book"
+      },
+      "finishLabel": "回到船头"
+    },
+    {
+      "id": "ferry",
+      "kind": "passage",
+      "scene": "story",
+      "prompt": "早渡出了村口的河湾，沿河下行就到山脚接引亭。",
+      "actionLabel": "回村口渡口",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "village-ferry"
+      },
+      "passage": { "id": "village-ferry-to-foothill" }
     }
   ],
   "gated": true,

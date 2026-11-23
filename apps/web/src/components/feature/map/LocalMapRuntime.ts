@@ -6,6 +6,7 @@ export interface LocalMapMarker {
   label: string;
   x: number;
   y: number;
+  current?: boolean;
   locked: boolean;
   selectable: boolean;
 }
@@ -13,13 +14,11 @@ export interface LocalMapMarker {
 export interface LocalMapView {
   markers: readonly LocalMapMarker[];
   selectedId: string | null;
-  opacity: number;
   blocked?: boolean;
 }
 
 export interface LocalMapController {
   setView(view: LocalMapView): void;
-  focus(id: string): void;
   zoomIn(): void;
   zoomOut(): void;
   reset(): void;
@@ -65,7 +64,6 @@ export function attachLocalMap(args: LocalMapArguments): LocalMapController {
   let view = args.view;
   let pixelRatio = readPixelRatio();
   let destroyed = false;
-  let pendingFocus: string | undefined;
   const runtime: { scene?: LocalMapScene } = {};
   const canvasLabel =
     args.ariaLabel ?? '舆图，方向键切换地点，回车选择，Escape 取消';
@@ -74,6 +72,7 @@ export function attachLocalMap(args: LocalMapArguments): LocalMapController {
     private background!: Phaser.GameObjects.Image;
     private displays: MarkerDisplay[] = [];
     private renderedMarkers?: LocalMapView['markers'];
+    private selectedId: string | null = null;
     private hoveredId?: string;
     private focusedId?: string;
     private mapWidth = 1;
@@ -97,20 +96,20 @@ export function attachLocalMap(args: LocalMapArguments): LocalMapController {
       runtime.scene = this;
       this.resize(this.center());
       this.updateView();
-      const initialFocus = pendingFocus ?? view.selectedId;
-      if (initialFocus) this.focus(initialFocus);
       args.onReady();
     }
 
     updateView() {
-      this.background.setAlpha(view.opacity);
       if (this.renderedMarkers !== view.markers) {
         for (const { group } of this.displays) group.destroy();
         this.displays = view.markers.map((marker) => this.addMarker(marker));
         this.renderedMarkers = view.markers;
       }
       if (view.blocked) this.hoveredId = undefined;
-      this.layoutMarkers();
+      const selectedId = view.selectedId;
+      if (selectedId && selectedId !== this.selectedId) this.focus(selectedId);
+      else this.layoutMarkers();
+      this.selectedId = selectedId;
     }
 
     private addMarker(marker: LocalMapMarker): MarkerDisplay {
@@ -150,17 +149,16 @@ export function attachLocalMap(args: LocalMapArguments): LocalMapController {
         width: camera.width / pixelRatio,
         height: camera.height / pixelRatio,
       };
-      const priority = (id: string) =>
-        id === view.selectedId
-          ? 3
-          : id === this.focusedId
-            ? 2
-            : id === this.hoveredId
-              ? 1
-              : 0;
       const projected = this.displays
         .map(({ marker, group, ring, label }) => {
-          const depth = priority(marker.id);
+          const depth =
+            marker.id === view.selectedId
+              ? 3
+              : marker.id === this.focusedId
+                ? 2
+                : marker.current || marker.id === this.hoveredId
+                  ? 1
+                  : 0;
           group.setScale(scale).setDepth(depth + 1);
           ring.setVisible(depth > 0);
           label.setVisible(false);
@@ -243,15 +241,15 @@ export function attachLocalMap(args: LocalMapArguments): LocalMapController {
       };
     }
 
-    resize(center: Point, densityChange = 1) {
+    resize(center: Point) {
       const camera = this.cameras.main;
+      const zoomFactor = camera.zoom / this.minZoom;
       this.minZoom = Math.max(
         camera.width / this.mapWidth,
         camera.height / this.mapHeight,
       );
       if (this.atEntrance) this.reset();
-      else
-        this.placeCamera(center, this.clampZoom(camera.zoom * densityChange));
+      else this.placeCamera(center, this.clampZoom(this.minZoom * zoomFactor));
     }
 
     reset() {
@@ -319,17 +317,13 @@ export function attachLocalMap(args: LocalMapArguments): LocalMapController {
       this.layoutMarkers();
     }
 
-    focus(id: string, zoom = true) {
+    focus(id: string) {
       const display = this.displays.find(
         ({ marker }) => marker.id === id && marker.selectable,
       );
       if (!display) return;
       this.atEntrance = false;
-      const camera = this.cameras.main;
-      const nextZoom = zoom
-        ? Math.max(camera.zoom, this.minZoom * 1.35)
-        : camera.zoom;
-      this.placeCamera(display.group, nextZoom);
+      this.placeCamera(display.group, this.cameras.main.zoom);
     }
 
     private hit(
@@ -423,7 +417,7 @@ export function attachLocalMap(args: LocalMapArguments): LocalMapController {
         'aria-label',
         `${marker.label}，按回车选择，方向键切换地点`,
       );
-      this.focus(marker.id, false);
+      this.focus(marker.id);
       args.onInteract?.();
     }
   }
@@ -434,7 +428,7 @@ export function attachLocalMap(args: LocalMapArguments): LocalMapController {
     width: Math.max(1, Math.round(args.root.clientWidth * pixelRatio)),
     height: Math.max(1, Math.round(args.root.clientHeight * pixelRatio)),
     scale: { zoom: 1 / pixelRatio },
-    backgroundColor: '#e9e1cf',
+    transparent: true,
     banner: false,
     audio: { noAudio: true },
     input: { mouse: false, touch: false, keyboard: false },
@@ -595,7 +589,7 @@ export function attachLocalMap(args: LocalMapArguments): LocalMapController {
       Math.max(1, Math.round(args.root.clientWidth * pixelRatio)),
       Math.max(1, Math.round(args.root.clientHeight * pixelRatio)),
     );
-    if (center) runtime.scene?.resize(center, pixelRatio / previousRatio);
+    if (center) runtime.scene?.resize(center);
   };
   const observer = new ResizeObserver(resizeCanvas);
   observer.observe(args.root);
@@ -624,10 +618,6 @@ export function attachLocalMap(args: LocalMapArguments): LocalMapController {
         canvas.style.cursor = 'grab';
       }
       runtime.scene?.updateView();
-    },
-    focus(id) {
-      if (runtime.scene) runtime.scene.focus(id);
-      else pendingFocus = id;
     },
     zoomIn: () => zoom(ZOOM_STEP),
     zoomOut: () => zoom(1 / ZOOM_STEP),

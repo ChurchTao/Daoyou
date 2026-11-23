@@ -53,6 +53,16 @@ export function SectFirstPath() {
       />
     );
   }
+  const checkpoint = story.story;
+  if (
+    fromStory &&
+    checkpoint?.location &&
+    (params.get('chapter') !== checkpoint.chapterId ||
+      params.get('beat') !== checkpoint.beatId) &&
+    !saving
+  ) {
+    return <Navigate to={checkpoint.href} replace />;
+  }
   if (!build?.sectId) return <Navigate to="/game/sect" replace />;
   if (!build.paths.length) {
     return (
@@ -65,17 +75,25 @@ export function SectFirstPath() {
   }
   function nextHref(next?: StoryView) {
     if (!fromStory) return workshop;
-    return next?.beatId === 'path' ? '/game' : (next?.href ?? '/game');
+    return next?.href ?? '/game';
   }
   if (build.activePathId && !saving) {
     return <Navigate to={nextHref(story.story)} replace />;
   }
   const sectId = build.sectId;
+  const presentation = getSectPresentation(sectId);
+  const spotId =
+    fromStory && checkpoint?.location?.kind === 'sect'
+      ? checkpoint.location.spotId
+      : undefined;
+  const place =
+    presentation.map.hotspots.find(({ id }) => id === spotId)?.label ??
+    presentation.scenes.paths.title;
   const context = storyPerformanceContext(cultivator, sectId);
   const script = fillStoryScript(
     createSectFirstPath(
       sectId,
-      getSectPresentation(sectId).scenes.paths.title,
+      place,
       build.paths,
       story.story?.chapterId === 'mine-lesson',
     ),
@@ -133,7 +151,11 @@ export function SectFirstPath() {
       finishPendingLabel="启用中……"
       exitLabel="晚些再选"
       onExit={() =>
-        navigate(fromStory ? '/game' : '/game/sect/enlightenment-cliff')
+        navigate(
+          fromStory
+            ? (story.story?.href ?? '/game')
+            : '/game/sect/enlightenment-cliff',
+        )
       }
       busy={saving}
       error={error}

@@ -1,7 +1,9 @@
 import { HomeAct, HomeLabel } from '@app/components/feature/home/HomeAct';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { cn } from '@app/lib/cn';
+import { getSectPresentation } from '@app/lib/sect/sectPresentation';
 import { storyCastFace } from '@app/lib/story/performanceContext';
+import { getMapAreaContent } from '@daoyou/game-content/world/map';
 import type { PerformanceContext } from '@daoyou/game-domain/performance';
 import type { StoryView } from '@daoyou/game-domain/story';
 
@@ -27,6 +29,17 @@ export function HomeCaller({
     ? (hail.portrait ?? storyCastFace(hail.by, sectId))
     : undefined;
   const act = story.actionLabel ?? story.prompt.replace(/[。！]$/, '');
+  const location = story.location;
+  const place =
+    location?.kind === 'area'
+      ? getMapAreaContent(location.areaId)?.places.find(
+          ({ id }) => id === location.placeId,
+        )?.name
+      : location?.kind === 'sect' && sectId
+        ? getSectPresentation(sectId).map.hotspots.find(
+            ({ id }) => id === location.spotId,
+          )?.label
+        : undefined;
 
   return (
     <section data-guide="home.story">
@@ -48,7 +61,18 @@ export function HomeCaller({
           </div>
         </div>
       ) : null}
-      <HomeAct href={story.href} lead={act} guide="home.story-action" />
+      {place ? (
+        <p className="text-ink-secondary text-sm leading-7">{story.prompt}</p>
+      ) : null}
+      <HomeAct
+        href={
+          story.location?.kind === 'cave'
+            ? (story.playHref ?? story.href)
+            : story.href
+        }
+        lead={place ?? act}
+        guide="home.story-action"
+      />
       {story.goals.length > 0 ? (
         <ul className="pl-7">
           {story.goals.map((goal) => (

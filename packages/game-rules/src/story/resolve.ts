@@ -502,24 +502,36 @@ export function presentStory(
     factReady(beat.when.fact, progress, facts)
       ? beat.when
       : beat;
-  const weaponId = beat.kind === 'practice' && beat.accept.some(
-    (entry) => entry.type === 'fact' && entry.fact === 'story_weapon_equipped',
-  ) ? readStoryWeaponId(progress.marks) : undefined;
+  const weaponId =
+    beat.kind === 'practice' &&
+    beat.accept.some(
+      (entry) =>
+        entry.type === 'fact' && entry.fact === 'story_weapon_equipped',
+    )
+      ? readStoryWeaponId(progress.marks)
+      : undefined;
   const missingItemAction =
     weaponId && beat.kind === 'practice' ? beat.missingItemAction : undefined;
   const location = beat.location;
+  const activityHref = 'href' in shifted ? shifted.href : undefined;
   let href =
     beat.kind === 'passage'
       ? storyLocationHref(beat.location, Boolean(beat.passage.hint))
       : location
-        ? storyLocationHref(location)
-        : 'href' in shifted
-          ? shifted.href
-          : beat.href;
-  if (weaponId) {
-    const target = new URL(href, 'http://story.local');
+        ? location.kind === 'cave' && activityHref?.split('?')[0] === '/game'
+          ? activityHref
+          : storyLocationHref(location)
+        : (activityHref ?? '/game');
+  let playHref =
+    location && activityHref && activityHref !== href && beat.kind !== 'life'
+      ? storyPlayHref(activityHref, { chapterId: chapter.id, beatId: beat.id })
+      : undefined;
+  if (weaponId && (!location || playHref)) {
+    const target = new URL(playHref ?? href, 'http://story.local');
     target.searchParams.set('item', weaponId);
-    href = target.pathname + target.search + target.hash;
+    const targetHref = target.pathname + target.search + target.hash;
+    if (playHref) playHref = targetHref;
+    else href = targetHref;
   }
   const unlocked = storyChapterUnlocks(chapter, beat.id, opened);
   return {
@@ -537,17 +549,12 @@ export function presentStory(
     ...(beat.kind === 'performance' && beat.finishLabel
       ? { finishLabel: beat.finishLabel }
       : {}),
-    ...(location && (beat.kind === 'performance' || beat.kind === 'battle')
-      ? {
-          playHref: storyPlayHref(beat.href, {
-            chapterId: chapter.id,
-            beatId: beat.id,
-          }),
-        }
-      : {}),
+    ...(playHref ? { playHref } : {}),
     ...(shifted.actionLabel ? { actionLabel: shifted.actionLabel } : {}),
     ...(shifted.indicatorFrom ? { indicatorFrom: shifted.indicatorFrom } : {}),
-    ...(beat.kind === 'performance' && beat.exitHref ? { exitHref: beat.exitHref } : {}),
+    ...(beat.kind === 'performance' && beat.exitHref
+      ? { exitHref: beat.exitHref }
+      : {}),
     scriptId: beat.kind === 'performance' ? beat.script : null,
     battleId: beat.kind === 'battle' ? beat.battle : null,
     hail: beat.hail

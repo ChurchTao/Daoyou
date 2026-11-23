@@ -11,7 +11,6 @@ export function MapLocationDrawer({
   description,
   footer,
   actors,
-  children,
   onActivate,
   onClose,
   renderConversation,
@@ -20,7 +19,6 @@ export function MapLocationDrawer({
   description?: string;
   footer?: ReactNode;
   actors: readonly RoomActorView[];
-  children?: ReactNode;
   onActivate?(id: string): boolean;
   onClose(): void;
   renderConversation(actorId: string, onExit: () => void): ReactNode;
@@ -75,7 +73,6 @@ export function MapLocationDrawer({
         </div>
       ) : (
         <div ref={roster} className="divide-ink/15 divide-y divide-dashed">
-          {children}
           {actors.map((actor) => (
             <button
               key={actor.id}
@@ -101,8 +98,13 @@ export function MapLocationDrawer({
                 </span>
               )}
               <span className="min-w-0 flex-1">
-                <span className="block text-base font-semibold">
-                  {actor.name}
+                <span className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="text-base font-semibold">{actor.name}</span>
+                  {actor.status ? (
+                    <span className="text-crimson text-xs font-normal">
+                      {actor.status.label}
+                    </span>
+                  ) : null}
                 </span>
                 <span className="text-ink-secondary block text-xs leading-5">
                   {actor.identity}

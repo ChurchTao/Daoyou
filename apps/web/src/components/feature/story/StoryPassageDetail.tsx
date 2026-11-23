@@ -2,34 +2,24 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { apiFetch } from '@app/lib/api/fetch';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import type { CompleteStoryPassage } from '@daoyou/contracts/story';
-import { getMapPassage } from '@daoyou/game-content/world/map';
 import type { StoryView } from '@daoyou/game-domain/story';
+import type { MapPassage } from '@daoyou/game-domain/world/map';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
-export function StoryLocationAction({
+export function StoryPassageDetail({
   story,
+  passage,
   atDestination = false,
 }: {
   story: StoryView;
+  passage: MapPassage;
   atDestination?: boolean;
 }) {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  const passage = story.passage && getMapPassage(story.passage.id);
-  if (story.playHref || (story.passage?.hint && !atDestination)) {
-    return (
-      <InkButton
-        href={story.playHref ?? story.href}
-        variant="primary"
-        className="min-h-11"
-      >
-        {story.actionLabel ?? (story.kind === 'battle' ? '迎战' : '继续剧情')}
-      </InkButton>
-    );
-  }
-  if (!passage) return null;
+  const hint = atDestination ? undefined : story.passage?.hint;
 
   const depart = async () => {
     setBusy(true);
@@ -58,20 +48,30 @@ export function StoryLocationAction({
   };
 
   return (
-    <div>
-      <InkButton
-        pending={busy}
-        variant="primary"
-        className="min-h-11"
-        onClick={() => void depart()}
-      >
-        {passage.label}
-      </InkButton>
+    <section className="space-y-4">
+      <h3 className="text-base font-semibold">{passage.entrance.name}</h3>
+      <p className="text-ink-secondary text-sm leading-7">
+        {hint ?? passage.entrance.description}
+      </p>
+      {hint ? (
+        <InkButton href={story.href} variant="primary" className="min-h-11">
+          {story.actionLabel ?? '展开舆图'}
+        </InkButton>
+      ) : (
+        <InkButton
+          pending={busy}
+          variant="primary"
+          className="min-h-11"
+          onClick={() => void depart()}
+        >
+          {passage.label}
+        </InkButton>
+      )}
       {error ? (
         <p role="alert" className="text-crimson mt-1 text-sm">
           {error}
         </p>
       ) : null}
-    </div>
+    </section>
   );
 }

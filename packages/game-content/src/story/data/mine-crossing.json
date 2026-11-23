@@ -10,7 +10,14 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "去桥墩后面找咪咪。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "bridge-shoal"
+      },
+      "actionLabel": "去桥墩后找咪咪",
+      "entry": { "kind": "facility", "id": "sheltered-pier" }
     },
     {
       "id": "flight",
@@ -19,7 +26,18 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "抱稳咪咪，跟来人过河。",
-      "href": "/game/story"
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "bridge-shoal"
+      },
+      "actionLabel": "请他带你过河",
+      "entry": {
+        "kind": "npc",
+        "id": "passing-disciple"
+      },
+      "finishLabel": "去药婆家"
     }
   ],
   "gated": true,

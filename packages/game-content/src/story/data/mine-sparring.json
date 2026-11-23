@@ -12,8 +12,17 @@
       "outcome": "done",
       "scene": "story",
       "prompt": "下午去练功场赴约，试试早课学的招。",
-      "actionLabel": "去练功场",
-      "href": "/game/story"
+      "actionLabel": "到木人场赴约",
+      "finishLabel": "与木人交手",
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "arena"
+      },
+      "entry": {
+        "kind": "facility",
+        "id": "sparring-yard"
+      }
     },
     {
       "id": "fight",
@@ -21,8 +30,16 @@
       "battle": "mine-sparring",
       "scene": "story-battle",
       "prompt": "举盾的木人封住了去路，矮的已经绕了过来。",
-      "actionLabel": "迎上去",
-      "href": "/game/story/battle"
+      "actionLabel": "进场应付木人",
+      "href": "/game/story/battle",
+      "location": {
+        "kind": "sect",
+        "spotId": "arena"
+      },
+      "entry": {
+        "kind": "facility",
+        "id": "sparring-yard"
+      }
     },
     {
       "id": "verdict",
@@ -32,8 +49,17 @@
       "retryLostBattle": true,
       "scene": "story",
       "prompt": "到场边歇口气。隔壁同门还等你替他看看。",
-      "actionLabel": "回到场边",
-      "href": "/game/story"
+      "actionLabel": "到场边找同门",
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "arena"
+      },
+      "entry": {
+        "kind": "npc",
+        "id": "neighbor"
+      },
+      "finishLabel": "留下看同门试手"
     },
     {
       "id": "watch",
@@ -43,7 +69,15 @@
       "scene": "story",
       "prompt": "轮到同门了，替他看一眼早上托你的事。",
       "actionLabel": "看同门试手",
-      "href": "/game/story"
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "arena"
+      },
+      "entry": {
+        "kind": "npc",
+        "id": "neighbor"
+      }
     }
   ]
 }

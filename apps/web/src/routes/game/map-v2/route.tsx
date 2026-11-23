@@ -4,6 +4,7 @@ import {
   type HuntMapPoint,
 } from '@app/components/feature/hunts/HuntMapMarkers';
 import { useHunts } from '@app/components/feature/hunts/useHunts';
+import { MapCanvasSurface } from '@app/components/feature/map/MapCanvasSurface';
 import {
   buildMapLocationActions,
   resolveMapIntent,
@@ -13,7 +14,7 @@ import {
   WandererMarker,
   type WandererMapPoint,
 } from '@app/components/feature/wanderer/WandererMarker';
-import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
+import { ImmersiveGameFrame } from '@app/components/game-shell/ImmersiveGameFrame';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { bodyFontFamily } from '@app/lib/fonts';
@@ -52,6 +53,7 @@ import type { AtlasController, AtlasView } from './AtlasPhaserRuntime';
 import { AtlasTextMap } from './AtlasTextMap';
 import { AtlasToolbar, type AtlasSearchResult } from './AtlasToolbar';
 import { atlasAreaHref } from './areaNavigation';
+import { ATLAS_ARTWORK } from './atlasArtwork';
 
 const locations = getAtlasLocations();
 const searchEntries = locations.flatMap<AtlasSearchResult>((location) => {
@@ -101,7 +103,11 @@ export default function AtlasPage() {
   ) {
     return <AtlasArea key={area.id} area={area} params={params} node={node} />;
   }
-  return <AtlasMap />;
+  return (
+    <ImmersiveGameFrame>
+      <AtlasMap />
+    </ImmersiveGameFrame>
+  );
 }
 
 function AtlasMap() {
@@ -469,7 +475,10 @@ function AtlasMap() {
         { '--atlas-toolbar-bottom': `${toolbarBottom}px` } as CSSProperties
       }
     >
-      <div ref={root} className="absolute inset-0 overflow-hidden" />
+      <MapCanvasSurface
+        root={root}
+        image={isAtlas ? ATLAS_ARTWORK[view.region] : undefined}
+      />
 
       {!teachingMap && !error && (!isAtlas || !loading) ? (
         <HuntMapMarkers
@@ -515,9 +524,12 @@ function AtlasMap() {
         </p>
       ) : null}
       {isAtlas && loading && !error ? (
-        <div className="bg-paper/90 absolute inset-0 z-10">
-          <GameLoadingState variant="scene" message="正在展开山河画卷……" />
-        </div>
+        <p
+          role="status"
+          className="bg-paper/95 text-ink-secondary pointer-events-none absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-sm px-3 py-2 text-sm"
+        >
+          正在展开山河画卷……
+        </p>
       ) : null}
 
       <AtlasToolbar
@@ -669,7 +681,7 @@ function AtlasMap() {
 
       {isAtlas && error ? (
         <div
-          className="bg-paper/95 absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 px-6 text-center"
+          className="bg-paper/95 absolute inset-x-3 top-1/2 z-20 mx-auto flex w-fit -translate-y-1/2 flex-col items-center gap-4 rounded-sm p-4 text-center shadow-sm"
           role="alert"
         >
           <p>{error}</p>

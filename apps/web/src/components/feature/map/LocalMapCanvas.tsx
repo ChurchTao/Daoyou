@@ -14,6 +14,7 @@ import {
   type LocalMapBackAction,
 } from './LocalMapChrome';
 import type { LocalMapController, LocalMapView } from './LocalMapRuntime';
+import { MapCanvasSurface } from './MapCanvasSurface';
 
 interface LocalMapCanvasProps {
   title: string;
@@ -24,6 +25,7 @@ interface LocalMapCanvasProps {
   mapLabel?: string;
   directoryLabel?: string;
   entryMarkerId?: string;
+  status?: ReactNode;
   view: LocalMapView;
   controller: RefObject<LocalMapController | null>;
   fallback: ReactNode;
@@ -45,6 +47,7 @@ export function LocalMapCanvas({
   mapLabel = '宗门舆图',
   directoryLabel,
   entryMarkerId,
+  status,
   view,
   controller,
   fallback,
@@ -109,8 +112,6 @@ export function LocalMapCanvas({
         }
         instance = canvas;
         controller.current = instance;
-        const selectedId = readView().selectedId;
-        if (selectedId) instance.focus(selectedId);
       })
       .catch(() => fail(`${mapLabel}暂时无法打开。`));
     return () => {
@@ -153,6 +154,7 @@ export function LocalMapCanvas({
               重试舆图
             </InkButton>
           </div>
+          {!view.blocked ? status : null}
           {fallback}
         </LocalMapText>
       </>
@@ -168,11 +170,16 @@ export function LocalMapCanvas({
         directoryLabel={directoryLabel}
         onOpenDirectory={onOpenDirectory}
       />
-      <div ref={root} className="absolute inset-0 overflow-hidden" />
+      <MapCanvasSurface root={root} image={image} />
+      {status && !view.blocked ? (
+        <div className="pointer-events-none absolute inset-x-3 top-[calc(var(--app-safe-top)+4rem)] z-10 mx-auto max-w-[36rem]">
+          {status}
+        </div>
+      ) : null}
       {!ready ? (
         <p
           role="status"
-          className="text-ink-secondary pointer-events-none absolute inset-0 flex items-center justify-center text-sm"
+          className="bg-paper/95 text-ink-secondary pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-sm px-3 py-2 text-sm"
         >
           {mapLabel}展开中……
         </p>

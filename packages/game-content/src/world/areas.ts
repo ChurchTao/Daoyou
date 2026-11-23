@@ -1,6 +1,123 @@
 import type { MapAreaContent, MapPassage } from '@daoyou/game-domain/world/map';
 
 const areaContent: Readonly<Record<string, MapAreaContent>> = {
+  TN_MINE_VALLEY: {
+    artwork: {
+      file: 'mine-valley-v1.webp',
+      alt: '矿棚和矿车道在河的一侧。木桥连接两岸，桥下石滩仍和村岸隔着水，药婆家和村口渡船都在村岸。',
+      anchors: {
+        'mine-shed': [0.23, 0.23],
+        'wooden-bridge': [0.43, 0.4],
+        'bridge-shoal': [0.45, 0.59],
+        'herbalist-home': [0.76, 0.26],
+        'village-ferry': [0.77, 0.73],
+      },
+    },
+    places: [
+      {
+        id: 'mine-shed',
+        name: '矿棚',
+        description: '矿车道从矿棚外一路下坡，通往过河的木桥。',
+        scene: {
+          description: '过秤用的杆秤还搁在棚里。门外就是下山的矿车道。',
+          npcs: [
+            {
+              id: 'mimi',
+              name: '咪咪',
+              portrait: 'icon:beast-mimi',
+              storyOnly: true,
+              action: '去棚门口找咪咪',
+              reply: '棚门口堆着几个空筐。你下工时，咪咪常在筐旁等你。',
+            },
+          ],
+        },
+      },
+      {
+        id: 'wooden-bridge',
+        name: '木桥',
+        description: '矿车道尽头的木桥，平日从这里走到村岸。',
+        scene: {
+          description:
+            '站在桥头，能看见村里晒网的竹竿。涨水时桥墩下只露出一小片石滩。',
+          npcs: [],
+          facilities: [
+            {
+              id: 'wooden-crossing',
+              name: '过河桥面',
+              purpose: '通往村岸',
+              details: '木板上还留着雨水。沿着桥栏可以走到对岸。',
+            },
+          ],
+        },
+      },
+      {
+        id: 'bridge-shoal',
+        name: '桥下石滩',
+        description: '桥墩脚下露出一小片石滩，隔着急水望得见村岸。',
+        scene: {
+          description: '桥墩背水的一侧有道石缝。去村里的岸还隔着一段急流。',
+          npcs: [
+            {
+              id: 'passing-disciple',
+              name: '路过的宗门弟子',
+              storyOnly: true,
+              action: '请他带你过河',
+              reply: '水还没退。站在墩脚背水的地方，当心别滑下去。',
+            },
+          ],
+          facilities: [
+            {
+              id: 'sheltered-pier',
+              name: '背水桥墩',
+              purpose: '桥下可以落脚的地方',
+              details: '桥墩背水处有一道石缝，河水漫不过来。',
+            },
+          ],
+        },
+      },
+      {
+        id: 'herbalist-home',
+        name: '药婆家',
+        description: '村岸的一户人家，窗下常晾着几筛草药。',
+        scene: {
+          description: '门口有药筛和小凳，窗下晾着刚拣过的草药。',
+          npcs: [
+            {
+              id: 'herbalist',
+              name: '药婆',
+              action: '请药婆看看咪咪',
+              reply: '小家伙若不肯给你碰，先让它坐稳了，别急着掰它的爪子。',
+            },
+          ],
+        },
+      },
+      {
+        id: 'village-ferry',
+        name: '村口渡口',
+        description: '阿禾的船泊在村口下游，一早顺流去山脚卸药。',
+        scene: {
+          description: '村岸的石径通到跳板边，船头放着一本记早渡乘客的客簿。',
+          npcs: [
+            {
+              id: 'ahe',
+              name: '阿禾',
+              action: '向阿禾打听早渡',
+              reply:
+                '要搭早渡就在客簿上留个名字。等我点到你，抱稳东西再踩跳板。',
+            },
+          ],
+          facilities: [
+            {
+              id: 'passenger-book',
+              name: '早渡客簿',
+              purpose: '留下乘船人的名字',
+              details: '阿禾按簿子点人，早渡赶在下游药铺开门前靠岸。',
+            },
+          ],
+        },
+      },
+    ],
+  },
   TN_YUE_01: {
     artwork: {
       file: 'taiyue-baishui-v1.webp',
@@ -29,6 +146,12 @@ const areaContent: Readonly<Record<string, MapAreaContent>> = {
             },
           ],
           facilities: [
+            {
+              id: 'sect-array',
+              name: '接引传送阵',
+              purpose: '通往各家山门',
+              details: '亭里的石阵由人照看。持路帖报出要去的山门，便可前往。',
+            },
             {
               id: 'foothill-landing',
               name: '柳树渡埠',
@@ -80,16 +203,28 @@ export function getMapAreaContent(areaId: string): MapAreaContent | undefined {
 
 const passages: readonly MapPassage[] = [
   {
+    id: 'village-ferry-to-foothill',
+    from: { kind: 'area', areaId: 'TN_MINE_VALLEY', placeId: 'village-ferry' },
+    to: { kind: 'area', areaId: 'TN_YUE_01', placeId: 'foothill-pavilion' },
+    label: '随早渡去接引亭',
+    entrance: { name: '早渡木船', description: '沿河下行，停靠山脚接引亭。' },
+  },
+  {
     id: 'sect-gate-to-foothill',
     from: { kind: 'sect', spotId: 'gate' },
     to: { kind: 'area', areaId: 'TN_YUE_01', placeId: 'foothill-pavilion' },
     label: '下山去接引亭',
+    entrance: { name: '下山石阶', description: '沿山道下行，到山脚接引亭。' },
   },
   {
     id: 'foothill-to-baishui',
     from: { kind: 'area', areaId: 'TN_YUE_01', placeId: 'foothill-pavilion' },
     to: { kind: 'area', areaId: 'TN_YUE_01', placeId: 'baishui-ferry' },
     label: '搭阿禾的船去白水渡',
+    entrance: {
+      name: '阿禾的船',
+      description: '沿接引亭这面河岸顺流到白水渡。',
+    },
   },
 ];
 

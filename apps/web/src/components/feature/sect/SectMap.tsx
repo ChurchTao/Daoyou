@@ -5,6 +5,7 @@ import {
   type LocalMapBackAction,
 } from '@app/components/feature/map/LocalMapChrome';
 import type { LocalMapController } from '@app/components/feature/map/LocalMapRuntime';
+import { GameTaskIndicator } from '@app/components/game-shell/GameTaskIndicator';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { cn } from '@app/lib/cn';
@@ -86,10 +87,12 @@ function resolveHotspotDescription(
 function SectMapDirectory({
   locations,
   selectedId,
+  storySpotId,
   onSelect,
 }: {
   locations: readonly Location[];
   selectedId: string | null;
+  storySpotId?: string;
   onSelect(id: string, button: HTMLButtonElement): void;
 }) {
   return (
@@ -113,7 +116,10 @@ function SectMapDirectory({
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-baseline gap-x-2">
                 <strong className="text-sm">{spot.label}</strong>
-                {state.locked ? (
+                {spot.id === storySpotId ? (
+                  <span className="text-crimson text-xs">主线地点</span>
+                ) : null}
+                {state.locked && spot.id !== storySpotId ? (
                   <span className="text-ink-secondary text-xs">未开放</span>
                 ) : null}
               </span>
@@ -152,7 +158,7 @@ export function SectMap({
   renderLocation,
   onNavigate,
 }: SectMapProps) {
-  const { mapMode, imageOpacity } = useGameSettings();
+  const { mapMode } = useGameSettings();
   const controller = useRef<LocalMapController | null>(null);
   const directoryTrigger = useRef<HTMLButtonElement | null>(null);
   const returnFocus = useRef<HTMLButtonElement | null>(null);
@@ -183,16 +189,22 @@ export function SectMap({
           label: spot.label,
           x: Number.parseFloat(spot.left) / 100,
           y: Number.parseFloat(spot.top) / 100,
-          locked: state.locked,
+          current: spot.id === storySpotId,
+          locked: state.locked && spot.id !== storySpotId,
           selectable: state.selectable,
         }))
         .filter(({ x, y }) => x >= 0 && x <= 1 && y >= 0 && y <= 1),
-    [locations],
+    [locations, storySpotId],
   );
   const selected = locations.find(
     ({ spot, state }) => spot.id === requestedId && state.selectable,
   );
   const selectedId = selected?.spot.id ?? null;
+  const storySpot = hotspots.find(({ id }) => id === storySpotId);
+  const status =
+    mode === 'member' && storySpot ? (
+      <GameTaskIndicator map={{ place: storySpot.label }} />
+    ) : null;
   useEffect(() => {
     if (selectedId !== null) return;
     const target = returnFocus.current;
@@ -214,12 +226,12 @@ export function SectMap({
     )
       return;
     setRequestedId(id);
-    controller.current?.focus(id);
   };
   const directory = (
     <SectMapDirectory
       locations={locations}
       selectedId={selectedId}
+      storySpotId={storySpotId}
       onSelect={(id, button) => {
         returnFocus.current = directoryOpen ? directoryTrigger.current : button;
         selectLocation(id);
@@ -261,10 +273,9 @@ export function SectMap({
     () => ({
       markers,
       selectedId,
-      opacity: imageOpacity,
       blocked: directoryOpen || selectedId !== null,
     }),
-    [directoryOpen, imageOpacity, markers, selectedId],
+    [directoryOpen, markers, selectedId],
   );
 
   return (
@@ -277,7 +288,8 @@ export function SectMap({
           image={canvasImage}
           alt={alt}
           aspectRatio={aspectRatio}
-          entryMarkerId="gate"
+          entryMarkerId={storySpotId ?? 'gate'}
+          status={status}
           view={view}
           controller={controller}
           fallback={directory}
@@ -296,7 +308,10 @@ export function SectMap({
             backAction={backAction}
             mapMode={image ? 'text' : undefined}
           />
-          <LocalMapText>{directory}</LocalMapText>
+          <LocalMapText>
+            {!view.blocked ? status : null}
+            {directory}
+          </LocalMapText>
         </>
       )}
       {selected

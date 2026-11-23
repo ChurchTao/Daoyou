@@ -13,7 +13,15 @@
       "scene": "story",
       "prompt": "和同门去丹房，问问送药的事。",
       "actionLabel": "去丹房领差",
-      "href": "/game/story"
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "alchemy"
+      },
+      "entry": {
+        "kind": "npc",
+        "id": "dispensary-steward"
+      }
     },
     {
       "id": "home",
@@ -23,7 +31,13 @@
       "scene": "story",
       "prompt": "绕过饭堂，沿岩壁回洞府。",
       "exitHref": "/game",
-      "href": "/game/story"
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "cave"
+      },
+      "actionLabel": "回自己的洞府",
+      "entry": { "kind": "facility", "id": "home-door" }
     },
     {
       "id": "evening",
@@ -33,7 +47,15 @@
       "scene": "story",
       "prompt": "趁饭堂还开着，去隔壁喊同门练一会儿。",
       "actionLabel": "去敲隔壁的门",
-      "href": "/game/story"
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "cave"
+      },
+      "entry": {
+        "kind": "npc",
+        "id": "neighbor"
+      }
     },
     {
       "id": "pickup",
@@ -43,8 +65,15 @@
       "scene": "sect",
       "prompt": "天亮了，和同门到丹房找值事取药匣。",
       "actionLabel": "去拿药匣",
-      "location": { "kind": "sect", "spotId": "alchemy" },
-      "href": "/game/story"
+      "location": {
+        "kind": "sect",
+        "spotId": "alchemy"
+      },
+      "href": "/game/story",
+      "entry": {
+        "kind": "npc",
+        "id": "dispensary-steward"
+      }
     },
     {
       "id": "departure",

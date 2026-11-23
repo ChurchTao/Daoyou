@@ -73,6 +73,7 @@ const storyLocationSchema = z.discriminatedUnion('kind', [
     .object({ kind: z.literal('area'), areaId: mapKey, placeId: mapKey })
     .strict(),
   z.object({ kind: z.literal('sect'), spotId: mapKey }).strict(),
+  z.object({ kind: z.literal('cave') }).strict(),
 ]);
 const locationEntrySchema = z
   .object({

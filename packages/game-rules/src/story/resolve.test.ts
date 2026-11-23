@@ -24,8 +24,63 @@ import {
   type StoryProgress,
 } from '@daoyou/game-domain/story';
 import { storySceneOpen } from '@daoyou/game-domain/story/gates';
+import { PRODUCTION_SECT_PRESENTATIONS } from '../sect-organization/production/productionRuntime.js';
 
 describe('地点剧情与通路', () => {
+  it('从旧版早渡演出存档接到新增行程，落点是接引亭', () => {
+    const chapter = getStoryChapter('mine-departure');
+    const facts = emptyStoryFacts();
+    const saved = {
+      ...openingStoryProgress(chapter.id),
+      beatId: 'morning',
+      acks: [
+        'mine-departure-care:done',
+        'mine-departure-ask:done',
+        'mine-departure-routes:done',
+      ],
+    };
+    const onBoard = acknowledgePerformance(
+      chapter,
+      saved,
+      facts,
+      'mine-departure-morning',
+      'done',
+    );
+    expect(presentStory(chapter, onBoard.progress, facts)).toMatchObject({
+      beatId: 'ferry',
+      href: '/game/map-v2?area=TN_MINE_VALLEY&place=village-ferry',
+    });
+    expect(
+      acknowledgeStoryPassage(chapter, onBoard.progress, facts, {
+        chapterId: chapter.id,
+        beatId: 'ferry',
+        passageId: 'village-ferry-to-foothill',
+      }).finished,
+    ).toBe(true);
+    const next = getStoryChapter(chapter.next);
+    expect(presentStory(next, openingStoryProgress(next.id), facts).href).toBe(
+      '/game/map-v2?area=TN_YUE_01&place=foothill-pavilion',
+    );
+  });
+
+  it('从药婆家打开真实灵兽袋，同时保留地图续接入口', () => {
+    const chapter = getStoryChapter('mine-departure');
+    const facts = emptyStoryFacts();
+    const progress = acknowledgePerformance(
+      chapter,
+      openingStoryProgress(chapter.id),
+      facts,
+      'mine-departure-care',
+      'done',
+    ).progress;
+    expect(presentStory(chapter, progress, facts)).toMatchObject({
+      href: '/game/map-v2?area=TN_MINE_VALLEY&place=herbalist-home',
+      playHref:
+        '/game/beasts?guide=beast-pouch&chapter=mine-departure&beat=cub',
+      guideLesson: 'beast-pouch',
+    });
+  });
+
   it('保留第七章旧存档的章幕并结算山门出发', () => {
     const chapter = getStoryChapter('mine-errand');
     const saved = {
@@ -1031,6 +1086,21 @@ describe('entries that open along the way', () => {
 });
 
 describe('volume one', () => {
+  it('can locate every shared story spot on each sect atlas', () => {
+    const spots = new Set<string>();
+    let chapter: StoryChapter | undefined = getStoryChapter(OPENING_STORY_CHAPTER);
+    while (chapter) {
+      for (const beat of chapter.beats) {
+        if (beat.location?.kind === 'sect') spots.add(beat.location.spotId);
+      }
+      chapter = chapter.next ? getStoryChapter(chapter.next) : undefined;
+    }
+    for (const [id, presentation] of Object.entries(PRODUCTION_SECT_PRESENTATIONS)) {
+      const mapped = presentation.map.hotspots.map(({ id: spotId }) => spotId);
+      for (const spotId of spots) expect(mapped, id).toContain(spotId);
+    }
+  });
+
   it('runs from the opening chapter to a resting beat', () => {
     const seen: string[] = [];
     let current = getStoryChapter(OPENING_STORY_CHAPTER);
