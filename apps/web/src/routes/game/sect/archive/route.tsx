@@ -6,6 +6,7 @@ import {
   type SectNpcConversationRendererProps,
 } from '@app/components/feature/sect/room';
 import { useStory } from '@app/lib/story/useStory';
+import { MINE_LESSON_METHOD_LEVEL } from '@daoyou/game-domain/story';
 import { STANDARD_SECT_PRESENTATION } from '@daoyou/game-rules/sect-organization';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -36,12 +37,19 @@ function Conversation({ actor, onExit }: SectNpcConversationRendererProps) {
     fromStudy && story?.chapterId === 'mine-lesson' && story.beatId === 'form'
       ? { href: story.href, label: '回演武处找教习' }
       : undefined;
+  const studyTargetLevel =
+    fromStudy &&
+    story?.chapterId === 'mine-lesson' &&
+    (story.beatId === 'study' || story.beatId === 'form')
+      ? MINE_LESSON_METHOD_LEVEL
+      : undefined;
   if (workspace)
     return (
       <SectWorkspace
         mode="methods"
         onExit={() => setWorkspace(false)}
         nextAction={nextAction}
+        studyTargetLevel={studyTargetLevel}
       />
     );
   return (

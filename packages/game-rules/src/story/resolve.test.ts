@@ -26,6 +26,7 @@ import {
 } from './resolve.js';
 import {
   emptyStoryFacts,
+  MINE_LESSON_METHOD_LEVEL,
   STORY_MARK_FACT_IDS,
   StoryProgressSchema,
   type StoryChapter,
@@ -1136,7 +1137,7 @@ describe('volume one', () => {
           membershipId: '00000000-0000-4000-8000-000000000001',
           expectedRevision: 0,
           methodId: method.id,
-          targetLevel: 10,
+          targetLevel: MINE_LESSON_METHOD_LEVEL,
         });
         progress = training.progress;
         remainingExp -= training.cost.cultivationExp;
@@ -1146,13 +1147,15 @@ describe('volume one', () => {
       expect(remainingExp, sect.id).toBeGreaterThanOrEqual(0);
       expect(remainingStones, sect.id).toBeGreaterThanOrEqual(0);
       expect(
-        Object.values(progress.methods).every((level) => level === 10),
+        Object.values(progress.methods).every(
+          (level) => level === MINE_LESSON_METHOD_LEVEL,
+        ),
         sect.id,
       ).toBe(true);
     }
   });
 
-  it('routes the unfinished old lesson through the archive and requires the current primary method level', () => {
+  it('routes unfinished lessons through the archive until all sect methods are at the required level', () => {
     const chapter = getStoryChapter('mine-lesson');
     const facts = { ...emptyStoryFacts(), sect_ready: true };
     const saved = progress('form', {
@@ -1173,8 +1176,13 @@ describe('volume one', () => {
       .toBe('study');
     expect(resolveStory(chapter, study.progress, {
       ...facts,
-      sect_primary_method_trained: true,
+      sect_methods_at_lesson_level: true,
     }).progress.beatId).toBe('form');
+    const skipped = { ...study.progress, beatId: 'form' };
+    expect(presentStory(chapter, skipped, facts).beatId).toBe('study');
+    expect(() =>
+      acknowledgePerformance(chapter, skipped, facts, 'mine-lesson-form', 'done'),
+    ).toThrow('当前没有这场演出');
     const finished = { ...saved, acks: [...saved.acks, 'mine-lesson-form:done'] };
     expect(rewindToUnwatchedPerformance(chapter, finished, facts).beatId).toBe('form');
     expect(resolveStory(chapter, finished, facts).finished).toBe(true);

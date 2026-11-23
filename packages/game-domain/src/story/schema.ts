@@ -7,6 +7,8 @@ import {
 } from '@daoyou/constants/realms';
 import { z } from 'zod';
 
+export const MINE_LESSON_METHOD_LEVEL = 10;
+
 export const STORY_FACT_IDS = [
   'starter_beast',
   'alchemy_crafted',
@@ -18,7 +20,7 @@ export const STORY_FACT_IDS = [
   'story_weapon_equipped',
   'sect_joined',
   'sect_ready',
-  'sect_primary_method_trained',
+  'sect_methods_at_lesson_level',
   'breakthrough_available',
   'consumable_used',
   'market_bought',
@@ -668,7 +670,7 @@ export function emptyStoryFacts(): StoryFacts {
     story_weapon_equipped: false,
     sect_joined: false,
     sect_ready: false,
-    sect_primary_method_trained: false,
+    sect_methods_at_lesson_level: false,
     breakthrough_available: false,
     consumable_used: false,
     market_bought: false,

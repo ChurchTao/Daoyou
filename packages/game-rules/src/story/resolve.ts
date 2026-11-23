@@ -190,6 +190,15 @@ function normalizeChapterProgress(
   ) {
     return { ...progress, acks: [...progress.acks, mineStudyBriefAck] };
   }
+  if (
+    chapter.id === 'mine-lesson' &&
+    progress.status === 'active' &&
+    progress.beatId === 'form' &&
+    !progress.acks.includes('mine-lesson-form:done') &&
+    facts?.sect_methods_at_lesson_level === false
+  ) {
+    return { ...progress, beatId: 'study' };
+  }
   // 旧版第四章把初选流派放在投名和找住处之间。现在留到早课。
   if (chapter.id === 'mine-gate' && progress.beatId === 'path') {
     return { ...progress, beatId: 'home' };

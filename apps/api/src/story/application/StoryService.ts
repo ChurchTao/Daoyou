@@ -59,6 +59,7 @@ import { giveStarterBeast } from '@server/combat/application/starterBeastGift.js
 import {
   emptyStoryFacts,
   chapterUnlocks,
+  MINE_LESSON_METHOD_LEVEL,
   storyFlags,
   STORY_MARK_FACT_IDS,
   type StoryBattleOutcome,
@@ -226,11 +227,10 @@ async function readStoryFacts(
     const sect = COMBAT_V6_SECT_DEFINITIONS[
       membership.sectId as keyof typeof COMBAT_V6_SECT_DEFINITIONS
     ];
-    const primary = sect.methods.find((method) => method.isPrimary);
-    if (primary) {
-      const levels = await readSectMethodLevels(membership.id, tx);
-      facts.sect_primary_method_trained = (levels[primary.id] ?? 0) >= 2;
-    }
+    const levels = await readSectMethodLevels(membership.id, tx);
+    facts.sect_methods_at_lesson_level = sect.methods.every(
+      ({ id }) => (levels[id] ?? 0) >= MINE_LESSON_METHOD_LEVEL,
+    );
   }
   facts.weapon_equipped = weapons.length > 0;
   facts.equippedWeaponId = weapons[0]?.id;

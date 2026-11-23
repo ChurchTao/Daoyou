@@ -16,10 +16,12 @@ export function SectWorkspace({
   mode,
   onExit,
   nextAction,
+  studyTargetLevel,
 }: {
   mode: SectWorkspaceMode;
   onExit: () => void;
   nextAction?: { href: string; label: string };
+  studyTargetLevel?: number;
 }) {
   const [view, setView] = useState<SectV6View>();
   const [refresh, setRefresh] = useState(0);
@@ -146,6 +148,7 @@ export function SectWorkspace({
                     view={view}
                     pending={pending}
                     act={act}
+                    studyTargetLevel={studyTargetLevel}
                   />
                 </>
               )}

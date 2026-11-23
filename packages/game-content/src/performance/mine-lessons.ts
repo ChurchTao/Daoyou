@@ -192,7 +192,7 @@ export function mineLessonScripts(sectId?: CombatV6SectId) {
       { type: 'title', kicker: '早课', text: '去读本门心法' },
       say(
         'teacher',
-        `既选定了，就去{archive_name}找{archive_keeper}。主心法${lesson?.method ?? ''}若还只在初阶，就在那里研习一级。带好灵石，练成后回来，我看你的起手。`,
+        `哪卷还没到十级，就去{archive_name}找{archive_keeper}。先练${lesson?.method ?? '主心法'}，再练其余几卷。都练到了，便来给我看看你的起手。`,
       ),
       { type: 'end', outcome: 'done' },
     ],

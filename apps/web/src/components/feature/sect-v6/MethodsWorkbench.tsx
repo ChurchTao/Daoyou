@@ -14,14 +14,28 @@ import {
   type SectWorkspaceProps,
 } from './actions';
 
-export function MethodsWorkbench({ view, pending, act }: SectWorkspaceProps) {
+export function MethodsWorkbench({
+  view,
+  pending,
+  act,
+  studyTargetLevel,
+}: SectWorkspaceProps & { studyTargetLevel?: number }) {
   const progress = view.progress!;
   const definition = COMBAT_V6_SECT_DEFINITIONS[progress.sectId];
-  const [methodId, setMethodId] = useState(
-    () =>
-      definition.methods.find((method) => method.isPrimary)?.id ??
-      definition.methods[0].id,
-  );
+  const primary = definition.methods.find((method) => method.isPrimary)!;
+  const [methodId, setMethodId] = useState(() => {
+    if (
+      studyTargetLevel !== undefined &&
+      progress.methods[primary.id] >= studyTargetLevel
+    ) {
+      return (
+        definition.methods.find(
+          ({ id }) => progress.methods[id] < studyTargetLevel,
+        )?.id ?? primary.id
+      );
+    }
+    return primary.id;
+  });
   const [skillId, setSkillId] = useState<string>();
   const method = definition.methods.find((entry) => entry.id === methodId)!;
   const level = progress.methods[method.id];
@@ -41,16 +55,16 @@ export function MethodsWorkbench({ view, pending, act }: SectWorkspaceProps) {
     action: 'train' as const,
     methodId,
   };
-  const problem = actionProblem(view, singleAction);
-  const cap = methodLevelCap(view.characterLevel);
+  const metStudyTarget =
+    studyTargetLevel !== undefined && level >= studyTargetLevel;
+  const problem = metStudyTarget ? null : actionProblem(view, singleAction);
+  const cap = Math.min(
+    methodLevelCap(view.characterLevel),
+    studyTargetLevel ?? Infinity,
+  );
   const allowedCap = method.isPrimary
     ? cap
-    : Math.min(
-        cap,
-        progress.methods[
-          definition.methods.find((entry) => entry.isPrimary)!.id
-        ],
-      );
+    : Math.min(cap, progress.methods[primary.id]);
   const singleCost =
     level < allowedCap ? methodTrainingCost(level + 1) : undefined;
   let fastSteps = 0;
@@ -72,9 +86,27 @@ export function MethodsWorkbench({ view, pending, act }: SectWorkspaceProps) {
     fastSteps++;
   }
   const fastAction = { ...singleAction, targetLevel: level + fastSteps };
+  const fastLabel =
+    studyTargetLevel === undefined
+      ? `研习${fastSteps}级`
+      : `研习至${fastAction.targetLevel}级`;
   const panel = method.panel;
   return (
     <div className="mt-4 grid gap-5 md:grid-cols-[11rem_minmax(0,1fr)] md:gap-6">
+      {studyTargetLevel !== undefined ? (
+        <p role="status" className="text-ink-secondary text-sm md:col-span-2">
+          已有{' '}
+          <strong className="font-mono font-semibold">
+            {
+              definition.methods.filter(
+                ({ id }) => progress.methods[id] >= studyTargetLevel,
+              ).length
+            }
+            /{definition.methods.length}
+          </strong>{' '}
+          门心法达到 <span className="font-mono">{studyTargetLevel}</span> 级
+        </p>
+      ) : null}
       <nav
         className="border-ink/10 grid grid-cols-3 content-start gap-1 border-b pb-3 md:grid-cols-1 md:border-r md:border-b-0 md:pr-4 md:pb-0"
         aria-label="宗门心法"
@@ -202,7 +234,7 @@ export function MethodsWorkbench({ view, pending, act }: SectWorkspaceProps) {
             ) : null}
             {fastSteps > 1 ? (
               <p>
-                研习{fastSteps}级：{spentExp.toLocaleString()} 修为 ·{' '}
+                {fastLabel}：{spentExp.toLocaleString()} 修为 ·{' '}
                 <SpiritStones amount={spentStones} />
               </p>
             ) : null}
@@ -213,22 +245,13 @@ export function MethodsWorkbench({ view, pending, act }: SectWorkspaceProps) {
                   : 'text-ink-secondary text-xs leading-relaxed'
               }
             >
-              {problem ?? `当前${level}级 · 上限${allowedCap}级`}
+              {metStudyTarget
+                ? '本卷已达主线目标'
+                : (problem ?? `当前${level}级 · 上限${allowedCap}级`)}
             </span>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <InkButton
-              type="button"
-              variant="primary"
-              className="focus-visible:outline-crimson/60 min-h-10 focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none"
-              disabled={pending || !!problem}
-              pending={pending}
-              pendingLabel="研习中……"
-              onClick={() => void act(singleAction)}
-            >
-              研习1级
-            </InkButton>
-            {fastSteps > 1 ? (
+          {!metStudyTarget ? (
+            <div className="flex flex-wrap gap-3">
               <InkButton
                 type="button"
                 variant="primary"
@@ -236,12 +259,25 @@ export function MethodsWorkbench({ view, pending, act }: SectWorkspaceProps) {
                 disabled={pending || !!problem}
                 pending={pending}
                 pendingLabel="研习中……"
-                onClick={() => void act(fastAction)}
+                onClick={() => void act(singleAction)}
               >
-                研习{fastSteps}级
+                研习1级
               </InkButton>
-            ) : null}
-          </div>
+              {fastSteps > 1 ? (
+                <InkButton
+                  type="button"
+                  variant="primary"
+                  className="focus-visible:outline-crimson/60 min-h-10 focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none"
+                  disabled={pending || !!problem}
+                  pending={pending}
+                  pendingLabel="研习中……"
+                  onClick={() => void act(fastAction)}
+                >
+                  {fastLabel}
+                </InkButton>
+              ) : null}
+            </div>
+          ) : null}
         </footer>
       </section>
     </div>
