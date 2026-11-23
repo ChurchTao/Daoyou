@@ -41,6 +41,7 @@ export { createTavernConversation };
 
 import mineCrossing from './data/mine-crossing.json' with { type: 'json' };
 import mineDeparture from './data/mine-departure.json' with { type: 'json' };
+import mineErrand from './data/mine-errand.json' with { type: 'json' };
 import mineGateSchools from './data/mine-gate-schools.json' with { type: 'json' };
 import mineGate from './data/mine-gate.json' with { type: 'json' };
 import mineShift from './data/mine-shift.json' with { type: 'json' };
@@ -96,6 +97,7 @@ const scripts = new Map<string, PerformanceScript>([
     ...mineShift,
     ...mineCrossing,
     ...mineDeparture,
+    ...mineErrand,
     ...mineGate,
     ...mineGateSchools,
   ].map((entry): [string, PerformanceScript] => [

@@ -2,6 +2,8 @@
   "id": "mine-sparring",
   "track": "main",
   "title": "木人会还手",
+  "next": "mine-errand",
+  "deferredUnlocks": ["alchemy", "refine", "sect-alchemy", "sect-refinery"],
   "beats": [
     {
       "id": "yard",
@@ -42,13 +44,6 @@
       "prompt": "轮到同门了，替他看一眼早上托你的事。",
       "actionLabel": "看同门试手",
       "href": "/game/story"
-    },
-    {
-      "id": "errand",
-      "kind": "life",
-      "scene": "cave",
-      "prompt": "",
-      "href": "/game"
     }
   ]
 }

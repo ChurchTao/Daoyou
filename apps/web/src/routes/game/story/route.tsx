@@ -88,6 +88,7 @@ export default function StoryRoute() {
       onExit={() => void navigate('/game', { viewTransition: true })}
       flags={story.story?.flags}
       onFinish={(outcome, chosen) => {
+        const exitHref = story.story?.exitHref;
         setBusy(true);
         setError(undefined);
         void apiFetch(`/api/story/performances/${encodeURIComponent(scriptId)}/complete`, {
@@ -98,14 +99,14 @@ export default function StoryRoute() {
           .then((response) => consumeResourceMutation<StoryView>(response))
           .then((next) => {
             // 接着还是演出就直接换幕；要回到游戏界面，先让纸页淡下去。
-            if (next.kind === 'performance') {
+            if (!exitHref && next.kind === 'performance') {
               setBusy(false);
               void navigate(next.href, { replace: true });
               return;
             }
             setLeaving(scriptId);
             window.setTimeout(() => {
-              void navigate(next.href, { replace: true, viewTransition: true });
+              void navigate(exitHref ?? next.href, { replace: true, viewTransition: true });
             }, LEAVE_MS);
           })
           .catch((reason: unknown) => {

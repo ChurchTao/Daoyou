@@ -49,8 +49,17 @@
       "script": "mine-gate-home",
       "outcome": "done",
       "scene": "story",
-      "prompt": "带咪咪去找新弟子的住处。",
+      "prompt": "找教习领洞府钥匙。",
       "href": "/game/story"
+    },
+    {
+      "id": "settle-in",
+      "kind": "practice",
+      "accept": [{ "type": "guide", "lesson": "cave-first-steps" }],
+      "scene": "cave",
+      "prompt": "明早去练功院找教习。",
+      "actionLabel": "去上早课",
+      "href": "/game?guide=cave-first-steps"
     }
   ],
   "gated": true,

@@ -2,6 +2,7 @@
   "id": "mine-lesson",
   "track": "main",
   "title": "先学哪一路",
+  "deferredUnlocks": ["alchemy", "refine", "sect-alchemy", "sect-refinery"],
   "next": "mine-sparring",
   "beats": [
     {

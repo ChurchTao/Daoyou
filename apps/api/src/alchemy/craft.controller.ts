@@ -20,6 +20,7 @@ import { Access, CurrentCultivator } from '../auth/access.js';
 import { apiErrorFilter } from '../http/error-filter.js';
 import { FirstQuery } from '../http/first-query.js';
 import { JsonBody } from '../http/json-body.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 import { CraftCommandSchema, CraftSchema } from './alchemy-input.js';
 import { CraftService } from './craft.service.js';
 
@@ -62,6 +63,7 @@ const CraftErrors = apiErrorFilter((error) => {
 
 @Controller('api/craft')
 @Access('active')
+@StoryGate('sect-alchemy')
 @UseFilters(CraftErrors)
 export class CraftController {
   constructor(@Inject(CraftService) private readonly craft: CraftService) {}

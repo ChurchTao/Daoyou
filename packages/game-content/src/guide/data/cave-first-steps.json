@@ -1,0 +1,12 @@
+{
+  "id": "cave-first-steps",
+  "title": "洞府",
+  "steps": [
+    {
+      "type": "press",
+      "anchor": "home.story-action",
+      "text": "这里就是你的洞府。以后想接着走主线，回来看看「眼下」。教习在练功院等你。"
+    },
+    { "type": "end" }
+  ]
+}

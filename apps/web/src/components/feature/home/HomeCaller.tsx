@@ -48,7 +48,7 @@ export function HomeCaller({
           </div>
         </div>
       ) : null}
-      <HomeAct href={story.href} lead={act} />
+      <HomeAct href={story.href} lead={act} guide="home.story-action" />
       {story.goals.length > 0 ? (
         <ul className="pl-7">
           {story.goals.map((goal) => (

@@ -11,6 +11,7 @@ import mountainSparring from './data/mountain-sparring.json' with { type: 'json'
 import mineShift from './data/mine-shift.json' with { type: 'json' };
 import mineCrossing from './data/mine-crossing.json' with { type: 'json' };
 import mineDeparture from './data/mine-departure.json' with { type: 'json' };
+import mineErrand from './data/mine-errand.json' with { type: 'json' };
 import mineGate from './data/mine-gate.json' with { type: 'json' };
 import mineLodging from './data/mine-lodging.json' with { type: 'json' };
 import mineLesson from './data/mine-lesson.json' with { type: 'json' };
@@ -19,7 +20,7 @@ import mineSparring from './data/mine-sparring.json' with { type: 'json' };
 import { getPerformanceScript } from '../performance/catalog.js';
 
 import { chapterUnlocks, type StoryChapter } from '@daoyou/game-domain/story';
-import { isStoryGate, storySceneOpen } from '@daoyou/game-domain/story/gates';
+import { isStoryGate, storyChapterUnlocks, storySceneOpen } from '@daoyou/game-domain/story/gates';
 
 function parseChapter(input: unknown): StoryChapter {
   const chapter = StoryChapterSchema.parse(input);
@@ -62,6 +63,7 @@ const chapters = new Map<string, StoryChapter>([
   [mineGate.id, parseChapter(mineGate)],
   [mineLesson.id, parseChapter(mineLesson)],
   [mineSparring.id, parseChapter(mineSparring)],
+  [mineErrand.id, parseChapter(mineErrand)],
   [mineLodging.id, parseChapter(mineLodging)],
 ]);
 
@@ -71,6 +73,10 @@ export const RESTING_STORY_CHAPTER = 'mine-lodging';
 for (const chapter of chapters.values()) {
   if (chapter.next && !chapters.has(chapter.next)) {
     throw new Error(`剧情章节接不上：${chapter.id} → ${chapter.next}`);
+  }
+  for (const gate of chapter.deferredUnlocks ?? []) {
+    if (!isStoryGate(gate))
+      throw new Error(`剧情章节延后的入口不存在：${chapter.id} → ${gate}`);
   }
 }
 
@@ -88,8 +94,7 @@ for (const chapter of chapters.values()) {
             `入口总表里没有这道门：${chapter.id}/${beat.id} → ${gate}`,
           );
       }
-      if (!chapter.gated) continue;
-      const unlocked = [...opened, ...chapterUnlocks(chapter, beat.id)];
+      const unlocked = storyChapterUnlocks(chapter, beat.id, opened);
       if (!storySceneOpen(unlocked, beat.scene))
         throw new Error(
           `这一幕要去的地方还没开放：${chapter.id}/${beat.id} → ${beat.scene}`,

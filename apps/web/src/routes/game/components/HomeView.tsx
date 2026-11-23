@@ -132,7 +132,7 @@ export function HomeView() {
   const story = useStory(Boolean(cultivator));
   const storyCue = story.story?.prompt ? story.story : null;
 
-  if (isLoading || (!taskError && (tasksLoading || !tasks))) {
+  if (isLoading || story.loading || (!taskError && (tasksLoading || !tasks))) {
     return <GameSceneLoading message="正在进入洞府……" />;
   }
 
@@ -307,13 +307,15 @@ export function HomeView() {
   // 眼前：先说身上和洞口的光景，再说案上摆着什么，最后说还有哪里没去过。
   const sky = readSky(new Date());
   const sights = [
-    unlocked && !anyRoad
-      ? '洞里很干净，石床上铺着新的干草。'
-      : hurt && opened('inn')
-        ? '身上还带着伤，里间的泉水冒着热气。'
-        : percent >= 100 && opened('retreat')
-          ? '丹田里的气涨得发紧，坐不住。'
-          : sky.line,
+    story.story?.guideLesson === 'cave-first-steps'
+      ? '门槛缺了一角，石榻边搁着一张旧蒲团。'
+      : unlocked && !anyRoad
+        ? '洞里很干净，石床上铺着新的干草。'
+        : hurt && opened('inn')
+          ? '身上还带着伤，里间的泉水冒着热气。'
+          : percent >= 100 && opened('retreat')
+            ? '丹田里的气涨得发紧，坐不住。'
+            : sky.line,
     pouch && scroll
       ? '石案上压着一只鼓起来的布袋，旁边摊着半卷破境的卷宗。'
       : pouch

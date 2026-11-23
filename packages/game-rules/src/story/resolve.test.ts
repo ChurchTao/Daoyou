@@ -22,6 +22,7 @@ import {
   type StoryChapter,
   type StoryProgress,
 } from '@daoyou/game-domain/story';
+import { storySceneOpen } from '@daoyou/game-domain/story/gates';
 
 const chapter: StoryChapter = {
   id: 'sample',
@@ -952,14 +953,69 @@ describe('volume one', () => {
       'mine-departure',
       'mine-gate',
       'mine-lesson',
+      'mine-sparring',
     ]);
-    expect(seen.slice(0, 4).every((id) => getStoryChapter(id).gated)).toBe(true);
+    expect(seen.slice(0, 4).every((id) => getStoryChapter(id).gated)).toBe(
+      true,
+    );
     expect(getStoryChapter('mine-gate').beats[0]).toMatchObject({
-      id: 'landing', kind: 'performance', script: 'mine-gate-landing',
+      id: 'landing',
+      kind: 'performance',
+      script: 'mine-gate-landing',
     });
     expect(current.gated).toBeUndefined();
-    expect(current.id).toBe('mine-sparring');
+    expect(current.id).toBe('mine-errand');
     expect(current.beats.at(-1)?.kind).toBe('life');
+  });
+
+  it('takes the player from unlocking the cave to the actual morning lesson', () => {
+    const gate = getStoryChapter('mine-gate');
+    const facts = emptyStoryFacts();
+    const home = acknowledgePerformance(
+      gate,
+      progress('home', { storyId: gate.id }),
+      facts,
+      'mine-gate-home',
+      'done',
+    );
+    expect(home.finished).toBe(false);
+    expect(presentStory(gate, home.progress, facts)).toMatchObject({
+      beatId: 'settle-in',
+      guideLesson: 'cave-first-steps',
+      href: '/game?guide=cave-first-steps',
+      actionLabel: '去上早课',
+    });
+    expect(
+      acknowledgeGuide(gate, home.progress, facts, 'cave-first-steps').finished,
+    ).toBe(true);
+    expect(gate.next).toBe('mine-lesson');
+  });
+
+  it('opens the rest of the map after moving in while the crafting facilities wait for their lessons', () => {
+    const facilities = ['alchemy', 'refine', 'sect-alchemy', 'sect-refinery'];
+    for (const id of ['mine-lesson', 'mine-sparring', 'mine-errand']) {
+      const chapter = getStoryChapter(id);
+      const at = openingStoryProgress(id);
+      const unlocked = presentStory(chapter, at, emptyStoryFacts()).unlocked;
+      expect(storySceneOpen(unlocked, 'sect-onboarding')).toBe(true);
+      expect(storySceneOpen(unlocked, 'map')).toBe(true);
+      expect(
+        facilities.map((scene) => storySceneOpen(unlocked, scene)),
+      ).toEqual([false, false, false, false]);
+      expect(
+        presentStory(chapter, at, emptyStoryFacts(), [], facilities).unlocked,
+      ).toBeNull();
+    }
+    const chapter = getStoryChapter('mine-errand');
+    const home = presentStory(
+      chapter,
+      progress('home', { storyId: chapter.id }),
+      emptyStoryFacts(),
+    );
+    expect(home).toMatchObject({
+      exitHref: '/game',
+      scriptId: 'mine-errand-home',
+    });
   });
 
   it('opens a new character on the first beat of volume one', () => {

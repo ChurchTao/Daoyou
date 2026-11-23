@@ -1,3 +1,5 @@
+import { chapterUnlocks, type StoryChapter } from './schema.js';
+
 /**
  * 入口开放的总表：每个场景归哪道门管。
  * 新手期主线一幕幕把门打开（章节数据里的 unlocks 写的就是门的编号）；
@@ -38,8 +40,8 @@ export const STORY_SCENE_GATES: Readonly<Record<string, string>> = {
   'sect-treasury': 'sect',
   'sect-industries': 'sect',
   'sect-cultivation-room': 'sect',
-  'sect-alchemy': 'sect',
-  'sect-refinery': 'sect',
+  'sect-alchemy': 'sect-alchemy',
+  'sect-refinery': 'sect-refinery',
   'sect-spirit-vein': 'sect',
   'sect-herb-garden': 'sect',
   'sect-cave': 'sect',
@@ -90,14 +92,34 @@ export const STORY_SCENE_GATES: Readonly<Record<string, string>> = {
 /** 不对应哪个页面、但同样由主线打开的东西。 */
 export const STORY_EXTRA_GATES = ['yield'] as const;
 
-const gates = new Set<string>([
-  ...Object.values(STORY_SCENE_GATES),
-  ...STORY_EXTRA_GATES,
-]);
+const gates = [
+  ...new Set<string>([
+    ...Object.values(STORY_SCENE_GATES),
+    ...STORY_EXTRA_GATES,
+  ]),
+];
 
 /** 章节数据里写的门编号认不认得。 */
 export function isStoryGate(id: string): boolean {
-  return gates.has(id);
+  return gates.includes(id);
+}
+
+/** 合并沿途开放的入口，并计算本章仍然需要引导的去处。 */
+export function storyChapterUnlocks(
+  chapter: StoryChapter,
+  beatId: string,
+  opened: readonly string[],
+): string[] | null {
+  const unlocked = [
+    ...new Set([...opened, ...chapterUnlocks(chapter, beatId)]),
+  ];
+  if (chapter.gated) return unlocked;
+  const pending = chapter.deferredUnlocks?.filter(
+    (gate) => !unlocked.includes(gate),
+  );
+  return pending?.length
+    ? gates.filter((gate) => !pending.includes(gate))
+    : null;
 }
 
 /**

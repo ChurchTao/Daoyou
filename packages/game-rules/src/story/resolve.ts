@@ -2,7 +2,6 @@ import {
   baseMark,
   battleFlag,
   battleMark,
-  chapterUnlocks,
   flagMark,
   readBaseMark,
   readStoryWeaponId,
@@ -19,6 +18,7 @@ import {
   type StoryProgress,
   type StoryView,
 } from '@daoyou/game-domain/story';
+import { storyChapterUnlocks } from '@daoyou/game-domain/story/gates';
 
 const markFacts = new Set<StoryFactId>(STORY_MARK_FACT_IDS);
 const arrivalRevisionMark = 'arrival-v2';
@@ -478,6 +478,7 @@ export function presentStory(
     target.searchParams.set('item', weaponId);
     href = target.pathname + target.search + target.hash;
   }
+  const unlocked = storyChapterUnlocks(chapter, beat.id, opened);
   return {
     track: progress.track,
     chapterId: chapter.id,
@@ -489,6 +490,7 @@ export function presentStory(
     href,
     ...(shifted.actionLabel ? { actionLabel: shifted.actionLabel } : {}),
     ...(shifted.indicatorFrom ? { indicatorFrom: shifted.indicatorFrom } : {}),
+    ...(beat.kind === 'performance' && beat.exitHref ? { exitHref: beat.exitHref } : {}),
     scriptId: beat.kind === 'performance' ? beat.script : null,
     battleId: beat.kind === 'battle' ? beat.battle : null,
     hail: beat.hail
@@ -502,10 +504,8 @@ export function presentStory(
     ...(weaponId
       ? { targetItem: { id: weaponId, missingAction: missingItemAction } }
       : {}),
-    unlocked: chapter.gated
-      ? [...new Set([...opened, ...chapterUnlocks(chapter, beat.id)])]
-      : null,
-    fresh: chapter.gated ? [...(beat.unlocks ?? [])] : [],
+    unlocked,
+    fresh: unlocked ? [...(beat.unlocks ?? [])] : [],
     flags: [...new Set([...carried, ...storyFlags(progress.marks)])],
     goals:
       beat.kind === 'objective'

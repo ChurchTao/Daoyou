@@ -190,15 +190,44 @@ describe('木人试手', () => {
     chapter, openingStoryProgress(chapter.id), facts, 'mine-sparring-yard', 'done',
   ).progress;
 
-  it.each(['won', 'lost'] as const)('按 %s 收场并继续到白水镇差帖', (outcome) => {
-    const fought = acknowledgeBattle(chapter, entering(), facts, battle.id, outcome);
-    expect(presentStory(chapter, fought.progress, facts)).toMatchObject({
-      scriptId: 'mine-sparring-verdict', flags: [`battle.mine-sparring.${outcome}`],
-    });
-    const watch = acknowledgePerformance(chapter, fought.progress, facts, 'mine-sparring-verdict', 'done');
-    const errand = acknowledgePerformance(chapter, watch.progress, facts, 'mine-sparring-watch', 'done');
-    expect(errand.progress.beatId).toBe('errand');
-  });
+  it.each(['won', 'lost'] as const)(
+    '按 %s 收场并从白水镇差帖进入第七章',
+    (outcome) => {
+      const fought = acknowledgeBattle(
+        chapter,
+        entering(),
+        facts,
+        battle.id,
+        outcome,
+      );
+      expect(presentStory(chapter, fought.progress, facts)).toMatchObject({
+        scriptId: 'mine-sparring-verdict',
+        flags: [`battle.mine-sparring.${outcome}`],
+      });
+      const watch = acknowledgePerformance(
+        chapter,
+        fought.progress,
+        facts,
+        'mine-sparring-verdict',
+        'done',
+      );
+      const errand = acknowledgePerformance(
+        chapter,
+        watch.progress,
+        facts,
+        'mine-sparring-watch',
+        'done',
+      );
+      expect(errand.finished).toBe(true);
+      expect(chapter.next).toBe('mine-errand');
+      const next = getStoryChapter(chapter.next!);
+      expect(
+        presentStory(next, openingStoryProgress(next.id), facts),
+      ).toMatchObject({
+        scriptId: 'mine-errand-ask',
+      });
+    },
+  );
 
   it('只在落败后允许再试，清掉前一场效果并照实记新战果', () => {
     const lost = acknowledgeBattle(chapter, entering(), facts, battle.id, 'lost', [mineSparringFlag('triple')]);

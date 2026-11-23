@@ -1,0 +1,55 @@
+{
+  "id": "mine-errand",
+  "track": "main",
+  "title": "明早再来拿药",
+  "deferredUnlocks": ["alchemy", "refine", "sect-alchemy", "sect-refinery"],
+  "beats": [
+    {
+      "id": "ask",
+      "kind": "performance",
+      "script": "mine-errand-ask",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "和同门去丹房，问问送药的事。",
+      "actionLabel": "去丹房领差",
+      "href": "/game/story"
+    },
+    {
+      "id": "home",
+      "kind": "performance",
+      "script": "mine-errand-home",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "绕过饭堂，沿岩壁回洞府。",
+      "exitHref": "/game",
+      "href": "/game/story"
+    },
+    {
+      "id": "evening",
+      "kind": "performance",
+      "script": "mine-errand-evening",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "趁饭堂还开着，去隔壁喊同门练一会儿。",
+      "actionLabel": "去敲隔壁的门",
+      "href": "/game/story"
+    },
+    {
+      "id": "pickup",
+      "kind": "performance",
+      "script": "mine-errand-pickup",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "天亮了，同门来敲门。",
+      "actionLabel": "去拿药匣",
+      "href": "/game/story"
+    },
+    {
+      "id": "departure",
+      "kind": "life",
+      "scene": "cave",
+      "prompt": "",
+      "href": "/game"
+    }
+  ]
+}

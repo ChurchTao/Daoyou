@@ -96,6 +96,8 @@ const performanceBeatSchema = z
     outcome: z.string().trim().min(1).max(40),
     // 可在这一幕选择重打上一幕实际落败的一场。
     retryLostBattle: z.literal(true).optional(),
+    // 演出结束后先回到指定场景，由玩家在那里接续下一幕。
+    exitHref: z.string().trim().max(120).regex(/^\/game(?:[/?]|$)/).optional(),
     scene: z.string().trim().min(1).max(40),
     prompt: z.string().max(80),
     href: z.string().trim().min(1).max(120),
@@ -292,8 +294,10 @@ export function createStoryChapterSchema({
       title: z.string().trim().min(1).max(40),
       // 这一章演完之后接哪一章。不写就停在最后一幕。
       next: z.string().trim().min(1).max(80).optional(),
-      // 这一章期间只显示已开放的入口。不写就全部开放。
+      // 这一章期间只显示已开放的入口。
       gated: z.boolean().optional(),
+      // 结束集中引导后，仅这些入口还需要逐个开放。
+      deferredUnlocks: unlocksSchema,
       beats: z.array(StoryBeatSchema).min(1).max(40),
     })
     .strict()
@@ -452,6 +456,7 @@ export const StoryViewSchema = z
     prompt: z.string(),
     href: z.string(),
     ...taskIndicatorFields,
+    exitHref: z.string().optional(),
     scriptId: z.string().nullable(),
     // 眼下是剧情战的话，是哪一场。
     battleId: z.string().nullable(),

@@ -44,7 +44,11 @@ import {
   getStoryChapter,
   OPENING_STORY_CHAPTER,
 } from '@daoyou/game-content/story/catalog';
-import { STORY_EXTRA_GATES, STORY_SCENE_GATES } from '@daoyou/game-domain/story/gates';
+import {
+  STORY_EXTRA_GATES,
+  STORY_SCENE_GATES,
+  storyChapterUnlocks,
+} from '@daoyou/game-domain/story/gates';
 import { giveStarterBeast } from '@server/combat/application/starterBeastGift.js';
 import {
   emptyStoryFacts,
@@ -256,23 +260,31 @@ async function currentStory(
   const returning = rows.length !== history.length;
   const stored = rows.find((row) => row.status === 'active') ?? rows[0] ?? null;
   const past = rows.filter((row) => row !== stored);
-  const finishedGate = past.some(
+  const finishedGate = past.find(
     (row) =>
       row.storyId === 'mine-gate' && row.acks.includes('mine-gate-home:done'),
   );
-  const base =
-    stored?.storyId === 'mine-lodging' && finishedGate
-      ? openingStoryProgress('mine-lesson')
-      : stored ??
-        (returning
-          ? openingStoryProgress(OPENING_STORY_CHAPTER)
-          : restingStoryProgress());
+  let base =
+    stored ??
+    (returning
+      ? openingStoryProgress(OPENING_STORY_CHAPTER)
+      : restingStoryProgress());
+  if (stored?.storyId === 'mine-lodging' && finishedGate) {
+    base = openingStoryProgress('mine-lesson');
+  }
+  if (stored?.storyId === 'mine-sparring' && stored.beatId === 'errand') {
+    base = openingStoryProgress('mine-errand');
+  }
+  // 旧版读完第四章就开放了全部场景，已经走过的角色保留入口。
+  const hadFullAccess =
+    returning || (finishedGate && finishedGate.beatId !== 'settle-in');
+  const carriedRows = rows.filter((row) => row.storyId !== base.storyId);
   return {
     rows,
     stored,
     base,
-    carried: past.flatMap((row) => storyFlags(row.marks)),
-    opened: returning
+    carried: carriedRows.flatMap((row) => storyFlags(row.marks)),
+    opened: hadFullAccess
       ? [
           ...new Set([
             ...Object.values(STORY_SCENE_GATES),
@@ -359,11 +371,12 @@ export const StoryService = {
     cultivatorId: string,
     q: DbExecutor | DbTransaction,
   ): Promise<string[] | null> {
-    const { stored, opened } = await currentStory(cultivatorId, q);
-    if (!stored) return null;
-    const chapter = getStoryChapter(stored.storyId);
-    if (!chapter.gated) return null;
-    return [...new Set([...opened, ...chapterUnlocks(chapter, stored.beatId)])];
+    const { base, opened } = await currentStory(cultivatorId, q);
+    return storyChapterUnlocks(
+      getStoryChapter(base.storyId),
+      base.beatId,
+      opened,
+    );
   },
 
   async read(cultivatorId: string, tx: DbTransaction): Promise<StoryView> {
