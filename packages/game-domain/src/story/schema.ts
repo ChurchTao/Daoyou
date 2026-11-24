@@ -91,6 +91,9 @@ const passageActionSchema = z
   })
   .strict();
 
+// 从上一幕接续时的呈现方式。暂停或从地图回来仍走当前幕的现场入口。
+const storyArrival = z.enum(['activity', 'location', 'map']).optional();
+
 const taskIndicatorFields = {
   location: storyLocationSchema.optional(),
   entry: locationEntrySchema.optional(),
@@ -134,6 +137,7 @@ const performanceBeatSchema = z
     retryLostBattle: z.literal(true).optional(),
     // 从主线入口续读时先播放，也可稍后从现场入口接续。
     playOnResume: z.literal(true).optional(),
+    arrival: storyArrival,
     finishLabel: z.string().trim().min(1).max(24).optional(),
     // 演出结束后先回到指定场景，由玩家在那里接续下一幕。
     exitHref: z
@@ -213,6 +217,7 @@ const practiceBeatSchema = z
   .object({
     id: z.string().trim().min(1).max(40),
     kind: z.literal('practice'),
+    arrival: storyArrival,
     accept: z.array(acceptanceSchema).min(1).max(4),
     mode: z.enum(['any', 'all']).optional(),
     scene: z.string().trim().min(1).max(40),
@@ -301,6 +306,7 @@ const battleBeatSchema = z
   .object({
     id: z.string().trim().min(1).max(40),
     kind: z.literal('battle'),
+    arrival: storyArrival,
     battle: z.string().trim().min(1).max(40),
     // 头一回打架时带的那场教学。看不看都不耽误往下走。
     lesson: lessonIdSchema.optional(),
@@ -318,6 +324,7 @@ const passageBeatSchema = z
   .object({
     id: mapKey,
     kind: z.literal('passage'),
+    arrival: storyArrival,
     scene: z.string().trim().min(1).max(40),
     prompt: z.string().trim().min(1).max(80),
     ...taskIndicatorFields,
@@ -531,6 +538,7 @@ export const StoryViewSchema = z
     href: z.string(),
     ...taskIndicatorFields,
     playHref: z.string().optional(),
+    arrival: storyArrival,
     resumeHref: z.string().optional(),
     finishLabel: z.string().optional(),
     passage: passageActionSchema.optional(),

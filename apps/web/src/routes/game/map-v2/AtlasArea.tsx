@@ -10,9 +10,11 @@ import type {
 import { buildMapLocationActions } from '@app/components/feature/map/mapActions';
 import { MapLocationDrawer } from '@app/components/feature/map/MapLocationDrawer';
 import { storyPassageActor } from '@app/components/feature/story/storyPassageActor';
-import { StoryPassageDetail } from '@app/components/feature/story/StoryPassageDetail';
+import {
+  StoryPassageAction,
+  StoryPassageDetail,
+} from '@app/components/feature/story/StoryPassageDetail';
 import { GameTaskIndicator } from '@app/components/game-shell/GameTaskIndicator';
-import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { useGameSettings } from '@app/lib/game-setting';
 import { usePlayerSession } from '@app/lib/resources/player';
@@ -244,16 +246,6 @@ export function AtlasArea({
   );
   const canvasArtwork = mapMode === 'atlas' ? artwork : undefined;
   const mapTitle = source ? (artwork?.title ?? area.name) : area.name;
-  const boardingStory =
-    source &&
-    selectedPlace &&
-    passage?.to.kind === 'area' &&
-    passage.to.areaId === area.id &&
-    passage.to.placeId === selectedPlace.id
-      ? story
-      : undefined;
-  const passageStory = boardingStory ?? (!source ? storyAtPlace : undefined);
-
   return (
     <div className="bg-paper absolute inset-0 overflow-hidden">
       {canvasArtwork ? (
@@ -266,6 +258,7 @@ export function AtlasArea({
           mapLabel="区域舆图"
           directoryLabel={directoryLabel}
           entryMarkerId={storyPlaceId}
+          showOverviewOnMobile={Boolean(source)}
           status={status}
           view={view}
           controller={controller}
@@ -318,6 +311,29 @@ export function AtlasArea({
             )}
           />
         </InkDetailDrawer>
+      ) : source && selectedPlace ? (
+        <InkDetailDrawer
+          key={selectedPlace.id}
+          isOpen
+          onClose={closeLocation}
+          title={selectedPlace.name}
+          description={selectedPlace.description}
+          size="sm"
+          overlayClassName="bg-ink/20"
+        >
+          {story &&
+          passage?.to.kind === 'area' &&
+          passage.to.areaId === area.id &&
+          passage.to.placeId === selectedPlace.id ? (
+            <StoryPassageAction story={story} passage={passage} />
+          ) : (
+            <p className="text-ink-secondary text-sm leading-7">
+              {selectedPlace.id === source.id
+                ? '你正在这里看图。'
+                : '从出发地的通路无法直达这里。'}
+            </p>
+          )}
+        </InkDetailDrawer>
       ) : selectedPlace ? (
         <AtlasPlaceOccupants
           key={selectedPlace.id}
@@ -325,12 +341,8 @@ export function AtlasArea({
           onClose={closeLocation}
           story={storyAtPlace}
           journey={
-            passageStory?.passage && passage
-              ? {
-                  story: passageStory,
-                  passage,
-                  atDestination: Boolean(boardingStory),
-                }
+            storyAtPlace?.passage && passage
+              ? { story: storyAtPlace, passage }
               : undefined
           }
         />
@@ -348,67 +360,69 @@ function AtlasPlaceOccupants({
   place: MapAreaPlace;
   onClose(): void;
   story?: StoryView;
-  journey?: { story: StoryView; passage: MapPassage; atDestination: boolean };
+  journey?: { story: StoryView; passage: MapPassage };
 }) {
   const navigate = useNavigate();
   const facilities = place.scene?.facilities ?? [];
   const npcs = (place.scene?.npcs ?? []).filter(
-    (npc) => !npc.storyOnly || story?.entry?.id === npc.id,
+    (npc) =>
+      !npc.storyOnly ||
+      (story?.entry?.kind === 'npc' && story.entry.id === npc.id),
   );
-  const passageActor = journey && storyPassageActor(journey.passage);
-  const status = (kind: 'npc' | 'facility', id: string) =>
-    story?.playHref && story.entry?.kind === kind && story.entry.id === id
-      ? { label: '主线' }
-      : undefined;
+  const passageActor = journey?.story.passage?.hint
+    ? storyPassageActor(journey.passage)
+    : undefined;
+  const activeEntry = story?.playHref ? story.entry : undefined;
+  const activeActorId = activeEntry && `${activeEntry.kind}:${activeEntry.id}`;
+  const isActive = (kind: 'npc' | 'facility', id: string) =>
+    activeEntry?.kind === kind && activeEntry.id === id;
   const actors = [
     ...npcs.map((npc) => ({
-      id: npc.id,
+      id: `npc:${npc.id}`,
       name: npc.name,
       portrait: npc.portrait,
       sigil: '人',
-      identity: npc.action,
+      identity: isActive('npc', npc.id)
+        ? (story?.actionLabel ?? npc.action)
+        : npc.action,
       responsibility: '',
-      status: status('npc', npc.id),
+      status: isActive('npc', npc.id) ? { label: '主线' } : undefined,
     })),
     ...facilities.map((facility) => ({
-      id: facility.id,
+      id: `facility:${facility.id}`,
       name: facility.name,
       sigil: 'icon:map-landmark',
-      identity: facility.purpose,
+      identity: isActive('facility', facility.id)
+        ? (story?.actionLabel ?? facility.purpose)
+        : facility.purpose,
       responsibility: '',
       appearance: 'facility' as const,
-      status: status('facility', facility.id),
+      status: isActive('facility', facility.id) ? { label: '主线' } : undefined,
     })),
     ...(passageActor ? [passageActor] : []),
   ];
   return (
     <MapLocationDrawer
       title={place.name}
-      description={
-        journey?.atDestination
-          ? place.description
-          : (place.scene?.description ?? place.description)
+      description={place.scene?.description ?? place.description}
+      footer={
+        journey && !passageActor ? (
+          <StoryPassageDetail {...journey} />
+        ) : undefined
       }
       onClose={onClose}
       actors={actors}
       onActivate={(id) => {
-        if (
-          story?.entry?.kind !== 'npc' ||
-          story.entry.id !== id ||
-          !story.playHref ||
-          !npcs.some((npc) => npc.id === id && npc.storyOnly)
-        )
-          return false;
+        if (!story?.playHref || activeActorId !== id) return false;
         void navigate(story.playHref);
         return true;
       }}
       renderConversation={(id) => {
         if (journey && id === passageActor?.id)
           return <StoryPassageDetail {...journey} />;
-        const npc = npcs.find((item) => item.id === id);
-        const facility = facilities.find((item) => item.id === id);
+        const npc = npcs.find((item) => `npc:${item.id}` === id);
+        const facility = facilities.find((item) => `facility:${item.id}` === id);
         if (!npc && !facility) return null;
-        const action = status(npc ? 'npc' : 'facility', id) && story?.playHref;
         return (
           <section className="space-y-4">
             <h3 className="text-base font-semibold">
@@ -423,11 +437,6 @@ function AtlasPlaceOccupants({
                 {facility?.details}
               </p>
             )}
-            {action && story ? (
-              <InkButton href={action} variant="primary" className="min-h-11">
-                {story.actionLabel ?? '继续'}
-              </InkButton>
-            ) : null}
           </section>
         );
       }}

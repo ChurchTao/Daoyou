@@ -5,6 +5,7 @@ import { useCombatV6Session } from '@app/components/feature/combat-v6/useCombatV
 import { InkButton } from '@app/components/ui';
 import { useStory } from '@app/lib/story/useStory';
 import type { StoryBattleSessionView } from '@daoyou/contracts/combat/story-battle';
+import { storyArrivalHref } from '@daoyou/game-rules/story';
 import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
 
@@ -64,12 +65,19 @@ export default function StoryBattlePage() {
   }, [settled, reloadStory]);
 
   if (ready && !wanted && !mine)
-    return <Navigate to={story?.location ? story.href : '/game'} replace />;
+    return (
+      <Navigate
+        to={story?.location ? storyArrivalHref(story) : '/game'}
+        replace
+      />
+    );
 
   const leave = () => {
     if (!story || story.kind === 'battle') return;
     void navigate(
-      story.kind === 'life' && !story.location ? '/game' : story.href,
+      story.kind === 'life' && !story.location
+        ? '/game'
+        : storyArrivalHref(story),
       {
         replace: true,
         viewTransition: !story.location,

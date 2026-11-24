@@ -15,7 +15,7 @@ import {
 import { useStory } from '@app/lib/story/useStory';
 import { getPerformanceScript } from '@daoyou/game-content/performance/catalog';
 import type { StoryView } from '@daoyou/game-domain/story';
-import { sameMapPlace } from '@daoyou/game-domain/world/map';
+import { storyArrivalHref } from '@daoyou/game-rules/story';
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
 
@@ -140,28 +140,17 @@ function StoryRead() {
           )
             .then((response) => consumeResourceMutation<StoryView>(response))
             .then((next) => {
-              const sameEntry =
-                checkpoint.location &&
-                next.location &&
-                sameMapPlace(checkpoint.location, next.location) &&
-                checkpoint.entry?.kind === next.entry?.kind &&
-                checkpoint.entry?.id === next.entry?.id;
+              const href = exitHref ?? storyArrivalHref(next);
               if (
                 !exitHref &&
                 next.kind === 'performance' &&
-                (!next.location || (sameEntry && next.playHref))
+                (next.arrival === 'activity' || !next.location)
               ) {
-                void navigate(next.playHref ?? next.href, { replace: true });
+                void navigate(href, { replace: true });
                 return;
               }
-              // 地点之间沿用当前的淡出，缩放和旋转时亦可直接恢复到目的地。
               setExitTo({
-                href:
-                  exitHref ??
-                  (sameEntry && checkpoint.finishLabel && next.kind === 'battle'
-                    ? next.playHref
-                    : undefined) ??
-                  next.href,
+                href,
                 viewTransition: !checkpoint.location && !next.location,
               });
             })

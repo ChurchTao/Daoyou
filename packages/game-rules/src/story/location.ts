@@ -25,6 +25,14 @@ export function storyPlayHref(
   return target.pathname + target.search;
 }
 
+export function storyArrivalHref(
+  story: Pick<StoryView, 'arrival' | 'href' | 'playHref'>,
+): string {
+  return story.arrival === 'activity'
+    ? (story.playHref ?? story.href)
+    : story.href;
+}
+
 export function storyPassageMark(beatId: string, passageId: string): string {
   return `passage:${beatId}:${passageId}`;
 }

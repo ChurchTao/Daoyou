@@ -573,6 +573,7 @@ export function presentStory(
     ...(location ? { location } : {}),
     ...(beat.entry ? { entry: beat.entry } : {}),
     ...(beat.kind === 'passage' ? { passage: beat.passage } : {}),
+    ...('arrival' in beat && beat.arrival ? { arrival: beat.arrival } : {}),
     ...(beat.kind === 'performance' && beat.finishLabel
       ? { finishLabel: beat.finishLabel }
       : {}),

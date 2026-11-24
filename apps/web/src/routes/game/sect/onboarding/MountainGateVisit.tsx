@@ -8,6 +8,7 @@ import {
 } from '@daoyou/game-content/performance/catalog';
 import type { PerformanceContext } from '@daoyou/game-domain/performance';
 import type { StoryView } from '@daoyou/game-domain/story';
+import { storyArrivalHref } from '@daoyou/game-rules/story';
 import { useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import {
@@ -53,8 +54,7 @@ export function MountainGateVisit({
         ? 'visit'
         : 'join',
   );
-  const backLabel =
-    checkpoint?.chapterId === 'mine-gate' ? '回接引亭' : '再看看别家';
+  const backLabel = '再看看别家';
 
   if (storyEntry && !chapterVisit && !saving) {
     return <Navigate to={checkpoint?.href ?? '/game'} replace />;
@@ -99,7 +99,7 @@ export function MountainGateVisit({
             },
           ),
         );
-        navigate(next.href, { replace: true });
+        navigate(storyArrivalHref(next), { replace: true });
       } else {
         navigate(
           chapterVisit ? '/game/story' : '/game/sect/onboarding?entry=path',

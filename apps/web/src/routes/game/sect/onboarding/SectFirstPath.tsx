@@ -18,6 +18,7 @@ import {
 import { useStory } from '@app/lib/story/useStory';
 import { createSectFirstPath } from '@daoyou/game-content/performance/catalog';
 import type { StoryView } from '@daoyou/game-domain/story';
+import { storyArrivalHref } from '@daoyou/game-rules/story';
 import { useRef, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
 import { SectQueryError } from '../components/SectScene';
@@ -75,7 +76,7 @@ export function SectFirstPath() {
   }
   function nextHref(next?: StoryView) {
     if (!fromStory) return workshop;
-    return next?.href ?? '/game';
+    return next ? storyArrivalHref(next) : '/game';
   }
   if (build.activePathId && !saving) {
     return <Navigate to={nextHref(story.story)} replace />;
@@ -124,15 +125,14 @@ export function SectFirstPath() {
       const next = fromStory
         ? await combatV6Request<StoryView>('/api/story')
         : undefined;
-      navigate(nextHref(next), { replace: true });
+      await navigate(nextHref(next), { replace: true });
     } catch (reason) {
       setError(
         reason instanceof Error ? reason.message : '未能启用流派，请再试一次。',
       );
-      await sect.reload();
-    } finally {
       busy.current = false;
       setSaving(false);
+      await sect.reload();
     }
   }
 

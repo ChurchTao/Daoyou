@@ -4,6 +4,9 @@
     "title": "到了山脚",
     "requires": [],
     "cast": {
+      "player": {
+        "name": "你"
+      },
       "he": {
         "name": "阿禾"
       }
@@ -11,12 +14,30 @@
     "cues": [
       {
         "type": "scene",
-        "alt": "山脚 · 渡埠"
+        "alt": "早渡 · 船上"
       },
       {
         "type": "title",
         "kicker": "先看看",
         "text": "到了山脚"
+      },
+      {
+        "type": "narration",
+        "text": "出了村口的河湾，你让咪咪挨着自己坐稳，有句话在心里过了好几遍。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "要是人家问我会什么，我说我只在矿上干过活，行么？"
+      },
+      {
+        "type": "line",
+        "speaker": "he",
+        "text": "照实说。你是去学的。"
+      },
+      {
+        "type": "scene",
+        "alt": "山脚 · 渡埠"
       },
       {
         "type": "narration",

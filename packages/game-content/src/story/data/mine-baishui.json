@@ -7,6 +7,7 @@
     {
       "id": "ask",
       "kind": "performance",
+      "arrival": "location",
       "script": "mine-baishui-ask",
       "outcome": "done",
       "scene": "map",
@@ -24,6 +25,7 @@
     {
       "id": "sail",
       "kind": "passage",
+      "arrival": "map",
       "scene": "map",
       "prompt": "沿着脚下这岸找，过了河弯该在哪儿换船？",
       "actionLabel": "展开水路舆图",
@@ -40,6 +42,7 @@
     {
       "id": "wait",
       "kind": "performance",
+      "arrival": "activity",
       "script": "mine-baishui-wait",
       "outcome": "done",
       "scene": "map",

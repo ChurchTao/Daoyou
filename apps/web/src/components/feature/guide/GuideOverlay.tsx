@@ -13,6 +13,7 @@ import {
 } from '@daoyou/game-rules/guide/interpreter';
 import type { GuideStep } from '@daoyou/game-domain/guide';
 import type { StoryView } from '@daoyou/game-domain/story';
+import { storyArrivalHref } from '@daoyou/game-rules/story';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type ShownStep = Extract<GuideStep, { type: 'look' | 'press' }>;
@@ -240,7 +241,7 @@ function GuideSession({
       .then((view) => {
         clearStoredGuideCursor(storageKey);
         if (view.beatId !== startingBeatId.current)
-          navigate(view.href, { replace: true });
+          navigate(storyArrivalHref(view), { replace: true });
         else close();
       })
       .catch((reason: unknown) => {

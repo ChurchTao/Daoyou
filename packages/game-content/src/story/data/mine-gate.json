@@ -7,6 +7,7 @@
     {
       "id": "landing",
       "kind": "performance",
+      "arrival": "activity",
       "script": "mine-gate-landing",
       "outcome": "done",
       "scene": "story",
@@ -22,11 +23,12 @@
         "kind": "facility",
         "id": "foothill-landing"
       },
-      "finishLabel": "去亭中看看"
+      "finishLabel": "持路帖去山门"
     },
     {
       "id": "visit",
       "kind": "performance",
+      "arrival": "activity",
       "script": "mine-gate-study",
       "outcome": "done",
       "scene": "sect-onboarding",
@@ -114,7 +116,7 @@
         }
       ],
       "scene": "cave",
-      "prompt": "明早去练功院找教习。",
+      "prompt": "在洞府安顿下来，明早再去找教习。",
       "actionLabel": "去上早课",
       "href": "/game?guide=cave-first-steps",
       "location": {

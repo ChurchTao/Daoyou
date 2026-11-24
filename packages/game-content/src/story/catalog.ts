@@ -47,6 +47,20 @@ function areaPlace(location: Extract<MapPlaceRef, { kind: 'area' }>) {
 function parseChapter(input: unknown): StoryChapter {
   const chapter = StoryChapterSchema.parse(input);
   for (const beat of chapter.beats) {
+    if ('arrival' in beat && beat.arrival) {
+      if (
+        !beat.location ||
+        (beat.arrival === 'activity' &&
+          (beat.kind === 'passage' || !beat.href)) ||
+        (beat.arrival === 'map' &&
+          (beat.kind !== 'passage' || !beat.passage.hint)) ||
+        (beat.arrival === 'location' &&
+          beat.kind === 'passage' &&
+          beat.passage.hint)
+      ) {
+        throw new Error(`剧情转场配置无效：${chapter.id}/${beat.id}`);
+      }
+    }
     if (beat.entry && (!beat.location || beat.location.kind === 'cave')) {
       throw new Error(`剧情入口缺少地点：${chapter.id}/${beat.id}`);
     }

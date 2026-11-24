@@ -1,6 +1,5 @@
 import { MapLocationDrawer } from '@app/components/feature/map/MapLocationDrawer';
 import { getSectRoomPortrait } from '@app/components/feature/sect/room/sectRoomPortrait';
-import { storyPassageActor } from '@app/components/feature/story/storyPassageActor';
 import { StoryPassageDetail } from '@app/components/feature/story/StoryPassageDetail';
 import {
   storyCastFace,
@@ -52,7 +51,6 @@ export function SectMemberMapLocation({
     ? storyPerformanceContext({ name: '' }, sectId)[entry.cast]
     : undefined;
   const passage = story?.passage && getMapPassage(story.passage.id);
-  const passageActor = passage && storyPassageActor(passage);
   const actor = entry
     ? {
         id: resident?.id ?? entry.id,
@@ -74,7 +72,6 @@ export function SectMemberMapLocation({
   const actors = [
     ...roomActors.filter(({ id }) => id !== actor?.id),
     ...(actor ? [actor] : []),
-    ...(passageActor ? [passageActor] : []),
   ];
   const Conversation =
     room?.key === 'gate' ? SectGateMapConversation : SectAffairsMapConversation;
@@ -83,7 +80,16 @@ export function SectMemberMapLocation({
     <MapLocationDrawer
       title={location.spot.label}
       description={location.description}
-      footer={location.footer}
+      footer={
+        story && passage ? (
+          <div className="space-y-4">
+            <StoryPassageDetail story={story} passage={passage} />
+            {location.footer}
+          </div>
+        ) : (
+          location.footer
+        )
+      }
       actors={actors}
       onClose={location.onClose}
       onActivate={(id) => {
@@ -92,8 +98,6 @@ export function SectMemberMapLocation({
         return true;
       }}
       renderConversation={(actorId, onExit) => {
-        if (story && passage && actorId === passageActor?.id)
-          return <StoryPassageDetail story={story} passage={passage} />;
         const actor = roomActors.find((candidate) => candidate.id === actorId);
         return actor ? <Conversation actor={actor} onExit={onExit} /> : null;
       }}

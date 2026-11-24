@@ -192,19 +192,20 @@ export function mineLessonScripts(sectId?: CombatV6SectId) {
       { type: 'title', kicker: '早课', text: '去读本门心法' },
       say(
         'teacher',
-        `哪卷还没到十级，就去{archive_name}找{archive_keeper}。先练${lesson?.method ?? '主心法'}，再练其余几卷。都练到了，便来给我看看你的起手。`,
+        `去{archive_name}找{archive_keeper}。先练${lesson?.method ?? '主心法'}，再练其余几卷。哪卷还没到十级，就接着往下练。`,
       ),
+      say('teacher', '慢慢来。六卷都练到了，再来给我看看你的起手。'),
       { type: 'end', outcome: 'done' },
     ],
   });
   const form = parsePerformanceScript({
     id: 'mine-lesson-form',
-    title: '下午再试',
+    title: '试试起手',
     requires: ['path_teacher'],
     cast,
     cues: [
       scene,
-      { type: 'title', kicker: '早课', text: '下午再试' },
+      { type: 'title', text: '试试起手' },
       ...(lesson
         ? [
             say('teacher', '在阁里运过一遍气了吧？到我跟前来，把那口气留到起手。'),
@@ -212,7 +213,10 @@ export function mineLessonScripts(sectId?: CombatV6SectId) {
             { type: 'letter', title: lesson.moves, text: lesson.note },
           ]
         : []),
-      say('teacher', '下午放两只木人。高的举盾，矮的跑得快。想试的，在簿上留个名。'),
+      say(
+        'teacher',
+        '木人场下午开场。高的举盾，矮的跑得快。想试的，在簿上留个名。',
+      ),
       describe('那个少年先写了名字，把簿子和笔一并递给你。'),
       say('peer', '我就住你隔壁。你下午上场，我也留下看。'),
       say('peer', lesson?.request ?? '轮到我时，也替我瞧瞧怎么出的手。'),

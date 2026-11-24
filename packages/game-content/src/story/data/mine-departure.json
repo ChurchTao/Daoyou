@@ -21,11 +21,13 @@
       "entry": {
         "kind": "npc",
         "id": "herbalist"
-      }
+      },
+      "finishLabel": "打开灵兽袋"
     },
     {
       "id": "cub",
       "kind": "practice",
+      "arrival": "activity",
       "accept": [
         {
           "type": "guide",
@@ -35,10 +37,7 @@
       "scene": "beasts",
       "prompt": "打开灵兽袋，看看咪咪。",
       "href": "/game/beasts?guide=beast-pouch",
-      "unlocks": [
-        "beasts",
-        "beast-room"
-      ],
+      "unlocks": ["beasts", "beast-room"],
       "location": {
         "kind": "area",
         "areaId": "TN_MINE_VALLEY",
@@ -70,14 +69,13 @@
     {
       "id": "routes",
       "kind": "performance",
+      "arrival": "activity",
       "script": "mine-departure-routes",
       "outcome": "done",
       "scene": "sect-onboarding",
       "prompt": "问问阿禾，你想去的山门是什么样子。",
       "href": "/game/sect/onboarding?entry=gate",
-      "unlocks": [
-        "sect"
-      ],
+      "unlocks": ["sect"],
       "location": {
         "kind": "area",
         "areaId": "TN_MINE_VALLEY",
@@ -107,13 +105,14 @@
         "kind": "facility",
         "id": "passenger-book"
       },
-      "finishLabel": "回到船头"
+      "finishLabel": "天亮了，去登船"
     },
     {
       "id": "ferry",
       "kind": "passage",
+      "arrival": "location",
       "scene": "story",
-      "prompt": "早渡出了村口的河湾，沿河下行就到山脚接引亭。",
+      "prompt": "阿禾在渡口点名。搭早渡去山脚接引亭。",
       "actionLabel": "回村口渡口",
       "location": {
         "kind": "area",

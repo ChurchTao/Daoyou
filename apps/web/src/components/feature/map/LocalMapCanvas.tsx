@@ -25,6 +25,7 @@ interface LocalMapCanvasProps {
   mapLabel?: string;
   directoryLabel?: string;
   entryMarkerId?: string;
+  showOverviewOnMobile?: boolean;
   status?: ReactNode;
   view: LocalMapView;
   controller: RefObject<LocalMapController | null>;
@@ -47,6 +48,7 @@ export function LocalMapCanvas({
   mapLabel = '宗门舆图',
   directoryLabel,
   entryMarkerId,
+  showOverviewOnMobile,
   status,
   view,
   controller,
@@ -170,7 +172,23 @@ export function LocalMapCanvas({
         directoryLabel={directoryLabel}
         onOpenDirectory={onOpenDirectory}
       />
-      <MapCanvasSurface root={root} image={image} />
+      {showOverviewOnMobile ? (
+        <img
+          src={image}
+          alt=""
+          draggable={false}
+          className="pointer-events-none absolute inset-0 size-full object-cover md:hidden max-md:portrait:brightness-90 landscape:hidden"
+        />
+      ) : null}
+      <div
+        className={
+          showOverviewOnMobile
+            ? 'absolute inset-0 max-md:portrait:inset-x-2 max-md:portrait:top-[44%] max-md:portrait:bottom-auto max-md:portrait:aspect-[3/2] max-md:portrait:-translate-y-1/2 max-md:portrait:shadow-md'
+            : 'absolute inset-0'
+        }
+      >
+        <MapCanvasSurface root={root} image={image} />
+      </div>
       {!ready ? (
         <p
           role="status"

@@ -88,7 +88,7 @@
         "type": "choice",
         "options": [
           {
-            "label": "（歇一会儿）",
+            "label": "（歇一会儿，再去敲隔壁的门）",
             "outcome": "done"
           }
         ]
@@ -207,10 +207,18 @@
         "text": "你敲两声。头一声咪咪就该踩我了。"
       },
       {
+        "type": "scene",
+        "alt": "山门 · 洞府"
+      },
+      {
+        "type": "narration",
+        "text": "次日你刚把鞋提上，门就响了。咪咪从铺上跳下来，贴着门缝往外挤。你把它抱起来开门，同门已经在门外等你了。"
+      },
+      {
         "type": "choice",
         "options": [
           {
-            "label": "（次日清早）",
+            "label": "（一起去丹房）",
             "outcome": "done"
           }
         ]
@@ -239,19 +247,11 @@
     "cues": [
       {
         "type": "scene",
-        "alt": "山门 · 洞府"
+        "alt": "山门 · 丹房"
       },
       {
         "type": "title",
         "text": "一匣药"
-      },
-      {
-        "type": "narration",
-        "text": "次日你刚把鞋提上，门就响了。咪咪从铺上跳下来，贴着门缝往外挤。你把它抱起来开门，同门已经在门外等你了。"
-      },
-      {
-        "type": "scene",
-        "alt": "山门 · 丹房"
       },
       {
         "type": "narration",

@@ -26,11 +26,11 @@
     {
       "id": "home",
       "kind": "performance",
+      "arrival": "activity",
       "script": "mine-errand-home",
       "outcome": "done",
       "scene": "story",
       "prompt": "绕过饭堂，沿岩壁回洞府。",
-      "exitHref": "/game",
       "href": "/game/story",
       "location": {
         "kind": "sect",
@@ -42,6 +42,7 @@
     {
       "id": "evening",
       "kind": "performance",
+      "arrival": "activity",
       "script": "mine-errand-evening",
       "outcome": "done",
       "scene": "story",
@@ -60,11 +61,13 @@
     {
       "id": "pickup",
       "kind": "performance",
+      "arrival": "location",
       "script": "mine-errand-pickup",
       "outcome": "done",
       "scene": "sect",
       "prompt": "天亮了，和同门到丹房找值事取药匣。",
       "actionLabel": "去拿药匣",
+      "finishLabel": "去山门下山",
       "location": {
         "kind": "sect",
         "spotId": "alchemy"

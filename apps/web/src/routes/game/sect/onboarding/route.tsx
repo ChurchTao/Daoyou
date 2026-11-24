@@ -216,7 +216,7 @@ function MountainGate({
         admissionBlock={mineVisit ? admissionBlock : undefined}
         portrait={portrait}
         context={storyPerformanceContext(cultivator, selected.id)}
-        origin={mineVisit ? checkpoint.href : origin}
+        origin={mineVisit ? choicesHref : origin}
         exitHref={mineVisit ? visitHref(selected.id) : undefined}
         storyEntry={storyEntry}
         checkpoint={checkpoint}

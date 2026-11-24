@@ -11,7 +11,7 @@
       "script": "mine-sparring-yard",
       "outcome": "done",
       "scene": "story",
-      "prompt": "下午去练功场赴约，试试早课学的招。",
+      "prompt": "和同门约好了，去木人场试试练过的招。",
       "actionLabel": "到木人场赴约",
       "finishLabel": "与木人交手",
       "href": "/game/story",
@@ -27,6 +27,7 @@
     {
       "id": "fight",
       "kind": "battle",
+      "arrival": "activity",
       "battle": "mine-sparring",
       "scene": "story-battle",
       "prompt": "举盾的木人封住了去路，矮的已经绕了过来。",
@@ -44,6 +45,7 @@
     {
       "id": "verdict",
       "kind": "performance",
+      "arrival": "activity",
       "script": "mine-sparring-verdict",
       "outcome": "done",
       "retryLostBattle": true,
@@ -64,6 +66,7 @@
     {
       "id": "watch",
       "kind": "performance",
+      "arrival": "activity",
       "script": "mine-sparring-watch",
       "outcome": "done",
       "scene": "story",

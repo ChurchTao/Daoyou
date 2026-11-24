@@ -26,6 +26,7 @@
     {
       "id": "work",
       "kind": "performance",
+      "arrival": "activity",
       "script": "mine-shift-work",
       "outcome": "done",
       "scene": "story",
@@ -47,6 +48,7 @@
     {
       "id": "bridge",
       "kind": "performance",
+      "arrival": "location",
       "script": "mine-shift-bridge",
       "outcome": "done",
       "scene": "story",
@@ -58,12 +60,13 @@
         "placeId": "wooden-bridge"
       },
       "actionLabel": "带咪咪过木桥",
-      "finishLabel": "落到石滩",
+      "finishLabel": "迎战山豕",
       "entry": { "kind": "facility", "id": "wooden-crossing" }
     },
     {
       "id": "fight",
       "kind": "battle",
+      "arrival": "activity",
       "battle": "mine-ambush",
       "lesson": "story-battle-basics",
       "scene": "story-battle",

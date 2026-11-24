@@ -8,6 +8,7 @@ import {
 } from '../sects/build-state.js';
 import { sectV6Change } from '../sects/progression.js';
 import { describe, expect, it } from 'vitest';
+import { storyArrivalHref } from './location.js';
 import { openingStoryProgress } from './progress.js';
 import { storyMarkForSignal } from './signals.js';
 import {
@@ -36,6 +37,33 @@ import { storySceneOpen } from '@daoyou/game-domain/story/gates';
 import { PRODUCTION_SECT_PRESENTATIONS } from '../sect-organization/production/productionRuntime.js';
 
 describe('地点剧情与通路', () => {
+  it('开场连到咪咪，木桥主动进入，断桥后直接迎战', () => {
+    const chapter = getStoryChapter();
+    const facts = emptyStoryFacts();
+    let progress = openingStoryProgress(chapter.id);
+    const transitions = [
+      [
+        'mine-shift-clock-out',
+        '/game/story?chapter=mine-shift&beat=work',
+        'mine-shed',
+      ],
+      ['mine-shift-work', 'place=wooden-bridge', 'wooden-bridge'],
+      ['mine-shift-bridge', '/game/story/battle?', 'bridge-shoal'],
+    ];
+    for (const [script, destination, place] of transitions) {
+      progress = acknowledgePerformance(
+        chapter,
+        progress,
+        facts,
+        script,
+        'done',
+      ).progress;
+      const view = presentStory(chapter, progress, facts);
+      expect(storyArrivalHref(view)).toContain(destination);
+      expect(view.href).toContain(`place=${place}`);
+    }
+  });
+
   it('从旧版早渡演出存档接到新增行程，落点是接引亭', () => {
     const chapter = getStoryChapter('mine-departure');
     const facts = emptyStoryFacts();
@@ -67,8 +95,12 @@ describe('地点剧情与通路', () => {
       }).finished,
     ).toBe(true);
     const next = getStoryChapter(chapter.next);
-    expect(presentStory(next, openingStoryProgress(next.id), facts).href).toBe(
+    const landing = presentStory(next, openingStoryProgress(next.id), facts);
+    expect(landing.href).toBe(
       '/game/map-v2?area=TN_YUE_01&place=foothill-pavilion',
+    );
+    expect(storyArrivalHref(landing)).toBe(
+      '/game/story?chapter=mine-gate&beat=landing',
     );
   });
 
@@ -145,7 +177,7 @@ describe('地点剧情与通路', () => {
       'mine-baishui-ask',
       'done',
     ).progress;
-    expect(presentStory(chapter, asked, facts).href).toContain(
+    expect(storyArrivalHref(presentStory(chapter, asked, facts))).toContain(
       'from=foothill-pavilion',
     );
     expect(() =>
@@ -160,10 +192,14 @@ describe('地点剧情与通路', () => {
       facts,
       request,
     ).progress;
-    expect(presentStory(chapter, arrived, facts)).toMatchObject({
+    const arrival = presentStory(chapter, arrived, facts);
+    expect(arrival).toMatchObject({
       href: '/game/map-v2?area=TN_YUE_01&place=baishui-ferry',
       entry: { kind: 'facility', id: 'ferry-berth' },
     });
+    expect(storyArrivalHref(arrival)).toBe(
+      '/game/story?chapter=mine-baishui&beat=wait',
+    );
     const returned = acknowledgePerformance(
       chapter,
       arrived,
@@ -1289,7 +1325,7 @@ describe('volume one', () => {
       emptyStoryFacts(),
     );
     expect(home).toMatchObject({
-      exitHref: '/game',
+      arrival: 'activity',
       scriptId: 'mine-errand-home',
     });
   });
