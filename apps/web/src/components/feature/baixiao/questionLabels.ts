@@ -5,6 +5,7 @@ export const categoryLabels = {
   history: '历史地理',
   riddle: '脑洞与谜语',
   science: '博物与科学',
+  game: '万界道友常识',
 } satisfies Record<BaixiaoQuestionData['category'], string> &
   Record<string, string>;
 

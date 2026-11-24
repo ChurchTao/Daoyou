@@ -5,6 +5,7 @@ export const BaixiaoCategorySchema = z.enum([
   'history',
   'riddle',
   'science',
+  'game',
 ]);
 export const BaixiaoDifficultySchema = z.enum(['easy', 'medium', 'hard']);
 
@@ -30,14 +31,14 @@ export const BaixiaoQuestionSchema = z
     );
     const validOptions =
       item.kind === 'choice'
-        ? options.length === 4 && new Set(options).size === 4
+        ? options.length >= 3 && new Set(options).size === options.length
         : options.length === 2 && options[0] === '是' && options[1] === '否';
     if (!validOptions || item.correct >= options.length) {
       context.addIssue({
         code: 'custom',
         path: ['options'],
         message:
-          '单选题须有四个不同选项；是非题使用「是、否」。正确项必须在选项内。',
+          '单选题须有三个或四个不同选项；是非题使用「是、否」。正确项必须在选项内。',
       });
     }
   });

@@ -2,6 +2,7 @@ import type {
   BaixiaoAnswer,
   BaixiaoBankQuestion,
 } from '@daoyou/game-domain/baixiao/meet';
+import { BaixiaoQuestionSchema } from '@daoyou/game-domain/baixiao/question';
 import { describe, expect, it } from 'vitest';
 import {
   awardBaixiaoCard,
@@ -135,6 +136,74 @@ describe('百晓盛会', () => {
       ['easy', 'medium', 'hard'].map(
         (difficulty) =>
           expandedQuestions.filter((q) => q.difficulty === difficulty).length,
+      ),
+    ).toEqual([6, 13, 6]);
+
+    const website = BaixiaoQuestionSchema.parse({
+      knowledgeKey: 'game-easy',
+      category: 'game',
+      difficulty: 'easy',
+      kind: 'choice',
+      prompt: '《万界道友》的官方网站是？',
+      options: ['idaoyou.cn', 'daoyou.org', '全部都是'],
+      correct: 2,
+      explanation: '两个域名均为官方网站。',
+      source: '项目资料',
+    });
+    expect(
+      BaixiaoQuestionSchema.safeParse({
+        ...website,
+        options: website.options.slice(0, 2),
+        correct: 0,
+      }).success,
+    ).toBe(false);
+    const game: BaixiaoBankQuestion[] = (
+      ['easy', 'medium', 'hard'] as const
+    ).map((difficulty) =>
+      difficulty === 'easy'
+        ? { ...website, id: website.knowledgeKey }
+        : {
+            ...extra[0],
+            id: `game-${difficulty}`,
+            knowledgeKey: `game-${difficulty}`,
+            category: 'game',
+            difficulty,
+          },
+    );
+    expect(
+      baixiaoQuotaStatus([
+        ...expanded,
+        ...game.slice(0, 2),
+        { ...game[2], kind: 'judgment', options: ['是', '否'] },
+      ]),
+    ).toEqual(baixiaoQuotaStatus(expanded));
+    const fullBank = [...expanded, ...game];
+    const fullPaper = createBaixiaoPaper(fullBank, () => 0);
+    expect(fullPaper).toHaveLength(25);
+    expect(
+      fullPaper!.find((slot) => slot.questionId === website.knowledgeKey),
+    ).toMatchObject({ order: [1, 2, 0] });
+    const fullQuestions = fullPaper!.map(({ questionId }) =>
+      fullBank.find(({ id }) => id === questionId)!,
+    );
+    expect(
+      ['literature', 'history', 'riddle', 'science', 'game'].map(
+        (category) =>
+          fullQuestions.filter((question) => question.category === category)
+            .length,
+      ),
+    ).toEqual([8, 6, 4, 4, 3]);
+    expect(
+      fullQuestions
+        .filter((question) => question.category === 'game')
+        .map((question) => question.difficulty)
+        .sort(),
+    ).toEqual(['easy', 'hard', 'medium']);
+    expect(
+      ['easy', 'medium', 'hard'].map(
+        (difficulty) =>
+          fullQuestions.filter((question) => question.difficulty === difficulty)
+            .length,
       ),
     ).toEqual([6, 13, 6]);
   });

@@ -73,6 +73,19 @@ const EXPANDED_QUOTAS: readonly Quota[] = [
   { category: 'science', difficulty: 'hard', count: 1, maxJudgment: 0 },
 ];
 
+const GAME_QUESTION_QUOTAS: readonly Quota[] = [
+  ...EXPANDED_QUOTAS.map((quota) => {
+    const replace =
+      (quota.category === 'literature' && quota.difficulty === 'easy') ||
+      (quota.category === 'history' && quota.difficulty === 'medium') ||
+      (quota.category === 'riddle' && quota.difficulty === 'hard');
+    return replace ? { ...quota, count: quota.count - 1 } : quota;
+  }),
+  { category: 'game', difficulty: 'easy', count: 1, maxJudgment: 0 },
+  { category: 'game', difficulty: 'medium', count: 1, maxJudgment: 0 },
+  { category: 'game', difficulty: 'hard', count: 1, maxJudgment: 0 },
+];
+
 function quotaStatus(quotas: readonly Quota[], bank: BaixiaoBankQuestion[]) {
   return quotas.map((quota) => {
     const pool = bank.filter(
@@ -96,10 +109,11 @@ export function baixiaoQuotaStatus(bank: readonly BaixiaoBankQuestion[]) {
     ).values(),
   ];
   // Select the blueprint from the same frozen bank used to draw every paper.
-  const expanded = quotaStatus(EXPANDED_QUOTAS, unique);
-  return expanded.every((quota) => quota.available >= quota.count)
-    ? expanded
-    : quotaStatus(ORIGINAL_QUOTAS, unique);
+  for (const blueprint of [GAME_QUESTION_QUOTAS, EXPANDED_QUOTAS]) {
+    const quotas = quotaStatus(blueprint, unique);
+    if (quotas.every((quota) => quota.available >= quota.count)) return quotas;
+  }
+  return quotaStatus(ORIGINAL_QUOTAS, unique);
 }
 
 function shuffled<T>(items: readonly T[], drawIndex: (size: number) => number) {
