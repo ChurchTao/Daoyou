@@ -251,6 +251,7 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '秘境探查',
         href: '/game/inquiry',
       },
+      { id: 'alchemy-contest', sceneLabel: '炼丹大会' },
       { id: 'wild', sceneLabel: '野外寻觅', href: '/game/map-v2' },
       { id: 'story-battle', sceneLabel: '交手' },
       {

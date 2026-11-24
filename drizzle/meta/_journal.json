@@ -554,6 +554,13 @@
       "when": 1794896530456,
       "tag": "0079_achievement_reputation_rewards",
       "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1795422352705,
+      "tag": "0080_alchemy_contest",
+      "breakpoints": true
     }
   ]
 }

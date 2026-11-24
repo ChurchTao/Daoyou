@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./achievements": "./dist/public/achievements.js",
+    "./alchemy/contest": "./dist/alchemy/contest.js",
     "./auction": "./dist/public/auction.js",
     "./beasts": "./dist/public/beasts.js",
     "./beasts/authoring": "./dist/beasts/pack.js",

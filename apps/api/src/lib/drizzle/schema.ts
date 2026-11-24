@@ -1,3 +1,4 @@
+import type { ContestAttempt, ContestPaper, ContestStanding } from '@daoyou/game-domain/alchemy/contest';
 import type { PlayerJournalEvent } from '@daoyou/contracts/player/journal';
 import type { AiUsageCredentialSource, AiUsagePricingSnapshot } from '@daoyou/contracts/admin/ai-usage';
 import type { CultivatorManualStateV1 } from '@daoyou/game-domain/manuals';
@@ -2855,3 +2856,34 @@ export const achievementMetrics = pgTable(
     check('achievement_metrics_value_valid', sql`${t.value} >= 0`),
   ],
 );
+
+
+export const alchemyContestRounds = pgTable('wanjiedaoyou_alchemy_contest_rounds', {
+  week: date('week').primaryKey(),
+  closesAt: timestamp('closes_at', { withTimezone: true }).notNull(),
+  paper: jsonb('paper').$type<ContestPaper>().notNull(),
+  reserve: jsonb('reserve').$type<ContestPaper>(),
+  rewardPool: jsonb('reward_pool').$type<{ version: 1; books: string[]; materials: ItemGrant[] }>().notNull(),
+  announcedAt: timestamp('announced_at', { withTimezone: true }),
+  settledAt: timestamp('settled_at', { withTimezone: true }),
+}, (table) => [
+  index('alchemy_contest_round_settlement_idx').on(table.closesAt).where(sql`${table.settledAt} is null`),
+]);
+
+export const alchemyContestEntries = pgTable('wanjiedaoyou_alchemy_contest_entries', {
+  week: date('week').notNull().references(() => alchemyContestRounds.week),
+  userId: uuid('user_id').notNull(),
+  cultivatorId: uuid('cultivator_id').notNull(),
+  name: text('name').notNull(),
+  startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+  finishedAt: timestamp('finished_at', { withTimezone: true }),
+  attempts: jsonb('attempts').$type<(ContestAttempt & { requestId: string })[]>().notNull().default([]),
+  standing: jsonb('standing').$type<ContestStanding>(),
+  rank: integer('rank'),
+  reward: jsonb('reward').$type<{ version: 1; reputation: number; item: ItemGrant | null }>(),
+  mailedAt: timestamp('mailed_at', { withTimezone: true }),
+}, (table) => [
+  primaryKey({ columns: [table.week, table.userId] }),
+  index('alchemy_contest_rank_idx').on(table.week, table.rank),
+  index('alchemy_contest_mail_idx').on(table.week).where(sql`${table.reward} is not null and ${table.mailedAt} is null`),
+]);

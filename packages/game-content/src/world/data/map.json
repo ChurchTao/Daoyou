@@ -312,6 +312,15 @@
   ],
   "satellite_nodes": [
     {
+      "id": "SAT_LX_ALCHEMY",
+      "name": "丹塔",
+      "parent_id": "LX_INNER_01",
+      "type": "landmark",
+      "tags": ["丹塔", "炼丹大会"],
+      "description": "天星城外，海雾绕塔。丹塔每周三北京时间 14:00 开炉，邀各路修士切磋丹术。",
+      "realm_requirement": "炼气"
+    },
+    {
       "id": "SAT_TN_01",
       "name": "太岳山·无名古修士洞府",
       "parent_id": "TN_YUE_01",

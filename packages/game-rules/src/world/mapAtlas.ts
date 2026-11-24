@@ -97,6 +97,7 @@ export const TIANNAN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
 
 export const LUANXINGHAI_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
   LX_INNER_01: [0.68, 0.397],
+  SAT_LX_ALCHEMY: [0.74, 0.48],
   LX_INNER_02: [0.852, 0.703],
   LX_OUTER_01: [0.13, 0.68],
   LX_VOID_01: [0.165, 0.108],

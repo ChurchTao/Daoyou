@@ -1,4 +1,5 @@
 import type { InkButton } from '@app/components/ui/InkButton';
+import { CONTEST_NODE_ID } from '@daoyou/game-domain/alchemy/contest';
 import type { WorldMapLocation } from '@daoyou/game-domain/world/map';
 import type { ComponentProps } from 'react';
 
@@ -28,6 +29,14 @@ export function buildMapLocationActions(
 
   const nodeId = encodeURIComponent(location.id);
   const actions: MapNodeAction[] = [];
+  if (location.id === CONTEST_NODE_ID) {
+    actions.push({
+      key: 'enter-alchemy-contest',
+      label: '查看炼丹大会',
+      variant: 'primary',
+      onClick: () => navigate('/game/alchemy-contest'),
+    });
+  }
   if (location.wild_encounter_id)
     actions.push({
       key: 'wild-explore',

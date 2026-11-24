@@ -5,6 +5,7 @@ import { getRuntimeEnvironment } from '@server/lib/config/environment.js';
 import { AccountModule } from './account/account.module.js';
 import { AchievementsModule } from './achievements/achievements.module.js';
 import { AdminModule } from './admin/admin.module.js';
+import { AlchemyContestModule } from './alchemy-contest/alchemy-contest.module.js';
 import { AlchemyModule } from './alchemy/alchemy.module.js';
 import { ArenaModule } from './arena/arena.module.js';
 import { AuctionModule } from './auction/auction.module.js';
@@ -77,6 +78,7 @@ import { WandererModule } from './wanderer/wanderer.module.js';
     ReputationShopModule,
     SpiritFieldModule,
     AlchemyModule,
+    AlchemyContestModule,
     EnlightenmentModule,
     ForgingModule,
     InscriptionsModule,

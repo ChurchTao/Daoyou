@@ -1,13 +1,7 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import { combatV6Request } from '@app/components/feature/combat-v6/request';
 import { CultivatorInspectionModal } from '@app/components/feature/cultivator-inspection';
 import {
-  ItemDetailModal,
-  type ItemDetailPayload,
-} from '@app/components/feature/items';
-import {
   BattleRankingCard,
-  ItemRankingCard,
   WealthRankingCard,
 } from '@app/components/feature/ranking/RankingListItem';
 import {
@@ -21,27 +15,27 @@ import {
 } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkList, InkListItem, InkNotice } from '@app/components/ui';
+import { apiFetch } from '@app/lib/api/fetch';
+import { cn } from '@app/lib/cn';
 import {
   useCultivatorCurrency,
   useCultivatorIdentity,
   usePlayerSession,
 } from '@app/lib/resources/player';
-import { MAX_DAILY_RANKING_CHALLENGES } from '@daoyou/game-rules/rankings/ranking';
+import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
 import type { RankingChallengeRequest } from '@daoyou/contracts/combat/ranking';
 import type { CultivatorInspectionData } from '@daoyou/contracts/player';
-import { cn } from '@app/lib/cn';
-import { getGameConceptInfo } from '@daoyou/game-content/presentation/concepts';
-import { RANKING_REWARDS } from '@daoyou/game-content/economy';
-import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
 import type {
   BattleRankingItem,
-  ItemRankingEntry,
   RankingsDisplayItem,
   WealthRankingEntry,
 } from '@daoyou/contracts/rankings';
+import { RANKING_REWARDS } from '@daoyou/game-content/economy';
+import { getGameConceptInfo } from '@daoyou/game-content/presentation/concepts';
+import { MAX_DAILY_RANKING_CHALLENGES } from '@daoyou/game-rules/rankings/ranking';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import { toRankingDetailItem } from './rankingDetailItem';
+import { AlchemyContestRanking } from './AlchemyContestRanking';
 
 type MyRankInfo = {
   rank: number | null;
@@ -50,7 +44,7 @@ type MyRankInfo = {
 
 type LoadingState = 'idle' | 'loading' | 'loaded';
 
-type RankingTab = 'battle' | 'elixir' | 'wealth';
+type RankingTab = 'battle' | 'wealth';
 const REPUTATION_INFO = getGameConceptInfo('reputation');
 const REPUTATION_LABEL = `${REPUTATION_INFO.icon} ${REPUTATION_INFO.label}`;
 
@@ -193,9 +187,7 @@ function RankingEmptyState({
     <InkNotice>
       {activeTab === 'battle'
         ? `${activeRealm}天骄榜暂无记录。需有本境修士留名后才能切磋，越境挑战不能直接上榜。`
-        : activeTab === 'wealth'
-          ? '财富榜暂无记录。'
-          : '此榜单暂无记录。'}
+        : '财富榜暂无记录。'}
     </InkNotice>
   );
 }
@@ -219,6 +211,7 @@ export default function RankingsPage() {
   const isLoading = profile.loading || currency.loading || session.loading;
   const note = session.data?.note;
   const [activeTab, setActiveTab] = useState<RankingTab>('battle');
+  const contestTab = searchParams.get('tab') === 'alchemy';
   const [rankings, setRankings] = useState<RankingsDisplayItem[]>([]); // Use strict type
   const [myRankInfo, setMyRankInfo] = useState<MyRankInfo | null>(null);
   const [myRankInfoLoadingState, setMyRankInfoLoadingState] =
@@ -230,23 +223,20 @@ export default function RankingsPage() {
   const [probing, setProbing] = useState<string | null>(null);
   const [inspectedCultivator, setInspectedCultivator] =
     useState<CultivatorInspectionData | null>(null);
-  const [selectedItemDetail, setSelectedItemDetail] =
-    useState<ItemDetailPayload | null>(null);
   const activeRealm = resolveRealm(
     searchParams.get('realm') ?? cultivator?.realm,
   );
 
   useEffect(() => {
+    if (contestTab) return;
     let cancelled = false;
 
     const loadInitialRankings = async () => {
       try {
-        let url = `/api/rankings?realm=${encodeURIComponent(activeRealm)}`;
-        if (activeTab === 'wealth') {
-          url = '/api/rankings/wealth';
-        } else if (activeTab !== 'battle') {
-          url = `/api/rankings/items?type=${activeTab}`;
-        }
+        const url =
+          activeTab === 'wealth'
+            ? '/api/rankings/wealth'
+            : `/api/rankings?realm=${encodeURIComponent(activeRealm)}`;
 
         const response = await apiFetch(url);
         const result = await response.json();
@@ -277,10 +267,10 @@ export default function RankingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeRealm, activeTab, pushToast]);
+  }, [activeRealm, activeTab, contestTab, pushToast]);
 
   useEffect(() => {
-    if (!cultivator?.id || activeTab !== 'battle') {
+    if (!cultivator?.id || activeTab !== 'battle' || contestTab) {
       return;
     }
 
@@ -323,12 +313,26 @@ export default function RankingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeRealm, activeTab, cultivator?.id, pushToast]);
+  }, [activeRealm, activeTab, contestTab, cultivator?.id, pushToast]);
 
   const handleTabChange = (val: string) => {
+    if (val === 'alchemy' || contestTab) {
+      setSearchParams((previous) => {
+        const next = new URLSearchParams(previous);
+        if (val === 'alchemy') next.set('tab', 'alchemy');
+        else next.delete('tab');
+        return next;
+      });
+      if (val === 'alchemy') return;
+    }
+    if (
+      (val !== 'battle' && val !== 'wealth') ||
+      (val === activeTab && !contestTab)
+    )
+      return;
     setRankings([]);
     setLoadingRankings(true);
-    setActiveTab(val as RankingTab);
+    setActiveTab(val);
   };
 
   const handleProbe = async (targetId: string) => {
@@ -408,8 +412,26 @@ export default function RankingsPage() {
   const rankingTabs = [
     { label: '天骄榜', value: 'battle' },
     { label: '财富榜', value: 'wealth' },
-    { label: '丹药榜', value: 'elixir' },
+    { label: '炼丹榜', value: 'alchemy' },
   ];
+  if (contestTab) {
+    return (
+      <GameSceneFrame
+        variant="workflow"
+        identityOverride={{
+          label: '万界金榜',
+          summary: '点选榜上道友可查看成绩明细。',
+        }}
+      >
+        <GameSceneTabs
+          activeValue="alchemy"
+          onChange={handleTabChange}
+          items={rankingTabs}
+        />
+        <AlchemyContestRanking />
+      </GameSceneFrame>
+    );
+  }
   const activeTabLabel =
     rankingTabs.find((tab) => tab.value === activeTab)?.label ?? '天骄榜';
   const podiumEntries = rankings.slice(0, 3);
@@ -641,7 +663,7 @@ export default function RankingsPage() {
                   </GameSceneSection>
                 ) : null}
               </>
-            ) : activeTab === 'wealth' ? (
+            ) : (
               <>
                 {podiumEntries.length > 0 ? (
                   <GameSceneSection title="富甲三席">
@@ -672,47 +694,6 @@ export default function RankingsPage() {
                   </GameSceneSection>
                 ) : null}
               </>
-            ) : (
-              <>
-                {podiumEntries.length > 0 ? (
-                  <GameSceneSection title="镇榜之物">
-                    <div className="grid gap-3">
-                      {(podiumEntries as ItemRankingEntry[]).map((item) => (
-                        <ItemRankingCard
-                          key={item.id}
-                          item={item}
-                          viewerRealm={cultivator?.realm}
-                          onViewDetails={(selectedItem) =>
-                            setSelectedItemDetail(
-                              toRankingDetailItem(selectedItem),
-                            )
-                          }
-                          variant="podium"
-                        />
-                      ))}
-                    </div>
-                  </GameSceneSection>
-                ) : null}
-
-                {listEntries.length > 0 ? (
-                  <GameSceneSection title="珍宝名录">
-                    <div className="grid gap-3">
-                      {(listEntries as ItemRankingEntry[]).map((item) => (
-                        <ItemRankingCard
-                          key={item.id}
-                          item={item}
-                          viewerRealm={cultivator?.realm}
-                          onViewDetails={(selectedItem) =>
-                            setSelectedItemDetail(
-                              toRankingDetailItem(selectedItem),
-                            )
-                          }
-                        />
-                      ))}
-                    </div>
-                  </GameSceneSection>
-                ) : null}
-              </>
             )}
           </>
         )}
@@ -723,12 +704,6 @@ export default function RankingsPage() {
         isOpen={Boolean(inspectedCultivator)}
         onClose={() => setInspectedCultivator(null)}
         mode="cultivator"
-      />
-      <ItemDetailModal
-        item={selectedItemDetail}
-        isOpen={Boolean(selectedItemDetail)}
-        onClose={() => setSelectedItemDetail(null)}
-        viewerRealm={cultivator?.realm}
       />
     </>
   );

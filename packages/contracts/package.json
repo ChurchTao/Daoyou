@@ -15,6 +15,7 @@
     "./admin/tower": "./dist/adminTower.js",
     "./admin/world-chat": "./dist/adminWorldChat.js",
     "./afdian": "./dist/afdian.js",
+    "./alchemy/contest": "./dist/alchemy-contest.js",
     "./application-settings": "./dist/applicationSettings.js",
     "./arena": "./dist/arena.js",
     "./auction": "./dist/auction.js",

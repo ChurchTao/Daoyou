@@ -1,6 +1,7 @@
 import { LlmModule } from '@server/llm/llm.module.js';
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AlchemyContestModule } from '../alchemy-contest/alchemy-contest.module.js';
 import { AuctionModule } from '../auction/auction.module.js';
 import { CombatModule } from '../combat/combat.module.js';
 import { DatabaseModule } from '../database/database.module.js';
@@ -15,6 +16,7 @@ import { RuntimeService } from './runtime.service.js';
     DatabaseModule,
     CombatModule,
     AuctionModule,
+    AlchemyContestModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [InternalCronController],

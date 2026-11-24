@@ -7,6 +7,7 @@ export type WorldChatChannel = WorldChatMessageChannel;
 
 export const WORLD_CHAT_MESSAGE_TYPES = [
   'hunt_rumor',
+  'alchemy_contest_rumor',
   'text',
   'item_showcase',
   'beast_showcase',
@@ -102,6 +103,7 @@ export interface WorldChatPagination {
 }
 
 export interface WorldChatPayloadMap {
+  alchemy_contest_rumor: { text: string; week: string; nodeId: string };
   hunt_rumor: { text: string; eventId: string; nodeId: string };
   text: WorldChatTextPayload;
   item_showcase: WorldChatItemShowcasePayload;

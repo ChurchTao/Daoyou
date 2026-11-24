@@ -6,6 +6,8 @@
   "exports": {
     "./achievements": "./dist/public/achievements.js",
     "./alchemy": "./dist/public/alchemy.js",
+    "./alchemy/contest": "./dist/alchemy/contest.js",
+    "./alchemy/contest/authoring": "./dist/alchemy/contestAuthoring.js",
     "./auction": "./dist/public/auction.js",
     "./beasts/fusion": "./dist/beasts/fusion.js",
     "./beasts/generation": "./dist/beasts/generator.js",

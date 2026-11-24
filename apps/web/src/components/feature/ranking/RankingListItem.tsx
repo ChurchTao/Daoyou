@@ -1,23 +1,12 @@
-import {
-  PillKeywordLine,
-  toPillDisplayModel,
-} from '@app/components/feature/consumables';
-import { InkBadge, InkButton, type Tier } from '@app/components/ui';
+import { InkButton } from '@app/components/ui';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { cn } from '@app/lib/cn';
-import { isPillSpec } from '@daoyou/game-domain/consumables';
-import { CONSUMABLE_TYPE_DISPLAY_MAP } from '@daoyou/game-content/presentation/concepts';
-import { formatFullGameNumber } from '@daoyou/game-rules/presentation/numbers';
-import type { RealmType } from '@daoyou/constants/realms';
-import type { PillSpec } from '@daoyou/game-domain/consumables';
-import type { Consumable } from '@daoyou/game-domain/character';
 import type {
   BattleRankingItem,
-  ItemRankingEntry,
-  RankingsDisplayItem,
   WealthRankingEntry,
 } from '@daoyou/contracts/rankings';
+import { formatFullGameNumber } from '@daoyou/game-rules/presentation/numbers';
 import { memo } from 'react';
 
 interface BattleRankingCardProps {
@@ -32,32 +21,10 @@ interface BattleRankingCardProps {
   variant?: 'list' | 'podium';
 }
 
-interface ItemRankingCardProps {
-  item: ItemRankingEntry;
-  viewerRealm?: RealmType;
-  onViewDetails?: (item: ItemRankingEntry) => void;
-  variant?: 'list' | 'podium';
-}
-
 interface WealthRankingCardProps {
   item: WealthRankingEntry;
   isSelf?: boolean;
   variant?: 'list' | 'podium';
-}
-
-interface LegacyRankingListItemProps {
-  item: RankingsDisplayItem;
-  isSelf: boolean;
-  canChallenge: boolean;
-  isChallenging: boolean;
-  isProbing: boolean;
-  onChallenge: (targetId: string) => Promise<void>;
-  onProbe: (targetId: string) => Promise<void>;
-  customSubtitle?: string;
-  customMeta?: string;
-  isItem?: boolean;
-  viewerRealm?: RealmType;
-  onViewDetails?: (item: ItemRankingEntry) => void;
 }
 
 function resolveBattleRankTone(rank: number) {
@@ -77,30 +44,6 @@ function resolveBattleRankTone(rank: number) {
     label: `#${rank}`,
     className: 'border-ink/18 text-ink-secondary',
   };
-}
-
-function resolveItemRankTone(rank: number) {
-  if (rank === 1) {
-    return {
-      label: '榜首',
-      className: 'border-gold/55 text-wood',
-    };
-  }
-  if (rank <= 3) {
-    return {
-      label: `#${rank}`,
-      className: 'border-crimson/35 text-crimson',
-    };
-  }
-  return {
-    label: `#${rank}`,
-    className: 'border-ink/18 text-ink-secondary',
-  };
-}
-
-function resolveItemIcon(item: ItemRankingEntry) {
-  return CONSUMABLE_TYPE_DISPLAY_MAP[(item.type as '丹药' | '符箓') || '丹药']
-    .icon;
 }
 
 function RankSeal({ label, className }: { label: string; className: string }) {
@@ -142,7 +85,7 @@ function BattleRankingCardComponent({
   return (
     <article
       className={cn(
-        'group border-ink/25 hover:border-crimson/30 relative min-w-0 overflow-hidden border border-dashed bg-white/30 transition-colors dark:bg-ink/4',
+        'group border-ink/25 hover:border-crimson/30 dark:bg-ink/4 relative min-w-0 overflow-hidden border border-dashed bg-white/30 transition-colors',
         isSelf && 'border-crimson/30 bg-amber-200/30',
       )}
     >
@@ -216,90 +159,6 @@ function BattleRankingCardComponent({
   );
 }
 
-function ItemRankingCardComponent({
-  item,
-  viewerRealm,
-  onViewDetails,
-  variant = 'list',
-}: ItemRankingCardProps) {
-  const pillDisplay =
-    item.itemType === 'elixir' && isPillSpec(item.spec as PillSpec | undefined)
-      ? toPillDisplayModel(
-          {
-            id: item.id,
-            name: item.name,
-            type: (item.type as Consumable['type']) || '丹药',
-            quality: item.quality as Consumable['quality'],
-            quantity: item.quantity || 1,
-            description: item.description,
-            spec: item.spec as PillSpec,
-          },
-          { realm: viewerRealm },
-        )
-      : null;
-  const icon = resolveItemIcon(item);
-  const rankTone = resolveItemRankTone(item.rank);
-
-  return (
-    <article
-      className={cn(
-        'group border-ink/25 hover:border-crimson/30 relative min-w-0 overflow-hidden border border-dashed bg-white/30 transition-colors dark:bg-ink/4',
-        variant === 'podium' && 'border-gold/30 bg-gold/15 dark:bg-gold/10',
-      )}
-    >
-      <div className="grid min-w-0 gap-2 px-3 py-3 lg:grid-cols-[4.75rem_minmax(0,1fr)_6.25rem] lg:items-start lg:gap-4 lg:px-4 lg:py-3">
-        <div className="absolute top-3 right-3 flex items-start lg:static">
-          <RankSeal label={rankTone.label} className={rankTone.className} />
-        </div>
-
-        <div className="min-w-0">
-          <div className="grid min-w-0 grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-2">
-            <span className="text-ink inline-flex h-7 w-7 items-center justify-center text-sm">
-              {icon}
-            </span>
-            <h3 className="text-ink min-w-0 text-[1.05rem] leading-6 font-semibold wrap-break-word sm:text-lg sm:leading-7">
-              {item.name}
-            </h3>
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <MetaChip>
-              <span className="text-wood font-semibold">评分 {item.score}</span>
-            </MetaChip>
-            <MetaChip>持有者：{item.ownerName}</MetaChip>
-            {item.quality ? (
-              <InkBadge tier={item.quality as Tier}>
-                {item.type || '品质'}
-              </InkBadge>
-            ) : null}
-            {item.element ? (
-              <InkBadge tone="default">{item.element}</InkBadge>
-            ) : null}
-          </div>
-
-          <div className="mt-2 min-w-0 space-y-1">
-            <p className="text-ink-secondary line-clamp-2 text-xs leading-5">
-              {pillDisplay?.primaryEffect || item.description || '暂无描述'}
-            </p>
-            {pillDisplay ? (
-              <PillKeywordLine labels={pillDisplay.keywordLabels} />
-            ) : null}
-          </div>
-        </div>
-
-        <div className="mt-2 flex justify-end lg:mt-0 lg:items-start lg:justify-end">
-          <InkButton
-            variant="secondary"
-            onClick={() => onViewDetails?.(item)}
-            className="text-sm"
-          >
-            瞻仰一二
-          </InkButton>
-        </div>
-      </div>
-    </article>
-  );
-}
-
 function WealthRankingCardComponent({
   item,
   isSelf,
@@ -313,7 +172,7 @@ function WealthRankingCardComponent({
   return (
     <article
       className={cn(
-        'group border-ink/25 hover:border-crimson/30 relative min-w-0 overflow-hidden border border-dashed bg-white/30 transition-colors dark:bg-ink/4',
+        'group border-ink/25 hover:border-crimson/30 dark:bg-ink/4 relative min-w-0 overflow-hidden border border-dashed bg-white/30 transition-colors',
         isSelf && 'border-crimson/30 bg-amber-200/30',
         variant === 'podium' && 'border-gold/30 bg-gold/15 dark:bg-gold/10',
       )}
@@ -359,48 +218,4 @@ function WealthRankingCardComponent({
 }
 
 export const BattleRankingCard = memo(BattleRankingCardComponent);
-export const ItemRankingCard = memo(ItemRankingCardComponent);
 export const WealthRankingCard = memo(WealthRankingCardComponent);
-
-function RankingListItemComponent({
-  item,
-  isSelf,
-  canChallenge,
-  isChallenging,
-  isProbing,
-  onChallenge,
-  onProbe,
-  isItem = false,
-  viewerRealm,
-  onViewDetails,
-}: LegacyRankingListItemProps) {
-  if (isItem) {
-    return (
-      <ItemRankingCard
-        item={item as ItemRankingEntry}
-        viewerRealm={viewerRealm}
-        onViewDetails={onViewDetails}
-      />
-    );
-  }
-
-  if ('rankingType' in item && item.rankingType === 'wealth') {
-    return (
-      <WealthRankingCard item={item as WealthRankingEntry} isSelf={isSelf} />
-    );
-  }
-
-  return (
-    <BattleRankingCard
-      item={item as BattleRankingItem}
-      isSelf={isSelf}
-      canChallenge={canChallenge}
-      isChallenging={isChallenging}
-      isProbing={isProbing}
-      onChallenge={onChallenge}
-      onProbe={onProbe}
-    />
-  );
-}
-
-export const RankingListItem = memo(RankingListItemComponent);
