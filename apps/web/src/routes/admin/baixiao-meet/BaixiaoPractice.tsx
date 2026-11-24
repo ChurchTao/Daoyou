@@ -1,21 +1,41 @@
 import { BaixiaoQuestionOptions } from '@app/components/feature/baixiao/BaixiaoTurn';
 import { InkButton, InkNotice } from '@app/components/ui';
-import type { BaixiaoAdminView } from '@daoyou/contracts/baixiao/meet';
-import type { BaixiaoBankQuestion } from '@daoyou/game-domain/baixiao/meet';
 import { createBaixiaoPaper } from '@daoyou/game-rules/baixiao/meet';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { AdminDialog } from '../_components/AdminDialog';
+import {
+  categoryLabels,
+  difficultyLabels,
+  type BankQuestion,
+} from './presentation';
 
 type PracticeQuestion = Pick<
-  BaixiaoBankQuestion,
-  'id' | 'prompt' | 'kind' | 'options' | 'correct'
+  BankQuestion,
+  'id' | 'prompt' | 'kind' | 'options' | 'correct' | 'category' | 'difficulty'
 >;
 
-export function BaixiaoPractice({ bank }: { bank: BaixiaoAdminView['bank'] }) {
+export function BaixiaoPractice({
+  bank,
+  open,
+  onClose,
+}: {
+  bank: BankQuestion[];
+  open: boolean;
+  onClose: () => void;
+}) {
   const [paper, setPaper] = useState<PracticeQuestion[]>([]);
   const [position, setPosition] = useState(0);
   const [correct, setCorrect] = useState<boolean | null>(null);
   const [error, setError] = useState('');
   const question = paper[position];
+  const stage = useRef<HTMLDivElement>(null);
+  const feedback = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    if (correct === null) stage.current?.scrollIntoView({ block: 'start' });
+    else feedback.current?.scrollIntoView({ block: 'nearest' });
+  }, [open, correct, question]);
 
   function drawPaper() {
     const enabled = bank.filter((question) => question.status === 'published');
@@ -29,11 +49,14 @@ export function BaixiaoPractice({ bank }: { bank: BaixiaoAdminView['bank'] }) {
     const byId = new Map(enabled.map((item) => [item.id, item]));
     setPaper(
       slots.map(({ questionId, order }) => {
-        const { id, prompt, kind, options, correct } = byId.get(questionId)!;
+        const { id, prompt, kind, options, correct, category, difficulty } =
+          byId.get(questionId)!;
         return {
           id,
           prompt,
           kind,
+          category,
+          difficulty,
           options: order.map((index) => options[index]),
           correct: order.indexOf(correct),
         };
@@ -45,31 +68,55 @@ export function BaixiaoPractice({ bank }: { bank: BaixiaoAdminView['bank'] }) {
   }
 
   return (
-    <section
-      className="border-ink/20 space-y-4 border-b pb-5"
-      aria-label="答题试玩器"
+    <AdminDialog
+      open={open}
+      onClose={onClose}
+      title="答题试玩器"
+      wide
+      footer={
+        <>
+          <InkButton
+            variant={question ? 'secondary' : 'primary'}
+            className="min-h-11"
+            onClick={drawPaper}
+          >
+            {paper.length ? '重新抽卷' : '开始试玩'}
+          </InkButton>
+          {question && correct !== null && (
+            <InkButton
+              variant="primary"
+              className="min-h-11"
+              onClick={() => {
+                setPosition(position + 1);
+                setCorrect(null);
+              }}
+            >
+              {position + 1 === paper.length ? '完成试玩' : '下一题'}
+            </InkButton>
+          )}
+        </>
+      }
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-semibold">答题试玩器</h2>
-          <p className="text-ink-secondary text-sm">
-            按正式配额从当前启用题库抽题。
-          </p>
+      {error && (
+        <div role="alert" className="mb-3">
+          <InkNotice tone="warning">{error}</InkNotice>
         </div>
-        <InkButton onClick={drawPaper}>
-          {paper.length ? '重新抽卷' : '开始试玩'}
-        </InkButton>
-      </div>
-      {error && <InkNotice>{error}</InkNotice>}
+      )}
       {question ? (
-        <div className="border-ink/15 bg-sheet mx-auto max-w-2xl border p-4 sm:p-6">
-          <p className="text-ink-secondary mb-3 text-sm">
-            第{' '}
-            <span className="font-mono">
-              {position + 1}/{paper.length}
-            </span>{' '}
-            题
-          </p>
+        <div className="mx-auto max-w-2xl" ref={stage}>
+          <div className="text-ink-secondary mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm">
+            <p>
+              第{' '}
+              <b className="font-mono">
+                {position + 1}/{paper.length}
+              </b>{' '}
+              题
+            </p>
+            <p>
+              {categoryLabels[question.category]} · 难度{' '}
+              {difficultyLabels[question.difficulty]}
+            </p>
+          </div>
           <div className="baixiao-question" key={question.id}>
             <BaixiaoQuestionOptions
               question={question}
@@ -78,9 +125,12 @@ export function BaixiaoPractice({ bank }: { bank: BaixiaoAdminView['bank'] }) {
             />
           </div>
           {correct !== null && (
-            <div className="mt-4 flex items-center justify-between gap-3">
+            <div
+              role="status"
+              ref={feedback}
+              className="bg-paper-2 mt-4 space-y-1 border-l-2 p-3"
+            >
               <p
-                role="status"
                 className={
                   correct
                     ? 'text-teal font-semibold'
@@ -89,20 +139,22 @@ export function BaixiaoPractice({ bank }: { bank: BaixiaoAdminView['bank'] }) {
               >
                 {correct ? '答对' : '答错'}
               </p>
-              <InkButton
-                onClick={() => {
-                  setPosition(position + 1);
-                  setCorrect(null);
-                }}
-              >
-                {position + 1 === paper.length ? '完成试玩' : '下一题'}
-              </InkButton>
+              {!correct && (
+                <dl className="flex flex-wrap gap-x-2 text-sm">
+                  <dt className="text-ink-secondary">正确答案</dt>
+                  <dd className="font-semibold">
+                    {question.options[question.correct]}
+                  </dd>
+                </dl>
+              )}
             </div>
           )}
         </div>
       ) : (
-        paper.length > 0 && <p role="status">本卷已答完。</p>
+        <p role={paper.length ? 'status' : undefined}>
+          {paper.length ? '本卷已答完。' : '按正式配额从当前启用题库抽题。'}
+        </p>
       )}
-    </section>
+    </AdminDialog>
   );
 }
