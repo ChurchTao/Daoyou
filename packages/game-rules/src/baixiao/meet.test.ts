@@ -106,6 +106,37 @@ describe('百晓盛会', () => {
         chosen[index].options.map((_, option) => option),
       );
     });
+
+    const science: BaixiaoBankQuestion[] = (
+      ['easy', 'medium', 'medium', 'hard'] as const
+    ).map((difficulty, index) => ({
+      ...extra[0],
+      id: `science-${index}`,
+      knowledgeKey: `science-${index}`,
+      category: 'science',
+      difficulty,
+    }));
+    expect(baixiaoQuotaStatus([...available, ...science.slice(0, 3)])).toEqual(
+      baixiaoQuotaStatus(available),
+    );
+    const expanded = [...available, ...science];
+    const expandedPaper = createBaixiaoPaper(expanded, () => 0)!;
+    const expandedQuestions = expandedPaper.map(({ questionId }) =>
+      expanded.find(({ id }) => id === questionId)!,
+    );
+    expect(expandedQuestions).toHaveLength(25);
+    expect(
+      ['literature', 'history', 'riddle', 'science'].map(
+        (category) =>
+          expandedQuestions.filter((q) => q.category === category).length,
+      ),
+    ).toEqual([9, 7, 5, 4]);
+    expect(
+      ['easy', 'medium', 'hard'].map(
+        (difficulty) =>
+          expandedQuestions.filter((q) => q.difficulty === difficulty).length,
+      ),
+    ).toEqual([6, 13, 6]);
   });
 
   it('第 45 秒截止，惩罚只计入成绩，且第 10 次失败优先淘汰', () => {

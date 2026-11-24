@@ -4,6 +4,7 @@ export const BaixiaoCategorySchema = z.enum([
   'literature',
   'history',
   'riddle',
+  'science',
 ]);
 export const BaixiaoDifficultySchema = z.enum(['easy', 'medium', 'hard']);
 

@@ -46,7 +46,7 @@ type Quota = {
   maxJudgment: number;
 };
 
-const QUOTAS: readonly Quota[] = [
+const ORIGINAL_QUOTAS: readonly Quota[] = [
   { category: 'literature', difficulty: 'easy', count: 3, maxJudgment: 1 },
   { category: 'literature', difficulty: 'medium', count: 6, maxJudgment: 1 },
   { category: 'literature', difficulty: 'hard', count: 2, maxJudgment: 0 },
@@ -58,14 +58,24 @@ const QUOTAS: readonly Quota[] = [
   { category: 'riddle', difficulty: 'hard', count: 2, maxJudgment: 0 },
 ];
 
-export function baixiaoQuotaStatus(bank: readonly BaixiaoBankQuestion[]) {
-  const unique = [
-    ...new Map(
-      bank.map((question) => [question.knowledgeKey, question]),
-    ).values(),
-  ];
-  return QUOTAS.map((quota) => {
-    const pool = unique.filter(
+const EXPANDED_QUOTAS: readonly Quota[] = [
+  { category: 'literature', difficulty: 'easy', count: 2, maxJudgment: 1 },
+  { category: 'literature', difficulty: 'medium', count: 5, maxJudgment: 1 },
+  { category: 'literature', difficulty: 'hard', count: 2, maxJudgment: 0 },
+  { category: 'history', difficulty: 'easy', count: 2, maxJudgment: 1 },
+  { category: 'history', difficulty: 'medium', count: 4, maxJudgment: 1 },
+  { category: 'history', difficulty: 'hard', count: 1, maxJudgment: 0 },
+  { category: 'riddle', difficulty: 'easy', count: 1, maxJudgment: 0 },
+  { category: 'riddle', difficulty: 'medium', count: 2, maxJudgment: 1 },
+  { category: 'riddle', difficulty: 'hard', count: 2, maxJudgment: 0 },
+  { category: 'science', difficulty: 'easy', count: 1, maxJudgment: 0 },
+  { category: 'science', difficulty: 'medium', count: 2, maxJudgment: 0 },
+  { category: 'science', difficulty: 'hard', count: 1, maxJudgment: 0 },
+];
+
+function quotaStatus(quotas: readonly Quota[], bank: BaixiaoBankQuestion[]) {
+  return quotas.map((quota) => {
+    const pool = bank.filter(
       (question) =>
         question.category === quota.category &&
         question.difficulty === quota.difficulty,
@@ -77,6 +87,19 @@ export function baixiaoQuotaStatus(bank: readonly BaixiaoBankQuestion[]) {
       pool.length - judgment + Math.min(judgment, quota.maxJudgment);
     return { ...quota, available, pool };
   });
+}
+
+export function baixiaoQuotaStatus(bank: readonly BaixiaoBankQuestion[]) {
+  const unique = [
+    ...new Map(
+      bank.map((question) => [question.knowledgeKey, question]),
+    ).values(),
+  ];
+  // Select the blueprint from the same frozen bank used to draw every paper.
+  const expanded = quotaStatus(EXPANDED_QUOTAS, unique);
+  return expanded.every((quota) => quota.available >= quota.count)
+    ? expanded
+    : quotaStatus(ORIGINAL_QUOTAS, unique);
 }
 
 function shuffled<T>(items: readonly T[], drawIndex: (size: number) => number) {
