@@ -86,6 +86,11 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/alchemy-contest',
   },
   {
+    title: '百晓盛会',
+    description: '检查组卷并批量导入题目',
+    href: '/admin/baixiao-meet',
+  },
+  {
     title: '云游剧本',
     description: '解谜副本剧本库存、剧本详情与生成任务',
     href: '/admin/dungeon-scenarios',

@@ -25,6 +25,10 @@ export class InternalCronController {
   alchemyContestSettle() {
     return this.jobs.alchemyContestSettle();
   }
+  @Get('baixiao-meet')
+  baixiaoMeet() {
+    return this.jobs.baixiaoMeet();
+  }
   @Get('auction-expire')
   auctionExpire() {
     return this.jobs.auctionExpire();

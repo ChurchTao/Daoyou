@@ -1,4 +1,5 @@
 import { CONTEST_NODE_ID } from '@daoyou/game-domain/alchemy/contest';
+import { BAIXIAO_NODE_ID } from '@daoyou/game-domain/baixiao/meet';
 import { PRODUCTION_SECT_IDS } from '../sect-organization/production/productionRuntime.js';
 import { describe, expect, it } from 'vitest';
 import type { DungeonDifficultyTier } from '@daoyou/game-domain/dungeon';
@@ -106,10 +107,19 @@ describe('resolveDungeonMapConfig', () => {
   it('keeps curated map data explicitly classified', () => {
     const satelliteNodes = getAllSatelliteNodes();
 
-    // 丹塔是独立活动地点。其余卫星节点显式声明副本或野外能力。
-    expect(satelliteNodes.find(({ id }) => id === CONTEST_NODE_ID)).toMatchObject({ type: "landmark", parent_id: "LX_INNER_01" });
-    expect(
-      satelliteNodes.filter(({ id }) => id !== CONTEST_NODE_ID).every((node) => node.dungeon_config?.difficulty || node.wild_encounter_id),
+    const activityIds = new Set([CONTEST_NODE_ID, BAIXIAO_NODE_ID]);
+    expect(satelliteNodes.find(({ id }) => id === CONTEST_NODE_ID)).toMatchObject({
+      type: 'landmark',
+      parent_id: 'LX_INNER_01',
+    });
+    expect(satelliteNodes.find(({ id }) => id === BAIXIAO_NODE_ID)).toMatchObject({
+      type: 'landmark',
+      parent_id: 'DJ_CENTRAL_01',
+      realm_requirement: '炼气',
+    });
+    expect(satelliteNodes
+      .filter(({ id }) => !activityIds.has(id))
+      .every((node) => node.dungeon_config?.difficulty || node.wild_encounter_id),
     ).toBe(true);
 
     // 主节点不应有 dungeon_config（副本仅限卫星节点）

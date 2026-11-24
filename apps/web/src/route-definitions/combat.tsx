@@ -52,5 +52,13 @@ export const combatRoutes = (
         '野外寻觅',
       )}
     />
+    <Route
+      path="baixiao-meet/battle/:battleId"
+      lazy={lazyRoute(() => import('@app/routes/game/baixiao-meet/battle'))}
+      handle={scene(
+        { id: 'baixiao-meet', chrome: 'immersive', dock: 'hidden' },
+        '与百晓考官交手',
+      )}
+    />
   </Route>
 );

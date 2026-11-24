@@ -1,4 +1,5 @@
 import type { InkButton } from '@app/components/ui/InkButton';
+import { BAIXIAO_NODE_ID } from '@daoyou/game-domain/baixiao/meet';
 import { CONTEST_NODE_ID } from '@daoyou/game-domain/alchemy/contest';
 import type { WorldMapLocation } from '@daoyou/game-domain/world/map';
 import type { ComponentProps } from 'react';
@@ -35,6 +36,14 @@ export function buildMapLocationActions(
       label: '查看炼丹大会',
       variant: 'primary',
       onClick: () => navigate('/game/alchemy-contest'),
+    });
+  }
+  if (location.id === BAIXIAO_NODE_ID) {
+    actions.push({
+      key: 'enter-baixiao-meet',
+      label: '查看百晓盛会',
+      variant: 'primary',
+      onClick: () => navigate('/game/baixiao-meet'),
     });
   }
   if (location.wild_encounter_id)

@@ -9,6 +9,7 @@
     "./alchemy/contest": "./dist/alchemy/contest.js",
     "./alchemy/contest/authoring": "./dist/alchemy/contestAuthoring.js",
     "./auction": "./dist/public/auction.js",
+    "./baixiao/meet": "./dist/baixiao/meet.js",
     "./beasts/fusion": "./dist/beasts/fusion.js",
     "./beasts/generation": "./dist/beasts/generator.js",
     "./beasts/growth": "./dist/public/beasts/growth.js",

@@ -312,12 +312,12 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
               <span className="text-crimson ml-2">{joinError}</span>
             ) : null}
           </span>
-        ) : message.channel === 'system' && message.messageType === 'alchemy_contest_rumor' &&
+        ) : message.channel === 'system' && (message.messageType === 'alchemy_contest_rumor' || message.messageType === 'baixiao_rumor') &&
           'nodeId' in message.payload && typeof message.payload.nodeId === 'string' ? (
           <span>
             {renderTextMessage(message)}{' '}
             <Link className="text-teal font-semibold underline" to={`/game/map-v2?nodeId=${encodeURIComponent(message.payload.nodeId)}`}>
-              前往丹塔
+              {message.messageType === 'baixiao_rumor' ? '前往百晓盛会' : '前往丹塔'}
             </Link>
           </span>
         ) : hunt ? (

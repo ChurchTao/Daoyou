@@ -312,6 +312,15 @@
   ],
   "satellite_nodes": [
     {
+      "id": "SAT_DJ_BAIXIAO",
+      "name": "百晓盛会",
+      "parent_id": "DJ_CENTRAL_01",
+      "type": "landmark",
+      "tags": ["百晓盛会", "才子榜"],
+      "description": "晋京城外设席开卷。每周四北京时间 14:00–16:00，邀各境道友闯二十五关。",
+      "realm_requirement": "炼气"
+    },
+    {
       "id": "SAT_LX_ALCHEMY",
       "name": "丹塔",
       "parent_id": "LX_INNER_01",

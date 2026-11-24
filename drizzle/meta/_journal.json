@@ -561,6 +561,27 @@
       "when": 1795422352705,
       "tag": "0080_alchemy_contest",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1795494694177,
+      "tag": "0081_baixiao_meet",
+      "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1795500567547,
+      "tag": "0082_baixiao_direct_import",
+      "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1795503726224,
+      "tag": "0083_baixiao_challenge_cards",
+      "breakpoints": true
     }
   ]
 }

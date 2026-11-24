@@ -119,6 +119,7 @@ export const MULAN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
 
 export const DAJIN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
   DJ_CENTRAL_01: [0.65, 0.485],
+  SAT_DJ_BAIXIAO: [0.77, 0.535],
   DJ_KW_01: [0.13, 0.145],
   DJ_RIFT_01: [0.268, 0.37],
   DJ_VOID_01: [0.12, 0.775],

@@ -19,6 +19,7 @@
     "./application-settings": "./dist/applicationSettings.js",
     "./arena": "./dist/arena.js",
     "./auction": "./dist/auction.js",
+    "./baixiao/meet": "./dist/baixiao-meet.js",
     "./background-commands": "./dist/backgroundCommands.js",
     "./beasts": "./dist/combatV6Beasts.js",
     "./character-generation": "./dist/character-generation.js",

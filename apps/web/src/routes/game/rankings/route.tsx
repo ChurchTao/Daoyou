@@ -1,3 +1,4 @@
+import { BaixiaoRanking } from './BaixiaoRanking';
 import { combatV6Request } from '@app/components/feature/combat-v6/request';
 import { CultivatorInspectionModal } from '@app/components/feature/cultivator-inspection';
 import {
@@ -211,7 +212,8 @@ export default function RankingsPage() {
   const isLoading = profile.loading || currency.loading || session.loading;
   const note = session.data?.note;
   const [activeTab, setActiveTab] = useState<RankingTab>('battle');
-  const contestTab = searchParams.get('tab') === 'alchemy';
+  const activityTab = searchParams.get('tab');
+  const contestTab = activityTab === 'alchemy' || activityTab === 'baixiao' ? activityTab : null;
   const [rankings, setRankings] = useState<RankingsDisplayItem[]>([]); // Use strict type
   const [myRankInfo, setMyRankInfo] = useState<MyRankInfo | null>(null);
   const [myRankInfoLoadingState, setMyRankInfoLoadingState] =
@@ -316,14 +318,15 @@ export default function RankingsPage() {
   }, [activeRealm, activeTab, contestTab, cultivator?.id, pushToast]);
 
   const handleTabChange = (val: string) => {
-    if (val === 'alchemy' || contestTab) {
+    const isContest = val === 'alchemy' || val === 'baixiao';
+    if (isContest || contestTab) {
       setSearchParams((previous) => {
         const next = new URLSearchParams(previous);
-        if (val === 'alchemy') next.set('tab', 'alchemy');
+        if (isContest) next.set('tab', val);
         else next.delete('tab');
         return next;
       });
-      if (val === 'alchemy') return;
+      if (isContest) return;
     }
     if (
       (val !== 'battle' && val !== 'wealth') ||
@@ -413,6 +416,7 @@ export default function RankingsPage() {
     { label: '天骄榜', value: 'battle' },
     { label: '财富榜', value: 'wealth' },
     { label: '炼丹榜', value: 'alchemy' },
+    { label: '才子榜', value: 'baixiao' },
   ];
   if (contestTab) {
     return (
@@ -424,11 +428,11 @@ export default function RankingsPage() {
         }}
       >
         <GameSceneTabs
-          activeValue="alchemy"
+          activeValue={contestTab}
           onChange={handleTabChange}
           items={rankingTabs}
         />
-        <AlchemyContestRanking />
+        {contestTab === 'alchemy' ? <AlchemyContestRanking /> : <BaixiaoRanking />}
       </GameSceneFrame>
     );
   }
