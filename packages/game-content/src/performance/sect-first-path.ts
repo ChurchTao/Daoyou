@@ -45,16 +45,17 @@ export function createSectFirstPath(
   paths: readonly SectCombatPathView[],
   afterMorningDemo = false,
 ) {
+  const teacher = afterMorningDemo ? 'instructor' : 'path_teacher';
   const conversation: PerformanceCue[] = afterMorningDemo
     ? [
       {
         type: 'line',
         speaker: 'teacher',
-        text: '两路你都看过了。先挑一路试，往后想换，心法照用。',
+        text: '看好了就挑一路先练。想换路时，再来找我。',
       },
       {
         type: 'letter',
-        text: '换流派不花灵石。两路经脉各自修炼，换回时可接着练。',
+        text: '换流派不花灵石，心法照用。两路分别修炼经脉，换回来可以接着练。',
       },
     ]
     : [
@@ -95,8 +96,8 @@ export function createSectFirstPath(
   return parsePerformanceScript({
     id: 'sect-first-path-' + sectId,
     title: '先从哪一路学',
-    requires: ['path_teacher'],
-    cast: { player: { name: '你' }, teacher: { name: '{path_teacher}' } },
+    requires: [teacher],
+    cast: { player: { name: '你' }, teacher: { name: `{${teacher}}` } },
     cues,
   });
 }

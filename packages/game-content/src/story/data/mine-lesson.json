@@ -29,8 +29,8 @@
       "kind": "practice",
       "arrival": "activity",
       "scene": "sect-onboarding",
-      "prompt": "到教习面前，挑一路先练。",
-      "actionLabel": "选先练的流派",
+      "prompt": "选一路先练。",
+      "actionLabel": "选择流派",
       "href": "/game/sect/onboarding?entry=path&from=story",
       "accept": [
         {
@@ -54,12 +54,12 @@
       "script": "mine-lesson-study-brief",
       "outcome": "done",
       "scene": "story",
-      "prompt": "问教习选定流派后该去哪里研习心法。",
+      "prompt": "问教习该从哪一卷心法学起。",
       "actionLabel": "请教研习心法",
       "href": "/game/story",
       "location": { "kind": "sect", "spotId": "arena" },
       "entry": { "kind": "npc", "id": "instructor" },
-      "finishLabel": "去传承处找守卷人"
+      "finishLabel": "去传承处研习"
     },
     {
       "id": "study",
@@ -85,7 +85,7 @@
       "script": "mine-lesson-form",
       "outcome": "done",
       "scene": "story",
-      "prompt": "本宗心法都已到十级。回去给教习看看起手。",
+      "prompt": "回演武处，请教习指点起手。",
       "actionLabel": "请教习指点起手",
       "href": "/game/story",
       "indicatorFrom": ["/game/sect/archive"],

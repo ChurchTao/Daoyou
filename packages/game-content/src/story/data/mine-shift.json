@@ -10,7 +10,7 @@
       "script": "mine-shift-clock-out",
       "outcome": "done",
       "scene": "story",
-      "prompt": "去记工台结一下这班的工。",
+      "prompt": "到记工台等最后一筐矿过秤。",
       "href": "/game/story",
       "playOnResume": true,
       "unlocks": ["settings", "feedback", "community", "download", "redeem"],
@@ -71,7 +71,7 @@
       "lesson": "story-battle-basics",
       "scene": "story-battle",
       "prompt": "山豕跟到了石滩。",
-      "actionLabel": "应付山豕",
+      "actionLabel": "迎战山豕",
       "href": "/game/story/battle?guide=story-battle-basics",
       "location": {
         "kind": "area",

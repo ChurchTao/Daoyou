@@ -226,7 +226,7 @@ export function createMountainGateArrival(
         { type: 'scene', alt, src },
         {
           type: 'narration',
-          text: '你抱稳咪咪，走到山门跟前。方才踏过石阵，渡埠的叫卖声一下就远了。',
+          text: '你抱着咪咪踏过石阵。刚才还能听见渡埠上叫卖，再一抬头，眼前已经是山门。',
         },
         ...study.cues
           .slice(0, -1)
@@ -288,7 +288,7 @@ export function createMountainGateArrival(
         speaker: 'clerk',
         text:
           admission === 'join'
-            ? '你若定了，我就给你记名。想再看看，也可以。'
+            ? '定下来了？想再看一家也成。'
             : admission === 'member'
               ? '要核名的话，把名字报给我，我在册上给你找找。'
               : study
@@ -299,7 +299,7 @@ export function createMountainGateArrival(
         ? [
             {
               type: 'narration' as const,
-              text: '确认后，你会成为本宗弟子。日后想换宗门，又想保留已练的心法，需要用欺天符。',
+              text: '拜入后会登记为本宗弟子。日后转投别家，若要保留已练的心法，须用欺天符。',
             },
           ]
         : []),

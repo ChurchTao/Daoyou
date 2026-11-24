@@ -2,7 +2,7 @@ type SectStoryEntry = {
   kind: 'npc' | 'facility';
   id: string;
   name: string;
-  cast?: 'receptionist' | 'path_teacher';
+  cast?: 'receptionist' | 'instructor';
 };
 
 const entries: Readonly<Record<string, readonly SectStoryEntry[]>> = {
@@ -15,7 +15,7 @@ const entries: Readonly<Record<string, readonly SectStoryEntry[]>> = {
     },
   ],
   arena: [
-    { kind: 'npc', id: 'instructor', name: '教习', cast: 'path_teacher' },
+    { kind: 'npc', id: 'instructor', name: '教习', cast: 'instructor' },
     { kind: 'npc', id: 'neighbor', name: '隔壁同门' },
     { kind: 'facility', id: 'sparring-yard', name: '木人试手场' },
   ],

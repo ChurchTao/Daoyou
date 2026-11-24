@@ -73,7 +73,7 @@
       "script": "mine-departure-routes",
       "outcome": "done",
       "scene": "sect-onboarding",
-      "prompt": "问问阿禾，你想去的山门是什么样子。",
+      "prompt": "拿着招徒的路帖，向阿禾打听各家山门。",
       "href": "/game/sect/onboarding?entry=gate",
       "unlocks": ["sect"],
       "location": {
@@ -105,14 +105,14 @@
         "kind": "facility",
         "id": "passenger-book"
       },
-      "finishLabel": "天亮了，去登船"
+      "finishLabel": "到渡口登船"
     },
     {
       "id": "ferry",
       "kind": "passage",
       "arrival": "location",
       "scene": "story",
-      "prompt": "阿禾在渡口点名。搭早渡去山脚接引亭。",
+      "prompt": "阿禾正在点名。上船去山脚接引亭。",
       "actionLabel": "回村口渡口",
       "location": {
         "kind": "area",

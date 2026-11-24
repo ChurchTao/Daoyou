@@ -32,7 +32,7 @@
       "script": "mine-gate-study",
       "outcome": "done",
       "scene": "sect-onboarding",
-      "prompt": "到接引传送阵，按路帖去先前挑的山门。",
+      "prompt": "去接引亭找守阵人，拿路帖去山门。",
       "href": "/game/sect/onboarding?entry=gate&from=road",
       "location": {
         "kind": "area",
@@ -49,7 +49,7 @@
       "id": "join",
       "kind": "practice",
       "scene": "sect-onboarding",
-      "prompt": "选一家想留下学的山门。",
+      "prompt": "看过山门，再决定去哪里学。",
       "href": "/game/sect/onboarding?entry=gate&from=road",
       "accept": [
         {
@@ -74,13 +74,13 @@
       "script": "mine-gate-register",
       "outcome": "done",
       "scene": "story",
-      "prompt": "在名册前报上自己的名字。",
+      "prompt": "找山门执事登记。",
       "href": "/game/story",
       "location": {
         "kind": "sect",
         "spotId": "gate"
       },
-      "actionLabel": "在名册前报上名字",
+      "actionLabel": "报上名字",
       "entry": {
         "kind": "npc",
         "id": "register-keeper"
@@ -116,7 +116,7 @@
         }
       ],
       "scene": "cave",
-      "prompt": "在洞府安顿下来，明早再去找教习。",
+      "prompt": "安顿好咪咪，明早去演武处上课。",
       "actionLabel": "去上早课",
       "href": "/game?guide=cave-first-steps",
       "location": {

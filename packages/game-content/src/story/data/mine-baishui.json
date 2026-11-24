@@ -27,7 +27,7 @@
       "kind": "passage",
       "arrival": "map",
       "scene": "map",
-      "prompt": "沿着脚下这岸找，过了河弯该在哪儿换船？",
+      "prompt": "在舆图上找同岸、过了河弯的渡口。",
       "actionLabel": "展开水路舆图",
       "location": {
         "kind": "area",
@@ -36,7 +36,7 @@
       },
       "passage": {
         "id": "foothill-to-baishui",
-        "hint": "阿禾的船贴着这岸顺流走。沿岸看过河弯，找一找可以换船的渡埠。"
+        "hint": "从接引亭顺流走，过了河弯也不换岸。"
       }
     },
     {
@@ -46,7 +46,7 @@
       "script": "mine-baishui-wait",
       "outcome": "done",
       "scene": "map",
-      "prompt": "已经到了白水渡。到泊位旁的石阶等客船。",
+      "prompt": "在白水渡的石阶上等过河的客船。",
       "actionLabel": "在石阶等船",
       "finishLabel": "回白水渡石阶",
       "href": "/game/story",
@@ -61,7 +61,7 @@
       "id": "returned",
       "kind": "life",
       "scene": "map",
-      "prompt": "补着红帆的货船靠回了白水渡。",
+      "prompt": "那条帆上补了红布的货船，又靠回了白水渡。",
       "actionLabel": "回白水渡石阶",
       "href": "/game",
       "location": {

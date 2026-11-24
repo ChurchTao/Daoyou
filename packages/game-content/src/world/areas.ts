@@ -53,7 +53,7 @@ const areaContent: Readonly<Record<string, MapAreaContent>> = {
               id: 'wooden-crossing',
               name: '过河桥面',
               purpose: '通往村岸',
-              details: '木板上还留着雨水。沿着桥栏可以走到对岸。',
+              details: '从桥栏边往下看，能看见桥墩脚下的石滩。',
             },
           ],
         },
@@ -150,7 +150,7 @@ const areaContent: Readonly<Record<string, MapAreaContent>> = {
               name: '阿禾',
               action: '向阿禾问去白水镇的路',
               reply:
-                '我这条船贴着咱们这边走。你沿这面岸往下找，过了河弯有个渡埠，横过河的客船在那儿等。',
+                '我还得顺流送货，今天不过河。沿这岸找，过了河弯有个换船的渡口。',
             },
           ],
           facilities: [
@@ -165,7 +165,7 @@ const areaContent: Readonly<Record<string, MapAreaContent>> = {
               name: '柳树渡埠',
               purpose: '沿岸船停靠处',
               details:
-                '跳板搭在石阶边。阿禾的船正在接空筐，问过他就知道这一趟往哪儿走。',
+                '跳板搭在石阶边，沿岸的船在这儿上下客。',
             },
           ],
         },
@@ -191,7 +191,7 @@ const areaContent: Readonly<Record<string, MapAreaContent>> = {
               name: '客渡泊位',
               purpose: '前往白水镇',
               details:
-                '横渡的客船尚未靠岸。去白水镇的人可以在芦苇旁的石阶等船。',
+                '去白水镇的客船从这儿过河，候船可以坐石阶上。',
             },
           ],
         },
@@ -199,7 +199,7 @@ const areaContent: Readonly<Record<string, MapAreaContent>> = {
       {
         id: 'baishui-town',
         name: '白水镇',
-        description: '镇子和药铺都在对岸。从白水渡改乘横渡的客船，才能到镇上。',
+        description: '白水镇和药铺都在河对岸。平日从白水渡搭客船过河。',
       },
     ],
   },
@@ -221,8 +221,8 @@ const passages: readonly MapPassage[] = [
     id: 'sect-gate-to-foothill',
     from: { kind: 'sect', spotId: 'gate' },
     to: { kind: 'area', areaId: 'TN_YUE_01', placeId: 'foothill-pavilion' },
-    label: '下山去接引亭',
-    entrance: { name: '下山石阶', description: '沿山道下行，到山脚接引亭。' },
+    label: '乘接引阵回山脚',
+    entrance: { name: '山门接引阵', description: '穿过来时的石阵，回山脚接引亭。' },
   },
   {
     id: 'foothill-to-baishui',

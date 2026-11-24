@@ -11,8 +11,8 @@
       "script": "mine-errand-ask",
       "outcome": "done",
       "scene": "story",
-      "prompt": "和同门去丹房，问问送药的事。",
-      "actionLabel": "去丹房领差",
+      "prompt": "到丹房找值事，问几时能取药。",
+      "actionLabel": "问值事取药的时辰",
       "href": "/game/story",
       "location": {
         "kind": "sect",
@@ -46,7 +46,7 @@
       "script": "mine-errand-evening",
       "outcome": "done",
       "scene": "story",
-      "prompt": "趁饭堂还开着，去隔壁喊同门练一会儿。",
+      "prompt": "去隔壁喊同门一起练两招。",
       "actionLabel": "去敲隔壁的门",
       "href": "/game/story",
       "location": {
@@ -67,7 +67,7 @@
       "scene": "sect",
       "prompt": "天亮了，和同门到丹房找值事取药匣。",
       "actionLabel": "去拿药匣",
-      "finishLabel": "去山门下山",
+      "finishLabel": "去山门的接引阵",
       "location": {
         "kind": "sect",
         "spotId": "alchemy"
@@ -82,7 +82,7 @@
       "id": "departure",
       "kind": "passage",
       "scene": "sect",
-      "prompt": "同门提着药匣。一起下山，到接引亭找阿禾。",
+      "prompt": "从山门的接引阵回山脚，找阿禾问船。",
       "actionLabel": "去山门",
       "location": { "kind": "sect", "spotId": "gate" },
       "passage": { "id": "sect-gate-to-foothill" }
