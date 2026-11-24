@@ -1,4 +1,3 @@
-import { InkButton } from '@app/components/ui';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { GameImage } from '@app/components/ui/GameImage';
 import { PaperSurface } from '@app/components/ui/PaperSurface';
@@ -288,6 +287,7 @@ export function PerformancePlayer({
   const closing = state.ending || state.finished;
   const choosing = !closing && cue?.type === 'choice';
   const reading = !closing && !choosing && Boolean(textCue);
+  const options = closing ? [{ label: finalLabel }] : choosing ? cue.options : [];
 
   const dispatch = (next: PerformanceState) => {
     setState(next);
@@ -318,13 +318,13 @@ export function PerformancePlayer({
     dispatch(step(state, { type: 'advance' }));
   };
 
-  const choose = (index: number) => {
-    if (busy || !choosing) return;
-    dispatch(step(state, { type: 'choose', index }));
-  };
-
-  const finish = () => {
+  const selectOption = (index: number) => {
     if (busy) return;
+    if (choosing) {
+      dispatch(step(state, { type: 'choose', index }));
+      return;
+    }
+    if (!closing) return;
     if (state.finished && state.outcome) {
       onFinish(
         state.outcome,
@@ -337,27 +337,25 @@ export function PerformancePlayer({
 
   const actions = useRef({
     turn,
-    choose,
-    finish,
+    selectOption,
     onExit,
     exitLabel,
     busy,
     closing,
     choosing,
-    optionCount: cue?.type === 'choice' ? cue.options.length : 0,
+    optionCount: options.length,
   });
 
   useEffect(() => {
     actions.current = {
       turn,
-      choose,
-      finish,
+      selectOption,
       onExit,
       exitLabel,
       busy,
       closing,
       choosing,
-      optionCount: cue?.type === 'choice' ? cue.options.length : 0,
+      optionCount: options.length,
     };
   });
 
@@ -376,18 +374,18 @@ export function PerformancePlayer({
 
       if (current.busy || onControl) return;
 
-      if (current.choosing && /^[1-9]$/.test(event.key)) {
+      if (current.optionCount > 0 && /^[1-9]$/.test(event.key)) {
         const index = Number(event.key) - 1;
         if (index < current.optionCount) {
           event.preventDefault();
-          current.choose(index);
+          current.selectOption(index);
         }
         return;
       }
 
       if (event.key !== 'Enter' && event.key !== ' ') return;
       event.preventDefault();
-      if (current.closing) current.finish();
+      if (current.closing) current.selectOption(0);
       else if (!current.choosing) current.turn();
     };
     window.addEventListener('keydown', onKey);
@@ -462,10 +460,9 @@ export function PerformancePlayer({
         {textCue?.type === 'line'
           ? `${script.cast[textCue.speaker]?.name ?? ''}说。${text}`
           : text}
-        {choosing && cue?.type === 'choice'
-          ? `要怎么做。${cue.options.map((option) => option.label).join('，')}`
+        {options.length
+          ? `要怎么做。${options.map((option) => option.label).join('，')}`
           : null}
-        {closing ? '可以离开这一幕了。' : null}
       </div>
 
       {exitLabel ? (
@@ -566,47 +563,40 @@ export function PerformancePlayer({
                     </button>
                   ) : null}
 
-                  {open && choosing && cue?.type === 'choice' ? (
+                  {open && options.length > 0 ? (
                     <div
-                      className={cn('border-ink/10 border-t pt-3', cue.options.length > 4 ? 'grid grid-cols-2 gap-x-2' : 'flex flex-col')}
+                      className={cn(
+                        'border-ink/10 border-t pt-3',
+                        options.length > 4
+                          ? 'grid grid-cols-2 gap-x-2'
+                          : 'flex flex-col',
+                      )}
                       role="group"
                       aria-label="要怎么做"
                     >
-                      {cue.options.map((option, index) => (
+                      {closing && finishHint ? (
+                        <p className="text-ink-secondary mb-4 text-sm leading-7">
+                          {finishHint}
+                        </p>
+                      ) : null}
+                      {options.map((option, index) => (
                         <button
                           key={option.label}
                           type="button"
                           disabled={busy}
-                          onClick={() => choose(index)}
-                          className="group text-ink focus-visible:outline-crimson relative min-h-11 cursor-pointer bg-transparent py-1.5 pl-7 text-left text-xl leading-9 outline-none focus-visible:outline-2 focus-visible:outline-offset-4 disabled:cursor-wait"
+                          aria-busy={closing && busy ? true : undefined}
+                          onClick={() => selectOption(index)}
+                          className="group text-ink focus-visible:outline-crimson relative min-h-11 cursor-pointer bg-transparent py-1.5 pl-7 text-left text-xl leading-9 outline-none focus-visible:outline-2 focus-visible:outline-offset-4 disabled:cursor-wait disabled:opacity-50"
                         >
                           <span
                             aria-hidden
                             className="bg-crimson absolute top-[1.15rem] left-1.5 size-1.5 rounded-full"
                           />
                           <span className="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0_1.5px] bg-[position:0_100%] bg-no-repeat transition-[background-size] duration-300 group-hover:bg-[length:100%_1.5px] group-focus-visible:bg-[length:100%_1.5px] group-active:bg-[length:100%_1.5px]">
-                            {option.label}
+                            {closing && busy ? finishPendingLabel : option.label}
                           </span>
                         </button>
                       ))}
-                    </div>
-                  ) : null}
-
-                  {open && closing ? (
-                    <div className="pt-2">
-                      {finishHint ? (
-                        <p className="text-ink-secondary mb-4 text-sm leading-7">
-                          {finishHint}
-                        </p>
-                      ) : null}
-                      <InkButton
-                        onClick={finish}
-                        pending={busy}
-                        pendingLabel={finishPendingLabel}
-                        variant="primary"
-                      >
-                        {finalLabel}
-                      </InkButton>
                     </div>
                   ) : null}
 
