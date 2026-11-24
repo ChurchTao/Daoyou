@@ -16,50 +16,10 @@
     max(1rem, env(safe-area-inset-right));
 }
 
-.contest-top {
-  flex: none;
-  border-bottom: 1px solid var(--color-ink-border);
-  padding-top: var(--app-safe-top, 0px);
-  background: var(--color-paper);
-}
-
-.contest-top-inner {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  min-height: 3.25rem;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.contest-top a,
-.contest-top button {
-  display: flex;
-  min-height: 2.75rem;
-  align-items: center;
-}
-
-.contest-top a {
-  justify-self: start;
-  color: var(--color-ink-secondary);
-}
-
-.contest-top h1 {
-  font: 400 clamp(1.25rem, 1.05rem + 0.85vw, 1.65rem) / 1.1 var(--font-heading);
-  letter-spacing: 0.08em;
-}
-
-.contest-top button {
-  justify-self: end;
-}
-
 .contest-page :is(button, a):focus-visible,
 .contest-modal button:focus-visible {
   outline: 2px solid var(--color-crimson);
   outline-offset: 2px;
-}
-
-.contest-top a:hover {
-  color: var(--color-crimson);
 }
 
 .contest-page .contest-main-action {
@@ -82,111 +42,6 @@
   background: color-mix(in srgb, var(--color-crimson) 8%, var(--color-paper));
   color: var(--color-crimson);
   font-size: 0.875rem;
-}
-
-.contest-lobby {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  touch-action: pan-y;
-  overscroll-behavior: contain;
-  animation: contest-view-in 250ms ease-out both;
-}
-
-.contest-lobby-scene {
-  position: relative;
-  display: grid;
-  min-height: 100%;
-  align-items: center;
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.contest-lobby-image,
-.contest-lobby-scene::after {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.contest-lobby-image {
-  object-fit: cover;
-  object-position: 52% 44%;
-}
-
-.contest-lobby-scene::after {
-  content: '';
-  background: linear-gradient(
-    90deg,
-    var(--color-sheet) 12%,
-    color-mix(in srgb, var(--color-sheet) 93%, transparent) 34%,
-    color-mix(in srgb, var(--color-sheet) 67%, transparent) 52%,
-    transparent 85%
-  );
-}
-
-.contest-lobby-content {
-  width: min(100%, 76rem);
-  margin-inline: auto;
-  padding: 3rem clamp(1.25rem, 7vw, 6rem) max(3rem, env(safe-area-inset-bottom));
-}
-
-.contest-lobby-location {
-  width: fit-content;
-  margin-bottom: 0.9rem;
-  color: var(--color-ink-secondary);
-  font-size: 0.95rem;
-  letter-spacing: 0.12em;
-}
-
-.contest-lobby h2 {
-  font: 400 clamp(2.8rem, 2rem + 3vw, 5.2rem) / 1.1 var(--font-heading);
-  letter-spacing: 0.055em;
-}
-
-.contest-lobby-message {
-  max-width: 28rem;
-  margin-top: 0.9rem;
-  color: var(--color-ink-secondary);
-}
-
-.contest-lobby-terms {
-  display: grid;
-  width: min(100%, 22rem);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-block: 1.4rem 0.65rem;
-  border-block: 1px solid var(--color-ink-border);
-  padding-block: 0.75rem;
-}
-
-.contest-lobby-terms > div {
-  display: grid;
-  padding-inline: 0.8rem;
-}
-
-.contest-lobby-terms > div:first-child {
-  padding-left: 0;
-}
-
-.contest-lobby-terms > div + div {
-  border-left: 1px solid var(--color-ink-border);
-}
-
-.contest-lobby-terms b {
-  font-size: 1.35rem;
-  line-height: 1.2;
-}
-
-.contest-lobby-terms > div > span,
-.contest-lobby-schedule {
-  color: var(--color-ink-secondary);
-  font-size: 0.875rem;
-}
-
-.contest-lobby-schedule {
-  margin-top: 0.5rem;
 }
 
 .contest-workbench {
@@ -770,27 +625,6 @@ button.contest-round:disabled {
 }
 
 @media (width < 768px) {
-  .contest-lobby-scene {
-    align-items: end;
-  }
-
-  .contest-lobby-image {
-    object-position: 61% 19%;
-  }
-
-  .contest-lobby-scene::after {
-    background: linear-gradient(
-      0deg,
-      var(--color-sheet) 29%,
-      color-mix(in srgb, var(--color-sheet) 92%, transparent) 48%,
-      transparent 85%
-    );
-  }
-
-  .contest-lobby-content {
-    padding-top: 7rem;
-  }
-
   .contest-ticket {
     grid-template-columns: minmax(0, 1fr);
     gap: 0.25rem;

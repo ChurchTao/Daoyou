@@ -3,6 +3,7 @@ import {
   BAIXIAO_CARD_STREAK,
   BAIXIAO_CARD_TYPES,
   BAIXIAO_CHALLENGE_WIN_MS,
+  BAIXIAO_FOCUS_PENALTY_MS,
   BAIXIAO_MISS_LIMIT,
   BAIXIAO_PENALTY_MS,
   BAIXIAO_QUESTION_COUNT,
@@ -121,13 +122,12 @@ export function createBaixiaoPaper(
 export function decideBaixiaoAnswer(
   issuedAt: number,
   receivedAt: number,
-  choice: number | null,
+  choice: number,
   correct: number,
 ): BaixiaoAnswer {
   const elapsedMs = Math.max(0, receivedAt - issuedAt);
   if (elapsedMs >= BAIXIAO_QUESTION_MS)
     return { verdict: 'timeout', elapsedMs: BAIXIAO_QUESTION_MS };
-  if (choice === null) return { verdict: 'focus', elapsedMs };
   return { verdict: choice === correct ? 'correct' : 'wrong', elapsedMs };
 }
 
@@ -179,7 +179,10 @@ export function decideBaixiaoChallenge(victory: boolean): BaixiaoAnswer {
   };
 }
 
-export function scoreBaixiao(answers: readonly BaixiaoAnswer[]): BaixiaoScore {
+export function scoreBaixiao(
+  answers: readonly BaixiaoAnswer[],
+  focusPenalties = 0,
+): BaixiaoScore {
   let correct = 0;
   let wrong = 0;
   let timeout = 0;
@@ -203,13 +206,15 @@ export function scoreBaixiao(answers: readonly BaixiaoAnswer[]): BaixiaoScore {
     }
   }
   const mistakes = wrong + timeout + focus;
-  const penaltyMs = mistakes * BAIXIAO_PENALTY_MS;
+  const penaltyMs =
+    mistakes * BAIXIAO_PENALTY_MS + focusPenalties * BAIXIAO_FOCUS_PENALTY_MS;
   return {
     correct,
     mistakes,
     wrong,
     timeout,
     focus,
+    ...(focusPenalties > 0 ? { focusPenalties } : {}),
     elapsedMs,
     penaltyMs,
     totalMs: elapsedMs + penaltyMs,

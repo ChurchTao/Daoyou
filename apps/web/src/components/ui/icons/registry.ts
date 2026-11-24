@@ -1,5 +1,8 @@
 /** GameIcon alone resolves these names; all icon files live in public/assets/icons. */
 export const iconRegistry: ReadonlyMap<string, string> = new Map([
+  ['baixiao-pass', '/assets/icons/baixiao-pass.webp'],
+  ['baixiao-fortune', '/assets/icons/baixiao-fortune.webp'],
+  ['baixiao-challenge', '/assets/icons/baixiao-challenge.webp'],
   ['portrait-abbot', '/assets/icons/portrait-abbot.webp'],
   ['portrait-disciple-f', '/assets/icons/portrait-disciple-f.webp'],
   ['portrait-disciple-m', '/assets/icons/portrait-disciple-m.webp'],

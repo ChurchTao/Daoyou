@@ -1,0 +1,325 @@
+.weekly-rank-board {
+  min-width: 0;
+  padding-bottom: 0.5rem;
+}
+
+.weekly-rank-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.weekly-rank-heading h2 {
+  margin-block: 0.15rem 0.2rem;
+  font: 400 clamp(1.75rem, 1.3rem + 1vw, 2.4rem) / 1.1 var(--font-heading);
+}
+
+.weekly-rank-date,
+.weekly-rank-subject,
+.weekly-rank-realm,
+.weekly-rank-points small,
+.weekly-rank-view {
+  color: var(--color-ink-secondary);
+  font-size: 0.85rem;
+}
+
+.weekly-rank-subject {
+  overflow-wrap: anywhere;
+}
+
+.weekly-rank-heading a,
+.weekly-rank-heading button {
+  min-height: 2.75rem;
+  align-self: center;
+}
+
+.weekly-rank-status {
+  margin-bottom: 0.8rem;
+  color: var(--color-ink-secondary);
+  font-size: 0.9rem;
+}
+
+.weekly-rank-champions,
+.weekly-rank-podium {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 0.55rem;
+}
+
+.weekly-rank-champions > li {
+  min-width: 0;
+  container: weekly-champion / inline-size;
+}
+
+.weekly-rank-podium {
+  margin-top: 0.55rem;
+}
+
+.weekly-rank-seat {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  grid-template-columns: 2.2rem 2.35rem minmax(0, 1fr) max-content auto;
+  align-items: center;
+  gap: 0.38rem 0.7rem;
+  padding: 0.62rem 0.45rem;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+
+.weekly-rank-seat:focus-visible,
+.weekly-rank-heading a:focus-visible {
+  outline: 2px solid var(--color-crimson);
+  outline-offset: -2px;
+}
+
+.weekly-rank-seat[data-place='champion'] {
+  isolation: isolate;
+  grid-template-columns: minmax(3rem, auto) 5rem minmax(0, 1fr) max-content;
+  grid-template-areas: 'rank portrait identity points' 'rank portrait identity view';
+  gap: 0.2rem clamp(0.75rem, 2.3vw, 1.55rem);
+  padding: clamp(1rem, 3vw, 1.85rem);
+  border-block: 1px solid var(--color-wood);
+  background:
+    radial-gradient(
+      ellipse at 30% 105%,
+      color-mix(in srgb, var(--color-gold) 15%, transparent),
+      transparent 75%
+    ),
+    var(--color-paper-2);
+}
+
+.weekly-rank-seat[data-place='champion']::after {
+  position: absolute;
+  z-index: -1;
+  inset: 0.26rem;
+  border-inline: 1px solid
+    color-mix(in srgb, var(--color-wood) 33%, transparent);
+  pointer-events: none;
+  content: '';
+}
+
+.weekly-rank-seat[data-place='podium'] {
+  grid-template-columns: 1.7rem 2.85rem minmax(0, 1fr) max-content auto;
+  padding: 0.6rem 0.7rem;
+  border-block: 1px solid var(--color-ink-border);
+  background: var(--color-paper-dark);
+}
+
+.weekly-rank-seat[data-place='list'][data-self] {
+  background: var(--color-paper-2);
+}
+
+.weekly-rank-seat:hover {
+  background-color: var(--color-muted);
+}
+
+.weekly-rank-seat:hover .weekly-rank-view {
+  color: var(--color-crimson);
+}
+
+.weekly-rank-place {
+  display: grid;
+  place-items: center;
+  color: var(--color-ink-secondary);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.weekly-rank-seat[data-place='champion'] .weekly-rank-place {
+  grid-area: rank;
+  color: var(--color-wood);
+  font-size: clamp(2.7rem, 1.8rem + 3.8vw, 4.7rem);
+  line-height: 1;
+}
+
+.weekly-rank-place small {
+  margin-top: 0.38rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+}
+
+.weekly-rank-seat[data-place='podium'] .weekly-rank-place {
+  color: var(--color-wood);
+  font-size: 1.32rem;
+}
+
+.weekly-rank-seat .weekly-rank-avatar {
+  width: 2.65rem;
+  height: 2.65rem;
+  border-radius: 50%;
+  background: var(--color-paper-2);
+  box-shadow: 0 0 0 1px var(--color-ink-border);
+}
+
+.weekly-rank-seat[data-place='list'] .weekly-rank-avatar {
+  width: 2.1rem;
+  height: 2.1rem;
+}
+
+.weekly-rank-seat[data-place='champion'] .weekly-rank-avatar {
+  grid-area: portrait;
+  width: 5rem;
+  height: 5rem;
+  box-shadow:
+    0 0 0 1px var(--color-wood),
+    0 0 0 0.24rem var(--color-paper);
+}
+
+.weekly-rank-identity,
+.weekly-rank-points {
+  display: grid;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.weekly-rank-name,
+.weekly-rank-title {
+  overflow-wrap: anywhere;
+}
+
+.weekly-rank-name {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.weekly-rank-name small {
+  display: inline-block;
+  margin-inline-start: 0.5em;
+  color: var(--color-teal);
+  font-size: 0.78rem;
+}
+
+.weekly-rank-title {
+  color: var(--color-wood);
+  font-size: 0.85rem;
+}
+
+.weekly-rank-seat[data-place='champion'] .weekly-rank-identity {
+  grid-area: identity;
+  gap: 0.18rem;
+}
+
+.weekly-rank-seat[data-place='champion'] .weekly-rank-name {
+  font-size: clamp(1.45rem, 1.1rem + 1.5vw, 2.2rem);
+}
+
+.weekly-rank-seat[data-place='champion'] .weekly-rank-title {
+  font-size: 1rem;
+}
+
+.weekly-rank-points {
+  justify-items: end;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.weekly-rank-points b {
+  font-size: 1.12rem;
+}
+
+.weekly-rank-seat[data-place='champion'] .weekly-rank-points {
+  grid-area: points;
+  align-self: end;
+}
+
+.weekly-rank-seat[data-place='champion'] .weekly-rank-points b {
+  font-size: clamp(1.6rem, 1.1rem + 2.2vw, 2.8rem);
+  line-height: 1.15;
+}
+
+.weekly-rank-seat[data-place='champion'] .weekly-rank-view {
+  grid-area: view;
+  justify-self: end;
+}
+
+.weekly-rank-self {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+  margin-top: 0.9rem;
+  padding: 0.45rem 0.75rem;
+  border-inline-start: 2px solid var(--color-teal);
+  background: var(--color-paper-2);
+  font-size: 0.9rem;
+}
+
+.weekly-rank-self > span:first-child {
+  color: var(--color-ink-secondary);
+}
+
+.weekly-rank-register {
+  margin-top: 1rem;
+}
+
+.weekly-rank-register h3 {
+  padding: 0.25rem 0.45rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.weekly-rank-register li {
+  border-top: 1px solid var(--color-ink-border);
+}
+
+.weekly-rank-wait {
+  display: grid;
+  min-height: 13rem;
+  justify-items: center;
+  align-content: center;
+  gap: 0.35rem;
+  padding: 1rem;
+  border-block: 1px solid var(--color-ink-border);
+  background: var(--color-paper-dark);
+  text-align: center;
+}
+
+.weekly-rank-wait .weekly-rank-furnace {
+  width: 5rem;
+  height: 5rem;
+}
+
+.weekly-rank-wait h3 {
+  font: 400 1.4rem / 1.2 var(--font-heading);
+}
+
+.weekly-rank-wait p {
+  color: var(--color-ink-secondary);
+  font-size: 0.9rem;
+}
+
+@container weekly-champion (width < 36rem) {
+  .weekly-rank-seat[data-place='champion'] {
+    grid-template-columns: minmax(2.6rem, auto) minmax(0, 1fr) max-content;
+    grid-template-areas: 'rank portrait points' 'rank identity view';
+    align-items: center;
+    gap: 0.28rem 0.85rem;
+  }
+
+  .weekly-rank-seat[data-place='champion'] .weekly-rank-avatar {
+    width: 3.1rem;
+    height: 3.1rem;
+  }
+}
+
+@container weekly-champion (width < 24rem) {
+  .weekly-rank-seat[data-place='champion'] {
+    grid-template-areas: 'rank portrait points' 'rank identity identity' 'rank view view';
+    gap: 0.15rem 0.7rem;
+    padding: 0.7rem 0.8rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weekly-rank-seat {
+    transition: none;
+  }
+}

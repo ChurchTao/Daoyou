@@ -1,0 +1,1 @@
+ALTER TABLE "wanjiedaoyou_baixiao_entries" ADD COLUMN "focus_penalties" integer DEFAULT 0 NOT NULL;

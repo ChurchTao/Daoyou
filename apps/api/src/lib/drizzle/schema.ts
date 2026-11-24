@@ -2929,6 +2929,7 @@ export const baixiaoEntries = pgTable('wanjiedaoyou_baixiao_entries', {
   challengeId: uuid('challenge_id'),
   paper: jsonb('paper').$type<BaixiaoPaperSlot[]>().notNull(),
   answers: jsonb('answers').$type<BaixiaoAnswer[]>().notNull().default([]),
+  focusPenalties: integer('focus_penalties').notNull().default(0),
   status: text('status').$type<BaixiaoFinish>(),
   budget: jsonb('budget').$type<BaixiaoResources>().notNull(),
   earned: jsonb('earned').$type<BaixiaoResources>().notNull(),

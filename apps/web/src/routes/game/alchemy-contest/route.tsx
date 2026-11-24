@@ -1,13 +1,14 @@
+import { WeeklyActivityHeader } from '@app/components/feature/weekly-activity/WeeklyActivity';
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { InkButton } from '@app/components/ui/InkButton';
+import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { useStory } from '@app/lib/story/useStory';
 import { CONTEST_NODE_ID } from '@daoyou/game-domain/alchemy/contest';
 import { storyGateOpen } from '@daoyou/game-domain/story/gates';
 import { useState } from 'react';
-import { Link } from 'react-router';
 import './contest.css';
 import { ContestLobby, ContestRewards } from './ContestLobby';
-import { ContestModal, ContestScoringRules } from './ContestModal';
+import { ContestScoringRules } from './ContestModal';
 import { ContestWorkbench } from './ContestWorkbench';
 import { useContestSession } from './useContestSession';
 
@@ -22,24 +23,17 @@ export default function AlchemyContestPage() {
     ? Math.max(0, Math.ceil((Date.parse(session.deadline) - now) / 1000))
     : 0;
   const [rulesOpen, setRulesOpen] = useState(false);
-  const rulesTitle = session ? '评分规则' : '评分与奖励';
+  const rulesTitle = session ? '评分规则' : '规则与奖励';
   return (
     <div className="contest-page">
-      <header className="contest-top">
-        <div className="contest-width contest-top-inner">
-          <Link to={mapHref}>
-            <span aria-hidden="true">‹ </span>丹塔
-          </Link>
-          <h1>炼丹大会</h1>
-          <InkButton
-            variant="secondary"
-            disabled={!!pending}
-            onClick={() => setRulesOpen(true)}
-          >
-            {rulesTitle}
-          </InkButton>
-        </div>
-      </header>
+      <WeeklyActivityHeader
+        title="炼丹大会"
+        place="丹塔"
+        mapHref={mapHref}
+        onRules={() => setRulesOpen(true)}
+        rulesLabel={rulesTitle}
+        disabled={!!pending}
+      />
       {error && (
         <div className="contest-width contest-error" role="status">
           <span>{error}</span>
@@ -78,19 +72,15 @@ export default function AlchemyContestPage() {
           start={() => void send('start', { week: status.week })}
         />
       )}
-      <ContestModal
-        open={rulesOpen}
+      <InkDetailDrawer
+        isOpen={rulesOpen}
         title={rulesTitle}
+        size="md"
         onClose={() => setRulesOpen(false)}
-        footer={
-          <InkButton variant="secondary" onClick={() => setRulesOpen(false)}>
-            关闭
-          </InkButton>
-        }
       >
         <ContestScoringRules />
         {!session && <ContestRewards />}
-      </ContestModal>
+      </InkDetailDrawer>
     </div>
   );
 }

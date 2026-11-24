@@ -8,9 +8,9 @@
 
 ## 作答与封榜
 
-每题打开到服务端收到选择最多 45 秒，选择提交后不可更改。答错、超时和答题期间窗口失焦均记一次失误，累计第 10 次淘汰。超时计 45 秒。失焦立即锁住本题，返回前台时继续下一题。加载和翻题发生在两题之间，不计单题用时，仍受个人场结束时间限制。重连续用原题、原时限，重复请求按已判定结果恢复。失焦信号由浏览器尽力传送，服务端截止时间兜底。后台期间不向浏览器发下一题。
+每题打开到服务端收到选择最多 45 秒，选择提交后不可更改。答错、超时各记一次失误，累计第 10 次淘汰。超时计 45 秒。作答窗口每次失焦只把 15 秒计入总成绩，回到前台继续原题。失焦不改变答题时限、题序、失误数或连对。若原题在离开期间自然超时，回来按超时处理。加载和翻题发生在两题之间，不计单题用时，仍受个人场结束时间限制。后台期间不向浏览器发下一题。
 
-25 题完成且失误少于 10 次才上榜。成绩为作答计时之和加每次失误 20 秒，内部按毫秒累计，榜单按十分之一秒比较，同档答对更多者在前，仍相同则并列。16:00 停止受理。封榜前展示最近一次已公布成绩，封榜后由玩家主动刷新。榜单展示头像、名字、称号、名次及时间，成绩明细展示正确数、作答计时、罚时和失误类型统计。
+25 题完成且失误少于 10 次才上榜。总用时由作答用时、每次失误 20 秒与每次失焦 15 秒组成，内部按毫秒累计，榜单按十分之一秒比较，同档答对更多者在前，仍相同则并列。16:00 停止受理。封榜前展示最近一次已公布成绩，封榜后由玩家主动刷新。成绩明细单列失焦罚时。存量已判定题目和已公布成绩沿用原记录，不回补题目或重算旧成绩。
 
 ### 对策卡
 
@@ -20,7 +20,7 @@
 | 天机卡 | 2 张 | 判对、判错各 50%，按出卡前用时计入成绩。 |
 | 挑战卡 | 2 张 | 与百晓考官交手。战胜判对，固定计 25 秒。战败、平局或逃离按错题计 45 秒并罚时 20 秒。 |
 
-任意方式判对均可积累连对。每连对 4 题，三种卡等概率补一张，再开始下一轮累计。任意失误清空当前连对。答题、出卡和失焦以同一题序结算，卡牌消耗和补牌记在该题结果中。挑战开场时按题序锁定出卡，战斗期间暂停单题倒计时及失焦判定，个人全场 15 分钟继续计时。考官按参赛角色境界使用普通云游除祟第四战首领预算，复用 V6 战斗和战斗动效。战斗从全状态开始，不改变场外角色和灵兽状态。正式成绩根据服务端战斗结果入账，重复结算沿用原结果。
+任意方式判对均可积累连对。每连对 4 题，三种卡等概率补一张，再开始下一轮累计。任意失误清空当前连对。答题和出卡按同一题序结算，卡牌消耗和补牌记在该题结果中。失焦是独立的计时记录，服务端按场次、题序及已记录次数受理，重复传送不会叠加。挑战开场时按题序锁定出卡，战斗期间暂停单题倒计时及失焦判定，个人全场 15 分钟继续计时。考官按参赛角色境界使用普通云游除祟第四战首领预算，复用 V6 战斗和战斗动效。战斗从全状态开始，不改变场外角色和灵兽状态。正式成绩根据服务端战斗结果入账，重复结算沿用原结果。
 
 ## 收益
 
@@ -39,7 +39,10 @@
 ## 接入与验收
 
 - 共享领域模型保存题目和成绩，规则包负责组卷、赛历、计分和资源分摊，契约包负责入参及公开结果。API 负责选题、裁决、强一致写入、传闻、封榜、奖励邮件。
-- 沉浸场景在 GameActivityLayout 内运行。Phaser 负责水墨背景和翻题动效，题签和选项使用真实 DOM 控件，沿用亮暗主题及减少动态效果。赛中固定露出题号、倒计时、失误数。手牌在选项下展示剩余张数、出卡效果和当前连对。结果页展示通关／淘汰、成绩和奖励。
+- 百晓盛会与炼丹大会共用周常首页和榜单。首页顺序为地点与规则、开场状态、入场条件与操作、固定赛程。详情集中在「规则与奖励」。榜单在公布期次旁提示当前赛况，突出榜首和并列席位，展示其余名次及个人名次。选中任一席位查看计时和失误依据，关闭成绩抽屉后焦点回到原席。
+- 题席在 GameActivityLayout 内用足视窗高度，正文限制最大宽度。计时、作答与手牌共用一张完整纸面，晋京文试厅留在纸面外。Phaser 播放题签过场，题干、选项和卡牌使用 DOM 控件。题号、失误、本题倒计时和全场剩余固定在上方，手牌固定在下方，题干与选项放不下时才滚动。题时遵循服务端下发的截止时间，最后 10 秒变色，最后 5 秒只闪动一个计时区域。亮暗色取系统主题，减少动态效果设置下保留数字与颜色。
+- 手牌常驻展示图案、卡名和张数。悬停、聚焦或点按说明标记可查看风味文案与准确效果。点按免答卡直接使用，天机卡和挑战卡先在题席内展示代价并等待确认。出卡时标出提交中的卡牌，以服务端响应更新张数、连对和补牌。题号、判定、罚时、补牌和累计用时通过限时 Toast 提示，连接失败通过带「重连」操作的 Toast 提示。结算先展示通关或淘汰、总用时与到账收益，再按需展开计时明细。
+- 文试厅和三种对策卡采用写意水墨，参考白泽墨像的形体完整度与笔墨层次。文试厅以檐柱、成排矮案和近处笔卷交代场所，左侧留白承托赛况。卡面以题卷上的朱勾、翻转的方孔铜钱和带考官令的握拳对应通过、随机和交手。卡面透明底，通过共享图标注册表接入。
 - 考官战通过 `/game/baixiao-meet/battle/:battleId` 进入 `CombatV6Layout`，共享战斗界面、逃跑指令及系统设置中的主题。战斗结束后返回题席，由服务端战斗结果决定答题成绩。
 - 验收覆盖随机组卷约束、45 秒边界、对策卡与连对补牌、挑战胜负和重连、试玩隔离、服务端收件顺序、双重提交、失焦、断网和恢复、第 10 次失误、全答对奖励累计、封榜和换榜。桌面、360px、键盘和减少动态效果分别检查。
 
@@ -59,3 +62,33 @@
 ### 对策卡与试玩验收
 
 本地应用 `0083_baixiao_challenge_cards`。后台在 360px 逐题完成一卷，确认 25 道题、11／8／6 分布、正确和错误反馈、重新抽卷，试玩过程没有发出写请求。正式赛验证了 45 秒开题、键盘使用免答卡、四连对补牌、天机卡判定、挑战刷新续战和跨账号访问限制。数据库中挑战胜利固定计 25 秒，失败计 45 秒并加 20 秒罚时，重传终局没有重复发奖。已清除验收期次并恢复测试角色资源。
+
+### 周常界面改版验收
+
+本地 Playwright 检查桌面和 360 × 568 短屏。两场首页覆盖等待、开放、截止、资格限制和筹备，核对规则抽屉、榜单入口与炼丹材料栏。榜单使用浏览器样本检查上一期日期、并列榜首、普通并列席位、个人名次、空榜及请求失败后的重试。成绩详情可用键盘进入和关闭，Tab 留在抽屉内，退出后焦点回到所选席位。
+
+题席使用浏览器样本检查长题触摸滚动、卡牌与计时固定、两段预警、减少动态效果、答题与出卡反馈、四连对补牌，以及通关、淘汰和公布阶段的结果文案。考官战另走本地正式接口，确认主题由系统设置切换、刷新续战、标准战斗逃跑后回到下一题，按错题计入 65 秒。该次参赛记录和临时战局已清理。
+
+### 图像生成提示
+
+四项素材均使用内置 ImageGen。固定男修基准用于校准暖灰墨色与宽笔笔触，已采用的稀有异兽白泽用于校准轮廓的完整度与细节疏密。 [男修基准](../.agents/skills/daoyou-ink-portraits/references/male-baseline.webp) · [白泽墨像](../apps/web/public/assets/icons/beast-baize.webp)
+
+四项素材共用的笔墨提示
+
+> Use reference 1, the cultivator ink portrait, exclusively for warm-gray ink tonality, broad layered brushwork and sparse dark anchors. Use reference 2, the accepted rare beast Baize, exclusively for the amount of finished form, the continuous connection of the larger ink shapes, and the selective narrow structural strokes within them. Translate that brush treatment into this subject; do not include any human, animal or any reference pose. Draw as Chinese xieyi ink painting with controlled description (写意水墨，形全，墨面有组织，重点数笔交代). Keep a complete readable silhouette built from overlapping warm-gray washes; place dark ink at a few structural joins, connect them with broad midtone and lighter washes, and let only a few selected contours break into directional feibai. As in Baize, several finer, confident strokes resolve the identity of the object, with small local color absorbed into the ink shape. Make the painting visibly composed and finished, with clear physical construction. Avoid isolated brush gestures, pure silhouettes, flat pictograms, uniform fine contour tracing, surface micro-detail, photorealism, CGI, vector treatment, rendered highlights and special effects.
+
+三枚卡面共用的构图提示
+
+> One compact illustration, square true transparency, no external rectangle, ground, drop shadow, lighting effects or decorative border. Fill about 88 percent, leave breathing room, each silhouette and its most meaningful cue must survive at 46 CSS pixels on ivory and dark teal-charcoal UI. Midtone ink with small near-dark joints, warm ivory reserves inside the shape, and no baked backing. No titles, words, letters, labels, or watermark. The paper, ribbons and markings below are part of the object. Give one large, visually dominant action cue.
+
+各卡面的主体提示
+
+- A partly unrolled ancient Chinese answer scroll held in a compact diagonal pose with a generous readable warm-ivory face and one tightly curled end. A SINGLE large confident sweeping vermilion approval check (批阅朱勾, a clearly legible traditional calligraphy check mark, one short rising hook and one long rising sweep) across its face is the dominant subject. It should look painted directly on the open scroll, not like a suspended UI check icon. The dark ink inside the rolled edge and one solid fold make the sheet read as an actual scroll on both UI themes. No other lines of script, stamp or marks. The red approval stroke is at least one half of the width of the paper face. [免答卡](../apps/web/public/assets/icons/baixiao-pass.webp)
+- A chance talisman depicting one ancient Chinese square-holed divination cash coin shown in mid-flip, in two complementary implied positions on a tight diagonal. A broad face-up pale celadon-bronze coin low and to the left with one clearly formed square central hole, and a half-turned, slightly higher facing round warm charcoal-ochre coin at upper right with a glimpse of its hole. They overlap just slightly but read as two opposed possible faces of the same type, with broad outlines made from grouped gray ink, generous inner reserves and a couple of dry brush edges. One little bent dilute ink sweep between them hints a flip. No shine, no extra objects, no decorative characters or engravings on the coins. Emphasize the round silhouettes, square holes and light versus dark faces, the instantly understandable coin toss. [天机卡](../apps/web/public/assets/icons/baixiao-fortune.webp)
+- A raised clenched fist in a broad three-quarter front view, emerging from a short dignified charcoal gray scholar sleeve. Compact anatomy and an immediately recognizable fist silhouette; use four quiet warm-gray knuckle breaks, ivory midtone hand planes and one concentrated thumb joint. At the cuff, a smaller diagonally slanted old examiner tally with a short restrained vermilion knot establishes that this is a formal challenge. The fist occupies about two-thirds of the readable footprint and stays the primary motif; fuse sleeve and fist into one definite form. Ink-brush face and sleeve complete at picture-book scale. No presented character, no contact, no blood, no weapons, no halo, no sound effects or letters. [挑战卡](../apps/web/public/assets/icons/baixiao-challenge.webp)
+
+文试厅的场景提示
+
+> A wide event lobby painting of the capital Jin civil examination hall, as a classical Chinese monochrome-and-light-color album leaf meant for this game. Warm ivory xuan paper, ample undisturbed pale warm-gray space in the left 43 percent for game copy. Put the recognizable connected hall structure, an open side corridor and one exam desk with a rolled sheet in the upper and middle right, with the main desk roughly 40 percent down the canvas and with enough margin to read in a narrow center-right crop. Half the hall continues off to the right. Let the eaves taper into dry strokes, but actually resolve three structural joins where a curved eave, a simple bracket and a weight-bearing column come together, using a few deliberate narrow warm charcoal strokes. Give the hall two coherent receding rows of low exam desks, with a clear top, edge and feet on the main desks, and a simple brush cup and two rolled sheets for one unmistakable reading place. The open courtyard behind is only three receding washes with one low gate and a touch of quiet celadon foliage. Controlled ink edges at focal joins, broad grouped warm-gray washes for the rest, no drawing every tile, nail, grain of wood or floor grid, no sharp photographic cast shadows. One pale mineral celadon wash and a small subdued burnt-ochre mark on a desk as local ink color. Lead the eye from the eave to the desk; the luminous quiet is bare paper not realistic lighting. Mature ink structure and clearly legible intent at desktop and portrait crop; restrained rather than unfinished. No grandiose symmetry, captions, lettering, stamps, humans or animals. 3:2 landscape.
+
+[晋京文试厅](../apps/web/public/assets/weekly/baixiao-jinjing-hall.webp)

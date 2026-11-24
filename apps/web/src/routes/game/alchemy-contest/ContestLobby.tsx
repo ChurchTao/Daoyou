@@ -1,8 +1,8 @@
-import { GameImage } from '@app/components/ui/GameImage';
+import { activityState } from '@app/components/feature/weekly-activity/schedule';
+import { WeeklyActivityLobby } from '@app/components/feature/weekly-activity/WeeklyActivity';
 import { InkButton } from '@app/components/ui/InkButton';
 import type { ContestStatus } from '@daoyou/contracts/alchemy/contest';
 import { contestRewardForRank } from '@daoyou/game-rules/alchemy/contest';
-import { beijingDate, beijingTime } from './presentation';
 
 const rankBands = [
   [1, '第 1 名'],
@@ -65,90 +65,47 @@ export function ContestLobby({
   rankHref: string;
   start: () => void;
 }) {
-  const lastStart = new Date(status.lastStartAt);
-  const opensAt = new Date(status.opensAt);
   const phase =
-    status.phase === 'open' && now > +lastStart ? 'closing' : status.phase;
+    status.phase === 'open' && now > Date.parse(status.lastStartAt)
+      ? 'closing'
+      : status.phase;
   const canStart = phase === 'open' && unlocked && !status.otherCharacter;
-  const phaseLabel = {
-    waiting: '本期尚未开赛',
-    open: '本期已开赛',
-    closing: '入场已截止',
-    closed: '正在结算排名',
-    settled: '本期已封榜',
-    unavailable: '本期仍在筹备',
-  }[phase];
-  const message = status.otherCharacter
+  const state = activityState(
+    phase,
+    status.opensAt,
+    status.lastStartAt,
+    status.closesAt,
+  );
+  const note = status.otherCharacter
     ? '本账号已用另一位角色参赛。'
-    : {
-        waiting: `${beijingDate.format(opensAt)} ${beijingTime.format(opensAt)} 开赛`,
-        open:
-          unlocked === null
-            ? '正在确认参赛资格。'
-            : unlocked
-              ? `${beijingTime.format(lastStart)} 截止入场。入场后开始计时，并锁定本期参赛角色。`
-              : '完成主线炼丹指引后即可参赛。',
-        closing: null,
-        closed: null,
-        settled: null,
-        unavailable: '请稍后再来。',
-      }[phase];
+    : phase === 'open' && !unlocked
+      ? unlocked === null
+        ? '正在确认参赛资格。'
+        : '完成主线炼丹指引后即可参赛。'
+      : state.note;
   return (
-    <div className="contest-lobby">
-      <div className="contest-lobby-scene">
-        <GameImage
-          src="/assets/maps/luanxinghai-region-v1.webp"
-          alt=""
-          className="contest-lobby-image"
-        />
-        <div className="contest-lobby-content">
-          <p className="contest-lobby-location">乱星海 · 丹塔</p>
-          <h2>{phaseLabel}</h2>
-          {message && <p className="contest-lobby-message">{message}</p>}
-          {(phase === 'waiting' || canStart) && (
-            <div className="contest-lobby-terms">
-              <div>
-                <b>
-                  <span className="font-mono">15</span> 分钟
-                </b>
-                <span>个人赛时</span>
-              </div>
-              <div>
-                <b>
-                  <span className="font-mono">3</span> 炉
-                </b>
-                <span>炼制上限</span>
-              </div>
-              <div>
-                <b>免费</b>
-                <span>材料与炉气</span>
-              </div>
-            </div>
-          )}
-          {canStart ? (
-            <InkButton
-              variant="primary"
-              className="contest-main-action"
-              pending={pending}
-              pendingLabel="正在入场…"
-              onClick={start}
-            >
-              入场参赛
-            </InkButton>
-          ) : (
-            <InkButton
-              variant="primary"
-              className="contest-main-action"
-              href={rankHref}
-            >
-              查看炼丹榜
-            </InkButton>
-          )}
-          <p className="contest-lobby-schedule">
-            每周三 <span className="font-mono">14:00 至 16:00</span> · 北京时间
-          </p>
-        </div>
-      </div>
-    </div>
+    <WeeklyActivityLobby
+      art="/assets/maps/luanxinghai-region-v1.webp"
+      place="乱星海 · 丹塔"
+      title={state.title}
+      note={note}
+      schedule="每周三 14:00–16:00 · 北京时间"
+      facts={['个人赛时 15 分钟', '最多 3 炉', '材料与炉气免费']}
+      admission={canStart && '入场即开始计时，并锁定本期参赛角色。'}
+      action={
+        canStart && (
+          <InkButton
+            variant="primary"
+            pending={pending}
+            pendingLabel="正在入场…"
+            onClick={start}
+          >
+            入场参赛
+          </InkButton>
+        )
+      }
+      rankHref={rankHref}
+      rankName="炼丹榜"
+    />
   );
 }

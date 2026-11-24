@@ -33,55 +33,6 @@
   outline: 2px solid var(--color-crimson);
   outline-offset: 2px;
 }
-.baixiao-options > button:disabled {
+.baixiao-options > button:disabled:not([data-pending]) {
   opacity: 0.65;
-}
-
-.baixiao-tactics {
-  margin-top: 1.15rem;
-  padding-top: 0.85rem;
-  border-top: 1px solid var(--color-ink-border);
-}
-.baixiao-tactics-caption {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 0.2rem 0.65rem;
-  margin-bottom: 0.55rem;
-  color: var(--color-ink-secondary);
-  font-size: 0.875rem;
-}
-.baixiao-tactics-hand {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(0.28rem, 1.7vw, 0.6rem);
-}
-.baixiao-tactics-hand > button {
-  display: grid;
-  align-content: start;
-  gap: 0.35rem;
-  min-height: 3.4rem;
-  padding: 0.5rem clamp(0.28rem, 1.5vw, 0.7rem);
-  border: 1px solid var(--color-ink-border);
-  text-align: start;
-}
-.baixiao-tactics-hand > button:enabled {
-  cursor: pointer;
-  background: color-mix(in srgb, var(--color-teal) 8%, var(--color-paper));
-}
-.baixiao-tactics-hand > button:enabled:hover,
-.baixiao-tactics-hand > button:focus-visible {
-  outline: 2px solid var(--color-teal);
-  outline-offset: 2px;
-}
-.baixiao-tactics-hand > button:disabled {
-  opacity: 0.55;
-}
-.baixiao-tactics-hand strong {
-  font-size: 0.9rem;
-}
-.baixiao-tactics-hand small {
-  color: var(--color-ink-secondary);
-  font-size: 0.8rem;
-  line-height: 1.35;
 }

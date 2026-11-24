@@ -1,7 +1,8 @@
 import { baixiaoPost, requestBaixiao } from '@app/lib/api/baixiao';
-import type {
-  BaixiaoResolveCommand,
-  BaixiaoStatus,
+import {
+  BaixiaoFocusCommandSchema,
+  type BaixiaoResolveCommand,
+  type BaixiaoStatus,
 } from '@daoyou/contracts/baixiao/meet';
 import type { BaixiaoCard } from '@daoyou/game-domain/baixiao/meet';
 import {
@@ -13,45 +14,47 @@ import {
 } from 'react';
 
 const endpoint = '/api/baixiao-meet';
-const focusKey = 'daoyou-baixiao-focus-v1';
+const focusKey = 'daoyou-baixiao-focus-v2';
+type Attempt = Extract<BaixiaoResolveCommand, { action: 'answer' | 'card' }>;
+type FocusCommand = Extract<BaixiaoResolveCommand, { action: 'focus' }>;
+const focusQueueSchema = BaixiaoFocusCommandSchema.array();
 
 function isForeground() {
   return document.visibilityState === 'visible' && document.hasFocus();
 }
 
-function pendingKey(status: BaixiaoStatus) {
-  return `${status.week}:${status.session?.endsAt}:${status.session?.question?.position}`;
-}
-
-function saveFocus(value: string | null) {
+function restoreFocusQueue(): FocusCommand[] {
   try {
-    if (value) sessionStorage.setItem(focusKey, value);
-    else sessionStorage.removeItem(focusKey);
+    const stored = JSON.parse(sessionStorage.getItem(focusKey) ?? '[]');
+    return focusQueueSchema.safeParse(stored).data ?? [];
   } catch {
-    // The in-memory marker still protects the current tab.
+    return [];
   }
 }
 
-function hasSavedFocus(status: BaixiaoStatus) {
+function saveFocusQueue(queue: FocusCommand[]) {
   try {
-    return sessionStorage.getItem(focusKey) === pendingKey(status);
+    if (queue.length) sessionStorage.setItem(focusKey, JSON.stringify(queue));
+    else sessionStorage.removeItem(focusKey);
   } catch {
-    return false;
+    // The current tab can still deliver its in-memory queue.
   }
 }
 
 export function useBaixiao() {
   const [status, setStatus] = useState<BaixiaoStatus | null>(null);
   const [busy, setBusy] = useState(false);
+  const [intent, setIntent] = useState<Attempt | null>(null);
   const [error, setError] = useState('');
   const [now, setNow] = useState(Date.now);
   const [foreground, setForeground] = useState(isForeground);
-  const [focusBlocked, setFocusBlocked] = useState(false);
+  const [storedFocus] = useState(restoreFocusQueue);
 
   const fresh = useRef<BaixiaoStatus | null>(null);
   const working = useRef(false);
   const offset = useRef(0);
-  const focus = useRef<string | null>(null);
+  const wasForeground = useRef(foreground);
+  const focusQueue = useRef(storedFocus);
   const retry = useRef<{
     action: 'start' | 'next' | 'resolve';
     body: object;
@@ -78,18 +81,20 @@ export function useBaixiao() {
         fresh.current = result;
         setStatus(result);
         setNow(result.serverTime);
+        setIntent(null);
         retry.current = null;
-        if (
-          result.session?.question &&
-          (!isForeground() || hasSavedFocus(result))
-        ) {
-          focus.current = pendingKey(result);
-          saveFocus(focus.current);
-          setFocusBlocked(true);
-        } else {
-          focus.current = null;
-          saveFocus(null);
-          setFocusBlocked(false);
+        if (focusQueue.current.length) {
+          const { session } = result;
+          focusQueue.current = focusQueue.current.filter(
+            (command) =>
+              command !== body &&
+              command.week === result.week &&
+              command.endsAt === session?.endsAt &&
+              command.position === session.question?.position &&
+              command.expectedFocusPenalties >=
+                (session.score.focusPenalties ?? 0),
+          );
+          saveFocusQueue(focusQueue.current);
         }
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : '连接中断，请重连。');
@@ -101,20 +106,34 @@ export function useBaixiao() {
     [],
   );
 
-  const forfeit = useEffectEvent(() => {
+  const recordFocusLoss = useEffectEvent(() => {
     const current = fresh.current;
-    const question = current?.session?.question;
-    if (!current || !question) return;
-    focus.current = pendingKey(current);
-    saveFocus(focus.current);
-    setFocusBlocked(true);
-    if (!working.current) {
-      void send(
-        'resolve',
-        { week: current.week, position: question.position, action: 'focus' },
-        true,
-      );
-    }
+    const session = current?.session;
+    const question = session?.question;
+    if (
+      !current ||
+      !session ||
+      !question ||
+      Date.now() + offset.current >= question.deadline
+    )
+      return;
+    const previous = focusQueue.current.at(-1);
+    const count = session.score.focusPenalties ?? 0;
+    const expectedFocusPenalties =
+      previous?.endsAt === session.endsAt
+        ? Math.max(count, previous.expectedFocusPenalties + 1)
+        : count;
+    const command: FocusCommand = {
+      action: 'focus',
+      week: current.week,
+      position: question.position,
+      endsAt: session.endsAt,
+      expectedFocusPenalties,
+    };
+    focusQueue.current = [...focusQueue.current, command];
+    saveFocusQueue(focusQueue.current);
+    if (!working.current && !error)
+      void send('resolve', focusQueue.current[0], true);
   });
 
   useEffect(() => {
@@ -127,10 +146,16 @@ export function useBaixiao() {
       if (!fresh.current?.session && isForeground()) void send();
     }, 15_000);
     const onBlur = () => {
+      if (!wasForeground.current) return;
+      wasForeground.current = false;
       setForeground(false);
-      forfeit();
+      recordFocusLoss();
     };
-    const onFocus = () => setForeground(isForeground());
+    const onFocus = () => {
+      const active = isForeground();
+      wasForeground.current = active;
+      setForeground(active);
+    };
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') onBlur();
       else onFocus();
@@ -138,7 +163,9 @@ export function useBaixiao() {
     window.addEventListener('blur', onBlur);
     window.addEventListener('focus', onFocus);
     window.addEventListener('pagehide', onBlur);
-    const onPopState = () => forfeit();
+    const onPopState = () => {
+      if (location.pathname !== '/game/baixiao-meet') onBlur();
+    };
     window.addEventListener('popstate', onPopState);
     window.addEventListener('pageshow', onFocus);
     document.addEventListener('visibilitychange', onVisibility);
@@ -163,12 +190,9 @@ export function useBaixiao() {
   const advance = useEffectEvent(() => {
     if (!status || !session || session.finished || working.current || error)
       return;
-    if (question && (focus.current === pendingKey(status) || focusBlocked)) {
-      void send(
-        'resolve',
-        { week: status.week, position: question.position, action: 'focus' },
-        true,
-      );
+    const pendingFocus = focusQueue.current[0];
+    if (pendingFocus) {
+      void send('resolve', pendingFocus, true);
     } else if (foreground && expired) {
       void send();
     } else if (question && due && foreground) {
@@ -192,17 +216,7 @@ export function useBaixiao() {
       question || expired ? 0 : session?.latest?.bonusCard ? 1200 : 560;
     const timer = window.setTimeout(() => advance(), delay);
     return () => window.clearTimeout(timer);
-  }, [
-    busy,
-    due,
-    error,
-    expired,
-    focusBlocked,
-    foreground,
-    question,
-    session,
-    status,
-  ]);
+  }, [busy, due, error, expired, foreground, question, session, status]);
 
   function play(
     action:
@@ -214,40 +228,36 @@ export function useBaixiao() {
       !question ||
       due ||
       working.current ||
-      focus.current ||
+      focusQueue.current.length > 0 ||
       !isForeground()
     )
       return;
-    const command: BaixiaoResolveCommand = {
+    const command: Attempt = {
       ...action,
       week: status.week,
       position: question.position,
     };
+    setIntent(command);
     void send('resolve', command);
   }
 
-  function recover() {
+  const recover = useCallback(() => {
     const task = retry.current;
-    if (focusBlocked && status && question) {
-      void send(
-        'resolve',
-        { week: status.week, position: question.position, action: 'focus' },
-        true,
-      );
-    } else if (task) {
-      void send(task.action, task.body);
+    if (task) {
+      void send(task.action, task.body, task.body === focusQueue.current[0]);
     } else {
       void send();
     }
-  }
+  }, [send]);
 
   return {
     status,
     now,
     busy,
+    intent,
     error,
     foreground,
-    locked: focusBlocked || due,
+    locked: due,
     answer: (option: number) => play({ action: 'answer', option }),
     useCard: (card: BaixiaoCard) => play({ action: 'card', card }),
     recover,

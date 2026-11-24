@@ -424,7 +424,7 @@ export default function RankingsPage() {
         variant="workflow"
         identityOverride={{
           label: '万界金榜',
-          summary: '点选榜上道友可查看成绩明细。',
+          summary: '',
         }}
       >
         <GameSceneTabs

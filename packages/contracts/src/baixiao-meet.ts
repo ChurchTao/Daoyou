@@ -25,12 +25,18 @@ export const BaixiaoTurnCommandSchema = BaixiaoWeekCommandSchema.extend({
     .max(BAIXIAO_QUESTION_COUNT - 1),
 });
 
+export const BaixiaoFocusCommandSchema = BaixiaoTurnCommandSchema.extend({
+  action: z.literal('focus'),
+  endsAt: z.number().int().positive(),
+  expectedFocusPenalties: z.number().int().nonnegative(),
+});
+
 export const BaixiaoResolveCommandSchema = z.discriminatedUnion('action', [
   BaixiaoTurnCommandSchema.extend({
     action: z.literal('answer'),
     option: z.number().int().min(0).max(3),
   }),
-  BaixiaoTurnCommandSchema.extend({ action: z.literal('focus') }),
+  BaixiaoFocusCommandSchema,
   BaixiaoTurnCommandSchema.extend({ action: z.literal('timeout') }),
   BaixiaoTurnCommandSchema.extend({
     action: z.literal('card'),

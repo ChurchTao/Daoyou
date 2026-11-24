@@ -582,6 +582,13 @@
       "when": 1795503726224,
       "tag": "0083_baixiao_challenge_cards",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1795515639400,
+      "tag": "0084_baixiao_focus_penalty",
+      "breakpoints": true
     }
   ]
 }

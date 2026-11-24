@@ -1,8 +1,18 @@
-import type { BaixiaoScore } from '@daoyou/game-domain/baixiao/meet';
+import {
+  BAIXIAO_FOCUS_PENALTY_MS,
+  type BaixiaoScore,
+} from '@daoyou/game-domain/baixiao/meet';
 
 import { baixiaoTime } from './time';
 
-export function BaixiaoScorecard({ score }: { score: BaixiaoScore }) {
+export function BaixiaoScorecard({
+  score,
+  showTotal = true,
+}: {
+  score: BaixiaoScore;
+  showTotal?: boolean;
+}) {
+  const focusPenalties = score.focusPenalties ?? 0;
   return (
     <dl className="grid grid-cols-[1fr_auto] gap-x-5 gap-y-2 text-sm">
       <dt>答对</dt>
@@ -15,12 +25,28 @@ export function BaixiaoScorecard({ score }: { score: BaixiaoScore }) {
         <>
           <dt>失误明细</dt>
           <dd>
-            答错 {score.wrong} · 超时 {score.timeout} · 失焦 {score.focus}
+            答错 {score.wrong} · 超时 {score.timeout}
+            {score.focus > 0 && ` · 失焦 ${score.focus}`}
           </dd>
         </>
       )}
-      <dt className="font-semibold">总用时</dt>
-      <dd className="font-mono font-semibold">{baixiaoTime(score.totalMs)}</dd>
+      {focusPenalties > 0 && (
+        <>
+          <dt>失焦罚时</dt>
+          <dd className="font-mono">
+            {focusPenalties} 次 · +
+            {(focusPenalties * BAIXIAO_FOCUS_PENALTY_MS) / 1000} 秒
+          </dd>
+        </>
+      )}
+      {showTotal && (
+        <>
+          <dt className="font-semibold">总用时</dt>
+          <dd className="font-mono font-semibold">
+            {baixiaoTime(score.totalMs)}
+          </dd>
+        </>
+      )}
     </dl>
   );
 }

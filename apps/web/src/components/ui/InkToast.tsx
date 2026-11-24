@@ -11,6 +11,7 @@ export interface InkToastData {
   tone?: InkToastTone;
   actionLabel?: string;
   onAction?: () => void;
+  dismissible?: boolean;
 }
 
 // ============ InkToast ============
@@ -35,6 +36,7 @@ export function InkToast({
   tone = 'default',
   actionLabel,
   onAction,
+  dismissible = true,
   onDismiss,
 }: InkToastProps) {
   const toneMeta = toastToneMeta[tone];
@@ -42,7 +44,7 @@ export function InkToast({
   return (
     <div
       className={cn(
-        'flex items-start gap-2 p-3 text-[0.9rem] leading-[1.6] bg-bgpaper border shadow',
+        'bg-bgpaper flex items-start gap-2 border p-3 text-[0.9rem] leading-[1.6] shadow',
         toneMeta.borderClass,
       )}
     >
@@ -52,21 +54,19 @@ export function InkToast({
       <span className="min-w-0 flex-1">{message}</span>
       <div className="flex shrink-0 items-center gap-1">
         {actionLabel && onAction && (
-          <InkButton
-            variant="primary"
-            onClick={onAction}
-            className="px-0"
-          >
+          <InkButton variant="primary" onClick={onAction} className="px-0">
             {actionLabel}
           </InkButton>
         )}
-        <InkButton
-          variant="ghost"
-          onClick={() => onDismiss(id)}
-          className="px-0"
-        >
-          撤去
-        </InkButton>
+        {dismissible && (
+          <InkButton
+            variant="ghost"
+            onClick={() => onDismiss(id)}
+            className="px-0"
+          >
+            撤去
+          </InkButton>
+        )}
       </div>
     </div>
   );
@@ -86,9 +86,10 @@ export function InkToastHost({ toasts, onDismiss }: InkToastHostProps) {
 
   return (
     <div
+      data-ink-toast-host
       className={cn(
         'fixed right-[max(env(safe-area-inset-right),0.75rem)] bottom-[calc(env(safe-area-inset-bottom)+5rem)] left-[max(env(safe-area-inset-left),0.75rem)] z-200 flex flex-col gap-2',
-        'md:left-1/2 md:right-auto md:w-md md:-translate-x-1/2',
+        'md:right-auto md:left-1/2 md:w-md md:-translate-x-1/2',
       )}
       aria-live="polite"
     >

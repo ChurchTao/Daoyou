@@ -110,7 +110,10 @@ export function InkDetailDrawer({
 
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
+    if (
+      event.shiftKey &&
+      (document.activeElement === first || document.activeElement === panel)
+    ) {
       event.preventDefault();
       last.focus();
     } else if (!event.shiftKey && document.activeElement === last) {
@@ -125,6 +128,7 @@ export function InkDetailDrawer({
     <div ref={viewportRef} className="fixed inset-0 z-50">
       <button
         type="button"
+        tabIndex={-1}
         className={cn(
           'absolute inset-0 h-full w-full cursor-default',
           overlayClassName,

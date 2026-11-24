@@ -1,124 +1,142 @@
 import { BaixiaoScorecard } from '@app/components/feature/baixiao/BaixiaoScorecard';
 import { baixiaoTime } from '@app/components/feature/baixiao/time';
-import { GameLoadingState } from '@app/components/game-shell';
-import { InkModal } from '@app/components/layout/InkModal';
-import { GameIcon } from '@app/components/ui/GameIcon';
-import { InkNotice } from '@app/components/ui/InkNotice';
+import {
+  activityDate,
+  activityState,
+} from '@app/components/feature/weekly-activity/schedule';
+import {
+  WeeklyBoardPending,
+  WeeklyLeaderboard,
+} from '@app/components/feature/weekly-activity/WeeklyLeaderboard';
+import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { requestBaixiao } from '@app/lib/api/baixiao';
+import { usePlayerSession } from '@app/lib/resources/player';
 import type {
   BaixiaoRankingRow,
+  BaixiaoStatus,
   BaixiaoRanking as Ranking,
 } from '@daoyou/contracts/baixiao/meet';
+import { baixiaoWeek } from '@daoyou/game-rules/baixiao/meet';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+
+function weekSchedule(week: string) {
+  return baixiaoWeek(Date.parse(`${week}T00:00:00+08:00`));
+}
 
 export function BaixiaoRanking() {
+  const player = usePlayerSession();
   const [ranking, setRanking] = useState<Ranking | null>(null);
+  const [session, setSession] = useState<BaixiaoStatus['session']>(null);
   const [selected, setSelected] = useState<BaixiaoRankingRow | null>(null);
   const [error, setError] = useState('');
+  const [reload, setReload] = useState(0);
+
   useEffect(() => {
     const request = new AbortController();
-    void requestBaixiao<Ranking>('/api/baixiao-meet/ranking', {
-      signal: request.signal,
-    })
+    const init = { signal: request.signal };
+    void requestBaixiao<Ranking>('/api/baixiao-meet/ranking', init)
       .then((result) => {
         if (!request.signal.aborted) setRanking(result);
       })
-      .catch((cause: unknown) => {
-        if (!request.signal.aborted)
-          setError(
-            cause instanceof Error ? cause.message : '暂时无法查看才子榜。',
-          );
+      .catch(() => {
+        if (!request.signal.aborted) setError('才子榜暂时无法读取。');
+      });
+    void requestBaixiao<BaixiaoStatus>('/api/baixiao-meet', init)
+      .then((result) => {
+        if (!request.signal.aborted) setSession(result.session);
+      })
+      .catch(() => {
+        if (!request.signal.aborted) setSession(null);
       });
     return () => request.abort();
-  }, []);
-  if (error) return <InkNotice>{error}</InkNotice>;
-  if (!ranking)
-    return <GameLoadingState variant="inline" message="正在展卷…" />;
+  }, [reload]);
 
-  const heading =
-    !ranking.publishedWeek || ranking.publishedWeek === ranking.week
-      ? '才子榜'
-      : '上期才子榜';
+  if (!ranking || error)
+    return (
+      <WeeklyBoardPending
+        name="才子榜"
+        error={error}
+        onRetry={() => {
+          setError('');
+          setReload((v) => v + 1);
+        }}
+      />
+    );
+
+  const clock = weekSchedule(ranking.week);
+  const date = weekSchedule(ranking.publishedWeek ?? ranking.week).opensAt;
+  const state = activityState(
+    ranking.phase,
+    clock.opensAt,
+    clock.lastStartAt,
+    clock.closesAt,
+  );
+  const previous =
+    ranking.publishedWeek && ranking.publishedWeek !== ranking.week;
   return (
-    <section className="space-y-5 py-4">
-      <div className="border-ink/20 flex flex-wrap items-end justify-between gap-3 border-b pb-3">
-        <div>
-          <h2 className="text-3xl font-semibold tracking-wider">{heading}</h2>
-          <p className="text-ink-secondary mt-1 text-sm">按通关总用时列席</p>
-        </div>
-        <Link to="/game/baixiao-meet" className="text-crimson underline">
-          百晓盛会
-        </Link>
-      </div>
-      {ranking.mine && (
-        <p className="text-sm">
-          我的名次 <b className="font-mono">{ranking.mine.rank}</b> ·{' '}
-          <b className="font-mono">{baixiaoTime(ranking.mine.score.totalMs)}</b>
-        </p>
+    <>
+      <WeeklyLeaderboard
+        name="才子榜"
+        date={activityDate(date)}
+        place="大晋 · 晋京"
+        period={previous ? '已封榜' : '本期'}
+        status={
+          ranking.phase === 'open' ? '本期进行中。封榜后公布名次。' : state.note
+        }
+        emptyTitle={ranking.publishedWeek ? '该期无人上榜' : '首期成绩尚未公布'}
+        emptyNote={ranking.publishedWeek ? '该期没有道友通关。' : undefined}
+        emblem="icon:baixiao-pass"
+        href="/game/baixiao-meet"
+        action={
+          session
+            ? session.finished
+              ? '本场成绩'
+              : '继续参赛'
+            : '前往百晓盛会'
+        }
+        entries={ranking.rows.map((entry) => ({
+          ...entry,
+          id: entry.cultivatorId,
+          score: baixiaoTime(entry.score.totalMs),
+          self: player.data?.activeCultivator?.id === entry.cultivatorId,
+        }))}
+        mine={
+          ranking.publishedWeek
+            ? {
+                rank: ranking.mine?.rank ?? null,
+                score: ranking.mine
+                  ? baixiaoTime(ranking.mine.score.totalMs)
+                  : undefined,
+              }
+            : undefined
+        }
+        onSelect={(id) =>
+          setSelected(
+            ranking.rows.find((row) => row.cultivatorId === id) ?? null,
+          )
+        }
+      />
+      {selected && (
+        <InkDetailDrawer
+          isOpen
+          title="成绩明细"
+          description={
+            <span>
+              {selected.name}
+              {selected.title && ` · ${selected.title}`} · 第{' '}
+              <b className="font-mono">{selected.rank}</b> 名
+            </span>
+          }
+          closeLabel="返回榜单"
+          size="md"
+          onClose={() => setSelected(null)}
+        >
+          <BaixiaoScorecard score={selected.score} />
+          <p className="text-ink-secondary mt-5 text-sm">
+            总用时按十分之一秒比较。同用时答对多者在前，答对数也相同则并列。
+          </p>
+        </InkDetailDrawer>
       )}
-      {ranking.rows.length ? (
-        <ol className="grid gap-2">
-          {ranking.rows.map((entry) => {
-            const top = entry.rank === 1;
-            return (
-              <li key={entry.cultivatorId}>
-                <button
-                  type="button"
-                  className={`border-ink/15 hover:border-crimson focus-visible:outline-crimson grid w-full cursor-pointer grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-2 border px-3 text-left sm:gap-4 sm:px-5 ${top ? 'bg-crimson/6 border-crimson/35 py-4' : 'bg-sheet py-2'}`}
-                  aria-haspopup="dialog"
-                  onClick={() => setSelected(entry)}
-                >
-                  <span
-                    className={`text-crimson w-8 text-center font-semibold ${top ? 'text-lg' : ''}`}
-                  >
-                    <span className="font-mono">{entry.rank}</span>
-                    {top && <span className="block text-xs">榜首</span>}
-                  </span>
-                  <GameIcon
-                    value={
-                      entry.gender === '女'
-                        ? 'icon:cultivator-female-avatar'
-                        : 'icon:cultivator-male-avatar'
-                    }
-                    purpose="artwork"
-                    className={top ? 'size-12 sm:size-16' : 'size-8 sm:size-10'}
-                  />
-                  <span className="min-w-0">
-                    <strong
-                      className={`block break-words ${top ? 'text-lg sm:text-2xl' : 'text-base'}`}
-                    >
-                      {entry.name}
-                    </strong>
-                    <span className="text-ink-secondary block text-xs break-words sm:text-sm">
-                      {entry.title ? `${entry.title} · ` : ''}
-                      {entry.realm}
-                    </span>
-                  </span>
-                  <b
-                    className={`font-mono ${top ? 'text-xl sm:text-3xl' : ''}`}
-                  >
-                    {baixiaoTime(entry.score.totalMs)}
-                  </b>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
-      ) : (
-        <InkNotice>
-          {ranking.publishedWeek
-            ? '这一期尚无通关者。'
-            : '首期成绩尚未封榜。每周四 14:00 开场。'}
-        </InkNotice>
-      )}
-      <InkModal
-        isOpen={selected !== null}
-        onClose={() => setSelected(null)}
-        title={selected ? `${selected.name} · 成绩明细` : undefined}
-      >
-        {selected && <BaixiaoScorecard score={selected.score} />}
-      </InkModal>
-    </section>
+    </>
   );
 }

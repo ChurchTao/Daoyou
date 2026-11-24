@@ -274,6 +274,25 @@ export class BaixiaoMeetService {
         }
         const issuedAt = entry.issuedAt.getTime();
         const timedOut = receivedAt >= issuedAt + BAIXIAO_QUESTION_MS;
+        if (command.action === 'focus') {
+          if (
+            entry.challengeId ||
+            timedOut ||
+            command.endsAt !== endsAt ||
+            command.expectedFocusPenalties !== entry.focusPenalties
+          )
+            return unchanged();
+          const focusPenalties = entry.focusPenalties + 1;
+          const [updated] = await tx
+            .update(entries)
+            .set({
+              focusPenalties,
+              score: scoreBaixiao(entry.answers, focusPenalties),
+            })
+            .where(entryFilter(command.week, actor))
+            .returning();
+          return unchanged(updated);
+        }
         const { hand, streak } = baixiaoCardState(entry.answers);
         let adjudicated;
         if (settlingChallenge) {
@@ -332,11 +351,11 @@ export class BaixiaoMeetService {
           );
         } else {
           if (command.action === 'timeout' && !timedOut) return unchanged();
-          adjudicated = decideBaixiaoAnswer(issuedAt, receivedAt, null, 0);
+          adjudicated = decideBaixiaoAnswer(issuedAt, receivedAt, 0, 0);
         }
         const answer = awardBaixiaoCard(streak, adjudicated, randomInt);
         const answers = [...entry.answers, answer];
-        const score = scoreBaixiao(answers);
+        const score = scoreBaixiao(answers, entry.focusPenalties);
         const status = finishBaixiao(score);
         const { earned, resourceChanges } =
           answer.verdict === 'correct'

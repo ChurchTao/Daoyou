@@ -29,19 +29,6 @@ export function formatClock(seconds: number) {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
-export const beijingTime = new Intl.DateTimeFormat('zh-CN', {
-  timeZone: 'Asia/Shanghai',
-  hour: '2-digit',
-  minute: '2-digit',
-  hourCycle: 'h23',
-});
-export const beijingDate = new Intl.DateTimeFormat('zh-CN', {
-  timeZone: 'Asia/Shanghai',
-  month: 'long',
-  day: 'numeric',
-  weekday: 'short',
-});
-
 export function draftFor(
   session: ContestSession,
   heat: ContestHeat,

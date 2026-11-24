@@ -49,7 +49,9 @@ export function baixiaoView(
     entry && entry.cultivatorId !== actor.cultivatorId,
   );
   const player = otherCharacter ? undefined : entry;
-  const score = player?.score ?? scoreBaixiao(player?.answers ?? []);
+  const score =
+    player?.score ??
+    scoreBaixiao(player?.answers ?? [], player?.focusPenalties);
   const last = player?.answers.at(-1);
   const cards = baixiaoCardState(player?.answers ?? []);
   const finished =

@@ -111,7 +111,7 @@ describe('百晓盛会', () => {
   it('第 45 秒截止，惩罚只计入成绩，且第 10 次失败优先淘汰', () => {
     const correct = decideBaixiaoAnswer(1000, 45_999, 0, 0);
     const timeout = decideBaixiaoAnswer(1000, 46_000, 0, 0);
-    const focus = decideBaixiaoAnswer(1000, 6000, null, 0);
+    const focus: BaixiaoAnswer = { verdict: 'focus', elapsedMs: 5000 };
     const wrong = decideBaixiaoAnswer(1000, 1500, 1, 0);
     expect(correct).toEqual({ verdict: 'correct', elapsedMs: 44_999 });
     expect(timeout).toEqual({ verdict: 'timeout', elapsedMs: 45_000 });
@@ -134,6 +134,23 @@ describe('百晓盛会', () => {
     expect(finishBaixiao(result(15, 10))).toBe('eliminated');
     expect(finishBaixiao(result(16, 9))).toBe('cleared');
     expect(finishBaixiao(result(15, 9))).toBeNull();
+  });
+
+  it('失焦每次加 15 秒，题数、作答用时、失误和连对保持原值', () => {
+    const answers: BaixiaoAnswer[] = [
+      { verdict: 'correct', elapsedMs: 5000 },
+      { verdict: 'wrong', elapsedMs: 1000 },
+      { verdict: 'correct', elapsedMs: 4000 },
+    ];
+    const baseline = scoreBaixiao(answers);
+    expect(scoreBaixiao(answers, 2)).toEqual({
+      ...baseline,
+      focusPenalties: 2,
+      penaltyMs: 50_000,
+      totalMs: 60_000,
+    });
+    expect(finishBaixiao(scoreBaixiao(answers, 10))).toBeNull();
+    expect(baixiaoCardState(answers).streak).toBe(1);
   });
 
   it('对策卡在时限内扣除，挑战胜负各自计时，四连对时三种卡等权补充', () => {

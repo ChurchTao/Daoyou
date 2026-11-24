@@ -10,6 +10,7 @@ export const BAIXIAO_CHALLENGE_WIN_MS = 25_000;
 export const BAIXIAO_CARD_STREAK = 4;
 export const BAIXIAO_RANK_UNIT_MS = 100;
 export const BAIXIAO_PENALTY_MS = 20_000;
+export const BAIXIAO_FOCUS_PENALTY_MS = 15_000;
 export const BAIXIAO_SESSION_MS = 15 * 60_000;
 
 export type BaixiaoBankQuestion = BaixiaoQuestionData & { id: string };
@@ -39,6 +40,7 @@ export interface BaixiaoScore {
   wrong: number;
   timeout: number;
   focus: number;
+  focusPenalties?: number;
   elapsedMs: number;
   penaltyMs: number;
   totalMs: number;
