@@ -11,7 +11,7 @@ export const BAIXIAO_CARD_STREAK = 4;
 export const BAIXIAO_RANK_UNIT_MS = 100;
 export const BAIXIAO_PENALTY_MS = 20_000;
 export const BAIXIAO_FOCUS_PENALTY_MS = 15_000;
-export const BAIXIAO_SESSION_MS = 15 * 60_000;
+export const BAIXIAO_SESSION_MS = 45 * 60_000;
 
 export type BaixiaoBankQuestion = BaixiaoQuestionData & { id: string };
 export type BaixiaoPaperSlot = { questionId: string; order: number[] };

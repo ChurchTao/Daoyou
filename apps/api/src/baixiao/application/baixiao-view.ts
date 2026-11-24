@@ -1,19 +1,28 @@
 import type {
   BaixiaoPhase,
+  BaixiaoQuestionReview,
   BaixiaoQuestionView,
   BaixiaoStatus,
 } from '@daoyou/contracts/baixiao/meet';
-import { BAIXIAO_QUESTION_MS } from '@daoyou/game-domain/baixiao/meet';
+import {
+  BAIXIAO_QUESTION_MS,
+  type BaixiaoPaperSlot,
+  type BaixiaoQuestionData,
+} from '@daoyou/game-domain/baixiao/meet';
+import { BaixiaoQuestionSchema } from '@daoyou/game-domain/baixiao/question';
 import {
   baixiaoCardState,
-  type baixiaoWeek,
   scoreBaixiao,
+  type baixiaoWeek,
 } from '@daoyou/game-rules/baixiao/meet';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
-import type {
-  baixiaoEntries,
-  baixiaoRounds,
+import type { DbExecutor } from '@server/lib/drizzle/db.js';
+import {
+  baixiaoQuestions,
+  type baixiaoEntries,
+  type baixiaoRounds,
 } from '@server/lib/drizzle/schema.js';
+import { eq } from 'drizzle-orm';
 
 export type Clock = ReturnType<typeof baixiaoWeek>;
 export type Entry = typeof baixiaoEntries.$inferSelect;
@@ -30,21 +39,38 @@ export function baixiaoPhase(
   return round ? 'open' : 'unavailable';
 }
 
-export function baixiaoQuestionDeadline(entry: Entry) {
+function baixiaoQuestionDeadline(entry: Entry) {
   return Math.min(
     (entry.issuedAt?.getTime() ?? 0) + BAIXIAO_QUESTION_MS,
     entry.endsAt.getTime(),
   );
 }
 
-export function baixiaoView(
+export async function readBaixiaoQuestion(
+  tx: DbExecutor,
+  slot: BaixiaoPaperSlot,
+) {
+  const [row] = await tx
+    .select({ question: baixiaoQuestions.question })
+    .from(baixiaoQuestions)
+    .where(eq(baixiaoQuestions.id, slot.questionId));
+  return BaixiaoQuestionSchema.parse(row?.question);
+}
+
+function questionHeading(question: BaixiaoQuestionData, position: number) {
+  const { prompt, category, difficulty } = question;
+  return { position, prompt, category, difficulty };
+}
+
+export async function baixiaoView(
+  tx: DbExecutor,
   clock: Clock,
   now: number,
   actor: ActiveCultivatorRef,
   round?: Pick<Round, 'settledAt'>,
   entry?: Entry,
-  question: BaixiaoQuestionView | null = null,
-): BaixiaoStatus {
+  answeredQuestion?: BaixiaoQuestionData,
+): Promise<BaixiaoStatus> {
   const otherCharacter = Boolean(
     entry && entry.cultivatorId !== actor.cultivatorId,
   );
@@ -59,6 +85,35 @@ export function baixiaoView(
     (player && now >= player.endsAt.getTime() ? 'expired' : null);
   const challengeId = finished ? null : (player?.challengeId ?? null);
   if (challengeId) cards.hand.challenge--;
+  const position = player?.answers.length ?? 0;
+  let question: BaixiaoQuestionView | null = null;
+  let review: BaixiaoQuestionReview | null = null;
+  if (player?.issuedAt && !finished && !challengeId) {
+    const slot = player.paper[position];
+    const active = await readBaixiaoQuestion(tx, slot);
+    question = {
+      ...questionHeading(active, position),
+      kind: active.kind,
+      options: slot.order.map((index) => active.options[index]),
+      deadline: baixiaoQuestionDeadline(player),
+    };
+  } else if (
+    player &&
+    !player.issuedAt &&
+    !challengeId &&
+    last &&
+    last.verdict !== 'correct'
+  ) {
+    const reviewed =
+      answeredQuestion ??
+      (await readBaixiaoQuestion(tx, player.paper[position - 1]));
+    review = {
+      ...questionHeading(reviewed, position - 1),
+      verdict: last.verdict,
+      answer: reviewed.options[reviewed.correct],
+      explanation: reviewed.explanation,
+    };
+  }
   return {
     ...clock,
     phase: baixiaoPhase(clock, now, round),
@@ -67,8 +122,9 @@ export function baixiaoView(
     session: player
       ? {
           endsAt: player.endsAt.getTime(),
-          position: player.answers.length,
-          question: finished ? null : question,
+          position,
+          question,
+          review,
           challengeId,
           ...cards,
           latest: last

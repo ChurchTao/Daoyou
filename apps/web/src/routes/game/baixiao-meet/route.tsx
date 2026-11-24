@@ -28,17 +28,20 @@ import {
   BAIXIAO_NODE_ID,
   BAIXIAO_QUESTION_COUNT,
   BAIXIAO_QUESTION_MS,
+  BAIXIAO_SESSION_MS,
 } from '@daoyou/game-domain/baixiao/meet';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router';
 import './baixiao.css';
 import type { mountBaixiaoScene } from './BaixiaoScene';
+import { QuestionMetadata, QuestionReview } from './QuestionReview';
 import { useBaixiao } from './useBaixiao';
 
 const mapHref = `/game/map-v2?nodeId=${BAIXIAO_NODE_ID}`;
 const rankingHref = '/game/rankings?tab=baixiao';
 const hallArt = '/assets/weekly/baixiao-jinjing-hall.webp';
 const focusPenaltySeconds = BAIXIAO_FOCUS_PENALTY_MS / 1000;
+const sessionMinutes = BAIXIAO_SESSION_MS / 60_000;
 
 function Landscape({ turn }: { turn: number }) {
   const art = useRef<HTMLDivElement>(null);
@@ -93,7 +96,11 @@ function Lobby({
       title={state.title}
       note={status.otherCharacter ? '本账号已用另一位角色参赛。' : state.note}
       schedule="每周四 14:00–16:00 · 北京时间"
-      facts={['个人赛时 15 分钟', '共 25 关', '不限境界 · 免费参赛']}
+      facts={[
+        `个人赛时 ${sessionMinutes} 分钟`,
+        '共 25 关',
+        '不限境界 · 免费参赛',
+      ]}
       admission={
         canStart &&
         `每账号每期一场，入场即开始计时。作答时失焦罚时 ${focusPenaltySeconds} 秒，累计 10 次失误即淘汰。`
@@ -123,8 +130,8 @@ function Rules({ open, close }: { open: boolean; close: () => void }) {
         <section>
           <h3>入场与作答</h3>
           <p>
-            每账号每期免费参赛一次，入场后开始计时，锁定本期参赛角色。全场 15
-            分钟，每题最多 45 秒。
+            每账号每期免费参赛一次，入场后开始计时，锁定本期参赛角色。全场{' '}
+            {sessionMinutes} 分钟，每题最多 {BAIXIAO_QUESTION_MS / 1000} 秒。
           </p>
           <p>答错或超时各记一次失误，罚时 20 秒。累计 10 次失误即淘汰。</p>
           <p>
@@ -132,6 +139,9 @@ function Rules({ open, close }: { open: boolean; close: () => void }) {
             秒罚时。返回后仍可作答原题， 本题和全场倒计时照常进行。
           </p>
           <p>每卷 25 题，文学与文史 11 题、历史地理 8 题、脑洞与谜语 6 题。</p>
+          <p>
+            答错或超时后可以查看答案和解析。回顾时本题停表，本场继续计时，回顾耗时不计入成绩。
+          </p>
         </section>
         <section>
           <h3>对策卡</h3>
@@ -234,21 +244,27 @@ function Results({
 }
 
 function Timer({ session, now }: { session: BaixiaoSessionView; now: number }) {
-  const { question, endsAt, position, score } = session;
-  const remaining = Math.max(0, Math.ceil((endsAt - now) / 1000));
+  const { question, review, endsAt, position, score, finished } = session;
+  const remaining = finished
+    ? 0
+    : Math.max(0, Math.ceil((endsAt - now) / 1000));
   const questionMs = question ? Math.max(0, question.deadline - now) : 0;
   const seconds = Math.ceil(questionMs / 1000);
   const endsWithSession = question?.deadline === endsAt;
   const questionUrgent = !!question && seconds <= 5 && !endsWithSession;
-  const sessionUrgent = remaining <= 5 && !questionUrgent;
+  const sessionUrgent = !finished && remaining <= 5 && !questionUrgent;
+  const topic = review ? '错题回顾' : '候题';
   return (
     <header className="baixiao-hud">
       <div className="baixiao-progress">
         <span>
           第{' '}
           <b className="font-mono">
-            {Math.min(position + 1, BAIXIAO_QUESTION_COUNT)} /{' '}
-            {BAIXIAO_QUESTION_COUNT}
+            {Math.min(
+              (review?.position ?? position) + 1,
+              BAIXIAO_QUESTION_COUNT,
+            )}{' '}
+            / {BAIXIAO_QUESTION_COUNT}
           </b>{' '}
           关
         </span>
@@ -276,7 +292,7 @@ function Timer({ session, now }: { session: BaixiaoSessionView; now: number }) {
         <div
           className="baixiao-clock"
           role="timer"
-          aria-label={question ? `本题剩余 ${seconds} 秒` : '候题'}
+          aria-label={question ? `本题剩余 ${seconds} 秒` : topic}
           data-pulse={questionUrgent || undefined}
           style={
             {
@@ -289,25 +305,29 @@ function Timer({ session, now }: { session: BaixiaoSessionView; now: number }) {
           </span>
         </div>
         <span>
-          {!question
-            ? '候题'
-            : questionUrgent
-              ? '本题将超时'
-              : '本题剩余（秒）'}
+          {!question ? topic : questionUrgent ? '本题将超时' : '本题剩余（秒）'}
         </span>
       </div>
       <div
         className="baixiao-session-time"
-        data-warning={remaining <= 60 || undefined}
+        data-warning={(!finished && remaining <= 60) || undefined}
         data-pulse={sessionUrgent || undefined}
       >
         <span>
-          {endsWithSession || remaining <= 10 ? '本场即将结束' : '本场剩余'}
+          {finished
+            ? '本场已结束'
+            : endsWithSession || remaining <= 10
+              ? '本场即将结束'
+              : '本场剩余'}
         </span>
         <b
           className="font-mono"
           role="timer"
-          aria-label={`本场还剩 ${Math.floor(remaining / 60)} 分 ${remaining % 60} 秒`}
+          aria-label={
+            finished
+              ? '本场已结束'
+              : `本场还剩 ${Math.floor(remaining / 60)} 分 ${remaining % 60} 秒`
+          }
         >
           {baixiaoCountdown(remaining)}
         </b>
@@ -319,17 +339,20 @@ function Timer({ session, now }: { session: BaixiaoSessionView; now: number }) {
 function QuestionSeat({
   meet,
   session,
+  viewResult,
 }: {
   meet: ReturnType<typeof useBaixiao>;
   session: BaixiaoSessionView;
+  viewResult: () => void;
 }) {
-  const { question, latest } = session;
+  const { question, review, latest } = session;
   const scroll = useRef<HTMLDivElement>(null);
   const position = question?.position;
+  const reviewPosition = review?.position;
   useEffect(() => {
-    if (position !== undefined)
+    if (position !== undefined || reviewPosition !== undefined)
       scroll.current?.scrollTo({ top: 0, behavior: 'instant' });
-  }, [position]);
+  }, [position, reviewPosition]);
   const blocked =
     !question || meet.busy || meet.locked || !meet.foreground || !!meet.error;
   const pendingOption =
@@ -352,6 +375,7 @@ function QuestionSeat({
         >
           {question ? (
             <div className="baixiao-question" key={position}>
+              <QuestionMetadata question={question} />
               <BaixiaoQuestionOptions
                 question={question}
                 disabled={blocked}
@@ -359,6 +383,12 @@ function QuestionSeat({
                 pendingOption={pendingOption}
               />
             </div>
+          ) : review ? (
+            <QuestionReview
+              key={review.position}
+              review={review}
+              totalMs={session.score.totalMs}
+            />
           ) : (
             <div className="baixiao-between">
               {!meet.error && (
@@ -372,15 +402,30 @@ function QuestionSeat({
             </div>
           )}
         </section>
-        <BaixiaoHandPanel
-          hand={session.hand}
-          streak={session.streak}
-          position={position}
-          disabled={blocked}
-          pendingCard={pendingCard}
-          latest={latest}
-          onCard={meet.useCard}
-        />
+        {review ? (
+          <footer className="baixiao-review-footer">
+            {!session.finished && <p>回顾时本场继续计时</p>}
+            <InkButton
+              variant="primary"
+              pending={!session.finished && meet.busy}
+              pendingLabel="正在取题…"
+              disabled={!session.finished && (!meet.foreground || !!meet.error)}
+              onClick={session.finished ? viewResult : meet.nextAfterReview}
+            >
+              {session.finished ? '查看本场成绩' : '下一关'}
+            </InkButton>
+          </footer>
+        ) : (
+          <BaixiaoHandPanel
+            hand={session.hand}
+            streak={session.streak}
+            position={position}
+            disabled={blocked}
+            pendingCard={pendingCard}
+            latest={latest}
+            onCard={meet.useCard}
+          />
+        )}
       </div>
     </section>
   );
@@ -388,6 +433,7 @@ function QuestionSeat({
 
 function BaixiaoScreen({ meet }: { meet: ReturnType<typeof useBaixiao> }) {
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [viewedResult, setViewedResult] = useState<number | null>(null);
   const session = meet.status?.session;
   if (session?.challengeId && !session.finished)
     return (
@@ -396,8 +442,17 @@ function BaixiaoScreen({ meet }: { meet: ReturnType<typeof useBaixiao> }) {
         replace
       />
     );
-  if (session && !session.finished)
-    return <QuestionSeat meet={meet} session={session} />;
+  if (
+    session &&
+    (!session.finished || (session.review && viewedResult !== session.endsAt))
+  )
+    return (
+      <QuestionSeat
+        meet={meet}
+        session={session}
+        viewResult={() => setViewedResult(session.endsAt)}
+      />
+    );
   return (
     <div className="baixiao-activity">
       <WeeklyActivityHeader
@@ -486,7 +541,7 @@ export default function BaixiaoMeetRoute() {
           foreground={meet.foreground}
         />
       )}
-      {session?.latest && (
+      {session?.latest?.verdict === 'correct' && (
         <BaixiaoFeedbackToast
           key={`${session.endsAt}:${session.latest.position}`}
           answer={session.latest}

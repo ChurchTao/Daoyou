@@ -1,10 +1,9 @@
-import type { BaixiaoAdminView } from '@daoyou/contracts/baixiao/meet';
 import {
-  categories,
   categoryLabels,
-  difficulties,
   difficultyLabels,
-} from './presentation';
+} from '@app/components/feature/baixiao/questionLabels';
+import type { BaixiaoAdminView } from '@daoyou/contracts/baixiao/meet';
+import { categories, difficulties } from './presentation';
 
 const phases = {
   waiting: '待开场',

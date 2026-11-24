@@ -39,12 +39,6 @@ type CardDisclosure = {
   position: number | undefined;
   mode: 'pointer' | 'focus' | 'inspect' | 'play';
 };
-const feedback = {
-  correct: '答对',
-  wrong: '答错 · 罚时 20 秒',
-  timeout: '超时 · 罚时 20 秒',
-  focus: '离开作答窗口 · 罚时 20 秒',
-} as const;
 const letters = ['A', 'B', 'C', 'D'];
 
 type OptionsProps = {
@@ -67,18 +61,17 @@ export function BaixiaoFeedbackToast({
   const [answerTime] = useState(totalMs);
   const toast = useRef<string | null>(null);
   const message = [
-    `第 ${answer.position + 1} 题 ${feedback[answer.verdict]}`,
+    `第 ${answer.position + 1} 题答对`,
     answer.usedCard && names[answer.usedCard],
     answer.bonusCard && `四题连对，获得${names[answer.bonusCard]}`,
     `累计用时 ${baixiaoTime(answerTime)}`,
   ]
     .filter(Boolean)
     .join(' · ');
-  const tone = answer.verdict === 'correct' ? 'success' : 'warning';
   useEffect(() => {
     if (foreground && !toast.current)
-      toast.current = pushToast({ message, tone, duration: 3000 });
-  }, [foreground, message, pushToast, tone]);
+      toast.current = pushToast({ message, tone: 'success', duration: 3000 });
+  }, [foreground, message, pushToast]);
   useEffect(
     () => () => {
       if (toast.current) dismissToast(toast.current);

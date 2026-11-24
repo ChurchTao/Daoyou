@@ -203,6 +203,7 @@ export function useBaixiao() {
       });
     } else if (
       !question &&
+      !session.review &&
       !session.challengeId &&
       foreground &&
       isForeground()
@@ -250,6 +251,13 @@ export function useBaixiao() {
     }
   }, [send]);
 
+  function nextAfterReview() {
+    const current = fresh.current;
+    const seat = current?.session;
+    if (!current || !seat?.review || seat.finished || !isForeground()) return;
+    void send('next', { week: current.week, position: seat.position });
+  }
+
   return {
     status,
     now,
@@ -260,6 +268,7 @@ export function useBaixiao() {
     locked: due,
     answer: (option: number) => play({ action: 'answer', option }),
     useCard: (card: BaixiaoCard) => play({ action: 'card', card }),
+    nextAfterReview,
     recover,
     start: () => status && void send('start', { week: status.week }),
   };

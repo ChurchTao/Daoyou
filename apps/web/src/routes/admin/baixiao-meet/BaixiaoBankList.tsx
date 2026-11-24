@@ -1,11 +1,13 @@
+import {
+  categoryLabels,
+  difficultyLabels,
+} from '@app/components/feature/baixiao/questionLabels';
 import { InkButton, InkInput, InkSelect } from '@app/components/ui';
 import type { BaixiaoQuestionStatus } from '@daoyou/contracts/baixiao/meet';
 import { useMemo, useState } from 'react';
 import {
   categories,
-  categoryLabels,
   difficulties,
-  difficultyLabels,
   statusLabels,
   type BankQuestion,
 } from './presentation';

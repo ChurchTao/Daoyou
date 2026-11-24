@@ -1,13 +1,13 @@
 import { BaixiaoQuestionOptions } from '@app/components/feature/baixiao/BaixiaoTurn';
+import {
+  categoryLabels,
+  difficultyLabels,
+} from '@app/components/feature/baixiao/questionLabels';
 import { InkButton, InkNotice } from '@app/components/ui';
 import { createBaixiaoPaper } from '@daoyou/game-rules/baixiao/meet';
 import { useEffect, useRef, useState } from 'react';
 import { AdminDialog } from '../_components/AdminDialog';
-import {
-  categoryLabels,
-  difficultyLabels,
-  type BankQuestion,
-} from './presentation';
+import { type BankQuestion } from './presentation';
 
 type PracticeQuestion = Pick<
   BankQuestion,

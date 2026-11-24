@@ -18,6 +18,13 @@ import { createHash } from 'node:crypto';
 import { baixiaoPhase, type Clock, type Round } from './baixiao-view.js';
 import { BaixiaoQuestionBank } from './BaixiaoQuestionBank.js';
 
+const beijingTime = new Intl.DateTimeFormat('zh-CN', {
+  timeZone: 'Asia/Shanghai',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
 @Injectable()
 export class BaixiaoStandings {
   constructor(
@@ -48,7 +55,7 @@ export class BaixiaoStandings {
       .update(`baixiao:${clock.week}`)
       .digest('hex');
     const id = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-4${hash.slice(13, 16)}-8${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
-    const text = '大晋晋京今日开卷，百晓盛会已开场。北京时间 15:45 截止入场。';
+    const text = `大晋晋京今日开卷，百晓盛会已开场。北京时间 ${beijingTime.format(clock.lastStartAt)} 截止入场。`;
     await createAndPublishWorldChatMessage({
       id,
       createdAt: new Date(clock.opensAt).toISOString(),

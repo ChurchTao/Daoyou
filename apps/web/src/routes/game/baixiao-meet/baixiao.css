@@ -165,6 +165,72 @@
   transform-origin: top center;
   animation: baixiao-turn-in 200ms ease-out both;
 }
+.baixiao-question-meta {
+  margin-bottom: 0.65rem;
+  color: var(--color-ink-secondary);
+  font-size: 0.875rem;
+}
+.baixiao-review-outcome {
+  display: grid;
+  gap: 0.3rem;
+  padding-bottom: 0.65rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-ink-border);
+}
+.baixiao-review-outcome > h2 {
+  margin: 0;
+  color: var(--color-crimson);
+}
+.baixiao-review-outcome > p,
+.baixiao-review dt {
+  color: var(--color-ink-secondary);
+  font-size: 0.875rem;
+}
+.baixiao-review-prompt {
+  margin-bottom: 0.8rem;
+  font-weight: 600;
+}
+.baixiao-review dl {
+  display: grid;
+  gap: 0.65rem;
+}
+.baixiao-review dt {
+  margin-bottom: 0.22rem;
+}
+.baixiao-review-answer {
+  border-inline-start: 2px solid var(--color-teal);
+  padding: 0.5rem 0.7rem;
+  background: color-mix(in srgb, var(--color-teal) 9%, var(--color-paper));
+}
+.baixiao-review-answer dd {
+  font-weight: 700;
+}
+.baixiao-review-footer {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.6rem;
+  padding-block: 0.35rem;
+  border-top: 1px solid var(--color-ink-border);
+  color: var(--color-ink-secondary);
+  font-size: 0.875rem;
+}
+.baixiao-review-footer button {
+  min-height: 44px;
+  margin-inline-start: auto;
+}
+@media (max-height: 40rem) {
+  .baixiao-paper .baixiao-review {
+    padding-block: 0.6rem;
+  }
+  .baixiao-review-outcome {
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.55rem;
+  }
+  .baixiao-review dl {
+    gap: 0.45rem;
+  }
+}
 .baixiao-paper button[data-pending],
 .baixiao-card[data-pending] {
   border-color: var(--color-crimson);

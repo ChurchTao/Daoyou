@@ -61,18 +61,30 @@ export type BaixiaoResolveCommand = z.infer<typeof BaixiaoResolveCommandSchema>;
 export type BaixiaoPhase =
   'waiting' | 'open' | 'closing' | 'closed' | 'settled' | 'unavailable';
 
-export interface BaixiaoQuestionView {
+interface BaixiaoQuestionHeading {
   position: number;
   prompt: string;
+  category: BaixiaoBankQuestion['category'];
+  difficulty: BaixiaoBankQuestion['difficulty'];
+}
+
+export interface BaixiaoQuestionView extends BaixiaoQuestionHeading {
   kind: BaixiaoBankQuestion['kind'];
   options: string[];
   deadline: number;
+}
+
+export interface BaixiaoQuestionReview extends BaixiaoQuestionHeading {
+  verdict: Exclude<BaixiaoAnswer['verdict'], 'correct'>;
+  answer: string;
+  explanation: string;
 }
 
 export interface BaixiaoSessionView {
   endsAt: number;
   position: number;
   question: BaixiaoQuestionView | null;
+  review: BaixiaoQuestionReview | null;
   challengeId: string | null;
   hand: BaixiaoHand;
   streak: number;

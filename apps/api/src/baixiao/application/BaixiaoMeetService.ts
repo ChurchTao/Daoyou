@@ -1,13 +1,10 @@
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
-import type {
-  BaixiaoQuestionView,
-  BaixiaoResolveCommand,
-} from '@daoyou/contracts/baixiao/meet';
+import type { BaixiaoResolveCommand } from '@daoyou/contracts/baixiao/meet';
 import {
   BAIXIAO_QUESTION_MS,
   BAIXIAO_SESSION_MS,
+  type BaixiaoQuestionData,
 } from '@daoyou/game-domain/baixiao/meet';
-import { BaixiaoQuestionSchema } from '@daoyou/game-domain/baixiao/question';
 import {
   awardBaixiaoCard,
   baixiaoCardState,
@@ -34,15 +31,10 @@ import {
 } from '@server/combat/application/CombatV6BuildService.js';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
-import type {
-  DbClient,
-  DbExecutor,
-  DbTransaction,
-} from '@server/lib/drizzle/db.js';
+import type { DbClient, DbTransaction } from '@server/lib/drizzle/db.js';
 import {
   cultivators,
   baixiaoEntries as entries,
-  baixiaoQuestions as questions,
   baixiaoRounds as rounds,
 } from '@server/lib/drizzle/schema.js';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
@@ -50,11 +42,7 @@ import { MailService } from '@server/mail/application/MailService.js';
 import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
 import { and, eq } from 'drizzle-orm';
 import { randomInt } from 'node:crypto';
-import {
-  baixiaoQuestionDeadline,
-  baixiaoView,
-  type Entry,
-} from './baixiao-view.js';
+import { baixiaoView, readBaixiaoQuestion } from './baixiao-view.js';
 import { BaixiaoDuelService } from './BaixiaoDuelService.js';
 import { BaixiaoQuestionBank, loadBaixiaoBank } from './BaixiaoQuestionBank.js';
 import { drawBaixiaoReward, grantBaixiaoAnswer } from './BaixiaoRewards.js';
@@ -79,27 +67,6 @@ function currentWeek(week: string, now = Date.now()) {
   return clock;
 }
 
-async function questionView(
-  tx: DbExecutor,
-  entry?: Entry,
-): Promise<BaixiaoQuestionView | null> {
-  if (!entry?.issuedAt || entry.status || entry.challengeId) return null;
-  const position = entry.answers.length;
-  const slot = entry.paper[position];
-  const [row] = await tx
-    .select({ question: questions.question })
-    .from(questions)
-    .where(eq(questions.id, slot.questionId));
-  const question = BaixiaoQuestionSchema.parse(row?.question);
-  return {
-    position,
-    prompt: question.prompt,
-    kind: question.kind,
-    options: slot.order.map((index) => question.options[index]),
-    deadline: baixiaoQuestionDeadline(entry),
-  };
-}
-
 @Injectable()
 export class BaixiaoMeetService {
   constructor(
@@ -118,11 +85,7 @@ export class BaixiaoMeetService {
         .from(rounds)
         .where(eq(rounds.week, clock.week)),
     ]);
-    const question =
-      entry?.cultivatorId === actor.cultivatorId && now < entry.endsAt.getTime()
-        ? await questionView(this.db, entry)
-        : null;
-    return baixiaoView(clock, Date.now(), actor, round, entry, question);
+    return baixiaoView(this.db, clock, Date.now(), actor, round, entry);
   }
 
   async start(week: string, actor: ActiveCultivatorRef) {
@@ -207,7 +170,7 @@ export class BaixiaoMeetService {
       let entry = await this.lockEntry(tx, week, actor);
       const now = Date.now();
       if (now >= entry.endsAt.getTime() || entry.status) {
-        return baixiaoView(clock, now, actor, undefined, entry);
+        return baixiaoView(tx, clock, now, actor, undefined, entry);
       }
       if (position !== entry.answers.length)
         throw new ConflictException('题序已更新，请重新读取赛况。');
@@ -219,12 +182,12 @@ export class BaixiaoMeetService {
           .returning();
       }
       return baixiaoView(
+        tx,
         clock,
         Date.now(),
         actor,
         { settledAt: null },
         entry,
-        await questionView(tx, entry),
       );
     });
   }
@@ -240,16 +203,16 @@ export class BaixiaoMeetService {
       command: async (tx) => {
         const entry = await this.lockEntry(tx, command.week, actor);
         const now = Date.now();
-        const unchanged = async (current = entry, withQuestion = true) => {
+        const unchanged = async (current = entry) => {
           return {
             result: {
-              status: baixiaoView(
+              status: await baixiaoView(
+                tx,
                 clock,
                 now,
                 actor,
                 { settledAt: null },
                 current,
-                withQuestion ? await questionView(tx, current) : null,
               ),
               mail: null,
             },
@@ -263,7 +226,7 @@ export class BaixiaoMeetService {
           command.challengeId === entry.challengeId;
         const settlingChallenge = canSettleChallenge ? entry.challengeId : null;
         if (entry.status || (receivedAt >= endsAt && !settlingChallenge))
-          return unchanged(entry, false);
+          return unchanged();
         if (command.position < entry.answers.length) return unchanged();
         if (
           entry.answers.length !== command.position ||
@@ -295,6 +258,7 @@ export class BaixiaoMeetService {
         }
         const { hand, streak } = baixiaoCardState(entry.answers);
         let adjudicated;
+        let answeredQuestion: BaixiaoQuestionData | undefined;
         if (settlingChallenge) {
           const result = await this.duels.result(actor, settlingChallenge);
           if (!result || result.completedAt >= endsAt) return unchanged();
@@ -325,7 +289,7 @@ export class BaixiaoMeetService {
               .set({ challengeId: id })
               .where(entryFilter(command.week, actor))
               .returning();
-            return unchanged(challenging, false);
+            return unchanged(challenging);
           }
           adjudicated = decideBaixiaoCard(
             command.card,
@@ -338,16 +302,12 @@ export class BaixiaoMeetService {
           const selected = slot.order[command.option];
           if (selected === undefined)
             throw new BadRequestException('所选答案不在本题选项中。');
-          const [row] = await tx
-            .select({ question: questions.question })
-            .from(questions)
-            .where(eq(questions.id, slot.questionId));
-          const question = BaixiaoQuestionSchema.parse(row?.question);
+          answeredQuestion = await readBaixiaoQuestion(tx, slot);
           adjudicated = decideBaixiaoAnswer(
             issuedAt,
             receivedAt,
             selected,
-            question.correct,
+            answeredQuestion.correct,
           );
         } else {
           if (command.action === 'timeout' && !timedOut) return unchanged();
@@ -401,12 +361,14 @@ export class BaixiaoMeetService {
           .returning();
         return {
           result: {
-            status: baixiaoView(
+            status: await baixiaoView(
+              tx,
               clock,
               Date.now(),
               actor,
               { settledAt: null },
               updated,
+              answeredQuestion,
             ),
             mail,
           },
