@@ -295,7 +295,7 @@ export function HomeView() {
         { id: 'map', label: '山河舆图', href: '/game/map-v2' },
         { id: 'dungeon', label: '云游', href: '/game/dungeon' },
         { id: 'tower', label: '蜃楼幻境', href: '/game/tower' },
-        { id: 'hunt-team', label: '组队讨伐', href: '/game/hunt-team' },
+        { id: 'hunt-team', label: '讨伐备战', href: '/game/hunt-team' },
       ],
     },
   ];

@@ -20,9 +20,9 @@ import {
   hasBothArenaTeams,
   isArenaRoomActive,
 } from '@daoyou/contracts/arena';
-import type { CurrentParty } from '@daoyou/contracts/party';
+import { useParty } from '@app/components/feature/party/useParty';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 
 const ARENA_ROOM_TOUCH_INTERVAL_MS = 5 * 60_000;
 
@@ -235,27 +235,11 @@ function ArenaFacility({
   const [inviteCode, setInviteCode] = useState('');
   const [joining, setJoining] = useState(false);
   const [withParty, setWithParty] = useState(false);
-  const [partyNames, setPartyNames] = useState<string[]>([]);
-  useEffect(() => {
-    if (room || !currentCultivatorId) return;
-    const abort = new AbortController();
-    void requestArena<CurrentParty>('/api/parties/me', { signal: abort.signal })
-      .then(({ party }) => {
-        if (abort.signal.aborted) return;
-        const leader = party?.members.find(
-          (member) => member.userId === party.leaderId,
-        );
-        setPartyNames(
-          leader?.cultivatorId === currentCultivatorId &&
-            party &&
-            party.members.length > 1
-            ? party.members.map((member) => member.name)
-            : [],
-        );
-      })
-      .catch(() => {});
-    return () => abort.abort();
-  }, [room, currentCultivatorId]);
+  const current = useParty().value;
+  const party = current?.party;
+  const partySize = !current?.roleMismatch && party?.members.some((member) => member.userId === party.leaderId && member.cultivatorId === currentCultivatorId)
+    ? party.members.length
+    : 0;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [startRequestId] = useState(() => crypto.randomUUID());
@@ -271,11 +255,11 @@ function ArenaFacility({
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify(
             action === 'create'
-              ? { withParty: partyNames.length > 1 && withParty }
+              ? { withParty: partySize > 1 && withParty }
               : {
                   inviteCode,
                   withParty:
-                    action === 'join' && partyNames.length > 1 && withParty,
+                    action === 'join' && partySize > 1 && withParty,
                   role: action === 'watch' ? 'spectator' : 'participant',
                 },
           ),
@@ -317,7 +301,7 @@ function ArenaFacility({
         />
       ) : (
         <div className="mt-4 space-y-2">
-          {partyNames.length > 1 && (
+          {partySize > 1 && (
             <label className="text-ink-secondary flex min-h-11 items-start gap-2 px-5 py-3 text-sm">
               <input
                 type="checkbox"
@@ -325,8 +309,7 @@ function ArenaFacility({
                 onChange={(event) => setWithParty(event.target.checked)}
               />
               <span>
-                带当前队伍入场{' '}
-                <span className="block">{partyNames.join('、')}</span>
+                带当前队伍入场 · <b className="font-mono">{partySize}</b> 人
               </span>
             </label>
           )}
@@ -339,12 +322,6 @@ function ArenaFacility({
             创建一间切磋房
           </button>
 
-          <Link
-            className="text-teal block w-fit px-5 py-2 text-sm underline"
-            to="/game/party"
-          >
-            我的队伍
-          </Link>
           <div>
             <button
               type="button"

@@ -24,7 +24,7 @@ export const characterRoutes = [
         presentation: 'workflow',
         summary: '结成队伍，再选定要讨伐的目标。',
       },
-      '组队讨伐',
+      '讨伐备战',
     )}
   />,
   <Route

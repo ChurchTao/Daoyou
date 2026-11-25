@@ -65,9 +65,6 @@ import {
 } from './invasion-week.js';
 
 import {
-  changeParty,
-  createParty,
-  joinParty,
   PARTY_CAPACITY,
   partyForUser,
   partyOwns,
@@ -182,6 +179,60 @@ async function lockOwnedRun(
   return { run, members, self };
 }
 
+export async function recruitingInvasionParties(week: string) {
+  const candidates = await db
+    .select({ partyId: recruitments.partyId })
+    .from(recruitments)
+    .where(
+      and(eq(recruitments.week, week), eq(recruitments.advertised, true)),
+    )
+    .orderBy(asc(recruitments.partyId))
+    .limit(100);
+  const parties = await readParties(candidates.map(({ partyId }) => partyId));
+  const users = parties.flatMap((party) =>
+    party.members.map(({ userId }) => userId),
+  );
+  const started = new Set(
+    users.length
+      ? (
+          await db
+            .select({ userId: progress.userId })
+            .from(progress)
+            .where(
+              and(
+                eq(progress.week, week),
+                inArray(progress.userId, users),
+                isNotNull(progress.activeRunId),
+              ),
+            )
+        ).map(({ userId }) => userId)
+      : [],
+  );
+  return parties
+    .filter(
+      (party) =>
+        party.members.length < PARTY_CAPACITY &&
+        party.members.every((member) => !started.has(member.userId)),
+    )
+    .sort((a, b) => b.members.length - a.members.length);
+}
+
+export async function invasionRecruitmentFor(
+  party: Party,
+  week: string,
+  actor: Pick<ActiveCultivatorRef, 'userId' | 'cultivatorId'>,
+  tx: DbTransaction | typeof db,
+) {
+  const clock = invasionWeek(Date.now());
+  if (!clock.open || clock.week !== week || !(await recruitment(party, week, tx)).advertised)
+    return null;
+  const own = await tx.query.invasionProgress.findFirst({ where: progressKey(week, actor.userId) });
+  if (own && (own.activeRunId || own.cultivatorId !== actor.cultivatorId)) return null;
+  const entries = await partyProgress(week, party, tx);
+  if (entries.some((entry) => entry.activeRunId)) return null;
+  return { label: '古魔入侵', deadline: clock.closesAt };
+}
+
 @Injectable()
 export class InvasionService {
   private task?: Promise<void>;
@@ -224,7 +275,6 @@ export class InvasionService {
       lastBattleId: entry?.lastBattleId ?? null,
       reward: entry?.reward ?? null,
       rewardsPending: !!entry && entry.rewardedWave < entry.completedWave,
-      teams: [],
       team: null,
     };
     if (view.otherCharacter)
@@ -278,17 +328,7 @@ export class InvasionService {
     }
     if (!clock.open) return view;
     const party = await partyForUser(actor.userId);
-    if (!party) {
-      view.teams = (await this.recruitingParties(clock.week))
-        .slice(0, 20)
-        .map((group) => ({
-          id: group.id,
-          members: group.members.map((member) =>
-            invasionIdentity(invasionMember(member)),
-          ),
-        }));
-      return view;
-    }
+    if (!party) return view;
     if (!partyOwns(party, actor)) return { ...view, otherCharacter: true };
     const { ready, advertised } = await recruitment(party, clock.week);
     const entries = await partyProgress(clock.week, party);
@@ -410,103 +450,13 @@ export class InvasionService {
     });
   }
 
-  private async recruitingParties(week: string) {
-    const candidates = await db
-      .select({ partyId: recruitments.partyId })
-      .from(recruitments)
-      .where(
-        and(eq(recruitments.week, week), eq(recruitments.advertised, true)),
-      )
-      .orderBy(asc(recruitments.partyId))
-      .limit(100);
-    const parties = await readParties(candidates.map(({ partyId }) => partyId));
-    const users = parties.flatMap((party) =>
-      party.members.map(({ userId }) => userId),
-    );
-    const started = new Set(
-      users.length
-        ? (
-            await db
-              .select({ userId: progress.userId })
-              .from(progress)
-              .where(
-                and(
-                  eq(progress.week, week),
-                  inArray(progress.userId, users),
-                  isNotNull(progress.activeRunId),
-                ),
-              )
-          ).map(({ userId }) => userId)
-        : [],
-    );
-    return parties
-      .filter(
-        (party) =>
-          party.members.length < PARTY_CAPACITY &&
-          party.members.every((member) => !started.has(member.userId)),
-      )
-      .sort((a, b) => b.members.length - a.members.length);
-  }
-
   private async lobbyCommand(
     actor: ActiveCultivatorRef,
     week: string,
     closesAt: number,
     input: InvasionCommand,
   ) {
-    if (input.type === 'join' || input.type === 'create') {
-      const target =
-        input.type === 'join'
-          ? (input.teamId ?? (await this.recruitingParties(week))[0]?.id)
-          : undefined;
-      if (input.type === 'join' && !target)
-        throw new ConflictException('暂无可加入的队伍，可以发起集结');
-      await db.transaction(async (tx) => {
-        if (Date.now() >= closesAt) throw new ConflictException('活动已截止');
-        if (target) {
-          const party = await readParty(target, tx, 'update');
-          const [advertised] = await tx
-            .select({ id: recruitments.partyId })
-            .from(recruitments)
-            .where(
-              and(
-                recruitmentKey(week, target),
-                eq(recruitments.advertised, true),
-              ),
-            );
-          if (!party || !advertised)
-            throw new ConflictException('队伍已结束招募');
-          if (
-            (await partyProgress(week, party, tx)).some(
-              (row) => row.activeRunId,
-            )
-          )
-            throw new ConflictException('队伍正在挑战');
-          await joinParty(actor, target, tx);
-        } else {
-          const current = await partyForUser(actor.userId, tx);
-          const party = current
-            ? await readParty(current.id, tx, 'update')
-            : await createParty(actor, tx);
-          if (
-            !party ||
-            party.leaderId !== actor.userId ||
-            !partyOwns(party, actor)
-          )
-            throw new ForbiddenException('由通用队伍的队长发起集结');
-          const { ready } = await recruitment(party, week, tx);
-          await updateRecruitment(tx, party, week, ready, true);
-        }
-      });
-      return;
-    }
-    if (
-      input.type !== 'leave' &&
-      input.type !== 'kick' &&
-      input.type !== 'recruit' &&
-      input.type !== 'ready' &&
-      input.type !== 'start'
-    )
+    if (input.type !== 'recruit' && input.type !== 'ready' && input.type !== 'start')
       throw new ConflictException('当前还未开战');
     return db.transaction(async (tx) => {
       const current = await partyForUser(actor.userId, tx);
@@ -514,30 +464,12 @@ export class InvasionService {
       if (!party || !partyOwns(party, actor))
         throw new ForbiddenException('你尚未加入队伍');
       if (Date.now() >= closesAt) throw new ConflictException('活动已截止');
-      if (input.type === 'leave') {
-        await changeParty(actor, party.id, { type: 'leave' }, tx);
-        return;
-      }
-      if (input.type === 'kick') {
-        if (party.leaderId !== actor.userId)
-          throw new ForbiddenException('只有队长可以请离队员');
-        const member = party.members.find(
-          ({ cultivatorId }) => cultivatorId === input.cultivatorId,
-        );
-        if (!member || member.userId === actor.userId)
-          throw new BadRequestException('该道友已不在队中');
-        await changeParty(
-          actor,
-          party.id,
-          { type: 'kick', userId: member.userId },
-          tx,
-        );
-        return;
-      }
       const { ready } = await recruitment(party, week, tx);
       if (input.type === 'recruit') {
         if (party.leaderId !== actor.userId)
           throw new ForbiddenException('只有队长可以调整营地招募');
+        if (input.advertised && (await partyProgress(week, party, tx)).some((row) => row.activeRunId))
+          throw new ConflictException('队伍正在挑战');
         await updateRecruitment(tx, party, week, ready, input.advertised);
         return;
       }

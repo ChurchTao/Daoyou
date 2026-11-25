@@ -72,6 +72,7 @@ export type RealtimeServerEvent =
       type: 'hunt-team.started';
       payload: { teamId: string };
     }
+  | { type: 'party.changed'; payload: null }
   | {
       type: 'ping';
       payload: {

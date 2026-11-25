@@ -31,10 +31,14 @@
   outline: 2px solid var(--color-crimson);
   outline-offset: -3px;
 }
-.party-chat-dock b {
+.party-dock-indicators {
   position: absolute;
   inset-block-start: -0.4rem;
   inset-inline-start: -0.45rem;
+  display: grid;
+  gap: 0.12rem;
+}
+.party-dock-indicators b {
   min-width: 1.15rem;
   padding-inline: 0.2rem;
   border-radius: 1rem;
@@ -43,6 +47,9 @@
   text-align: center;
   line-height: 1.15rem;
 }
-.party-chat-dock[data-edge='left'] b {
+.party-dock-indicators b[data-telegram] {
+  background: var(--color-teal);
+}
+.party-chat-dock[data-edge='left'] .party-dock-indicators {
   inset-inline: auto -0.45rem;
 }

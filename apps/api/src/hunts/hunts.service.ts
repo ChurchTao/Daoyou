@@ -15,8 +15,6 @@ import {
   commandHuntTeam,
   createHuntTeam,
   huntLobby,
-  joinHuntTeam,
-  joinHuntTeamById,
   readMyHuntTeam,
 } from '@server/hunts/application/HuntTeamService.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
@@ -51,18 +49,6 @@ export class HuntsService {
     input: z.infer<typeof HuntCreateTeamSchema>,
   ) {
     return { success: true, data: await createHuntTeam(actor, input) };
-  }
-
-  async join(
-    actor: ActiveCultivatorRef,
-    eventId: z.infer<typeof HuntEventIdSchema>,
-    teamId?: string,
-  ) {
-    return { success: true, data: await joinHuntTeam(actor, eventId, teamId) };
-  }
-
-  async joinTeam(actor: ActiveCultivatorRef, teamId: string) {
-    return { success: true, data: await joinHuntTeamById(actor, teamId) };
   }
 
   async command(

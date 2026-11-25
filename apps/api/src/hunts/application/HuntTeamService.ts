@@ -11,10 +11,8 @@ import { type HuntEvent } from '@daoyou/game-domain/hunts';
 import {
   huntEventById,
   huntIsOpen,
-  huntKickError,
   huntRealmAllowed,
   huntStartError,
-  selectHuntTeam,
 } from '@daoyou/game-rules/hunts';
 import { hasActiveCombat } from '@server/combat/application/CombatOccupancy.js';
 import {
@@ -33,10 +31,7 @@ import {
 import { checkAndAcquireCooldown } from '@server/lib/redis/worldChatLimiter.js';
 import { journalOperationKey } from '@server/lib/repositories/playerJournalRepository.js';
 import {
-  changeParty,
-  createParty,
   importParty,
-  joinParty,
   partyForUser,
   partyOwns,
   readParty,
@@ -303,14 +298,10 @@ export async function huntLobby(
   const event = requireEvent(id, false);
   const myTeam = await lock((lease) => currentTeam(actor, lease));
   const open = huntIsOpen(event, Date.now());
-  const [teams, claimed] = await Promise.all([
-    open ? eventTeams(id) : [],
-    huntClaimed(id, actor.cultivatorId),
-  ]);
+  const claimed = await huntClaimed(id, actor.cultivatorId);
   return {
     event,
     open,
-    teams: teams.filter((t) => t.status === 'assembling'),
     myTeam,
     claimed,
     serverNow: Date.now(),
@@ -346,10 +337,8 @@ export async function createHuntTeam(
     const self = await member(actor, event);
     if (!huntRealmAllowed(input, self.realm))
       throw new ArenaV6Error('招募的境界范围也需包含你自己');
-    const party = current
-      ? await readParty(current.id)
-      : await createParty(actor);
-    if (!party) throw new ArenaV6Error('队伍已解散');
+    const party = current && (await readParty(current.id));
+    if (!party) throw new ArenaV6Error('请先在组队中组建队伍');
     const base = huntParty(party, current);
     if (base.status !== 'assembling')
       throw new ArenaV6Error('出战中不能更换目标');
@@ -373,82 +362,27 @@ export async function createHuntTeam(
     return team;
   });
 }
-export async function joinHuntTeam(
-  actor: HuntActor,
-  eventId: string,
-  teamId?: string,
-) {
-  return lock(async (lease) => {
-    const event = requireEvent(eventId);
-    const current = await currentTeam(actor, lease);
-    if (current) {
-      if (
-        current.id === teamId &&
-        current.members.some((m) => m.cultivatorId === actor.cultivatorId)
-      )
-        return current;
-      throw new ArenaV6Error('请先离开当前讨伐队伍');
-    }
-    if (await hasActiveCombat(actor.cultivatorId))
-      throw new ArenaV6Error('上一场战斗尚未结束，请稍候');
-    const self = await member(actor, event);
-    const team = teamId
-      ? await readTeam(teamId)
-      : selectHuntTeam(await eventTeams(eventId), self.realm, Date.now());
-    if (!team) throw new ArenaV6Error('还没有合适的队伍，可先创建队伍招募道友');
-    if (
-      team.event?.id !== eventId ||
-      team.status !== 'assembling' ||
-      team.members.length >= 4 ||
-      !huntRealmAllowed(team, self.realm)
-    )
-      throw new ArenaV6Error('这支队伍已满、已出战，或你的境界不在招募范围内');
-    const party = await joinParty(actor, team.id);
-    const roster = huntParty(party, team);
-    const next = {
-      ...roster,
-      members: roster.members.map((entry) =>
-        entry.userId === actor.userId ? self : entry,
-      ),
-    };
-    await saveTeam(next, team, lease);
-    return next;
-  });
+export function withHuntRecruitment<T>(task: () => Promise<T>): Promise<T> {
+  return lock(task);
 }
-export async function joinHuntTeamById(actor: HuntActor, teamId: string) {
-  return lock(async (lease) => {
-    const current = await currentTeam(actor, lease);
-    if (current) {
-      if (
-        current.id === teamId &&
-        current.members.some((m) => m.cultivatorId === actor.cultivatorId)
-      )
-        return current;
-      throw new ArenaV6Error('请先离开当前讨伐队伍');
-    }
-    if (await hasActiveCombat(actor.cultivatorId))
-      throw new ArenaV6Error('上一场战斗尚未结束，请稍候');
-    const team = await readTeam(teamId);
-    if (!team) throw new ArenaV6Error('这支队伍已经散了');
-    if (team.status !== 'assembling' || team.members.length >= 4)
-      throw new ArenaV6Error('这支队伍已满或已出战');
-    if (team.event && !huntIsOpen(team.event, Date.now()))
-      throw new ArenaV6Error('这支队伍的目标已经隐去');
-    const self = await member(actor, team.event);
-    if (!huntRealmAllowed(team, self.realm))
-      throw new ArenaV6Error('你的境界不在这支队伍的招募范围内');
-    const party = await joinParty(actor, team.id);
-    const roster = huntParty(party, team);
-    const next = {
-      ...roster,
-      members: roster.members.map((entry) =>
-        entry.userId === actor.userId ? self : entry,
-      ),
-    };
-    await saveTeam(next, team, lease);
-    return next;
-  });
+
+export async function huntRecruitmentFor(party: Party, eventId: string | null, realm: RealmType) {
+  const saved = await readStoredTeam(party.id);
+  if (!saved || saved.status !== 'assembling' || (saved.event?.id ?? null) !== eventId)
+    return null;
+  if ((saved.event && !huntIsOpen(saved.event, Date.now())) || !huntRealmAllowed(saved, realm))
+    return null;
+  return {
+    label: saved.event
+      ? `${saved.event.realm}期 · ${HUNT_BOSSES[saved.event.bossId].name}`
+      : '结伴讨伐',
+    requirement: `${saved.minRealm}至${saved.maxRealm}`,
+    deadline: saved.event?.expiresAt,
+  };
 }
+
+export { eventTeams as huntRecruitingTeams };
+
 function arenaRoom(team: HuntTeam): ArenaRoomV1 {
   const event = team.event;
   if (!event) throw new ArenaV6Error('请先选定讨伐目标');
@@ -511,38 +445,6 @@ export async function commandHuntTeam(
       throw new ArenaV6Error('队员有变，请确认名单后再试');
     if (team.status === 'in_battle')
       throw new ArenaV6Error('战斗中不能调整队伍');
-    if (command.type === 'leave') {
-      if (team.status === 'starting')
-        throw new ArenaV6Error('队伍正在出战，请稍候');
-      const party = await changeParty(actor, team.id, { type: 'leave' });
-      await saveTeam(
-        party
-          ? huntParty(party, team)
-          : { ...team, members: [], revision: team.revision + 1 },
-        team,
-        lease,
-      );
-      return null;
-    }
-    if (command.type === 'kick') {
-      const error = huntKickError(
-        team,
-        actor.cultivatorId,
-        command.cultivatorId,
-      );
-      if (error)
-        throw new ArenaV6Error(error, error.startsWith('只有队长') ? 403 : 400);
-      const target = team.members.find(
-        (entry) => entry.cultivatorId === command.cultivatorId,
-      )!;
-      const party = await changeParty(actor, team.id, {
-        type: 'kick',
-        userId: target.userId,
-      });
-      const next = huntParty(party!, team);
-      await saveTeam(next, team, lease);
-      return next;
-    }
     if (command.type === 'ready') {
       if (team.status !== 'assembling') throw new ArenaV6Error('正在开战');
       const self = await member(actor, team.event);

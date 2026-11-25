@@ -1,8 +1,33 @@
+import { HuntEventIdSchema } from '@daoyou/game-domain/hunts';
 import { z } from 'zod';
+import type { CultivatorInspectionData } from './player.js';
+
+export const PartyRecruitmentSourceSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('invite') }),
+  z.strictObject({
+    kind: z.literal('hunt'),
+    eventId: HuntEventIdSchema.nullable(),
+  }),
+  z.strictObject({ kind: z.literal('invasion'), week: z.iso.date() }),
+]);
+export type PartyRecruitmentSource = z.infer<
+  typeof PartyRecruitmentSourceSchema
+>;
+
+export const PARTY_CAPACITY = 4;
+export const PARTY_APPLICATION_LIMIT = 3;
+export const PARTY_APPLICATION_TTL_MS = 10 * 60 * 1000;
 
 export const PartyCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('create') }),
-  z.strictObject({ type: z.literal('join'), partyId: z.uuid() }),
+  z.strictObject({
+    type: z.literal('apply'),
+    partyId: z.uuid(),
+    source: PartyRecruitmentSourceSchema,
+  }),
+  z.strictObject({ type: z.literal('approve'), applicationId: z.uuid() }),
+  z.strictObject({ type: z.literal('reject'), applicationId: z.uuid() }),
+  z.strictObject({ type: z.literal('cancel'), applicationId: z.uuid() }),
   z.strictObject({ type: z.literal('leave'), partyId: z.uuid() }),
   z.strictObject({ type: z.literal('disband'), partyId: z.uuid() }),
   z.strictObject({
@@ -31,7 +56,39 @@ export type PartyView = {
     gender: string | null;
   }>;
 };
-export type CurrentParty = { party: PartyView | null; roleMismatch?: boolean };
+export type PartyPublicMember = Omit<PartyView['members'][number], 'userId'>;
+export type PartyRecruitment = {
+  partyId: string;
+  leader: PartyPublicMember;
+  memberCount: number;
+  source: PartyRecruitmentSource;
+  label: string;
+  requirement?: string;
+};
+export type PartyApplicationStatus =
+  'pending' | 'accepted' | 'rejected' | 'cancelled' | 'expired';
+export type PartyApplication = {
+  id: string;
+  partyId: string | null;
+  partyLabel: string;
+  source: PartyRecruitmentSource;
+  label: string;
+  status: PartyApplicationStatus;
+  expiresAt: number;
+};
+export type IncomingPartyApplication = PartyApplication & {
+  applicant: PartyPublicMember;
+};
+export type PartyApplicantBuild = Pick<
+  CultivatorInspectionData,
+  'attributes' | 'combatPanel' | 'build'
+>;
+export type CurrentParty = {
+  party: PartyView | null;
+  roleMismatch: boolean;
+  incoming: IncomingPartyApplication[];
+  outgoing: PartyApplication[];
+};
 
 export const PARTY_CHAT_MAX_CHARS = 100;
 

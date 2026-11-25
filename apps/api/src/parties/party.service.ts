@@ -1,9 +1,8 @@
-import type { PartyView } from '@daoyou/contracts/party';
+import { PARTY_CAPACITY, type PartyView } from '@daoyou/contracts/party';
 import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
-  NotFoundException,
 } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import {
@@ -16,9 +15,9 @@ import {
   parties,
   partyMembers,
 } from '@server/lib/drizzle/schema.js';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 
-export const PARTY_CAPACITY = 4;
+export { PARTY_CAPACITY };
 
 export type Party = PartyView;
 
@@ -112,7 +111,11 @@ export async function requirePartyIdentity(tx: DbTransaction, actor: Identity) {
   if (!owner) throw new ForbiddenException('当前角色无法组队');
 }
 
-async function addMember(tx: DbTransaction, partyId: string, actor: Identity) {
+export async function addPartyMember(
+  tx: DbTransaction,
+  partyId: string,
+  actor: Identity,
+) {
   await requirePartyIdentity(tx, actor);
   const inserted = await tx
     .insert(partyMembers)
@@ -122,38 +125,24 @@ async function addMember(tx: DbTransaction, partyId: string, actor: Identity) {
   if (!inserted.length) throw new ConflictException('请先退出当前队伍');
 }
 
+export function lockPartyApplicant(tx: DbTransaction, userId: string) {
+  return tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${`party-applicant:${userId}`}, 0))`,
+  );
+}
+
 export async function createParty(
   actor: Identity,
   tx?: DbTransaction,
 ): Promise<Party> {
   const mutate = async (executor: DbTransaction) => {
+    await lockPartyApplicant(executor, actor.userId);
     const [party] = await executor
       .insert(parties)
       .values({ leaderId: actor.userId })
       .returning();
-    await addMember(executor, party.id, actor);
+    await addPartyMember(executor, party.id, actor);
     return (await readParty(party.id, executor))!;
-  };
-  return tx ? mutate(tx) : db.transaction(mutate);
-}
-
-export async function joinParty(
-  actor: Identity,
-  partyId: string,
-  tx?: DbTransaction,
-): Promise<Party> {
-  const mutate = async (executor: DbTransaction) => {
-    const party = await readParty(partyId, executor, 'update');
-    if (!party) throw new NotFoundException('队伍已解散');
-    if (partyOwns(party, actor)) return party;
-    if (party.members.length >= PARTY_CAPACITY)
-      throw new ConflictException('队伍已满');
-    await addMember(executor, partyId, actor);
-    await executor
-      .update(parties)
-      .set({ revision: party.revision + 1 })
-      .where(eq(parties.id, partyId));
-    return (await readParty(partyId, executor))!;
   };
   return tx ? mutate(tx) : db.transaction(mutate);
 }
@@ -238,7 +227,7 @@ export async function importParty(
         .onConflictDoNothing()
         .returning();
       if (inserted) {
-        for (const actor of members) await addMember(tx, id, actor);
+        for (const actor of members) await addPartyMember(tx, id, actor);
       }
       return readParty(id, tx);
     });

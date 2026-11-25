@@ -16,9 +16,3 @@ export function huntTeamStatusLabel(status: HuntTeam['status']) {
   if (status === 'starting') return '正在出战';
   return '集结中';
 }
-
-export function huntTeamSummary(team: HuntTeam) {
-  const names = team.members.map((member) => member.name).join('、');
-  const target = team.event ? huntTargetLabel(team.event) : '未选目标';
-  return `${team.members.length}/4 · ${names} · ${target} · ${huntTeamStatusLabel(team.status)}`;
-}

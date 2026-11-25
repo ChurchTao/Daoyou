@@ -12,6 +12,7 @@ import { isAllowedRealtimeOrigin } from '@server/lib/http/realtimeOrigin.js';
 import { getRequestIp } from '@server/lib/http/requestIp.js';
 import { subscribeArenaRoomChanges } from '@server/realtime/infrastructure/arenaRoomBroadcaster.js';
 import { subscribeHuntTeamChat } from '@server/realtime/infrastructure/huntTeamChatBroadcaster.js';
+import { subscribePartyChanges } from '@server/realtime/infrastructure/partyBroadcaster.js';
 import { subscribeHuntTeamStart } from '@server/realtime/infrastructure/huntTeamStartBroadcaster.js';
 import {
   recordRealtimeConnectionClose,
@@ -260,6 +261,9 @@ export class RealtimeService {
         ),
         subscribeHuntTeamChat(reservation.userId, (message) =>
           send({ type: 'hunt-team.chat', payload: message }),
+        ),
+        subscribePartyChanges(reservation.userId, () =>
+          send({ type: 'party.changed', payload: null }),
         ),
       );
       if (channels.includes('player-state')) {

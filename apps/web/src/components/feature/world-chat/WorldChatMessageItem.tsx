@@ -1,8 +1,7 @@
 import { BeastTradeDetails } from '@app/components/feature/beasts/BeastTradePreview';
 import { CharacterCardTrigger } from '@app/components/feature/character-card/CharacterCardTrigger';
 import { ChatMessageFrame } from '@app/components/feature/chat/ChatMessageFrame';
-import { notifyHuntTeamChanged } from '@app/components/feature/hunts/huntTeamView';
-import { huntRequest } from '@app/components/feature/hunts/useHunts';
+import { partyInviteHref } from '@app/components/feature/party/partyWorkspaceApi';
 import { itemPresentation } from '@app/components/feature/items/itemPresentation';
 import { ItemPreview } from '@app/components/feature/items/ItemPreview';
 import { InkModal } from '@app/components/layout';
@@ -57,9 +56,6 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
 }: WorldChatMessageItemProps) {
   const cultivator = useCultivatorIdentity(!readOnly).data?.cultivator;
   const [detailOpen, setDetailOpen] = useState(false);
-  const [joining, setJoining] = useState(false);
-  const [joinError, setJoinError] = useState('');
-  const [joined, setJoined] = useState(false);
   const isSystemRumor =
     message.channel === 'system' ||
     (message.senderCultivatorId === null &&
@@ -270,47 +266,12 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
         ) : recruit ? (
           <span>
             {recruit.text}{' '}
-            {readOnly ? null : message.senderCultivatorId &&
-              message.senderCultivatorId === cultivator?.id ? (
-              <Link
-                className="text-teal font-semibold underline"
-                to="/game/hunt-team"
-              >
-                加入队伍
+            {!readOnly && (
+              <Link className="text-teal font-semibold underline"
+                to={isOwn ? '/game/hunt-team' : partyInviteHref(recruit.teamId, { kind: 'hunt', eventId: huntEventId ?? null })}>
+                {isOwn ? '查看讨伐' : '申请入队'}
               </Link>
-            ) : (
-              <button
-                type="button"
-                className="text-teal font-semibold underline disabled:opacity-50"
-                disabled={joining || joined || !cultivator}
-                onClick={() => {
-                  const actorId = cultivator?.id;
-                  if (!actorId || joining) return;
-                  setJoining(true);
-                  setJoinError('');
-                  void huntRequest(
-                    `/api/hunts/teams/${recruit.teamId}/join`,
-                    actorId,
-                    {},
-                  )
-                    .then(() => {
-                      setJoined(true);
-                      notifyHuntTeamChanged();
-                    })
-                    .catch((cause: unknown) => {
-                      setJoinError(
-                        cause instanceof Error ? cause.message : '暂时未能加入',
-                      );
-                    })
-                    .finally(() => setJoining(false));
-                }}
-              >
-                {joined ? '已加入' : joining ? '加入中' : '加入队伍'}
-              </button>
             )}
-            {joinError ? (
-              <span className="text-crimson ml-2">{joinError}</span>
-            ) : null}
           </span>
         ) : message.channel === 'system' && (message.messageType === 'alchemy_contest_rumor' || message.messageType === 'baixiao_rumor' || message.messageType === 'invasion_rumor') &&
           'nodeId' in message.payload && typeof message.payload.nodeId === 'string' ? (

@@ -6,7 +6,7 @@ export const servicesRoutes = [
   <Route
     path="party"
     lazy={lazyRoute(() => import('@app/routes/game/party/route'))}
-    handle={scene({ id: 'party', presentation: 'service' }, '我的队伍')}
+    handle={scene({ id: 'party', presentation: 'service' }, '组队')}
   />,
   <Route
     path="market/recycle"

@@ -11,10 +11,6 @@ import {
 import { z } from 'zod';
 
 export const InvasionCommandSchema = z.discriminatedUnion('type', [
-  z.strictObject({ type: z.literal('create') }),
-  z.strictObject({ type: z.literal('join'), teamId: z.uuid().optional() }),
-  z.strictObject({ type: z.literal('leave') }),
-  z.strictObject({ type: z.literal('kick'), cultivatorId: z.uuid() }),
   z.strictObject({ type: z.literal('recruit'), advertised: z.boolean() }),
   z.strictObject({ type: z.literal('start') }),
   z.strictObject({ type: z.literal('withdraw') }),
@@ -46,7 +42,6 @@ export type InvasionStatus = {
   lastBattleId: string | null;
   reward: InvasionReward | null;
   rewardsPending: boolean;
-  teams: InvasionPublicTeam[];
   team:
     | (InvasionPublicTeam & {
         phase: InvasionPhase;

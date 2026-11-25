@@ -1,5 +1,4 @@
-import { openPartyChat } from '@app/components/feature/party/partyEvents';
-import { InkButton, InkDialog } from '@app/components/ui';
+import { InkButton } from '@app/components/ui';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import type {
   InvasionCommand,
@@ -7,7 +6,6 @@ import type {
   InvasionStatus,
 } from '@daoyou/contracts/invasion';
 import { invasionBossWave } from '@daoyou/game-rules/invasion';
-import { useState } from 'react';
 import { invasionClock } from './request';
 
 type Team = NonNullable<InvasionStatus['team']>;
@@ -41,7 +39,6 @@ export function InvasionParty({
   remaining: number;
   send: (input: InvasionCommand) => Promise<boolean>;
 }) {
-  const [target, setTarget] = useState<InvasionIdentity>();
   const total = team.members.length;
   const ready = team.ready.length;
   const readySelf = !!playerId && team.ready.includes(playerId);
@@ -83,7 +80,7 @@ export function InvasionParty({
         </span>
       </div>
       <div className="invasion-section-heading">
-        <h3>出战队伍</h3>
+        <h3>备战</h3>
         <span>
           <b className="font-mono">
             {ready}/{total}
@@ -91,47 +88,6 @@ export function InvasionParty({
           已准备
         </span>
       </div>
-      <ul className="invasion-roster">
-        {team.members.map((member) => {
-          const captain = member.cultivatorId === team.captainId;
-          const prepared = team.ready.includes(member.cultivatorId);
-          return (
-            <li
-              key={member.cultivatorId}
-              className="invasion-member"
-              data-ready={prepared}
-            >
-              <InvasionPortrait member={member} />
-              <div className="invasion-member-identity">
-                <div className="invasion-member-name">
-                  <strong>{member.name}</strong>
-                  {captain && <span className="invasion-captain">队长</span>}
-                  {member.cultivatorId === playerId && <small>我</small>}
-                </div>
-                <p>
-                  {member.realm}
-                  {member.realmStage}
-                  {member.title && <> · {member.title}</>}
-                </p>
-              </div>
-              <div className="invasion-member-controls">
-                <span className="invasion-readiness" data-ready={prepared}>
-                  {prepared ? '已准备' : '待准备'}
-                </span>
-                {team.leader && !captain && (
-                  <InkButton
-                    variant="secondary"
-                    disabled={busy || !open}
-                    onClick={() => setTarget(member)}
-                  >
-                    请离<span className="sr-only">{member.name}</span>
-                  </InkButton>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
       {note && <p className="invasion-note">{note}</p>}
       <div className="invasion-action-row">
         {canStart ? (
@@ -171,37 +127,7 @@ export function InvasionParty({
             {team.recruiting ? '停止招募' : '营地招募'}
           </InkButton>
         )}
-        <InkButton
-          variant="secondary"
-          disabled={busy || !open}
-          onClick={() => void send({ type: 'leave' })}
-        >
-          退出队伍
-        </InkButton>
-        <InkButton variant="secondary" onClick={openPartyChat}>
-          队伍传音
-        </InkButton>
       </div>
-      <InkDialog
-        dialog={
-          target
-            ? {
-                id: `invasion-kick-${target.cultivatorId}`,
-                title: '请离队伍',
-                content: `请离「${target.name}」后，全队需重新确认准备。`,
-                confirmLabel: '确认请离',
-                cancelLabel: '取消',
-                onConfirm: async () => {
-                  await send({
-                    type: 'kick',
-                    cultivatorId: target.cultivatorId,
-                  });
-                },
-              }
-            : null
-        }
-        onClose={() => setTarget(undefined)}
-      />
     </section>
   );
 }

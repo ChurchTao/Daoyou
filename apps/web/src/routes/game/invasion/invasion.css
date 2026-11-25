@@ -78,8 +78,7 @@
 .invasion-assembly-heading,
 .invasion-section-heading,
 .invasion-brief,
-.invasion-wave-banner,
-.invasion-recruit-list li {
+.invasion-wave-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -125,24 +124,6 @@
 .invasion-section-heading h3 {
   font-weight: 700;
 }
-.invasion-roster {
-  display: grid;
-  gap: 0.42rem;
-}
-.invasion-member {
-  display: grid;
-  grid-template-columns: 2.8rem minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.4rem 0.55rem;
-  min-width: 0;
-  border: 1px solid var(--color-ink-border);
-  border-inline-start: 2px solid var(--color-ink-border);
-  background: var(--color-paper);
-}
-.invasion-member[data-ready='true'] {
-  border-inline-start-color: var(--color-teal);
-}
 .invasion-portrait {
   width: 2.65rem;
   height: 2.65rem;
@@ -150,41 +131,6 @@
   border-radius: 50%;
   background: var(--color-paper-2);
 }
-.invasion-member-identity p,
-.invasion-member-name small {
-  color: var(--color-ink-secondary);
-  font-size: 0.82rem;
-  overflow-wrap: anywhere;
-}
-.invasion-member-name {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.15rem 0.42rem;
-}
-.invasion-member-name strong {
-  overflow-wrap: anywhere;
-}
-.invasion-captain,
-.invasion-readiness {
-  padding: 0.1rem 0.32rem;
-  width: fit-content;
-  border: 1px solid var(--color-ink-border);
-  font-size: 0.73rem;
-  white-space: nowrap;
-}
-.invasion-captain {
-  color: var(--color-wood);
-}
-.invasion-readiness {
-  color: var(--color-ink-secondary);
-}
-.invasion-readiness[data-ready='true'] {
-  color: var(--color-teal);
-  border-color: color-mix(in srgb, var(--color-teal) 38%, transparent);
-  background: color-mix(in srgb, var(--color-teal) 8%, transparent);
-}
-.invasion-member-controls,
 .invasion-action-row,
 .invasion-secondary {
   display: flex;
@@ -192,13 +138,8 @@
   align-items: center;
   gap: 0.2rem 0.65rem;
 }
-.invasion-member-controls {
-  justify-content: end;
-}
-.invasion-member-controls button,
 .invasion-action-row button,
-.invasion-secondary :is(a, summary),
-.invasion-recruit-list button {
+.invasion-secondary :is(a, summary) {
   min-height: 44px;
 }
 .invasion-secondary summary {
@@ -208,15 +149,6 @@
 }
 .invasion-secondary details[open] {
   width: 100%;
-}
-.invasion-recruit-list {
-  max-height: 12rem;
-  overflow: auto;
-  background: color-mix(in srgb, var(--color-paper) 92%, transparent);
-  padding-inline: 0.6rem;
-}
-.invasion-recruit-list li + li {
-  border-top: 1px solid var(--color-ink-border);
 }
 .invasion-receipt {
   display: grid;
@@ -466,13 +398,6 @@
     position: sticky;
     bottom: 0;
     z-index: 1;
-  }
-  .invasion-member-controls {
-    flex-direction: column;
-    gap: 0;
-  }
-  .invasion-member-controls button {
-    min-height: 44px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

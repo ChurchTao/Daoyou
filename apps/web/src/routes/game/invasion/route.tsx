@@ -1,4 +1,3 @@
-import { notifyPartyChanged } from '@app/components/feature/party/partyEvents';
 import {
   WeeklyActivityHeader,
   WeeklyActivityLobby,
@@ -98,16 +97,12 @@ function Entry({
   status,
   open,
   now,
-  busy,
-  send,
   error,
 }: {
   status: InvasionStatus;
   open: boolean;
   now: number;
-  busy: boolean;
   error: string;
-  send: (input: InvasionCommand) => Promise<boolean>;
 }) {
   const state = activityState(
     open ? 'open' : 'waiting',
@@ -131,51 +126,14 @@ function Entry({
       }
       schedule="每周二 14:00–16:00 · 北京时间"
       facts={['2–4 人结队', '每 5 波遭遇首领']}
-      action={
-        open &&
-        !status.otherCharacter && (
-          <>
-            <InkButton
-              variant="primary"
-              disabled={busy}
-              onClick={() => void send({ type: 'create' })}
-            >
-              发起集结
-            </InkButton>
-            {status.teams.length > 0 && (
-              <InkButton
-                variant="secondary"
-                disabled={busy}
-                onClick={() => void send({ type: 'join' })}
-              >
-                快速入队
-              </InkButton>
-            )}
-          </>
-        )
-      }
       rankHref={rankHref}
       rankName="除魔榜"
     >
       {error && <InkNotice tone="danger">{error}</InkNotice>}
-      {open && !status.otherCharacter && status.teams.length > 0 && (
-        <ul className="invasion-recruit-list" aria-label="营地招募">
-          {status.teams.map((team) => (
-            <li key={team.id}>
-              <span>
-                {team.members.map(({ name }) => name).join('、')}{' '}
-                <small className="font-mono">{team.members.length}/4</small>
-              </span>
-              <InkButton
-                variant="secondary"
-                disabled={busy}
-                onClick={() => void send({ type: 'join', teamId: team.id })}
-              >
-                入队
-              </InkButton>
-            </li>
-          ))}
-        </ul>
+      {open && !status.otherCharacter && (
+        <p className="text-ink-secondary text-sm">
+          回到主界面，从展开菜单的「组队」中集结，入队后可回营地准备。
+        </p>
       )}
       <Receipt status={status} />
     </WeeklyActivityLobby>
@@ -263,8 +221,6 @@ function Camp({ playerId }: { playerId?: string }) {
       const next = await requestInvasion<InvasionStatus>('', command);
       ++latest.current;
       update(next);
-      if (['create', 'join', 'leave', 'kick'].includes(command.type))
-        notifyPartyChanged();
       return true;
     } catch (cause) {
       pushToast({
@@ -308,14 +264,7 @@ function Camp({ playerId }: { playerId?: string }) {
           )}
         </main>
       ) : !team || team.phase === 'finished' || (staging && !open) ? (
-        <Entry
-          status={status}
-          open={open}
-          now={now}
-          busy={busy}
-          send={send}
-          error={error}
-        />
+        <Entry status={status} open={open} now={now} error={error} />
       ) : (
         <main
           className="invasion-camp"
@@ -375,9 +324,6 @@ function Camp({ playerId }: { playerId?: string }) {
               <div className="invasion-secondary">
                 <InkButton href={rankHref} variant="secondary">
                   查看除魔榜
-                </InkButton>
-                <InkButton href="/game/party" variant="secondary">
-                  我的队伍
                 </InkButton>
                 {status.completedWave > 0 && (
                   <details>

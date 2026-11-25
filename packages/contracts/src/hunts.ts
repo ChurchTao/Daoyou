@@ -31,12 +31,6 @@ export const HuntTeamCommandSchema = z.discriminatedUnion('type', [
     .strict(),
   z
     .object({
-      type: z.literal('leave'),
-      revision: z.number().int().nonnegative(),
-    })
-    .strict(),
-  z
-    .object({
       type: z.literal('start'),
       revision: z.number().int().nonnegative(),
     })
@@ -45,13 +39,6 @@ export const HuntTeamCommandSchema = z.discriminatedUnion('type', [
     .object({
       type: z.literal('target'),
       eventId: HuntEventIdSchema.nullable(),
-      revision: z.number().int().nonnegative(),
-    })
-    .strict(),
-  z
-    .object({
-      type: z.literal('kick'),
-      cultivatorId: z.uuid(),
       revision: z.number().int().nonnegative(),
     })
     .strict(),
@@ -72,7 +59,6 @@ export type HuntLobby = {
   event: HuntEvent;
   open: boolean;
   claimed: boolean;
-  teams: HuntTeam[];
   myTeam: HuntTeam | null;
   serverNow: number;
 };

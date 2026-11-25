@@ -1,4 +1,3 @@
-import { HuntMemberList } from '@app/components/feature/hunts/HuntMemberList';
 import {
   huntTargetLabel,
   huntTeamStatusLabel,
@@ -58,12 +57,12 @@ function HuntRecruitmentForm({
   pending,
   onSave,
 }: {
-  team?: HuntTeam;
+  team: HuntTeam;
   pending: boolean;
   onSave: (minRealm: RealmType, maxRealm: RealmType) => void;
 }) {
-  const [minRealm, setMinRealm] = useState<RealmType>(team?.minRealm ?? '炼气');
-  const [maxRealm, setMaxRealm] = useState<RealmType>(team?.maxRealm ?? '渡劫');
+  const [minRealm, setMinRealm] = useState<RealmType>(team.minRealm);
+  const [maxRealm, setMaxRealm] = useState<RealmType>(team.maxRealm);
   return (
     <form
       className="space-y-3"
@@ -97,10 +96,10 @@ function HuntRecruitmentForm({
         pending={pending}
         disabled={
           REALM_VALUES.indexOf(minRealm) > REALM_VALUES.indexOf(maxRealm) ||
-          (minRealm === team?.minRealm && maxRealm === team.maxRealm)
+          (minRealm === team.minRealm && maxRealm === team.maxRealm)
         }
       >
-        {team ? '保存招募范围' : '确认组建'}
+        保存招募范围
       </InkButton>
     </form>
   );
@@ -143,7 +142,7 @@ export default function HuntTeamPage() {
       setPending(false);
     }
   };
-  const command = (type: 'ready' | 'leave' | 'start') =>
+  const command = (type: 'ready' | 'start') =>
     team &&
     void act(
       `/api/hunts/teams/${team.id}`,
@@ -159,45 +158,29 @@ export default function HuntTeamPage() {
 
   return (
     <GameSceneFrame variant="workflow">
-      <div className="flex justify-end">
-        <InkButton href="/game/party" variant="secondary">
-          我的队伍
-        </InkButton>
-      </div>
       {actionError || (error && !team) ? (
         <GameSceneNote tone="danger">{actionError || error}</GameSceneNote>
       ) : null}
       {note ? <p className="text-ink-secondary text-sm">{note}</p> : null}
       {!team ? (
-        <HuntRecruitmentForm
-          pending={pending}
-          onSave={(minRealm, maxRealm) => {
-            void act('/api/hunts/teams', { minRealm, maxRealm });
-          }}
-        />
+        <p className="text-ink-secondary">
+          在展开菜单的「组队」中集结，再来选定讨伐目标。
+        </p>
       ) : (
         <div className="space-y-4 text-sm">
           <div className="flex items-center justify-between gap-3">
             <span>
               {huntTeamStatusLabel(team.status)}{' '}
-              <span className="font-mono">{team.members.length}/4</span>
+              <span className="font-mono">
+                {team.members.filter((member) => member.ready).length}/
+                {team.members.length}
+              </span>{' '}
+              已准备
             </span>
             <span className="text-ink-secondary">
               {team.minRealm}至{team.maxRealm}
             </span>
           </div>
-          <HuntMemberList
-            team={team}
-            actorId={actorId ?? ''}
-            pending={pending}
-            onKick={(cultivatorId) =>
-              act(`/api/hunts/teams/${team.id}`, {
-                type: 'kick',
-                cultivatorId,
-                revision: team.revision,
-              })
-            }
-          />
           {leader && team.status === 'assembling' ? (
             <>
               <HuntTargetField
@@ -280,12 +263,6 @@ export default function HuntTeamPage() {
                   </InkButton>
                 </>
               ) : null}
-              <InkButton
-                disabled={pending || team.status === 'starting'}
-                onClick={() => command('leave')}
-              >
-                离开队伍
-              </InkButton>
             </div>
           )}
         </div>
