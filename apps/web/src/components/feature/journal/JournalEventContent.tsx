@@ -38,10 +38,17 @@ function ResourceAmount({
 
 export function JournalEventContent({ event }: { event: PlayerJournalEvent }) {
   if (event.type === 'resources.settled') {
+    // Older records still carry redundant descriptions for these actions.
+    const detail =
+      event.activity === 'spirit_field_starter' ||
+      event.activity === 'spirit_field_sow' ||
+      event.activity === 'spirit_field_harvest'
+        ? undefined
+        : event.detail;
     return (
       <>
         {JOURNAL_ACTIVITIES[event.activity]}
-        {event.detail ? `（${event.detail}）` : ''}：
+        {detail ? `（${detail}）` : ''}：
         {event.changes.map((change, index) => (
           <Fragment key={index}>
             {index > 0 ? '，' : null}

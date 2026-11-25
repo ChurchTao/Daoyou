@@ -118,7 +118,7 @@ type GardenCommandResult<TResult> = {
   resourceChanges?: ResourceChangeDescriptor[];
   harvestCount?: number;
   starterClaimed?: boolean;
-  detail: string;
+  detail?: string;
 };
 
 function gardenRule<T>(run: () => T): T {
@@ -168,7 +168,7 @@ function runGardenCommand<T>(
           ? { starterClaimed: changed.starterClaimed }
           : {}),
       });
-      describeJournal(tx, actor.cultivatorId, changed.detail);
+      if (changed.detail) describeJournal(tx, actor.cultivatorId, changed.detail);
       return {
         result: { ...changed.result, version: field.version + 1 },
         resourceChanges: changed.resourceChanges ?? [],
@@ -352,7 +352,6 @@ export function claimSpiritFieldStarterSeeds(
       return {
         garden,
         starterClaimed: true,
-        detail: '领取甘草、野菊与山枣灵种',
         result: {
           message: '已领取初始灵种',
           locations: locationsOf(delivered),
@@ -423,7 +422,6 @@ export function sowSpiritField(
       );
       return {
         garden: next,
-        detail: `种下${seedName}，开始长期培育`,
         result: {
           message:
             '已栽种，幼苗将自动生长；生长时间达到后，需消耗天地灵气培育成株',
@@ -843,7 +841,6 @@ export function harvestSpiritField(
       }
       return {
         garden: harvested.state,
-        detail: '一键领取灵圃待领产物',
         harvestCount: field.selfHarvestCount + 1,
         result: {
           message: '已领取全部产物',
