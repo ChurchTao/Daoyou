@@ -54,6 +54,59 @@ function HuntTargetField({
   );
 }
 
+function HuntRecruitmentForm({
+  team,
+  pending,
+  onSave,
+}: {
+  team?: HuntTeam;
+  pending: boolean;
+  onSave: (minRealm: RealmType, maxRealm: RealmType) => void;
+}) {
+  const [minRealm, setMinRealm] = useState<RealmType>(team?.minRealm ?? '炼气');
+  const [maxRealm, setMaxRealm] = useState<RealmType>(team?.maxRealm ?? '渡劫');
+  return (
+    <form
+      className="space-y-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave(minRealm, maxRealm);
+      }}
+    >
+      <div className="grid gap-3 sm:grid-cols-2">
+        <InkSelect
+          label="最低境界"
+          value={minRealm}
+          onChange={(value) => setMinRealm(value as RealmType)}
+        >
+          {REALM_VALUES.map((realm) => (
+            <option key={realm}>{realm}</option>
+          ))}
+        </InkSelect>
+        <InkSelect
+          label="最高境界"
+          value={maxRealm}
+          onChange={(value) => setMaxRealm(value as RealmType)}
+        >
+          {REALM_VALUES.map((realm) => (
+            <option key={realm}>{realm}</option>
+          ))}
+        </InkSelect>
+      </div>
+      <InkButton
+        type="submit"
+        pending={pending}
+        disabled={
+          REALM_VALUES.indexOf(minRealm) > REALM_VALUES.indexOf(maxRealm) ||
+          (minRealm === team?.minRealm && maxRealm === team.maxRealm)
+        }
+      >
+        {team ? '保存招募范围' : '确认组建'}
+      </InkButton>
+    </form>
+  );
+}
+
 export default function HuntTeamPage() {
   const { data, error, actorId, refresh } = useHunts<HuntMine>(
     '/api/hunts/me',
@@ -63,8 +116,6 @@ export default function HuntTeamPage() {
   const [pending, setPending] = useState(false);
   const [actionError, setActionError] = useState('');
   const [note, setNote] = useState('');
-  const [minRealm, setMinRealm] = useState<RealmType>('炼气');
-  const [maxRealm, setMaxRealm] = useState<RealmType>('渡劫');
   const team = data?.team ?? null;
   const self = team?.members.find((member) => member.cultivatorId === actorId);
   const leader = team?.leaderId === actorId;
@@ -109,49 +160,22 @@ export default function HuntTeamPage() {
 
   return (
     <GameSceneFrame variant="workflow">
+      <div className="flex justify-end">
+        <InkButton href="/game/party" variant="secondary">
+          我的队伍
+        </InkButton>
+      </div>
       {actionError || (error && !team) ? (
         <GameSceneNote tone="danger">{actionError || error}</GameSceneNote>
       ) : null}
       {note ? <p className="text-ink-secondary text-sm">{note}</p> : null}
       {!team ? (
-        <form
-          className="space-y-4"
-          onSubmit={(event) => {
-            event.preventDefault();
+        <HuntRecruitmentForm
+          pending={pending}
+          onSave={(minRealm, maxRealm) => {
             void act('/api/hunts/teams', { minRealm, maxRealm });
           }}
-        >
-          <p>招募何等境界的道友？</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <InkSelect
-              label="最低境界"
-              value={minRealm}
-              onChange={(value) => setMinRealm(value as RealmType)}
-            >
-              {REALM_VALUES.map((realm) => (
-                <option key={realm}>{realm}</option>
-              ))}
-            </InkSelect>
-            <InkSelect
-              label="最高境界"
-              value={maxRealm}
-              onChange={(value) => setMaxRealm(value as RealmType)}
-            >
-              {REALM_VALUES.map((realm) => (
-                <option key={realm}>{realm}</option>
-              ))}
-            </InkSelect>
-          </div>
-          <InkButton
-            type="submit"
-            pending={pending}
-            disabled={
-              REALM_VALUES.indexOf(minRealm) > REALM_VALUES.indexOf(maxRealm)
-            }
-          >
-            确认组建
-          </InkButton>
-        </form>
+        />
       ) : (
         <div className="space-y-4 text-sm">
           <div className="flex items-center justify-between gap-3">
@@ -176,17 +200,34 @@ export default function HuntTeamPage() {
             }
           />
           {leader && team.status === 'assembling' ? (
-            <HuntTargetField
-              team={team}
-              disabled={pending}
-              onPick={(eventId) =>
-                void act(`/api/hunts/teams/${team.id}`, {
-                  type: 'target',
-                  eventId,
-                  revision: team.revision,
-                })
-              }
-            />
+            <>
+              <HuntTargetField
+                team={team}
+                disabled={pending}
+                onPick={(eventId) =>
+                  void act(`/api/hunts/teams/${team.id}`, {
+                    type: 'target',
+                    eventId,
+                    revision: team.revision,
+                  })
+                }
+              />
+              <details>
+                <summary className="mb-2 cursor-pointer">调整招募境界</summary>
+                <HuntRecruitmentForm
+                  key={`${team.id}:${team.minRealm}:${team.maxRealm}`}
+                  team={team}
+                  pending={pending}
+                  onSave={(minRealm, maxRealm) =>
+                    void act('/api/hunts/teams', {
+                      minRealm,
+                      maxRealm,
+                      eventId: team.event?.id,
+                    })
+                  }
+                />
+              </details>
+            </>
           ) : (
             <p>
               目标：

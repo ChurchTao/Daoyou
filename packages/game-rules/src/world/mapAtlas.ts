@@ -76,6 +76,7 @@ export const TIANNAN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
   TN_ZMG_01: [0.845, 0.17],
   TN_MINE_VALLEY: [0.255, 0.46],
   TN_BORDER_01: [0.155, 0.385],
+  SAT_TN_INVASION: [0.465, 0.60],
   SAT_TN_01: [0.345, 0.525],
   SAT_TN_02: [0.325, 0.145],
   SAT_ZMG_01: [0.795, 0.265],

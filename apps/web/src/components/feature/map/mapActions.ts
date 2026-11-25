@@ -1,3 +1,4 @@
+import { INVASION_NODE_ID, INVASION_PATH } from '@daoyou/game-domain/invasion';
 import type { InkButton } from '@app/components/ui/InkButton';
 import { BAIXIAO_NODE_ID } from '@daoyou/game-domain/baixiao/meet';
 import { CONTEST_NODE_ID } from '@daoyou/game-domain/alchemy/contest';
@@ -30,6 +31,12 @@ export function buildMapLocationActions(
 
   const nodeId = encodeURIComponent(location.id);
   const actions: MapNodeAction[] = [];
+  if (location.id === INVASION_NODE_ID) {
+    actions.push({
+      key: 'enter-ancient-demon-invasion', label: '进入镇魔营地',
+      variant: 'primary', onClick: () => navigate(INVASION_PATH),
+    });
+  }
   if (location.id === CONTEST_NODE_ID) {
     actions.push({
       key: 'enter-alchemy-contest',

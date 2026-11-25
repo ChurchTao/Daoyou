@@ -1,4 +1,4 @@
-import { redis } from '@server/lib/redis/index.js';
+import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import {
   allArenaSeatsReady,
   ARENA_ROOM_INVITE_CODE_LENGTH,
@@ -16,7 +16,9 @@ import {
   type ArenaRoomV1,
   type ArenaTeamIdV1,
 } from '@daoyou/contracts/arena';
-import type { RealmStage, RealmType } from '@daoyou/constants/realms';
+import { db } from '@server/lib/drizzle/db.js';
+import { redis } from '@server/lib/redis/index.js';
+import { readParty, type Party } from '@server/parties/party.service.js';
 
 const ROOM_KEY_PREFIX = 'arena:room:v1:';
 const CODE_KEY_PREFIX = 'arena:room-code:v1:';
@@ -25,18 +27,12 @@ const CULTIVATOR_KEY_PREFIX = 'arena:cultivator-room:v1:';
 const BATTLE_KEY_PREFIX = 'arena:battle-room:v1:';
 
 const CREATE_ROOM_LUA = `
-local roomKey = KEYS[1]
-local codeKey = KEYS[2]
-local userKey = KEYS[3]
-local cultivatorKey = KEYS[4]
-local revisionKey = KEYS[5]
-if redis.call('exists', roomKey) == 1 or redis.call('exists', codeKey) == 1 then return 0 end
-if redis.call('exists', userKey) == 1 or redis.call('exists', cultivatorKey) == 1 then return -1 end
-redis.call('set', roomKey, ARGV[1], 'EX', ARGV[2])
-redis.call('set', revisionKey, '1', 'EX', ARGV[2])
-redis.call('set', codeKey, ARGV[3], 'EX', ARGV[2])
-redis.call('set', userKey, ARGV[3], 'EX', ARGV[2])
-redis.call('set', cultivatorKey, ARGV[3], 'EX', ARGV[2])
+if redis.call('exists', KEYS[1], KEYS[2]) ~= 0 then return 0 end
+for i = 4, #KEYS do if redis.call('exists', KEYS[i]) == 1 then return -1 end end
+redis.call('set', KEYS[1], ARGV[1], 'EX', ARGV[2])
+redis.call('set', KEYS[3], '1', 'EX', ARGV[2])
+redis.call('set', KEYS[2], ARGV[3], 'EX', ARGV[2])
+for i = 4, #KEYS do redis.call('set', KEYS[i], ARGV[3], 'EX', ARGV[2]) end
 return 1
 `;
 
@@ -52,36 +48,19 @@ for index = 3, #KEYS do redis.call('expire', KEYS[index], ARGV[4]) end
 return 1
 `;
 
-const CAS_ROOM_WITH_TWO_INDEXES_LUA = `
-local roomKey = KEYS[1]
-local revisionKey = KEYS[2]
-local firstKey = KEYS[3]
-local secondKey = KEYS[4]
-if redis.call('exists', roomKey) == 0 then return -2 end
-local current = redis.call('get', revisionKey)
-if current == false or tonumber(current) ~= tonumber(ARGV[1]) then return -1 end
-if redis.call('exists', firstKey) == 1 or redis.call('exists', secondKey) == 1 then return -3 end
-redis.call('set', firstKey, ARGV[5], 'EX', ARGV[4])
-redis.call('set', secondKey, ARGV[5], 'EX', ARGV[4])
-redis.call('set', roomKey, ARGV[2], 'EX', ARGV[4])
-redis.call('set', revisionKey, ARGV[3], 'EX', ARGV[4])
-for index = 5, #KEYS do redis.call('expire', KEYS[index], ARGV[4]) end
-return 1
-`;
-
-const CAS_ROOM_REMOVE_INDEXES_LUA = `
-local roomKey = KEYS[1]
-local revisionKey = KEYS[2]
-local firstKey = KEYS[3]
-local secondKey = KEYS[4]
-if redis.call('exists', roomKey) == 0 then return -2 end
-local current = redis.call('get', revisionKey)
-if current == false or tonumber(current) ~= tonumber(ARGV[1]) then return -1 end
-if redis.call('get', firstKey) == ARGV[5] then redis.call('del', firstKey) end
-if redis.call('get', secondKey) == ARGV[5] then redis.call('del', secondKey) end
-redis.call('set', roomKey, ARGV[2], 'EX', ARGV[4])
-redis.call('set', revisionKey, ARGV[3], 'EX', ARGV[4])
-for index = 5, #KEYS do redis.call('expire', KEYS[index], ARGV[4]) end
+const CAS_ROOM_MEMBER_INDEXES_LUA = `
+if redis.call('exists', KEYS[1]) == 0 then return -2 end
+if tonumber(redis.call('get', KEYS[2])) ~= tonumber(ARGV[1]) then return -1 end
+local last = 2 + tonumber(ARGV[6])
+if ARGV[7] == 'join' then
+ for i = 3, last do if redis.call('exists', KEYS[i]) == 1 then return -3 end end
+ for i = 3, last do redis.call('set', KEYS[i], ARGV[5], 'EX', ARGV[4]) end
+else
+ for i = 3, last do if redis.call('get', KEYS[i]) == ARGV[5] then redis.call('del', KEYS[i]) end end
+end
+redis.call('set', KEYS[1], ARGV[2], 'EX', ARGV[4])
+redis.call('set', KEYS[2], ARGV[3], 'EX', ARGV[4])
+for i = last + 1, #KEYS do redis.call('expire', KEYS[i], ARGV[4]) end
 return 1
 `;
 
@@ -146,6 +125,7 @@ export interface CreateArenaRoomInput {
   readonly realm: RealmType;
   readonly realmStage: RealmStage;
   readonly teamId?: ArenaTeamIdV1;
+  readonly party?: Party;
   readonly now?: number;
 }
 
@@ -171,15 +151,17 @@ export class ArenaRoomService {
         teamId,
         now,
       });
+      const members = [...room.teams.alpha, ...room.teams.beta].flatMap(
+        seatKeys,
+      );
       const result = Number(
         await redis.eval(
           CREATE_ROOM_LUA,
-          5,
+          3 + members.length,
           roomKey(roomId),
           codeKey(inviteCode),
-          userKey(input.userId),
-          cultivatorKey(input.cultivatorId),
           revisionKey(roomId),
+          ...members,
           JSON.stringify(room),
           String(ARENA_ROOM_TTL_SECONDS),
           roomId,
@@ -299,24 +281,32 @@ export class ArenaRoomService {
       )
     )
       throw new Error('该修士已经在擂台房间中');
-    const teamId = selectArenaJoinTeam(room);
-    const seats = room.teams[teamId];
     const now = input.now ?? Date.now();
-    const next = withSeat(room, teamId, {
-      slot: nextSlot(seats),
-      userId: input.userId,
-      cultivatorId: input.cultivatorId,
-      displayName: normalizeDisplayName(input.displayName),
-      realm: input.realm,
-      realmStage: input.realmStage,
-      ready: false,
-      joinedAt: now,
-      lastSeenAt: now,
+    const incoming = arenaSeats(input, now);
+    const preferred = selectArenaJoinTeam(room);
+    const alternate = preferred === 'alpha' ? 'beta' : 'alpha';
+    const teamId = ([preferred, alternate] as const).find(
+      (side) =>
+        room.teams[side].length + incoming.length <=
+        ARENA_ROOM_MAX_SEATS_PER_TEAM,
+    );
+    if (!teamId) throw new Error('两侧都没有足够席位，请选择单人入场');
+    const seats = room.teams[teamId];
+    const next = nextRoom(room, {
+      teams: { ...room.teams, [teamId]: addSeats(seats, incoming) },
+      ...(input.party
+        ? {
+            partyVersions: {
+              ...room.partyVersions,
+              [input.party.id]: input.party.revision,
+            },
+          }
+        : {}),
     });
     return this.commitWithIndexes(
       room,
       next,
-      [userKey(input.userId), cultivatorKey(input.cultivatorId)],
+      incoming.flatMap(seatKeys),
       room.roomId,
     );
   }
@@ -352,27 +342,27 @@ export class ArenaRoomService {
     const targetTeamId: ArenaTeamIdV1 =
       current.teamId === 'alpha' ? 'beta' : 'alpha';
     const targetSeats = room.teams[targetTeamId];
-    if (targetSeats.length >= ARENA_ROOM_MAX_SEATS_PER_TEAM) {
-      throw new Error('另一方队伍已满');
+    const origin = room.teams[current.teamId];
+    const moved = origin.filter((seat) =>
+      current.partyId
+        ? seat.partyId === current.partyId
+        : seat.userId === userId,
+    );
+    if (moved.length > 1) {
+      const party = await readParty(current.partyId!);
+      if (party?.leaderId !== userId)
+        throw new Error('只有队长可以带当前队伍换边');
     }
-    const moved: ArenaRoomSeatV1 = {
-      slot: nextSlot(targetSeats),
-      userId: current.userId,
-      cultivatorId: current.cultivatorId,
-      displayName: current.displayName,
-      realm: current.realm,
-      realmStage: current.realmStage,
-      ready: false,
-      joinedAt: current.joinedAt,
-      lastSeenAt: now,
-    };
+    if (targetSeats.length + moved.length > ARENA_ROOM_MAX_SEATS_PER_TEAM)
+      throw new Error('另一方队伍席位不足');
     const next = nextRoom(room, {
       teams: {
         ...room.teams,
-        [current.teamId]: room.teams[current.teamId].filter(
-          (seat) => seat.userId !== userId,
+        [current.teamId]: origin.filter((seat) => !moved.includes(seat)),
+        [targetTeamId]: addSeats(
+          targetSeats,
+          moved.map((seat) => ({ ...seat, ready: false, lastSeenAt: now })),
         ),
-        [targetTeamId]: [...targetSeats, moved],
       },
     });
     const status: ArenaRoomStatusV1 = next.teams.alpha
@@ -415,62 +405,50 @@ export class ArenaRoomService {
       const next = nextRoom(room, {
         spectators: room.spectators!.filter((s) => s.userId !== userId),
       });
-      const refreshKeys = roomIndexKeys(next);
-      const result = Number(
-        await redis.eval(
-          CAS_ROOM_REMOVE_INDEXES_LUA,
-          4 + refreshKeys.length,
-          roomKey(roomId),
-          revisionKey(roomId),
-          userKey(userId),
-          cultivatorKey(spectator.cultivatorId),
-          ...refreshKeys,
-          String(room.revision),
-          JSON.stringify(next),
-          String(next.revision),
-          String(roomTtl(next)),
-          roomId,
-        ),
+      return this.commitWithIndexes(
+        room,
+        next,
+        seatKeys(spectator),
+        roomId,
+        'leave',
       );
-      if (result !== 1) throw new Error('擂台房间状态已变化，请刷新后重试');
-      return next;
     }
     assertRoomJoinable(room);
     const current = findSeat(room, userId);
     if (!current) return room;
-    const remaining = removeSeat(room, current);
-    if (remaining.teams.alpha.length + remaining.teams.beta.length === 0) {
-      await this.deleteRoom(room, [cultivatorKey(current.cultivatorId)]);
+    const origin = room.teams[current.teamId];
+    const removed = origin.filter((seat) =>
+      current.partyId
+        ? seat.partyId === current.partyId
+        : seat.userId === userId,
+    );
+    const teams = {
+      ...room.teams,
+      [current.teamId]: origin.filter((seat) => !removed.includes(seat)),
+    };
+    const remaining = teams.alpha.concat(teams.beta);
+    if (!remaining.length) {
+      await this.deleteRoom(room);
       return null;
     }
-    const hostUserId =
-      room.hostUserId === userId
-        ? remaining.teams.alpha
-            .concat(remaining.teams.beta)
-            .sort((a, b) => a.joinedAt - b.joinedAt)[0]!.userId
-        : room.hostUserId;
-    const next = { ...remaining, hostUserId, status: 'assembling' as const };
-    const refreshKeys = roomIndexKeys(next);
-    const result = Number(
-      await redis.eval(
-        CAS_ROOM_REMOVE_INDEXES_LUA,
-        4 + refreshKeys.length,
-        roomKey(room.roomId),
-        revisionKey(room.roomId),
-        userKey(userId),
-        cultivatorKey(current.cultivatorId),
-        ...refreshKeys,
-        String(room.revision),
-        JSON.stringify(next),
-        String(next.revision),
-        String(ARENA_ROOM_TTL_SECONDS),
-        room.roomId,
-      ),
+    const partyVersions = { ...room.partyVersions };
+    if (current.partyId) delete partyVersions[current.partyId];
+    const hostUserId = removed.some((seat) => seat.userId === room.hostUserId)
+      ? [...remaining].sort((a, b) => a.joinedAt - b.joinedAt)[0]!.userId
+      : room.hostUserId;
+    const next = nextRoom(room, {
+      teams,
+      partyVersions,
+      hostUserId,
+      status: 'assembling',
+    });
+    return this.commitWithIndexes(
+      room,
+      next,
+      removed.flatMap(seatKeys),
+      roomId,
+      'leave',
     );
-    if (result === -1) throw new Error('擂台房间状态已变化，请刷新后重试');
-    if (result === -2) throw new Error('擂台房间已过期');
-    if (result !== 1) throw new Error('擂台房间写入失败');
-    return next;
   }
 
   async start(
@@ -491,15 +469,27 @@ export class ArenaRoomService {
     if (!hasBothArenaTeams(room)) throw new Error('双方都需要至少一名参战者');
     if (!allArenaSeatsReady(room))
       throw new Error('所有参战者准备完毕后才能开始');
-    const frozenRoster = freezeArenaRoster(room, requestId, Date.now());
-    return this.commit(
-      room,
-      nextRoom(room, {
-        status: 'starting',
-        startRequestId: requestId,
-        frozenRoster,
-      }),
+    const freeze = () =>
+      this.commit(
+        room,
+        nextRoom(room, {
+          status: 'starting',
+          startRequestId: requestId,
+          frozenRoster: freezeArenaRoster(room, requestId, Date.now()),
+        }),
+      );
+    const links = Object.entries(room.partyVersions ?? {}).sort(([a], [b]) =>
+      a.localeCompare(b),
     );
+    if (!links.length) return freeze();
+    return db.transaction(async (tx) => {
+      for (const [partyId, revision] of links) {
+        const party = await readParty(partyId, tx, 'update');
+        if (!party || party.revision !== revision)
+          throw new Error('队伍名单状态已变化，请先退出擂台再入场');
+      }
+      return freeze();
+    });
   }
 
   async attachBattleMatch(
@@ -680,24 +670,24 @@ export class ArenaRoomService {
     next: ArenaRoomV1,
     indexes: string[],
     roomId: string,
+    operation: 'join' | 'leave' = 'join',
   ): Promise<ArenaRoomV1> {
-    if (indexes.length !== 2)
-      throw new Error('Arena room index update is invalid');
     const refreshKeys = roomIndexKeys(next);
     const result = Number(
       await redis.eval(
-        CAS_ROOM_WITH_TWO_INDEXES_LUA,
-        4 + refreshKeys.length,
+        CAS_ROOM_MEMBER_INDEXES_LUA,
+        2 + indexes.length + refreshKeys.length,
         roomKey(room.roomId),
         revisionKey(room.roomId),
-        indexes[0],
-        indexes[1],
+        ...indexes,
         ...refreshKeys,
         String(room.revision),
         JSON.stringify(next),
         String(next.revision),
         String(roomTtl(next)),
         roomId,
+        String(indexes.length),
+        operation,
       ),
     );
     if (result === -1) throw new Error('擂台房间状态已变化，请刷新后重试');
@@ -778,17 +768,7 @@ function createRoomState(
     now: number;
   },
 ): ArenaRoomV1 {
-  const seat: ArenaRoomSeatV1 = {
-    slot: 0,
-    userId: input.userId,
-    cultivatorId: input.cultivatorId,
-    displayName: normalizeDisplayName(input.displayName),
-    realm: input.realm,
-    realmStage: input.realmStage,
-    ready: false,
-    joinedAt: input.now,
-    lastSeenAt: input.now,
-  };
+  const seats = addSeats([], arenaSeats(input, input.now));
   return {
     version: 'arena_room_v1',
     roomId: input.roomId,
@@ -802,20 +782,52 @@ function createRoomState(
     updatedAt: input.now,
     expiresAt: input.now + ARENA_ROOM_TTL_SECONDS * 1000,
     teams: {
-      alpha: input.teamId === 'alpha' ? [seat] : [],
-      beta: input.teamId === 'beta' ? [seat] : [],
+      alpha: input.teamId === 'alpha' ? seats : [],
+      beta: input.teamId === 'beta' ? seats : [],
     },
+    ...(input.party
+      ? { partyVersions: { [input.party.id]: input.party.revision } }
+      : {}),
   };
 }
 
-function withSeat(
-  room: ArenaRoomV1,
-  teamId: ArenaTeamIdV1,
-  seat: ArenaRoomSeatV1,
-): ArenaRoomV1 {
-  return nextRoom(room, {
-    teams: { ...room.teams, [teamId]: [...room.teams[teamId], seat] },
-  });
+function arenaSeats(
+  input: CreateArenaRoomInput,
+  now: number,
+): ArenaRoomSeatV1[] {
+  const facts = input.party
+    ? input.party.members.map((member) => ({
+        ...member,
+        displayName: member.name,
+        realm: member.realm as RealmType,
+        realmStage: member.realmStage as RealmStage,
+      }))
+    : [input];
+  return facts.map(
+    ({ userId, cultivatorId, displayName, realm, realmStage }) => ({
+      userId,
+      cultivatorId,
+      displayName: normalizeDisplayName(displayName),
+      realm,
+      realmStage,
+      partyId: input.party?.id,
+      slot: 0,
+      ready: false,
+      joinedAt: now,
+      lastSeenAt: now,
+    }),
+  );
+}
+function addSeats(
+  existing: readonly ArenaRoomSeatV1[],
+  incoming: readonly ArenaRoomSeatV1[],
+) {
+  const next = [...existing];
+  for (const seat of incoming) next.push({ ...seat, slot: nextSlot(next) });
+  return next;
+}
+function seatKeys(seat: Pick<ArenaRoomSeatV1, 'userId' | 'cultivatorId'>) {
+  return [userKey(seat.userId), cultivatorKey(seat.cultivatorId)];
 }
 function updateSeat(
   room: ArenaRoomV1,
@@ -829,19 +841,6 @@ function updateSeat(
         candidate.userId === seat.userId
           ? { ...candidate, ...patch }
           : candidate,
-      ),
-    },
-  });
-}
-function removeSeat(
-  room: ArenaRoomV1,
-  seat: ArenaRoomSeatV1 & { teamId: ArenaTeamIdV1 },
-): ArenaRoomV1 {
-  return nextRoom(room, {
-    teams: {
-      ...room.teams,
-      [seat.teamId]: room.teams[seat.teamId].filter(
-        (candidate) => candidate.userId !== seat.userId,
       ),
     },
   });

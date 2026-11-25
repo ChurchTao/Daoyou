@@ -1,3 +1,4 @@
+import { InvasionModule } from '@server/invasion/invasion.module.js';
 import { LlmModule } from '@server/llm/llm.module.js';
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -19,6 +20,7 @@ import { RuntimeService } from './runtime.service.js';
     AuctionModule,
     AlchemyContestModule,
     BaixiaoModule,
+    InvasionModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [InternalCronController],

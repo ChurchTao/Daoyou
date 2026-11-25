@@ -9,6 +9,7 @@ export const WORLD_CHAT_MESSAGE_TYPES = [
   'hunt_rumor',
   'alchemy_contest_rumor',
   'baixiao_rumor',
+  'invasion_rumor',
   'text',
   'item_showcase',
   'beast_showcase',
@@ -104,6 +105,7 @@ export interface WorldChatPagination {
 }
 
 export interface WorldChatPayloadMap {
+  invasion_rumor: { text: string; week: string; nodeId: string };
   baixiao_rumor: { text: string; week: string; nodeId: string };
   alchemy_contest_rumor: { text: string; week: string; nodeId: string };
   hunt_rumor: { text: string; eventId: string; nodeId: string };

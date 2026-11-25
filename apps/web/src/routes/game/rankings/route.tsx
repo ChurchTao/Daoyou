@@ -1,3 +1,4 @@
+import { InvasionRanking } from './InvasionRanking';
 import { BaixiaoRanking } from './BaixiaoRanking';
 import { combatV6Request } from '@app/components/feature/combat-v6/request';
 import { CultivatorInspectionModal } from '@app/components/feature/cultivator-inspection';
@@ -213,7 +214,7 @@ export default function RankingsPage() {
   const note = session.data?.note;
   const [activeTab, setActiveTab] = useState<RankingTab>('battle');
   const activityTab = searchParams.get('tab');
-  const contestTab = activityTab === 'alchemy' || activityTab === 'baixiao' ? activityTab : null;
+  const contestTab = activityTab === 'alchemy' || activityTab === 'baixiao' || activityTab === 'invasion' ? activityTab : null;
   const [rankings, setRankings] = useState<RankingsDisplayItem[]>([]); // Use strict type
   const [myRankInfo, setMyRankInfo] = useState<MyRankInfo | null>(null);
   const [myRankInfoLoadingState, setMyRankInfoLoadingState] =
@@ -318,7 +319,7 @@ export default function RankingsPage() {
   }, [activeRealm, activeTab, contestTab, cultivator?.id, pushToast]);
 
   const handleTabChange = (val: string) => {
-    const isContest = val === 'alchemy' || val === 'baixiao';
+    const isContest = val === 'alchemy' || val === 'baixiao' || val === 'invasion';
     if (isContest || contestTab) {
       setSearchParams((previous) => {
         const next = new URLSearchParams(previous);
@@ -417,6 +418,7 @@ export default function RankingsPage() {
     { label: '财富榜', value: 'wealth' },
     { label: '炼丹榜', value: 'alchemy' },
     { label: '才子榜', value: 'baixiao' },
+    { label: '除魔榜', value: 'invasion' },
   ];
   if (contestTab) {
     return (
@@ -432,7 +434,7 @@ export default function RankingsPage() {
           onChange={handleTabChange}
           items={rankingTabs}
         />
-        {contestTab === 'alchemy' ? <AlchemyContestRanking /> : <BaixiaoRanking />}
+        {contestTab === 'alchemy' ? <AlchemyContestRanking /> : contestTab === 'baixiao' ? <BaixiaoRanking /> : <InvasionRanking />}
       </GameSceneFrame>
     );
   }

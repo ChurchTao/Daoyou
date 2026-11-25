@@ -4,6 +4,11 @@ import { scene } from '../handles';
 
 export const servicesRoutes = [
   <Route
+    path="party"
+    lazy={lazyRoute(() => import('@app/routes/game/party/route'))}
+    handle={scene({ id: 'party', presentation: 'service' }, '我的队伍')}
+  />,
+  <Route
     path="market/recycle"
     lazy={lazyRoute(() => import('@app/routes/game/market/recycle/route'))}
     handle={scene(

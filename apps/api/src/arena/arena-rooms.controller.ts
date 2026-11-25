@@ -1,4 +1,10 @@
 import {
+  ArenaCreateRoomSchema,
+  ArenaJoinRoomSchema,
+  ArenaReadyCommandSchema,
+  ArenaStartCommandSchema,
+} from '@daoyou/contracts/arena';
+import {
   Controller,
   Get,
   HttpCode,
@@ -8,19 +14,13 @@ import {
   Res,
 } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
-import {
-  ArenaCreateRoomSchema,
-  ArenaJoinRoomSchema,
-  ArenaReadyCommandSchema,
-  ArenaStartCommandSchema,
-} from '@daoyou/contracts/arena';
 import type { Response } from 'express';
 import { z } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
-import { ArenaRoomsService } from './arena-rooms.service.js';
 import { StoryGate } from '../story/story-gate.guard.js';
+import { ArenaRoomsService } from './arena-rooms.service.js';
 
 const RoomIdSchema = z
   .string()
@@ -55,10 +55,9 @@ export class ArenaRoomsController {
   create(
     @CurrentCultivator() actor: ActiveCultivatorRef,
     @JsonBody({ fallback: undefined }, new ZodPipe(ArenaCreateRoomSchema))
-    _input: z.infer<typeof ArenaCreateRoomSchema>,
+    input: z.infer<typeof ArenaCreateRoomSchema>,
   ) {
-    void _input;
-    return this.rooms.create(actor);
+    return this.rooms.create(actor, input.withParty);
   }
 
   @Post('rooms/join')

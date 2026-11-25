@@ -1,3 +1,5 @@
+import { PartiesModule } from '@server/parties/parties.module.js';
+import { InvasionModule } from '@server/invasion/invasion.module.js';
 import { allowsLocalDevTools } from '@daoyou/contracts/dev-tools-access';
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
@@ -81,6 +83,8 @@ import { WandererModule } from './wanderer/wanderer.module.js';
     AlchemyModule,
     AlchemyContestModule,
     BaixiaoModule,
+    InvasionModule,
+    PartiesModule,
     EnlightenmentModule,
     ForgingModule,
     InscriptionsModule,

@@ -9,6 +9,11 @@ export const activityRoutes = (
     })}
   >
     <Route
+      path="ancient-demon-invasion"
+      lazy={lazyRoute(() => import('@app/routes/game/invasion/route'))}
+      handle={scene({ id: 'ancient-demon-invasion', chrome: 'immersive', dock: 'hidden' }, '古魔入侵')}
+    />
+    <Route
       path="alchemy-contest"
       lazy={lazyRoute(() => import('@app/routes/game/alchemy-contest/route'))}
       handle={scene({ id: 'alchemy-contest', chrome: 'immersive', dock: 'hidden' }, '炼丹大会')}

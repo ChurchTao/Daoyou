@@ -9,6 +9,11 @@ export const combatRoutes = (
     })}
   >
     <Route
+      path="combat-v6/invasion/:battleId"
+      lazy={lazyRoute(() => import('@app/routes/game/combat-v6/arena/route'))}
+      handle={scene({ id: 'ancient-demon-invasion', chrome: 'immersive', dock: 'hidden' }, '古魔入侵')}
+    />
+    <Route
       path="combat-v6/hunt/:battleId"
       lazy={lazyRoute(() => import('@app/routes/game/combat-v6/arena/route'))}
       handle={scene(

@@ -1,5 +1,11 @@
+import { createHash } from 'node:crypto';
+import { EXORCISM_SKILLS, EXORCISM_STATUS_DEFS } from '@daoyou/game-content/dungeon/exorcism';
+import { INVASION_SKILLS, INVASION_STATUSES } from '@daoyou/game-content/invasion';
+import type { InvasionBattle, InvasionCard, InvasionResources } from '@daoyou/game-domain/invasion';
+import { invasionEnemies, invasionNpcCommand } from '@daoyou/game-rules/invasion';
+import { recordInvasionTerminal } from '@server/invasion/invasion-terminal.js';
 import type { SkillDef, StatusDef } from '@daoyou/combat-core/types';
-import type { RealmType } from '@daoyou/constants/realms';
+import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
 import type { ArenaRoomV1 } from '@daoyou/contracts/arena';
 import {
   ARENA_V6_PROTOCOL,
@@ -96,9 +102,21 @@ function mergeDefinitions<T extends SkillDef | StatusDef>(
   }
 }
 
+type InvasionLaunch = InvasionBattle & {
+  realm: RealmType;
+  formation: number;
+  week: string;
+  resources: Record<string, InvasionResources>;
+  cards: Record<string, InvasionCard | undefined>;
+  build?: Pick<ArenaRuntime, 'units' | 'skills' | 'statusDefs' | 'autoStrategies'> & {
+    unitAppearances: ArenaRuntime['timeline']['unitAppearances'];
+  };
+};
+
 export async function createArenaV6(
-  room: ArenaRoomV1,
+  room: Pick<ArenaRoomV1, 'roomId' | 'startRequestId' | 'frozenRoster'>,
   hunt?: Pick<HuntTeam, 'event' | 'minRealm' | 'maxRealm'>,
+  invasion?: InvasionLaunch,
 ): Promise<string> {
   const frozen = room.frozenRoster;
   if (!frozen || !room.startRequestId) throw new ArenaV6Error('缺少冻结阵容');
@@ -138,8 +156,9 @@ export async function createArenaV6(
         const participants: ArenaRuntime['participants'] = [];
         const huntRewards: NonNullable<ArenaRuntime['huntRewards']> = {};
         const autoStrategies: NonNullable<ArenaRuntime['autoStrategies']> = {};
+        let highestInvasionRealm = -1;
         for (const seat of seats) {
-          if (await hasActiveCombat(seat.cultivatorId))
+          if (await hasActiveCombat(seat.cultivatorId, { executor: tx, includeInvasion: !invasion }))
             throw new ArenaV6Error('参战角色尚在战斗或结算中');
           const identity = await tx.query.cultivators.findFirst({
             where: and(
@@ -149,6 +168,17 @@ export async function createArenaV6(
             ),
           });
           if (!identity) throw new ArenaV6Error('参战角色归属已变化');
+          if (invasion?.build) {
+            const unit = invasion.build.units.find((entry) => entry.kind === 'player' && entry.id === seat.cultivatorId);
+            if (!unit?.id) throw new ArenaV6Error('古魔入侵阵容缺少角色');
+            participants.push({ userId: seat.userId, cultivatorId: seat.cultivatorId, unitId: unit.id, side: 0, slot: seat.slot });
+            continue;
+          }
+          if (invasion)
+            highestInvasionRealm = Math.max(
+              highestInvasionRealm,
+              REALM_VALUES.indexOf(identity.realm as RealmType),
+            );
           if (hunt && !huntRealmAllowed(hunt, identity.realm as RealmType))
             throw new ArenaV6Error('参战境界已变化，请重新准备');
           if (huntEvent)
@@ -234,20 +264,68 @@ export async function createArenaV6(
               icon: huntEnemyIcon(huntEvent.bossId, unit.slot!),
             };
         }
+        if (invasion) {
+          if (!invasion.build && highestInvasionRealm !== REALM_VALUES.indexOf(invasion.realm))
+            throw new ArenaV6Error('参战境界已变化，请重新准备');
+          if (invasion.build) {
+            mergeDefinitions(skills, invasion.build.skills);
+            mergeDefinitions(statuses, invasion.build.statusDefs);
+            Object.assign(autoStrategies, invasion.build.autoStrategies);
+            Object.assign(unitAppearances, invasion.build.unitAppearances);
+            units.push(...structuredClone(invasion.build.units));
+          }
+          for (const unit of units) {
+            const carry = invasion.resources[unit.id!];
+            if (carry) {
+              unit.attrs.hp = Math.min(unit.attrs.maxHp ?? unit.attrs.hp, carry.hp);
+              unit.attrs.mp = Math.min(unit.attrs.maxMp ?? unit.attrs.mp ?? 0, carry.mp);
+              if (unit.kind === 'pet') unit.benched = carry.benched;
+            }
+            if (unit.kind === 'player') {
+              const card = invasion.cards[unit.id!];
+              if (card) unit.passives = [...(unit.passives ?? []), `invasion.card.${card}`];
+            }
+          }
+          if (!units.some((unit) => !unit.benched && unit.attrs.hp > 0))
+            throw new ArenaV6Error('队伍已无可出战的成员');
+          for (let index = units.length - 1; index >= 0; index--) {
+            const unit = units[index];
+            if (unit.kind === 'pet' && unit.attrs.hp === 0) units.splice(index, 1);
+          }
+          const enemies = invasionEnemies(invasion.realm, seats.length, invasion.wave, invasion.formation);
+          units.push(...enemies);
+          // The first wave already froze these definitions for future waves.
+          if (!invasion.build) {
+            mergeDefinitions(skills, [...HUNT_SKILLS, ...EXORCISM_SKILLS, ...INVASION_SKILLS]);
+            mergeDefinitions(statuses, [...HUNT_STATUSES, ...EXORCISM_STATUS_DEFS, ...INVASION_STATUSES]);
+          }
+          for (const unit of enemies)
+            unitAppearances[unit.id!] = { icon: unit.slot === 0 ? 'icon:portrait-manifest-demonic' : 'icon:portrait-yaoguai' };
+        }
         units.sort((a, b) => a.side - b.side || (a.slot ?? 0) - (b.slot ?? 0));
         const now = Date.now();
         const battleId = crypto.randomUUID();
         const input = {
-          seed: crypto.getRandomValues(new Uint32Array(1))[0],
+          seed: invasion
+            ? createHash('sha256').update(`invasion:battle:${invasion.week}:${invasion.wave}`).digest().readUInt32LE()
+            : crypto.getRandomValues(new Uint32Array(1))[0],
           units,
           skills: [...skills.values()],
           statusDefs: [...statuses.values()],
           autoStrategies,
         };
         const battle = arenaBattle(input);
+        const state = battle.snapshot();
+        if (invasion) {
+          for (const unit of state.units) {
+            if (unit.side === 0 && unit.kind === 'player' && unit.attrs.hp === 0)
+              unit.flags.downed = true;
+          }
+        }
         const runtime: ArenaRuntime = {
           ...input,
           hunt: huntEvent,
+          invasion: invasion && { teamId: invasion.teamId, wave: invasion.wave, endsAt: invasion.endsAt },
           huntResourcePolicy: huntEvent ? 'persistent' : undefined,
           huntRewards: huntEvent ? huntRewards : undefined,
           protocol: ARENA_V6_PROTOCOL,
@@ -255,9 +333,9 @@ export async function createArenaV6(
           roomId: room.roomId,
           startRequestId: room.startRequestId!,
           participants,
-          state: battle.snapshot(),
+          state,
           timeline: startReplayTimeline(
-            battle.snapshot(),
+            state,
             input.statusDefs,
             battle.log().length - 1,
             unitAppearances,
@@ -267,14 +345,14 @@ export async function createArenaV6(
           revision: 0,
           stage: 'collecting',
           createdAt: now,
-          expiresAt: now + 7200000,
-          deadlineAt: now + 30000,
+          expiresAt: invasion?.endsAt ?? now + 7200000,
+          deadlineAt: Math.min(invasion?.endsAt ?? Infinity, now + 30000),
           playbackEndsAt: now,
           commands: {},
           receipts: {},
           lastResults: {},
         };
-        if (runtime.hunt) fillHuntCommands(runtime);
+        if (runtime.hunt || runtime.invasion) fillPveCommands(runtime);
         lease.assertHeld();
         const id = await store.create(runtime);
         if (id === 'EXPIRED') throw new ArenaV6Error('此处异动已平息');
@@ -398,7 +476,7 @@ export async function advanceArenaV6(id: string) {
     await finalizeArenaV6(runtime);
     return;
   }
-  const room = runtime.hunt ? null : await rooms.getRoom(runtime.roomId);
+  const room = runtime.hunt || runtime.invasion ? null : await rooms.getRoom(runtime.roomId);
   if (
     room?.status === 'starting' &&
     room.startRequestId === runtime.startRequestId
@@ -439,9 +517,9 @@ export async function advanceArenaV6(id: string) {
       commands: {},
       stage: 'collecting',
       revision: runtime.revision + 1,
-      deadlineAt: runtime.playbackEndsAt + 30000,
+      deadlineAt: Math.min(runtime.playbackEndsAt + 30000, runtime.expiresAt),
     };
-    if (next.hunt) fillHuntCommands(next);
+    if (next.hunt || next.invasion) fillPveCommands(next);
     for (const unit of arenaWaitingUnits(next)) {
       if (next.commands[unit.id]) continue;
       if (
@@ -486,6 +564,7 @@ export async function advanceArenaV6(id: string) {
     let next: ArenaRuntime;
     try {
       next = resolveArena(runtime, Date.now());
+      if (next.invasion && next.stage === 'finished') next.terminalAt = Date.now();
     } catch (error) {
       console.error('[arena-v6] deterministic resolution failed', {
         battleId: id,
@@ -507,6 +586,12 @@ export async function advanceArenaV6(id: string) {
 }
 
 async function finalizeArenaV6(runtime: ArenaRuntime) {
+  if (runtime.invasion) {
+    await recordInvasionTerminal(runtime);
+    await store.release(runtime);
+    await store.acknowledge(runtime);
+    return;
+  }
   if (runtime.hunt) {
     await publishHuntTerminal(runtime);
     return;
@@ -625,11 +710,11 @@ export async function stopArenaV6Coordinator() {
   await task;
 }
 
-function fillHuntCommands(runtime: ArenaRuntime) {
+function fillPveCommands(runtime: ArenaRuntime) {
   for (const unit of arenaWaitingUnits(runtime).filter((u) => u.side === 1)) {
     runtime.commands[unit.id] = {
       requestId: `npc:${runtime.state.round}:${unit.id}`,
-      command: huntNpcCommand(runtime, unit.id),
+      command: runtime.invasion ? invasionNpcCommand(runtime, unit.id) : huntNpcCommand(runtime, unit.id),
       automatic: true,
     };
   }

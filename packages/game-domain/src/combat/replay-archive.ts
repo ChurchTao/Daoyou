@@ -30,6 +30,13 @@ export const CombatV6ReplayMetadataSchema = z.union([
       payload: z.object({ eventId: z.string(), roomId: z.uuid() }).strict(),
     })
     .strict(),
+  z.strictObject({
+    schemaVersion: z.literal(1),
+    sourceType: z.literal('ancient-demon-invasion'),
+    battleType: z.literal('pve'),
+    idempotencyKey: z.uuid(),
+    payload: z.strictObject({ teamId: z.uuid(), wave: z.number().int().positive() }),
+  }),
   CombatV6BattleMetadataV1Schema,
   z
     .object({

@@ -1,0 +1,114 @@
+.invasion-view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+}
+.invasion-camp {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--color-sheet);
+  isolation: isolate;
+}
+.invasion-landscape {
+  position: fixed;
+  z-index: -2;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: var(--color-sheet) url('/assets/maps/taiyue-baishui-v1.webp')
+    center / cover no-repeat;
+}
+.invasion-camp::after {
+  position: fixed;
+  content: '';
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    var(--color-sheet) 8%,
+    color-mix(in srgb, var(--color-sheet) 72%, transparent) 50%,
+    color-mix(in srgb, var(--color-sheet) 10%, transparent)
+  );
+}
+.invasion-body {
+  width: min(100%, 74rem);
+  margin: auto;
+  padding: clamp(1rem, 5vw, 4rem) max(1rem, env(safe-area-inset-right))
+    max(1.5rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
+}
+.invasion-panel {
+  display: grid;
+  gap: 0.85rem;
+  max-width: 36rem;
+  overflow-wrap: anywhere;
+}
+.invasion-panel h2 {
+  color: var(--color-ink);
+  font: 400 clamp(1.9rem, 6vw, 3.35rem)/1.15 var(--font-heading);
+}
+.invasion-panel h3 {
+  font-weight: 600;
+  margin-bottom: 0.45rem;
+}
+.invasion-panel small {
+  font-size: 0.8rem;
+  color: var(--color-ink-secondary);
+}
+.invasion-kicker,
+.invasion-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+.invasion-list li {
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--color-ink-border);
+}
+.invasion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+.invasion-actions button,
+.invasion-list button,
+.invasion-ranking-link {
+  min-height: 44px;
+}
+.invasion-ranking-link {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-teal);
+  text-decoration: underline;
+  width: fit-content;
+}
+.invasion-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+  gap: 0.4rem;
+}
+.invasion-cards button {
+  display: grid;
+  min-height: 44px;
+  padding: 0.45rem;
+  text-align: start;
+  border: 1px solid var(--color-ink-border);
+  background: var(--color-paper);
+}
+.invasion-cards button[aria-pressed='true'] {
+  border-color: var(--color-teal);
+  box-shadow: inset 0 -2px var(--color-teal);
+}
+@media (max-width: 38rem) {
+  .invasion-camp::after {
+    background: color-mix(in srgb, var(--color-sheet) 85%, transparent);
+  }
+}

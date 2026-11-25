@@ -1,10 +1,10 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import {
   NpcConversation,
   RoomView,
   type RoomActorView,
 } from '@app/components/feature/room';
 import { GameSceneFrame } from '@app/components/game-shell';
+import { apiFetch } from '@app/lib/api/fetch';
 import { realtimeClient } from '@app/lib/realtime/realtimeClient';
 import { usePlayerSession } from '@app/lib/resources/player';
 import type {
@@ -20,8 +20,9 @@ import {
   hasBothArenaTeams,
   isArenaRoomActive,
 } from '@daoyou/contracts/arena';
+import type { CurrentParty } from '@daoyou/contracts/party';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 
 const ARENA_ROOM_TOUCH_INTERVAL_MS = 5 * 60_000;
 
@@ -233,6 +234,28 @@ function ArenaFacility({
 }) {
   const [inviteCode, setInviteCode] = useState('');
   const [joining, setJoining] = useState(false);
+  const [withParty, setWithParty] = useState(false);
+  const [partyNames, setPartyNames] = useState<string[]>([]);
+  useEffect(() => {
+    if (room || !currentCultivatorId) return;
+    const abort = new AbortController();
+    void requestArena<CurrentParty>('/api/parties/me', { signal: abort.signal })
+      .then(({ party }) => {
+        if (abort.signal.aborted) return;
+        const leader = party?.members.find(
+          (member) => member.userId === party.leaderId,
+        );
+        setPartyNames(
+          leader?.cultivatorId === currentCultivatorId &&
+            party &&
+            party.members.length > 1
+            ? party.members.map((member) => member.name)
+            : [],
+        );
+      })
+      .catch(() => {});
+    return () => abort.abort();
+  }, [room, currentCultivatorId]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [startRequestId] = useState(() => crypto.randomUUID());
@@ -248,9 +271,11 @@ function ArenaFacility({
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify(
             action === 'create'
-              ? {}
+              ? { withParty: partyNames.length > 1 && withParty }
               : {
                   inviteCode,
+                  withParty:
+                    action === 'join' && partyNames.length > 1 && withParty,
                   role: action === 'watch' ? 'spectator' : 'participant',
                 },
           ),
@@ -292,6 +317,19 @@ function ArenaFacility({
         />
       ) : (
         <div className="mt-4 space-y-2">
+          {partyNames.length > 1 && (
+            <label className="text-ink-secondary flex min-h-11 items-start gap-2 px-5 py-3 text-sm">
+              <input
+                type="checkbox"
+                checked={withParty}
+                onChange={(event) => setWithParty(event.target.checked)}
+              />
+              <span>
+                带当前队伍入场{' '}
+                <span className="block">{partyNames.join('、')}</span>
+              </span>
+            </label>
+          )}
           <button
             type="button"
             disabled={busy || loading}
@@ -301,6 +339,12 @@ function ArenaFacility({
             创建一间切磋房
           </button>
 
+          <Link
+            className="text-teal block w-fit px-5 py-2 text-sm underline"
+            to="/game/party"
+          >
+            我的队伍
+          </Link>
           <div>
             <button
               type="button"
@@ -658,6 +702,7 @@ async function requestArena<T>(url: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   const body = (await response.json()) as T & { error?: string };
-  if (!response.ok) throw new Error(body.error ?? '擂台暂时无法使用，请稍后重试。');
+  if (!response.ok)
+    throw new Error(body.error ?? '擂台暂时无法使用，请稍后重试。');
   return body;
 }

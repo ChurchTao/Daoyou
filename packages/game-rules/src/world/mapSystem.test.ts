@@ -1,3 +1,4 @@
+import { INVASION_NODE_ID } from '@daoyou/game-domain/invasion';
 import { CONTEST_NODE_ID } from '@daoyou/game-domain/alchemy/contest';
 import { BAIXIAO_NODE_ID } from '@daoyou/game-domain/baixiao/meet';
 import { PRODUCTION_SECT_IDS } from '../sect-organization/production/productionRuntime.js';
@@ -107,7 +108,7 @@ describe('resolveDungeonMapConfig', () => {
   it('keeps curated map data explicitly classified', () => {
     const satelliteNodes = getAllSatelliteNodes();
 
-    const activityIds = new Set([CONTEST_NODE_ID, BAIXIAO_NODE_ID]);
+    const activityIds = new Set([CONTEST_NODE_ID, BAIXIAO_NODE_ID, INVASION_NODE_ID]);
     expect(satelliteNodes.find(({ id }) => id === CONTEST_NODE_ID)).toMatchObject({
       type: 'landmark',
       parent_id: 'LX_INNER_01',
@@ -116,6 +117,9 @@ describe('resolveDungeonMapConfig', () => {
       type: 'landmark',
       parent_id: 'DJ_CENTRAL_01',
       realm_requirement: '炼气',
+    });
+    expect(satelliteNodes.find(({ id }) => id === INVASION_NODE_ID)).toMatchObject({
+      type: 'landmark', parent_id: 'TN_YUE_01', realm_requirement: '炼气',
     });
     expect(satelliteNodes
       .filter(({ id }) => !activityIds.has(id))

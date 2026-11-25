@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./invasion": {
+      "types": "./dist/invasion/index.d.ts",
+      "default": "./dist/invasion/index.js"
+    },
     "./achievements": "./dist/public/achievements.js",
     "./alchemy": "./dist/public/alchemy.js",
     "./alchemy/contest": "./dist/alchemy/contest.js",

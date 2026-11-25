@@ -4,6 +4,14 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./party": {
+      "types": "./dist/party.d.ts",
+      "default": "./dist/party.js"
+    },
+    "./invasion": {
+      "types": "./dist/invasion.d.ts",
+      "default": "./dist/invasion.js"
+    },
     "./achievements": "./dist/public/achievements.js",
     "./account": "./dist/account.js",
     "./admin/accounts": "./dist/adminAccounts.js",

@@ -568,6 +568,13 @@
       "when": 1795576930486,
       "tag": "0081_baixiao_meet",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1795593510222,
+      "tag": "0082_ancient_demon_invasion_and_parties",
+      "breakpoints": true
     }
   ]
 }

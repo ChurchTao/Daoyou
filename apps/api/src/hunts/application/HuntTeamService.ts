@@ -31,6 +31,16 @@ import {
 } from '@server/lib/redis/lock.js';
 import { checkAndAcquireCooldown } from '@server/lib/redis/worldChatLimiter.js';
 import { journalOperationKey } from '@server/lib/repositories/playerJournalRepository.js';
+import {
+  changeParty,
+  createParty,
+  importParty,
+  joinParty,
+  partyForUser,
+  partyOwns,
+  readParty,
+  type Party,
+} from '@server/parties/party.service.js';
 import { publishHuntTeamStart } from '@server/realtime/infrastructure/huntTeamStartBroadcaster.js';
 import { createAndPublishWorldChatMessage } from '@server/social/application/chatDelivery.js';
 import { and, eq } from 'drizzle-orm';
@@ -53,9 +63,77 @@ const lock = <T>(task: (lease: RedisLeaseContext) => Promise<T>) =>
     task,
   );
 
-async function readTeam(id: string): Promise<HuntTeam | null> {
+type StoredHuntTeam = HuntTeam & { partyRevision?: number };
+async function readStoredTeam(id: string): Promise<StoredHuntTeam | null> {
   const raw = await redis.get(teamKey(id));
-  return raw ? (JSON.parse(raw) as HuntTeam) : null;
+  return raw ? (JSON.parse(raw) as StoredHuntTeam) : null;
+}
+
+function huntParty(
+  party: Party,
+  saved?: StoredHuntTeam | null,
+): StoredHuntTeam {
+  const synchronized = saved?.partyRevision === party.revision;
+  const members = party.members.map(
+    ({ userId, cultivatorId, name, realm, gender }): HuntMember => {
+      const old = saved?.members.find(
+        (entry) =>
+          entry.userId === userId && entry.cultivatorId === cultivatorId,
+      );
+      return {
+        userId,
+        cultivatorId,
+        name,
+        realm: realm as RealmType,
+        gender: gender === '男' || gender === '女' ? gender : undefined,
+        ready: synchronized && Boolean(old?.ready),
+        assisting: Boolean(old?.assisting),
+      };
+    },
+  );
+  return {
+    id: party.id,
+    event: null,
+    minRealm: REALM_VALUES[0],
+    maxRealm: REALM_VALUES.at(-1)!,
+    status: 'assembling',
+    ...saved,
+    members,
+    leaderId:
+      members.find(({ userId }) => userId === party.leaderId)?.cultivatorId ??
+      '',
+    partyRevision: party.revision,
+    revision:
+      (saved?.revision ?? 0) +
+      (synchronized ? 0 : party.revision - (saved?.partyRevision ?? 0)),
+  };
+}
+
+async function readTeam(
+  id: string,
+  importLegacy = true,
+): Promise<StoredHuntTeam | null> {
+  const saved = await readStoredTeam(id);
+  if (saved && saved.status !== 'assembling') return saved;
+  let party = await readParty(id);
+  if (!party && saved && saved.partyRevision === undefined && importLegacy) {
+    const leader = saved.members.find(
+      ({ cultivatorId }) => cultivatorId === saved.leaderId,
+    );
+    if (leader) party = await importParty(id, leader.userId, saved.members);
+    if (party) {
+      const upgraded = { ...saved, partyRevision: party.revision };
+      await redis.eval(
+        "if redis.call('GET', KEYS[1]) == ARGV[1] then redis.call('SET', KEYS[1], ARGV[2]) end",
+        1,
+        teamKey(id),
+        JSON.stringify(saved),
+        JSON.stringify(upgraded),
+      );
+      return huntParty(party, upgraded);
+    }
+  }
+  return party ? huntParty(party, saved) : null;
 }
 export async function huntClaimed(eventId: string, cultivatorId: string) {
   return !!(
@@ -98,7 +176,7 @@ async function member(
     assisting: event ? await huntClaimed(event.id, actor.cultivatorId) : false,
   };
 }
-function withoutTarget(team: HuntTeam): HuntTeam {
+function withoutTarget(team: StoredHuntTeam): StoredHuntTeam {
   return {
     ...team,
     event: null,
@@ -113,52 +191,36 @@ function withoutTarget(team: HuntTeam): HuntTeam {
     revision: team.revision + 1,
   };
 }
-// One atomic write maintains roster, membership ownership and the event index.
+// Keep the hunt target and start receipt in one Redis update. Membership is held by the shared party.
 async function saveTeam(
-  team: HuntTeam,
-  previous: HuntTeam | null,
+  team: StoredHuntTeam,
+  previous: StoredHuntTeam | null,
   lease: RedisLeaseContext,
 ) {
+  const raw = await redis.get(teamKey(team.id));
   lease.assertHeld();
-  const removed = (previous?.members ?? []).filter(
-    (m) => !team.members.some((n) => n.userId === m.userId),
-  );
   const result = await redis.eval(
     `
-local raw = redis.call('GET', KEYS[1])
-if ARGV[1] == '-1' then if raw then return 0 end
-elseif not raw or cjson.decode(raw).revision ~= tonumber(ARGV[1]) then return 0 end
+local raw = redis.call('GET', KEYS[1]) or ''
+if raw ~= ARGV[1] then return 0 end
 local next = cjson.decode(ARGV[2])
-for _,m in ipairs(next.members) do
- local key = 'hunt:v1:member:' .. m.userId
- local owner = redis.call('GET', key)
- if owner and owner ~= next.id then return 0 end
-end
-for _,m in ipairs(cjson.decode(ARGV[3])) do
- local key = 'hunt:v1:member:' .. m.userId
- if redis.call('GET', key) == next.id then redis.call('DEL', key) end
-end
-local prevEvent = ARGV[4]
-local nextEvent = ARGV[5]
+local prevEvent = ARGV[3]
+local nextEvent = ARGV[4]
 if prevEvent ~= '' then redis.call('SREM', 'hunt:v1:teams:' .. prevEvent, next.id) end
-if nextEvent ~= '' and nextEvent ~= prevEvent then redis.call('SREM', 'hunt:v1:teams:' .. nextEvent, next.id) end
 if #next.members == 0 then
- redis.call('DEL', KEYS[1])
- redis.call('DEL', ARGV[7])
+ redis.call('DEL', KEYS[1], ARGV[6])
 else
  redis.call('SET', KEYS[1], ARGV[2])
  if nextEvent ~= '' then
   redis.call('SADD', 'hunt:v1:teams:' .. nextEvent, next.id)
-  redis.call('ZADD', 'hunt:v1:team-events', tonumber(ARGV[6]), nextEvent)
+  redis.call('ZADD', 'hunt:v1:team-events', tonumber(ARGV[5]), nextEvent)
  end
- for _,m in ipairs(next.members) do redis.call('SET', 'hunt:v1:member:' .. m.userId, next.id) end
 end
 return 1`,
     1,
     teamKey(team.id),
-    previous?.revision ?? -1,
+    raw ?? '',
     JSON.stringify(team),
-    JSON.stringify(removed),
     previous?.event?.id ?? '',
     team.event?.id ?? '',
     String(team.event?.expiresAt ?? 0),
@@ -169,15 +231,16 @@ return 1`,
     team.status === 'in_battle' &&
     team.battleId &&
     previous?.status !== 'in_battle'
-  ) {
+  )
     publishHuntTeamStart(
       team.members.map((member) => member.userId),
       { teamId: team.id },
     );
-  }
 }
 async function currentTeam(actor: HuntActor, lease: RedisLeaseContext) {
-  const id = await redis.get(memberKey(actor.userId));
+  const party = await partyForUser(actor.userId);
+  if (party && !partyOwns(party, actor)) return null;
+  const id = party?.id ?? (await redis.get(memberKey(actor.userId)));
   if (!id) return null;
   const team = await readTeam(id);
   if (!team) {
@@ -189,6 +252,12 @@ async function currentTeam(actor: HuntActor, lease: RedisLeaseContext) {
     );
     return null;
   }
+  if (
+    !team.members.some(
+      (m) => m.userId === actor.userId && m.cultivatorId === actor.cultivatorId,
+    )
+  )
+    return null;
   if (team.status === 'starting' && team.startRequestId) {
     const battleId = await battleStore.source(team.id, team.startRequestId);
     if (battleId) {
@@ -222,7 +291,7 @@ function requireEvent(id: string, open = true) {
 }
 async function eventTeams(id: string) {
   const ids = await redis.smembers(eventTeamsKey(id));
-  const teams = await Promise.all(ids.map(readTeam));
+  const teams = await Promise.all(ids.map((id) => readTeam(id)));
   return teams.filter(
     (t): t is HuntTeam => !!t && t.members.length > 0 && t.event?.id === id,
   );
@@ -250,10 +319,17 @@ export async function huntLobby(
 export async function readMyHuntTeam(
   actor: HuntActor,
 ): Promise<HuntTeam | null> {
-  const id = await redis.get(memberKey(actor.userId));
+  const party = await partyForUser(actor.userId);
+  if (party && !partyOwns(party, actor)) return null;
+  const id = party?.id ?? (await redis.get(memberKey(actor.userId)));
   if (!id) return null;
   const team = await readTeam(id);
-  if (!team?.members.some((m) => m.userId === actor.userId)) return null;
+  if (
+    !team?.members.some(
+      (m) => m.userId === actor.userId && m.cultivatorId === actor.cultivatorId,
+    )
+  )
+    return null;
   return team;
 }
 export async function createHuntTeam(
@@ -262,24 +338,38 @@ export async function createHuntTeam(
 ) {
   return lock(async (lease) => {
     const event = input.eventId ? requireEvent(input.eventId) : null;
-    if (await currentTeam(actor, lease))
-      throw new ArenaV6Error('请先离开当前讨伐队伍');
+    const current = await currentTeam(actor, lease);
+    if (current && current.leaderId !== actor.cultivatorId)
+      throw new ArenaV6Error('只有队长可以设置讨伐招募', 403);
     if (await hasActiveCombat(actor.cultivatorId))
       throw new ArenaV6Error('上一场战斗尚未结束，请稍候');
     const self = await member(actor, event);
     if (!huntRealmAllowed(input, self.realm))
       throw new ArenaV6Error('招募的境界范围也需包含你自己');
-    const team: HuntTeam = {
-      id: crypto.randomUUID(),
+    const party = current
+      ? await readParty(current.id)
+      : await createParty(actor);
+    if (!party) throw new ArenaV6Error('队伍已解散');
+    const base = huntParty(party, current);
+    if (base.status !== 'assembling')
+      throw new ArenaV6Error('出战中不能更换目标');
+    const members = [];
+    for (const entry of base.members) {
+      const facts = await member(entry, event);
+      if (!huntRealmAllowed(input, facts.realm))
+        throw new ArenaV6Error('队员境界不在招募范围内');
+      members.push(facts);
+    }
+    const team: StoredHuntTeam = {
+      ...base,
       event,
       minRealm: input.minRealm,
       maxRealm: input.maxRealm,
       leaderId: actor.cultivatorId,
-      members: [self],
-      status: 'assembling',
-      revision: 0,
+      members,
+      revision: base.revision + 1,
     };
-    await saveTeam(team, null, lease);
+    await saveTeam(team, current, lease);
     return team;
   });
 }
@@ -313,10 +403,13 @@ export async function joinHuntTeam(
       !huntRealmAllowed(team, self.realm)
     )
       throw new ArenaV6Error('这支队伍已满、已出战，或你的境界不在招募范围内');
+    const party = await joinParty(actor, team.id);
+    const roster = huntParty(party, team);
     const next = {
-      ...team,
-      members: [...team.members, self],
-      revision: team.revision + 1,
+      ...roster,
+      members: roster.members.map((entry) =>
+        entry.userId === actor.userId ? self : entry,
+      ),
     };
     await saveTeam(next, team, lease);
     return next;
@@ -344,10 +437,13 @@ export async function joinHuntTeamById(actor: HuntActor, teamId: string) {
     const self = await member(actor, team.event);
     if (!huntRealmAllowed(team, self.realm))
       throw new ArenaV6Error('你的境界不在这支队伍的招募范围内');
+    const party = await joinParty(actor, team.id);
+    const roster = huntParty(party, team);
     const next = {
-      ...team,
-      members: [...team.members, self],
-      revision: team.revision + 1,
+      ...roster,
+      members: roster.members.map((entry) =>
+        entry.userId === actor.userId ? self : entry,
+      ),
     };
     await saveTeam(next, team, lease);
     return next;
@@ -418,18 +514,14 @@ export async function commandHuntTeam(
     if (command.type === 'leave') {
       if (team.status === 'starting')
         throw new ArenaV6Error('队伍正在出战，请稍候');
-      const members = team.members
-        .filter((m) => m.cultivatorId !== actor.cultivatorId)
-        .map((m) => ({ ...m, ready: false }));
-      const next = {
-        ...team,
-        members,
-        leaderId: members.some((m) => m.cultivatorId === team.leaderId)
-          ? team.leaderId
-          : (members[0]?.cultivatorId ?? ''),
-        revision: team.revision + 1,
-      };
-      await saveTeam(next, team, lease);
+      const party = await changeParty(actor, team.id, { type: 'leave' });
+      await saveTeam(
+        party
+          ? huntParty(party, team)
+          : { ...team, members: [], revision: team.revision + 1 },
+        team,
+        lease,
+      );
       return null;
     }
     if (command.type === 'kick') {
@@ -438,17 +530,16 @@ export async function commandHuntTeam(
         actor.cultivatorId,
         command.cultivatorId,
       );
-      if (error) {
+      if (error)
         throw new ArenaV6Error(error, error.startsWith('只有队长') ? 403 : 400);
-      }
-      const members = team.members
-        .filter((member) => member.cultivatorId !== command.cultivatorId)
-        .map((member) => ({ ...member, ready: false }));
-      const next = {
-        ...team,
-        members,
-        revision: team.revision + 1,
-      };
+      const target = team.members.find(
+        (entry) => entry.cultivatorId === command.cultivatorId,
+      )!;
+      const party = await changeParty(actor, team.id, {
+        type: 'kick',
+        userId: target.userId,
+      });
+      const next = huntParty(party!, team);
       await saveTeam(next, team, lease);
       return next;
     }
@@ -543,7 +634,7 @@ export async function commandHuntTeam(
       Date.now(),
     );
     if (error) throw new ArenaV6Error(error);
-    const starting: HuntTeam = {
+    const starting: StoredHuntTeam = {
       ...team,
       members,
       status: 'starting',
@@ -552,7 +643,18 @@ export async function commandHuntTeam(
       battleId: undefined,
       revision: team.revision + 1,
     };
-    await saveTeam(starting, team, lease);
+    if (team.status !== 'starting') {
+      await db.transaction(async (tx) => {
+        const party = await readParty(team.id, tx, 'update');
+        if (
+          !party ||
+          party.revision !== team.partyRevision ||
+          !partyOwns(party, actor)
+        )
+          throw new ArenaV6Error('队员有变，请确认名单后再试');
+        await saveTeam(starting, team, lease);
+      });
+    } else await saveTeam(starting, team, lease);
     try {
       const battleId = await createArenaV6(arenaRoom(starting), starting);
       const next = {
@@ -605,12 +707,17 @@ export async function finishHuntTeam(
             ? await huntClaimed(team.event.id, m.cultivatorId)
             : false,
       });
+    const party = await readParty(team.id);
+    const next = party
+      ? huntParty(party, { ...team, members })
+      : team.partyRevision === undefined
+        ? { ...team, members }
+        : { ...team, members: [] };
     await saveTeam(
       {
-        ...team,
+        ...next,
         event: open ? team.event : null,
         status: 'assembling',
-        members,
         battleId: undefined,
         lastBattleId: battleId,
         startRequestId: undefined,
@@ -632,7 +739,13 @@ export async function cleanupHuntTeams() {
   );
   for (const id of ids)
     await lock(async (lease) => {
-      for (const team of await eventTeams(id)) {
+      const indexed = await redis.smembers(eventTeamsKey(id));
+      const eventParties = await eventTeams(id);
+      const stale = indexed.filter(
+        (partyId) => !eventParties.some((team) => team.id === partyId),
+      );
+      if (stale.length) await redis.srem(eventTeamsKey(id), ...stale);
+      for (const team of eventParties) {
         if (team.status === 'in_battle') continue;
         if (
           team.status === 'starting' &&

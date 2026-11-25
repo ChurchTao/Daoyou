@@ -259,6 +259,7 @@ export function arenaView(
     : undefined;
   return {
     hunt: runtime.hunt,
+    invasion: runtime.invasion,
     sessionId: runtime.battleId,
     revision: runtime.revision,
     expiresAt: new Date(runtime.expiresAt).toISOString(),
@@ -304,7 +305,7 @@ export function arenaView(
     commandOpensAt: runtime.playbackEndsAt,
     commandDeadlineAt:
       runtime.stage === 'playback'
-        ? runtime.playbackEndsAt + 30000
+        ? Math.min(runtime.playbackEndsAt + 30000, runtime.expiresAt)
         : runtime.deadlineAt,
     playbackEndsAt: runtime.playbackEndsAt,
     submittedUnitIds: Object.keys(runtime.commands),
@@ -369,7 +370,10 @@ export function resolveArena<
     now + Math.max(1, frames.values().next().value!.frames.length) * 1000;
   next.stage = battle.finished ? 'finished' : 'playback';
   next.deadlineAt = next.playbackEndsAt;
-  if (battle.finished) next.terminalReason = 'battle-ended';
+  if (battle.finished) {
+    next.terminalReason = 'battle-ended';
+    next.terminalAt = now;
+  }
   next.lastResults = Object.fromEntries(
     [...next.participants.map((p) => p.unitId), ARENA_PUBLIC_VIEW].map((id) => [
       id,
