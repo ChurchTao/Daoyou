@@ -1,5 +1,5 @@
 {
-  "id": "8e56bb5f-dc4e-41b6-9fea-7224e6ee2ae3",
+  "id": "b06c5af9-2ed0-4f4a-bb5c-6fb11dd06f67",
   "prevId": "a125e1c2-657e-4b84-b9fd-ffe6cbe1d5dc",
   "version": "7",
   "dialect": "postgresql",
@@ -1865,6 +1865,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "challenge_id": {
+          "name": "challenge_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "paper": {
           "name": "paper",
           "type": "jsonb",
@@ -1877,6 +1883,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'[]'::jsonb"
+        },
+        "focus_penalties": {
+          "name": "focus_penalties",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
         },
         "status": {
           "name": "status",
@@ -1995,12 +2008,19 @@
           "primaryKey": false,
           "notNull": true
         },
+        "sample_key": {
+          "name": "sample_key",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "random()"
+        },
         "status": {
           "name": "status",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'draft'"
+          "default": "'published'"
         },
         "created_at": {
           "name": "created_at",
@@ -2026,6 +2046,61 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "baixiao_published_sample_idx": {
+          "name": "baixiao_published_sample_idx",
+          "columns": [
+            {
+              "expression": "(\"question\"->>'category')",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "(\"question\"->>'difficulty')",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "(\"question\"->>'kind')",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sample_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"wanjiedaoyou_baixiao_questions\".\"status\" = 'published'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "baixiao_question_prompt_search_idx": {
+          "name": "baixiao_question_prompt_search_idx",
+          "columns": [
+            {
+              "expression": "(regexp_replace(lower(normalize(\"question\"->>'prompt', NFKC)), '[[:punct:][:space:]]', '', 'g')) gin_trgm_ops",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -2035,7 +2110,7 @@
       "checkConstraints": {
         "baixiao_question_status_valid": {
           "name": "baixiao_question_status_valid",
-          "value": "\"wanjiedaoyou_baixiao_questions\".\"status\" in ('draft', 'published', 'retired')"
+          "value": "\"wanjiedaoyou_baixiao_questions\".\"status\" in ('published', 'retired')"
         }
       },
       "isRLSEnabled": false
@@ -2060,7 +2135,8 @@
           "name": "question_ids",
           "type": "uuid[]",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "'{}'::uuid[]"
         },
         "books": {
           "name": "books",

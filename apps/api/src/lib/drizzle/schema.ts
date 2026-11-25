@@ -44,7 +44,7 @@ import type {
   AlchemyFormulaPattern,
   PillFamily,
 } from '@daoyou/game-domain/consumables';
-import { sql } from 'drizzle-orm';
+import { sql, type SQLWrapper } from 'drizzle-orm';
 import {
   bigint,
   boolean,
@@ -2893,21 +2893,37 @@ export const alchemyContestEntries = pgTable('wanjiedaoyou_alchemy_contest_entri
 ]);
 
 
+export function baixiaoSearchPrompt(question: SQLWrapper) {
+  return sql`regexp_replace(lower(normalize(${question}->>'prompt', NFKC)), '[[:punct:][:space:]]', '', 'g')`;
+}
+
 export const baixiaoQuestions = pgTable('wanjiedaoyou_baixiao_questions', {
   id: uuid('id').primaryKey().defaultRandom(),
   knowledgeKey: text('knowledge_key').notNull(),
   question: jsonb('question').$type<BaixiaoQuestionData>().notNull(),
+  sampleKey: doublePrecision('sample_key').notNull().default(sql`random()`),
   status: text('status').$type<BaixiaoQuestionStatus>().notNull().default('published'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   check('baixiao_question_status_valid', sql`${table.status} in ('published', 'retired')`),
   uniqueIndex('baixiao_published_knowledge_idx').on(table.knowledgeKey).where(sql`${table.status} = 'published'`),
+  index('baixiao_published_sample_idx').on(
+    sql`(${table.question}->>'category')`,
+    sql`(${table.question}->>'difficulty')`,
+    sql`(${table.question}->>'kind')`,
+    table.sampleKey,
+    table.id,
+  ).where(sql`${table.status} = 'published'`),
+  index('baixiao_question_prompt_search_idx').using(
+    'gin',
+    sql`(${baixiaoSearchPrompt(table.question)}) gin_trgm_ops`,
+  ),
 ]);
 
 export const baixiaoRounds = pgTable('wanjiedaoyou_baixiao_rounds', {
   week: date('week').primaryKey(),
   closesAt: timestamp('closes_at', { withTimezone: true }).notNull(),
-  questionIds: uuid('question_ids').array().notNull(),
+  questionIds: uuid('question_ids').array().notNull().default(sql`'{}'::uuid[]`),
   books: jsonb('books').$type<{ ordinary: string[]; superior: string[] }>().notNull(),
   materials: jsonb('materials').$type<ItemGrant[]>().notNull(),
   announcedAt: timestamp('announced_at', { withTimezone: true }),

@@ -4,26 +4,21 @@ import {
   difficultyLabels,
 } from '@app/components/feature/baixiao/questionLabels';
 import { InkButton, InkNotice } from '@app/components/ui';
-import { createBaixiaoPaper } from '@daoyou/game-rules/baixiao/meet';
+import type { BaixiaoPracticeQuestion } from '@daoyou/contracts/baixiao/meet';
 import { useEffect, useRef, useState } from 'react';
 import { AdminDialog } from '../_components/AdminDialog';
-import { type BankQuestion } from './presentation';
-
-type PracticeQuestion = Pick<
-  BankQuestion,
-  'id' | 'prompt' | 'kind' | 'options' | 'correct' | 'category' | 'difficulty'
->;
 
 export function BaixiaoPractice({
-  bank,
+  loadPaper,
   open,
   onClose,
 }: {
-  bank: BankQuestion[];
+  loadPaper: () => Promise<BaixiaoPracticeQuestion[]>;
   open: boolean;
   onClose: () => void;
 }) {
-  const [paper, setPaper] = useState<PracticeQuestion[]>([]);
+  const [paper, setPaper] = useState<BaixiaoPracticeQuestion[]>([]);
+  const [drawing, setDrawing] = useState(false);
   const [position, setPosition] = useState(0);
   const [correct, setCorrect] = useState<boolean | null>(null);
   const [error, setError] = useState('');
@@ -37,34 +32,18 @@ export function BaixiaoPractice({
     else feedback.current?.scrollIntoView({ block: 'nearest' });
   }, [open, correct, question]);
 
-  function drawPaper() {
-    const enabled = bank.filter((question) => question.status === 'published');
-    const slots = createBaixiaoPaper(enabled, (size) =>
-      Math.floor(Math.random() * size),
-    );
-    if (!slots) {
-      setError('启用题目未达到正式组卷配额。');
-      return;
-    }
-    const byId = new Map(enabled.map((item) => [item.id, item]));
-    setPaper(
-      slots.map(({ questionId, order }) => {
-        const { id, prompt, kind, options, correct, category, difficulty } =
-          byId.get(questionId)!;
-        return {
-          id,
-          prompt,
-          kind,
-          category,
-          difficulty,
-          options: order.map((index) => options[index]),
-          correct: order.indexOf(correct),
-        };
-      }),
-    );
-    setPosition(0);
-    setCorrect(null);
+  async function drawPaper() {
+    setDrawing(true);
     setError('');
+    try {
+      setPaper(await loadPaper());
+      setPosition(0);
+      setCorrect(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : '试玩抽卷失败。');
+    } finally {
+      setDrawing(false);
+    }
   }
 
   return (
@@ -73,12 +52,15 @@ export function BaixiaoPractice({
       onClose={onClose}
       title="答题试玩器"
       wide
+      busy={drawing}
       footer={
         <>
           <InkButton
             variant={question ? 'secondary' : 'primary'}
             className="min-h-11"
-            onClick={drawPaper}
+            pending={drawing}
+            pendingLabel="正在抽卷…"
+            onClick={() => void drawPaper()}
           >
             {paper.length ? '重新抽卷' : '开始试玩'}
           </InkButton>
@@ -86,6 +68,7 @@ export function BaixiaoPractice({
             <InkButton
               variant="primary"
               className="min-h-11"
+              disabled={drawing}
               onClick={() => {
                 setPosition(position + 1);
                 setCorrect(null);
@@ -120,7 +103,7 @@ export function BaixiaoPractice({
           <div className="baixiao-question" key={question.id}>
             <BaixiaoQuestionOptions
               question={question}
-              disabled={correct !== null}
+              disabled={drawing || correct !== null}
               onAnswer={(option) => setCorrect(option === question.correct)}
             />
           </div>

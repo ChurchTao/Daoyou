@@ -10,6 +10,7 @@ import {
   baixiaoQuotaStatus,
   baixiaoRewardBudget,
   baixiaoRewardsEarned,
+  baixiaoSampleLimits,
   baixiaoWeek,
   createBaixiaoPaper,
   decideBaixiaoAnswer,
@@ -35,6 +36,25 @@ describe('百晓盛会', () => {
     expect(baixiaoWeek(Date.parse('2026-11-29T16:00:00Z')).week).toBe(
       '2026-11-30',
     );
+  });
+
+  it('索引抽样按正式五类配额限制候选数', () => {
+    const limits = baixiaoSampleLimits();
+    expect(limits).toHaveLength(20);
+    expect(limits).toContainEqual({
+      category: 'literature',
+      difficulty: 'medium',
+      kind: 'choice',
+      count: 5,
+    });
+    expect(limits).toContainEqual({
+      category: 'literature',
+      difficulty: 'medium',
+      kind: 'judgment',
+      count: 1,
+    });
+    expect(limits.filter((group) => group.category === 'game')).toHaveLength(3);
+    expect(limits.every((group) => group.count > 0)).toBe(true);
   });
 
   it('按分类、难度及题型抽题，避免重复知识点并固定选项排列', () => {
@@ -83,12 +103,12 @@ describe('百晓盛会', () => {
     );
     expect(
       chosen.filter(({ category }) => category === 'literature'),
-    ).toHaveLength(11);
+    ).toHaveLength(8);
     expect(
       chosen.filter(({ category }) => category === 'history'),
-    ).toHaveLength(8);
+    ).toHaveLength(6);
     expect(chosen.filter(({ category }) => category === 'riddle')).toHaveLength(
-      6,
+      4,
     );
     expect(
       chosen.filter(({ difficulty }) => difficulty === 'easy'),
@@ -108,36 +128,13 @@ describe('百晓盛会', () => {
       );
     });
 
-    const science: BaixiaoBankQuestion[] = (
-      ['easy', 'medium', 'medium', 'hard'] as const
-    ).map((difficulty, index) => ({
-      ...extra[0],
-      id: `science-${index}`,
-      knowledgeKey: `science-${index}`,
-      category: 'science',
-      difficulty,
-    }));
-    expect(baixiaoQuotaStatus([...available, ...science.slice(0, 3)])).toEqual(
-      baixiaoQuotaStatus(available),
-    );
-    const expanded = [...available, ...science];
-    const expandedPaper = createBaixiaoPaper(expanded, () => 0)!;
-    const expandedQuestions = expandedPaper.map(({ questionId }) =>
-      expanded.find(({ id }) => id === questionId)!,
-    );
-    expect(expandedQuestions).toHaveLength(25);
+    const withoutGame = available.filter(({ category }) => category !== 'game');
+    expect(createBaixiaoPaper(withoutGame, () => 0)).toBeNull();
     expect(
-      ['literature', 'history', 'riddle', 'science'].map(
-        (category) =>
-          expandedQuestions.filter((q) => q.category === category).length,
+      baixiaoQuotaStatus(withoutGame).filter(
+        ({ category, available }) => category === 'game' && available === 0,
       ),
-    ).toEqual([9, 7, 5, 4]);
-    expect(
-      ['easy', 'medium', 'hard'].map(
-        (difficulty) =>
-          expandedQuestions.filter((q) => q.difficulty === difficulty).length,
-      ),
-    ).toEqual([6, 13, 6]);
+    ).toHaveLength(3);
 
     const website = BaixiaoQuestionSchema.parse({
       knowledgeKey: 'game-easy',
@@ -157,28 +154,15 @@ describe('百晓盛会', () => {
         correct: 0,
       }).success,
     ).toBe(false);
-    const game: BaixiaoBankQuestion[] = (
-      ['easy', 'medium', 'hard'] as const
-    ).map((difficulty) =>
-      difficulty === 'easy'
-        ? { ...website, id: website.knowledgeKey }
-        : {
-            ...extra[0],
-            id: `game-${difficulty}`,
-            knowledgeKey: `game-${difficulty}`,
-            category: 'game',
-            difficulty,
-          },
-    );
-    expect(
-      baixiaoQuotaStatus([
-        ...expanded,
-        ...game.slice(0, 2),
-        { ...game[2], kind: 'judgment', options: ['是', '否'] },
-      ]),
-    ).toEqual(baixiaoQuotaStatus(expanded));
-    const fullBank = [...expanded, ...game];
-    const fullPaper = createBaixiaoPaper(fullBank, () => 0);
+    const fullBank = [
+      ...available.filter(
+        (q) => q.category !== 'game' || q.difficulty !== 'easy',
+      ),
+      { ...website, id: website.knowledgeKey },
+    ];
+    const fullPaper = createBaixiaoPaper(fullBank, () => 0, {
+      preservePoolOrder: true,
+    });
     expect(fullPaper).toHaveLength(25);
     expect(
       fullPaper!.find((slot) => slot.questionId === website.knowledgeKey),

@@ -1,1 +1,0 @@
-ALTER TABLE "wanjiedaoyou_baixiao_entries" ADD COLUMN "challenge_id" uuid;

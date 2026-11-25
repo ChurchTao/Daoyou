@@ -1,9 +1,11 @@
 import { InkButton, InkNotice } from '@app/components/ui';
 import { baixiaoPost, requestBaixiao } from '@app/lib/api/baixiao';
-import type {
-  BaixiaoAdminView,
-  BaixiaoImportResult,
-  BaixiaoQuestionStatus,
+import {
+  BAIXIAO_IMPORT_BATCH_SIZE,
+  type BaixiaoAdminView,
+  type BaixiaoImportResult,
+  type BaixiaoPracticeQuestion,
+  type BaixiaoQuestionStatus,
 } from '@daoyou/contracts/baixiao/meet';
 import type { BaixiaoQuestionData } from '@daoyou/game-domain/baixiao/question';
 import { useEffect, useRef, useState } from 'react';
@@ -47,14 +49,43 @@ export default function BaixiaoAdminRoute() {
     setRevision((value) => value + 1);
   }
 
-  async function importBank(body: { questions: BaixiaoQuestionData[] }) {
-    const result = await requestBaixiao<BaixiaoImportResult>(
-      `${endpoint}/import`,
-      baixiaoPost(body),
-    );
+  async function importBank({
+    questions,
+  }: {
+    questions: BaixiaoQuestionData[];
+  }) {
     setNotice('');
-    refresh();
-    return result;
+    const total: BaixiaoImportResult = { inserted: 0, skipped: 0 };
+    try {
+      for (
+        let start = 0;
+        start < questions.length;
+        start += BAIXIAO_IMPORT_BATCH_SIZE
+      ) {
+        const result = await requestBaixiao<BaixiaoImportResult>(
+          `${endpoint}/import`,
+          baixiaoPost({
+            questions: questions.slice(
+              start,
+              start + BAIXIAO_IMPORT_BATCH_SIZE,
+            ),
+          }),
+        );
+        total.inserted += result.inserted;
+        total.skipped += result.skipped;
+      }
+      return total;
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : '题库导入失败。';
+      if (total.inserted + total.skipped === 0)
+        throw new Error(message, { cause });
+      throw new Error(
+        `导入中断，已导入 ${total.inserted} 题，跳过 ${total.skipped} 题。可重试，已有启用题会自动跳过。${message}`,
+        { cause },
+      );
+    } finally {
+      refresh();
+    }
   }
 
   async function changeStatus(ids: string[], status: BaixiaoQuestionStatus) {
@@ -63,12 +94,8 @@ export default function BaixiaoAdminRoute() {
     setNotice('');
     setError('');
     try {
-      setData(
-        await requestBaixiao<BaixiaoAdminView>(
-          `${endpoint}/status`,
-          baixiaoPost({ ids, status }),
-        ),
-      );
+      await requestBaixiao(`${endpoint}/status`, baixiaoPost({ ids, status }));
+      refresh();
       setNotice(`已${statusLabels[status]} ${ids.length} 题。`);
       return true;
     } catch (cause) {
@@ -121,14 +148,16 @@ export default function BaixiaoAdminRoute() {
           <BaixiaoRoundStatus data={data} />
           <BaixiaoBankOverview data={data} />
           <BaixiaoBankList
-            bank={data.bank}
+            revision={revision}
             pending={pending}
             changeStatus={changeStatus}
           />
           <BaixiaoPractice
             open={dialog === 'practice'}
             onClose={() => setDialog(null)}
-            bank={data.bank}
+            loadPaper={() =>
+              requestBaixiao<BaixiaoPracticeQuestion[]>(`${endpoint}/practice`)
+            }
           />
         </>
       ) : (

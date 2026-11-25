@@ -37,9 +37,9 @@ export function BaixiaoRoundStatus({ data }: { data: BaixiaoAdminView }) {
       </div>
       <dl className="text-ink-secondary flex flex-wrap gap-x-4 gap-y-1 text-sm">
         <div className="flex items-baseline gap-1.5">
-          <dt>冻结题目</dt>
+          <dt>当前可抽题</dt>
           <dd className="text-ink font-mono font-semibold">
-            {data.frozenQuestions}
+            {data.published.toLocaleString()}
           </dd>
         </div>
         <div className="flex items-baseline gap-1.5">
@@ -52,12 +52,12 @@ export function BaixiaoRoundStatus({ data }: { data: BaixiaoAdminView }) {
 }
 
 export function BaixiaoBankOverview({ data }: { data: BaixiaoAdminView }) {
-  const enabled = data.bank.filter(({ status }) => status === 'published');
-  const counts = new Map<string, number>();
-  for (const { category, difficulty } of enabled) {
-    const key = `${category}:${difficulty}`;
-    counts.set(key, (counts.get(key) ?? 0) + 1);
-  }
+  const counts = new Map(
+    data.distribution.map(({ category, difficulty, count }) => [
+      `${category}:${difficulty}`,
+      count,
+    ]),
+  );
   const quotas = new Map(
     data.quotas.map((quota) => [
       `${quota.category}:${quota.difficulty}`,
@@ -77,13 +77,13 @@ export function BaixiaoBankOverview({ data }: { data: BaixiaoAdminView }) {
           <div className="flex items-baseline gap-1.5">
             <dt>启用</dt>
             <dd className="text-ink font-mono text-base font-semibold">
-              {enabled.length.toLocaleString()}
+              {data.published.toLocaleString()}
             </dd>
           </div>
           <div className="flex items-baseline gap-1.5">
             <dt>停用</dt>
             <dd className="text-ink font-mono">
-              {(data.bank.length - enabled.length).toLocaleString()}
+              {data.retired.toLocaleString()}
             </dd>
           </div>
           <div className="flex items-baseline gap-1.5">

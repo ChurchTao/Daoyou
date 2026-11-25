@@ -8,7 +8,11 @@ import {
   type BaixiaoResources,
   type BaixiaoScore,
 } from '@daoyou/game-domain/baixiao/meet';
-import { BaixiaoQuestionSchema } from '@daoyou/game-domain/baixiao/question';
+import {
+  BaixiaoCategorySchema,
+  BaixiaoDifficultySchema,
+  BaixiaoQuestionSchema,
+} from '@daoyou/game-domain/baixiao/question';
 import { z } from 'zod';
 
 export const BaixiaoWeekCommandSchema = z
@@ -44,11 +48,19 @@ export const BaixiaoResolveCommandSchema = z.discriminatedUnion('action', [
   }),
 ]);
 
-export const BaixiaoImportSchema = z
+export const BAIXIAO_IMPORT_BATCH_SIZE = 350;
+
+export const BaixiaoImportFileSchema = z
   .object({
-    questions: z.array(BaixiaoQuestionSchema).min(1).max(350),
+    questions: z.array(BaixiaoQuestionSchema).min(1),
   })
   .strict();
+
+export const BaixiaoImportSchema = BaixiaoImportFileSchema.extend({
+  questions: BaixiaoImportFileSchema.shape.questions.max(
+    BAIXIAO_IMPORT_BATCH_SIZE,
+  ),
+});
 
 export const BaixiaoQuestionStatusSchema = z
   .object({
@@ -56,6 +68,18 @@ export const BaixiaoQuestionStatusSchema = z
     status: z.enum(['published', 'retired']),
   })
   .strict();
+
+export const BAIXIAO_ADMIN_PAGE_SIZE = 50;
+
+export const BaixiaoAdminListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(1_000_000).default(1),
+  query: z.string().trim().max(180).optional(),
+  category: BaixiaoCategorySchema.optional(),
+  difficulty: BaixiaoDifficultySchema.optional(),
+  status: z.enum(['published', 'retired']).optional(),
+});
+
+export type BaixiaoAdminListQuery = z.infer<typeof BaixiaoAdminListQuerySchema>;
 
 export type BaixiaoResolveCommand = z.infer<typeof BaixiaoResolveCommandSchema>;
 export type BaixiaoPhase =
@@ -101,6 +125,7 @@ export interface BaixiaoStatus {
   lastStartAt: number;
   closesAt: number;
   serverTime: number;
+  serverWorkMs?: number;
   phase: BaixiaoPhase;
   otherCharacter: boolean;
   session: BaixiaoSessionView | null;
@@ -131,12 +156,32 @@ export interface BaixiaoImportResult {
 
 export type BaixiaoQuestionStatus = 'published' | 'retired';
 
+export type BaixiaoAdminQuestion = BaixiaoBankQuestion & {
+  status: BaixiaoQuestionStatus;
+};
+
+export interface BaixiaoAdminQuestionPage {
+  page: number;
+  total: number;
+  bank: BaixiaoAdminQuestion[];
+}
+
+export type BaixiaoPracticeQuestion = Pick<
+  BaixiaoBankQuestion,
+  'id' | 'prompt' | 'kind' | 'options' | 'correct' | 'category' | 'difficulty'
+>;
+
 export interface BaixiaoAdminView {
   week: string;
   phase: BaixiaoPhase;
-  frozenQuestions: number;
+  published: number;
+  retired: number;
   materials: number;
-  bank: (BaixiaoBankQuestion & { status: BaixiaoQuestionStatus })[];
+  distribution: Array<{
+    category: BaixiaoBankQuestion['category'];
+    difficulty: BaixiaoBankQuestion['difficulty'];
+    count: number;
+  }>;
   quotas: Array<{
     category: BaixiaoBankQuestion['category'];
     difficulty: BaixiaoBankQuestion['difficulty'];

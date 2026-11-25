@@ -37,7 +37,12 @@ export class BaixiaoStandings {
     const clock = baixiaoWeek(now);
     if (now >= clock.opensAt - 5 * 60_000 && now <= clock.lastStartAt) {
       const round = await this.bank.prepare(clock);
-      if (round && now >= clock.opensAt && !round.announcedAt)
+      if (
+        round &&
+        now >= clock.opensAt &&
+        !round.announcedAt &&
+        (await this.bank.isReady())
+      )
         await this.announce(clock);
     }
     const ending = await this.db
@@ -128,9 +133,12 @@ export class BaixiaoStandings {
         .orderBy(desc(rounds.week))
         .limit(1),
     ]);
+    const canStart =
+      current && now >= clock.opensAt && now <= clock.lastStartAt;
+    const ready = !canStart || (await this.bank.isReady());
     return {
       week: clock.week,
-      phase: baixiaoPhase(clock, now, current),
+      phase: baixiaoPhase(clock, now, current, ready),
       ...(published
         ? await this.published(published.week, actor)
         : { publishedWeek: null, rows: [], mine: null }),

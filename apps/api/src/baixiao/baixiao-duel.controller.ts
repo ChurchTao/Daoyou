@@ -68,6 +68,19 @@ export class BaixiaoDuelController {
     };
   }
 
+  @Post('recover')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  async recover(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @Param(duelPathPipe) path: DuelPath,
+  ) {
+    return {
+      success: true,
+      data: await this.meet.recoverChallenge(actor, duelId(path)),
+    };
+  }
+
   @Put(':sessionId/commands/:unitId')
   async submit(
     @CurrentCultivator() actor: ActiveCultivatorRef,

@@ -3,8 +3,13 @@ import {
   difficultyLabels,
 } from '@app/components/feature/baixiao/questionLabels';
 import { InkButton, InkInput, InkSelect } from '@app/components/ui';
-import type { BaixiaoQuestionStatus } from '@daoyou/contracts/baixiao/meet';
-import { useMemo, useState } from 'react';
+import { requestBaixiao } from '@app/lib/api/baixiao';
+import {
+  BAIXIAO_ADMIN_PAGE_SIZE,
+  type BaixiaoAdminQuestionPage,
+  type BaixiaoQuestionStatus,
+} from '@daoyou/contracts/baixiao/meet';
+import { useEffect, useState } from 'react';
 import {
   categories,
   difficulties,
@@ -12,13 +17,7 @@ import {
   type BankQuestion,
 } from './presentation';
 
-const pageSize = 50;
 const initialFilters = { query: '', category: '', difficulty: '', status: '' };
-const normalize = (value: string) =>
-  value
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/[\p{P}\s]/gu, '');
 
 function QuestionDetails({ item }: { item: BankQuestion }) {
   return (
@@ -75,11 +74,11 @@ function QuestionDetails({ item }: { item: BankQuestion }) {
 }
 
 export function BaixiaoBankList({
-  bank,
+  revision,
   pending,
   changeStatus,
 }: {
-  bank: BankQuestion[];
+  revision: number;
   pending: boolean;
   changeStatus: (
     ids: string[],
@@ -89,27 +88,54 @@ export function BaixiaoBankList({
   const [filters, setFilters] = useState(initialFilters);
   const [checked, setChecked] = useState<string[]>([]);
   const [page, setPage] = useState(0);
-  const tokens = filters.query
-    .trim()
-    .split(/\s+/)
-    .map(normalize)
-    .filter(Boolean);
-  const indexed = useMemo(
-    () => bank.map((item) => ({ item, prompt: normalize(item.prompt) })),
-    [bank],
+  const [response, setResponse] = useState<{
+    key: string;
+    data?: BaixiaoAdminQuestionPage;
+    error?: string;
+  }>();
+  const params = new URLSearchParams({ page: String(page + 1) });
+  for (const [key, value] of Object.entries(filters)) {
+    if (value.trim()) params.set(key, value.trim());
+  }
+  const query = params.toString();
+  const requestKey = `${revision}:${query}`;
+
+  useEffect(() => {
+    const request = new AbortController();
+    const timer = window.setTimeout(
+      () => {
+        void requestBaixiao<BaixiaoAdminQuestionPage>(
+          `/api/admin/baixiao-meet/questions?${query}`,
+          { signal: request.signal },
+        )
+          .then((data) => {
+            if (!request.signal.aborted) setResponse({ key: requestKey, data });
+          })
+          .catch((cause: unknown) => {
+            if (!request.signal.aborted) {
+              setResponse({
+                key: requestKey,
+                error:
+                  cause instanceof Error ? cause.message : '题目列表读取失败。',
+              });
+            }
+          });
+      },
+      query.includes('&query=') ? 200 : 0,
+    );
+    return () => {
+      window.clearTimeout(timer);
+      request.abort();
+    };
+  }, [query, requestKey]);
+
+  const loaded = response?.key === requestKey ? response : undefined;
+  const pageCount = Math.max(
+    1,
+    Math.ceil((loaded?.data?.total ?? 0) / BAIXIAO_ADMIN_PAGE_SIZE),
   );
-  const rows = indexed
-    .filter(
-      ({ item, prompt }) =>
-        (!filters.category || item.category === filters.category) &&
-        (!filters.difficulty || item.difficulty === filters.difficulty) &&
-        (!filters.status || item.status === filters.status) &&
-        tokens.every((token) => prompt.includes(token)),
-    )
-    .map(({ item }) => item);
-  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
-  const current = Math.min(page, pageCount - 1);
-  const visible = rows.slice(current * pageSize, (current + 1) * pageSize);
+  const current = (loaded?.data?.page ?? page + 1) - 1;
+  const visible = loaded?.data?.bank ?? [];
   const selected = visible.filter(({ id }) => checked.includes(id));
   const allSelected = visible.length > 0 && selected.length === visible.length;
   const filtered = Object.values(filters).some(Boolean);
@@ -141,6 +167,7 @@ export function BaixiaoBankList({
         <InkInput
           label="搜索题干"
           type="search"
+          maxLength={180}
           placeholder="输入题干关键词"
           containerClassName="col-span-2 min-w-0 sm:col-span-1"
           value={filters.query}
@@ -200,9 +227,13 @@ export function BaixiaoBankList({
               选中本页
             </label>
           )}
-          <p role="status">
-            找到 <b className="font-mono">{rows.length.toLocaleString()}</b> 题
-          </p>
+          {loaded?.data && (
+            <p role="status">
+              找到{' '}
+              <b className="font-mono">{loaded.data.total.toLocaleString()}</b>{' '}
+              题
+            </p>
+          )}
           {filtered && (
             <InkButton
               variant="secondary"
@@ -264,8 +295,14 @@ export function BaixiaoBankList({
           ))}
         </ul>
       ) : (
-        <p className="border-ink/15 text-ink-secondary border-y py-5 text-center text-sm">
-          {bank.length ? '没有符合当前筛选的题目。' : '题库暂无题目。'}
+        <p
+          role={loaded?.error ? 'alert' : 'status'}
+          className="border-ink/15 text-ink-secondary border-y py-5 text-center text-sm"
+        >
+          {loaded
+            ? (loaded.error ??
+              (filtered ? '没有符合当前筛选的题目。' : '题库暂无题目。'))
+            : '正在读取题目…'}
         </p>
       )}
       {pageCount > 1 && (

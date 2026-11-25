@@ -72,15 +72,19 @@ export function useBaixiao() {
       setBusy(true);
       setError('');
       try {
+        const sentAt = performance.now();
         const result = await requestBaixiao<BaixiaoStatus>(
           action ? `${endpoint}/${action}` : endpoint,
           body ? baixiaoPost(body, keepalive) : undefined,
         );
-        const arrived = Date.now();
-        offset.current = result.serverTime - arrived;
+        const arrived = performance.now();
+        const transitMs =
+          Math.max(0, arrived - sentAt - (result.serverWorkMs ?? 0)) / 2;
+        const estimatedNow = result.serverTime + transitMs;
+        offset.current = estimatedNow - arrived;
         fresh.current = result;
         setStatus(result);
-        setNow(result.serverTime);
+        setNow(estimatedNow);
         setIntent(null);
         retry.current = null;
         if (focusQueue.current.length) {
@@ -114,7 +118,7 @@ export function useBaixiao() {
       !current ||
       !session ||
       !question ||
-      Date.now() + offset.current >= question.deadline
+      performance.now() + offset.current >= question.deadline
     )
       return;
     const previous = focusQueue.current.at(-1);
@@ -139,7 +143,8 @@ export function useBaixiao() {
   useEffect(() => {
     const initial = window.setTimeout(() => void send(), 0);
     const tick = window.setInterval(
-      () => setNow(Date.now() + offset.current),
+      () =>
+        setNow(fresh.current ? performance.now() + offset.current : Date.now()),
       200,
     );
     const lobbyPoll = window.setInterval(() => {

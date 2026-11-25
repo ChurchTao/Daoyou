@@ -6,6 +6,7 @@ import {
 } from '@app/components/feature/combat-v6/request';
 import type { CombatV6Session } from '@app/components/feature/combat-v6/session';
 import { useCombatV6Session } from '@app/components/feature/combat-v6/useCombatV6Session';
+import { useEffect, useEffectEvent } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 const back = '/game/baixiao-meet';
@@ -21,6 +22,35 @@ function BaixiaoBattle({ battleId }: { battleId: string }) {
   const combat = useCombatV6Session<CombatV6Session>(base);
   const { session } = combat;
   const navigate = useNavigate();
+  async function recover(signal?: AbortSignal) {
+    const recovered = await combatV6Request<boolean>(
+      `${base}/sessions/recover`,
+      {
+        method: 'POST',
+        signal,
+      },
+    );
+    if (recovered && !signal?.aborted) void navigate(back, { replace: true });
+    return recovered;
+  }
+
+  const recoverMissing = useEffectEvent((signal: AbortSignal) => {
+    void recover(signal).catch((cause: unknown) => {
+      if (!signal.aborted) {
+        combat.setError(
+          cause instanceof Error ? cause.message : '暂时无法恢复题席。',
+        );
+      }
+    });
+  });
+
+  useEffect(() => {
+    if (combat.loading || combat.pending || session) return;
+    const request = new AbortController();
+    recoverMissing(request.signal);
+    return () => request.abort();
+  }, [combat.loading, combat.pending, session]);
+
   function finish() {
     if (!session?.outcome || combat.playing) return;
     void combat.run(async () => {
@@ -37,7 +67,11 @@ function BaixiaoBattle({ battleId }: { battleId: string }) {
       active={Boolean(session)}
       loading={combat.loading}
       error={combat.error}
-      onRetry={() => void combat.refresh(true)}
+      onRetry={() =>
+        void combat.run(async () => {
+          if (!(await recover())) await combat.refresh(true);
+        })
+      }
       back={back}
       backLabel="返回题席"
     >

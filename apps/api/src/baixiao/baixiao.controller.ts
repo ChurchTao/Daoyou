@@ -3,6 +3,7 @@ import {
   BaixiaoTurnCommandSchema,
   BaixiaoWeekCommandSchema,
   type BaixiaoResolveCommand,
+  type BaixiaoStatus,
 } from '@daoyou/contracts/baixiao/meet';
 import {
   Controller,
@@ -21,6 +22,16 @@ import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { ZodError } from 'zod';
 import { BaixiaoMeetService } from './application/BaixiaoMeetService.js';
 import { BaixiaoStandings } from './application/BaixiaoStandings.js';
+
+async function timedStatus(load: () => Promise<BaixiaoStatus>) {
+  const startedAt = performance.now();
+  const status = await load();
+  return {
+    ...status,
+    serverTime: Date.now(),
+    serverWorkMs: performance.now() - startedAt,
+  };
+}
 
 @Controller('api/baixiao-meet')
 @Access('active')
@@ -43,7 +54,7 @@ export class BaixiaoController {
   @Get()
   @Header('Cache-Control', 'no-store')
   status(@CurrentCultivator() actor: ActiveCultivatorRef) {
-    return this.meet.status(actor);
+    return timedStatus(() => this.meet.status(actor));
   }
 
   @Get('ranking')
@@ -60,7 +71,7 @@ export class BaixiaoController {
     @JsonBody({ fallback: undefined }, new ZodPipe(BaixiaoWeekCommandSchema))
     command: { week: string },
   ) {
-    return this.meet.start(command.week, actor);
+    return timedStatus(() => this.meet.start(command.week, actor));
   }
 
   @Post('next')
@@ -71,7 +82,9 @@ export class BaixiaoController {
     @JsonBody({ fallback: undefined }, new ZodPipe(BaixiaoTurnCommandSchema))
     command: { week: string; position: number },
   ) {
-    return this.meet.next(command.week, command.position, actor);
+    return timedStatus(() =>
+      this.meet.next(command.week, command.position, actor),
+    );
   }
 
   @Post('resolve')
@@ -82,6 +95,6 @@ export class BaixiaoController {
     @JsonBody({ fallback: undefined }, new ZodPipe(BaixiaoResolveCommandSchema))
     command: BaixiaoResolveCommand,
   ) {
-    return this.meet.resolve(command, actor);
+    return timedStatus(() => this.meet.resolve(command, actor));
   }
 }

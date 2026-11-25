@@ -126,9 +126,10 @@ export class BaixiaoDuelService {
     return duel.id;
   }
 
-  private async require(actor: ActiveCultivatorRef, id: string) {
+  private async find(actor: ActiveCultivatorRef, id: string) {
     const raw = await redis.get(key(id));
-    const duel = raw ? (JSON.parse(raw) as Duel) : null;
+    if (!raw) return null;
+    const duel = JSON.parse(raw) as Duel;
     if (
       duel?.seat?.actor.userId !== actor.userId ||
       duel.seat.actor.cultivatorId !== actor.cultivatorId
@@ -138,17 +139,20 @@ export class BaixiaoDuelService {
   }
 
   async result(actor: ActiveCultivatorRef, id: string) {
-    const duel = await this.require(actor, id);
+    const duel = await this.find(actor, id);
+    if (!duel) return { state: 'missing' } as const;
     return duel.completedAt === undefined
-      ? null
-      : {
+      ? ({ state: 'active' } as const)
+      : ({
+          state: 'finished',
           victory: duel.outcome === 'victory',
           completedAt: duel.completedAt,
-        };
+        } as const);
   }
 
   async read(actor: ActiveCultivatorRef, id: string, after = -1) {
-    const duel = await this.require(actor, id);
+    const duel = await this.find(actor, id);
+    if (!duel) return null;
     const host = new ExorcismHost(duel.snapshot, duel.snapshot);
     return view(duel, host, after);
   }
@@ -159,7 +163,8 @@ export class BaixiaoDuelService {
     revision: number,
     action: Action,
   ) {
-    const duel = await this.require(actor, id);
+    const duel = await this.find(actor, id);
+    if (!duel) throw new NotFoundException('这场挑战已无法继续。');
     const host = new ExorcismHost(duel.snapshot, duel.snapshot);
     if (duel.outcome) return { battle: view(duel, host), seat: duel.seat };
     if (Date.now() >= duel.endsAt) return { battle: view(duel, host) };

@@ -1,45 +1,165 @@
-import type {
-  BaixiaoAdminView,
-  BaixiaoImportResult,
-  BaixiaoQuestionStatus,
+import {
+  BAIXIAO_ADMIN_PAGE_SIZE,
+  type BaixiaoAdminListQuery,
+  type BaixiaoAdminQuestionPage,
+  type BaixiaoAdminView,
+  type BaixiaoImportResult,
+  type BaixiaoPracticeQuestion,
+  type BaixiaoQuestionStatus,
 } from '@daoyou/contracts/baixiao/meet';
 import { DUNGEON_REWARD_PACK } from '@daoyou/game-content/rewards/dungeon';
 import { type BaixiaoQuestionData } from '@daoyou/game-domain/baixiao/meet';
-import { BaixiaoQuestionSchema } from '@daoyou/game-domain/baixiao/question';
+import {
+  BaixiaoCategorySchema,
+  BaixiaoDifficultySchema,
+  BaixiaoQuestionSchema,
+} from '@daoyou/game-domain/baixiao/question';
 import { materialFactsOf } from '@daoyou/game-domain/inventory';
 import { ItemLibraryMaterialPayloadSchema } from '@daoyou/game-domain/items/catalog';
 import {
   baixiaoQuotaStatus,
+  baixiaoSampleLimits,
   baixiaoWeek,
+  countBaixiaoQuotas,
+  createBaixiaoPaper,
 } from '@daoyou/game-rules/baixiao/meet';
 import {
   BadRequestException,
   ConflictException,
   Inject,
   Injectable,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
-import type { DbClient, DbExecutor } from '@server/lib/drizzle/db.js';
+import type { DbClient } from '@server/lib/drizzle/db.js';
 import {
+  baixiaoSearchPrompt,
   itemLibrary,
   baixiaoQuestions as questions,
   baixiaoRounds as rounds,
 } from '@server/lib/drizzle/schema.js';
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import { randomInt } from 'node:crypto';
 import { baixiaoPhase } from './baixiao-view.js';
 
-export async function loadBaixiaoBank(tx: DbExecutor, ids: string[]) {
-  return (
-    await tx.select().from(questions).where(inArray(questions.id, ids))
-  ).map(({ id, question }) => ({
-    id,
-    ...BaixiaoQuestionSchema.parse(question),
-  }));
-}
+const roundColumns = {
+  week: rounds.week,
+  settledAt: rounds.settledAt,
+  announcedAt: rounds.announcedAt,
+  materials: rounds.materials,
+};
 
 @Injectable()
 export class BaixiaoQuestionBank {
   constructor(@Inject(DRIZZLE_DATABASE) private readonly db: DbClient) {}
+
+  private async candidates(drawAnchor: () => number) {
+    const anchors = new Map<string, number>();
+    const requests = baixiaoSampleLimits().map(
+      ({ category, difficulty, kind, count }) => {
+        const group = `${category}:${difficulty}`;
+        const anchor = anchors.get(group) ?? drawAnchor();
+        anchors.set(group, anchor);
+        return sql`(${category}::text, ${difficulty}::text, ${kind}::text, ${count}::integer, ${anchor}::double precision)`;
+      },
+    );
+    const match = sql`
+      ${questions.status} = 'published'
+      AND ${questions.question}->>'category' = request.category
+      AND ${questions.question}->>'difficulty' = request.difficulty
+      AND ${questions.question}->>'kind' = request.kind
+    `;
+    // Both ranges can stop at the index limit. The second range handles wrapping at 1.
+    const result = await this.db.execute<{
+      id: string;
+      knowledgeKey: string;
+      category: BaixiaoQuestionData['category'];
+      difficulty: BaixiaoQuestionData['difficulty'];
+      kind: BaixiaoQuestionData['kind'];
+      options: string[];
+    }>(sql`
+      SELECT picked.id, picked.knowledge_key AS "knowledgeKey", request.category,
+             request.difficulty, request.kind, picked.options
+      FROM (VALUES ${sql.join(requests, sql`, `)})
+        AS request(category, difficulty, kind, pick_limit, anchor)
+      CROSS JOIN LATERAL (
+        SELECT candidates.*
+        FROM (
+          (
+            SELECT ${questions.id}, ${questions.knowledgeKey}, ${questions.sampleKey},
+                   ${questions.question}->'options' AS options, 0 AS wrapped
+            FROM ${questions}
+            WHERE ${match} AND ${questions.sampleKey} >= request.anchor
+            ORDER BY ${questions.sampleKey}, ${questions.id}
+            LIMIT request.pick_limit
+          )
+          UNION ALL
+          (
+            SELECT ${questions.id}, ${questions.knowledgeKey}, ${questions.sampleKey},
+                   ${questions.question}->'options' AS options, 1 AS wrapped
+            FROM ${questions}
+            WHERE ${match} AND ${questions.sampleKey} < request.anchor
+            ORDER BY ${questions.sampleKey}, ${questions.id}
+            LIMIT request.pick_limit
+          )
+        ) AS candidates
+        ORDER BY candidates.wrapped, candidates.sample_key, candidates.id
+        LIMIT request.pick_limit
+      ) AS picked
+      ORDER BY picked.wrapped, picked.sample_key, picked.id
+    `);
+    return result.rows;
+  }
+
+  async isReady() {
+    const candidates = await this.candidates(() => 0);
+    return baixiaoQuotaStatus(candidates).every(
+      ({ available, count }) => available >= count,
+    );
+  }
+
+  async drawPaper() {
+    const candidates = await this.candidates(Math.random);
+    const paper = createBaixiaoPaper(candidates, randomInt, {
+      preservePoolOrder: true,
+    });
+    if (!paper) throw new ConflictException('启用题库暂未达到组卷要求。');
+    return paper;
+  }
+
+  async practice(): Promise<BaixiaoPracticeQuestion[]> {
+    const paper = await this.drawPaper();
+    const rows = await this.db
+      .select({ id: questions.id, question: questions.question })
+      .from(questions)
+      .where(
+        inArray(
+          questions.id,
+          paper.map(({ questionId }) => questionId),
+        ),
+      );
+    const bank = new Map(
+      rows.map(({ id, question }) => [
+        id,
+        BaixiaoQuestionSchema.parse(question),
+      ]),
+    );
+    return paper.map(({ questionId, order }) => {
+      const question = bank.get(questionId);
+      if (!question)
+        throw new InternalServerErrorException('试玩题目无法读取。');
+      const { prompt, kind, category, difficulty, options, correct } = question;
+      return {
+        id: questionId,
+        prompt,
+        kind,
+        category,
+        difficulty,
+        options: order.map((position) => options[position]),
+        correct: order.indexOf(correct),
+      };
+    });
+  }
 
   private async materials() {
     const found = await this.db
@@ -68,24 +188,14 @@ export class BaixiaoQuestionBank {
 
   async prepare(clock: ReturnType<typeof baixiaoWeek>) {
     const [round] = await this.db
-      .select()
+      .select(roundColumns)
       .from(rounds)
       .where(eq(rounds.week, clock.week));
     if (round) return round;
-    const [published, materials] = await Promise.all([
-      this.db.select().from(questions).where(eq(questions.status, 'published')),
-      this.materials(),
-    ]);
-    const bank = published.map(({ id, question }) => ({
-      id,
-      ...BaixiaoQuestionSchema.parse(question),
-    }));
-    if (
-      !materials.length ||
-      baixiaoQuotaStatus(bank).some((quota) => quota.available < quota.count)
-    )
+    if (Date.now() > clock.lastStartAt || !(await this.isReady()))
       return undefined;
-    if (Date.now() > clock.lastStartAt) return undefined;
+    const materials = await this.materials();
+    if (!materials.length || Date.now() > clock.lastStartAt) return undefined;
     const superior = DUNGEON_REWARD_PACK.superiorBooks;
     const ordinary = DUNGEON_REWARD_PACK.books
       .map(({ rewardId }) => rewardId)
@@ -96,15 +206,14 @@ export class BaixiaoQuestionBank {
       .values({
         week: clock.week,
         closesAt: new Date(clock.closesAt),
-        questionIds: bank.map(({ id }) => id),
         materials,
         books: { ordinary, superior },
       })
       .onConflictDoNothing()
-      .returning();
+      .returning(roundColumns);
     if (prepared) return prepared;
     const [concurrent] = await this.db
-      .select()
+      .select(roundColumns)
       .from(rounds)
       .where(eq(rounds.week, clock.week));
     return concurrent;
@@ -113,35 +222,122 @@ export class BaixiaoQuestionBank {
   async status(): Promise<BaixiaoAdminView> {
     const now = Date.now();
     const clock = baixiaoWeek(now);
-    const [[round], bank, materials] = await Promise.all([
-      this.db.select().from(rounds).where(eq(rounds.week, clock.week)),
+    const category = sql<
+      BaixiaoQuestionData['category']
+    >`${questions.question}->>'category'`;
+    const difficulty = sql<
+      BaixiaoQuestionData['difficulty']
+    >`${questions.question}->>'difficulty'`;
+    const kind = sql<
+      BaixiaoQuestionData['kind']
+    >`${questions.question}->>'kind'`;
+    const [[round], totals] = await Promise.all([
       this.db
-        .select()
+        .select(roundColumns)
+        .from(rounds)
+        .where(eq(rounds.week, clock.week)),
+      this.db
+        .select({
+          category,
+          difficulty,
+          kind,
+          status: questions.status,
+          count: count(),
+        })
         .from(questions)
-        .orderBy(desc(questions.createdAt), questions.knowledgeKey),
-      this.materials(),
+        .groupBy(category, difficulty, kind, questions.status),
     ]);
-    const rows = bank.map(({ id, question, status }) => ({
-      id,
-      ...question,
-      status,
-    }));
-    const quotas = baixiaoQuotaStatus(
-      rows.filter((row) => row.status === 'published'),
-    ).map(({ category, difficulty, count, available }) => ({
-      category,
-      difficulty,
-      count,
-      available,
-    }));
+    const enabled = totals.filter((row) => row.status === 'published');
+    const quotas = countBaixiaoQuotas(enabled).map(
+      ({ category, difficulty, count, available }) => ({
+        category,
+        difficulty,
+        count,
+        available,
+      }),
+    );
+    const ready = quotas.every(({ count, available }) => available >= count);
+    const distribution = BaixiaoCategorySchema.options.flatMap((category) =>
+      BaixiaoDifficultySchema.options.map((difficulty) => ({
+        category,
+        difficulty,
+        count: enabled
+          .filter(
+            (group) =>
+              group.category === category && group.difficulty === difficulty,
+          )
+          .reduce((total, group) => total + group.count, 0),
+      })),
+    );
     return {
       week: clock.week,
-      phase: baixiaoPhase(clock, now, round),
-      frozenQuestions: round?.questionIds.length ?? 0,
-      materials: round?.materials.length ?? materials.length,
-      bank: rows,
+      phase: baixiaoPhase(clock, now, round, ready),
+      published: distribution.reduce((total, group) => total + group.count, 0),
+      retired: totals
+        .filter((row) => row.status === 'retired')
+        .reduce((total, group) => total + group.count, 0),
+      materials: round?.materials.length ?? (await this.materials()).length,
+      distribution,
       quotas,
     };
+  }
+
+  async list(query: BaixiaoAdminListQuery): Promise<BaixiaoAdminQuestionPage> {
+    const tokens =
+      query.query
+        ?.normalize('NFKC')
+        .toLowerCase()
+        .split(/\s+/u)
+        .map((token) => token.replace(/\p{P}/gu, ''))
+        .filter(Boolean) ?? [];
+    const prompt = baixiaoSearchPrompt(questions.question);
+    const where = and(
+      query.category
+        ? sql`${questions.question}->>'category' = ${query.category}`
+        : undefined,
+      query.difficulty
+        ? sql`${questions.question}->>'difficulty' = ${query.difficulty}`
+        : undefined,
+      query.status ? eq(questions.status, query.status) : undefined,
+      ...tokens.map(
+        (token) =>
+          sql`${prompt} LIKE ${`%${token.replace(/[\\%_]/g, '\\$&')}%`}`,
+      ),
+    );
+    return this.db.transaction(
+      async (tx) => {
+        const total = await tx.$count(questions, where);
+        const page = Math.min(
+          query.page,
+          Math.max(1, Math.ceil(total / BAIXIAO_ADMIN_PAGE_SIZE)),
+        );
+        const rows = await tx
+          .select({
+            id: questions.id,
+            question: questions.question,
+            status: questions.status,
+          })
+          .from(questions)
+          .where(where)
+          .orderBy(
+            desc(questions.createdAt),
+            questions.knowledgeKey,
+            questions.id,
+          )
+          .limit(BAIXIAO_ADMIN_PAGE_SIZE)
+          .offset((page - 1) * BAIXIAO_ADMIN_PAGE_SIZE);
+        return {
+          total,
+          page,
+          bank: rows.map(({ id, question, status }) => ({
+            id,
+            ...BaixiaoQuestionSchema.parse(question),
+            status,
+          })),
+        };
+      },
+      { isolationLevel: 'repeatable read', accessMode: 'read only' },
+    );
   }
 
   async importQuestions(
@@ -185,6 +381,5 @@ export class BaixiaoQuestionBank {
       }
       throw error;
     }
-    return this.status();
   }
 }

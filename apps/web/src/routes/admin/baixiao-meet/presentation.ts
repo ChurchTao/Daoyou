@@ -1,5 +1,5 @@
 import type {
-  BaixiaoAdminView,
+  BaixiaoAdminQuestion,
   BaixiaoQuestionStatus,
 } from '@daoyou/contracts/baixiao/meet';
 import {
@@ -7,7 +7,7 @@ import {
   BaixiaoDifficultySchema,
 } from '@daoyou/game-domain/baixiao/question';
 
-export type BankQuestion = BaixiaoAdminView['bank'][number];
+export type BankQuestion = BaixiaoAdminQuestion;
 export const statusLabels = {
   published: '启用',
   retired: '停用',

@@ -1,6 +1,6 @@
 import { InkButton, InkInput } from '@app/components/ui';
 import {
-  BaixiaoImportSchema,
+  BaixiaoImportFileSchema,
   type BaixiaoImportResult,
 } from '@daoyou/contracts/baixiao/meet';
 import type { BaixiaoQuestionData } from '@daoyou/game-domain/baixiao/question';
@@ -70,11 +70,19 @@ export function BaixiaoImportDialog({
       setError('请提交有效的 JSON。');
       return;
     }
-    const parsed = BaixiaoImportSchema.safeParse(candidate);
+    const parsed = BaixiaoImportFileSchema.safeParse(candidate);
     if (!parsed.success) {
       const issue = parsed.error.issues[0];
       const path = issue.path.join('.');
       setError(path ? `${path} · ${issue.message}` : issue.message);
+      return;
+    }
+    const { questions } = parsed.data;
+    if (
+      new Set(questions.map(({ knowledgeKey }) => knowledgeKey)).size !==
+      questions.length
+    ) {
+      setError('导入内容中存在重复的知识点。');
       return;
     }
     setBusy('importing');
@@ -124,9 +132,10 @@ export function BaixiaoImportDialog({
         <div className="space-y-4">
           <div className="text-ink-secondary space-y-1 text-sm">
             <p>
-              每批最多 350 题。可上传 JSON 文件或粘贴内容，正确选项从 0 编号。
+              可上传完整的 JSON 题库或粘贴内容，系统会自动分批导入。正确选项从 0
+              编号。
             </p>
-            <p>通过校验的题目立即启用。已冻结的当期题卷沿用原题。</p>
+            <p>通过校验的题目立即进入抽题范围，已开卷的玩家继续使用原卷。</p>
           </div>
           <div className="space-y-1">
             <label

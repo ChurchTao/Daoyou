@@ -10,7 +10,6 @@ import {
   baixiaoCardState,
   baixiaoRewardBudget,
   baixiaoWeek,
-  createBaixiaoPaper,
   decideBaixiaoAnswer,
   decideBaixiaoCard,
   decideBaixiaoChallenge,
@@ -44,7 +43,7 @@ import { and, eq } from 'drizzle-orm';
 import { randomInt } from 'node:crypto';
 import { baixiaoView, readBaixiaoQuestion } from './baixiao-view.js';
 import { BaixiaoDuelService } from './BaixiaoDuelService.js';
-import { BaixiaoQuestionBank, loadBaixiaoBank } from './BaixiaoQuestionBank.js';
+import { BaixiaoQuestionBank } from './BaixiaoQuestionBank.js';
 import { drawBaixiaoReward, grantBaixiaoAnswer } from './BaixiaoRewards.js';
 
 type ResolveCommand =
@@ -85,7 +84,18 @@ export class BaixiaoMeetService {
         .from(rounds)
         .where(eq(rounds.week, clock.week)),
     ]);
-    return baixiaoView(this.db, clock, Date.now(), actor, round, entry);
+    const canStart =
+      !entry && round && now >= clock.opensAt && now <= clock.lastStartAt;
+    const availableRound =
+      canStart && !(await this.bank.isReady()) ? undefined : round;
+    return baixiaoView(
+      this.db,
+      clock,
+      Date.now(),
+      actor,
+      availableRound,
+      entry,
+    );
   }
 
   async start(week: string, actor: ActiveCultivatorRef) {
@@ -100,29 +110,25 @@ export class BaixiaoMeetService {
     if (registered) return this.status(actor);
     const round = await this.bank.prepare(clock);
     if (!round) throw new ConflictException('本期题卷仍在准备，请稍后再来。');
-    const [bank, [character]] = await Promise.all([
-      loadBaixiaoBank(this.db, round.questionIds),
-      this.db
-        .select({
-          id: cultivators.id,
-          name: cultivators.name,
-          title: cultivators.title,
-          gender: cultivators.gender,
-          realm: cultivators.realm,
-          stage: cultivators.realm_stage,
-        })
-        .from(cultivators)
-        .where(
-          and(
-            eq(cultivators.id, actor.cultivatorId),
-            eq(cultivators.userId, actor.userId),
-            eq(cultivators.status, 'active'),
-          ),
+    const [character] = await this.db
+      .select({
+        id: cultivators.id,
+        name: cultivators.name,
+        title: cultivators.title,
+        gender: cultivators.gender,
+        realm: cultivators.realm,
+        stage: cultivators.realm_stage,
+      })
+      .from(cultivators)
+      .where(
+        and(
+          eq(cultivators.id, actor.cultivatorId),
+          eq(cultivators.userId, actor.userId),
+          eq(cultivators.status, 'active'),
         ),
-    ]);
+      );
     if (!character) throw new ForbiddenException('当前角色不可参赛。');
-    const paper = createBaixiaoPaper(bank, randomInt);
-    if (!paper) throw new ConflictException('本期题库暂未达到组卷要求。');
+    const paper = await this.bank.drawPaper();
     const startedAt = Date.now();
     if (startedAt > clock.lastStartAt)
       throw new ConflictException('本期已截止入场。');
@@ -174,10 +180,15 @@ export class BaixiaoMeetService {
       }
       if (position !== entry.answers.length)
         throw new ConflictException('题序已更新，请重新读取赛况。');
+      let activeQuestion: BaixiaoQuestionData | undefined;
       if (!entry.issuedAt && !entry.challengeId) {
+        activeQuestion = await readBaixiaoQuestion(tx, entry.paper[position]);
+        const issuedAt = Date.now();
+        if (issuedAt >= entry.endsAt.getTime())
+          return baixiaoView(tx, clock, issuedAt, actor, undefined, entry);
         [entry] = await tx
           .update(entries)
-          .set({ issuedAt: new Date(now) })
+          .set({ issuedAt: new Date(issuedAt) })
           .where(entryFilter(week, actor))
           .returning();
       }
@@ -188,8 +199,37 @@ export class BaixiaoMeetService {
         actor,
         { settledAt: null },
         entry,
+        { active: activeQuestion },
       );
     });
+  }
+
+  async recoverChallenge(actor: ActiveCultivatorRef, challengeId: string) {
+    const { week } = baixiaoWeek(Date.now());
+    const [entry] = await this.db
+      .select({
+        cultivatorId: entries.cultivatorId,
+        challengeId: entries.challengeId,
+        answers: entries.answers,
+      })
+      .from(entries)
+      .where(entryFilter(week, actor));
+    if (
+      !entry ||
+      entry.cultivatorId !== actor.cultivatorId ||
+      entry.challengeId !== challengeId
+    )
+      return true;
+    const status = await this.resolve(
+      {
+        action: 'challenge-result',
+        week,
+        position: entry.answers.length,
+        challengeId,
+      },
+      actor,
+    );
+    return status.session?.challengeId !== challengeId;
   }
 
   async resolve(command: ResolveCommand, actor: ActiveCultivatorRef) {
@@ -261,8 +301,15 @@ export class BaixiaoMeetService {
         let answeredQuestion: BaixiaoQuestionData | undefined;
         if (settlingChallenge) {
           const result = await this.duels.result(actor, settlingChallenge);
-          if (!result || result.completedAt >= endsAt) return unchanged();
-          adjudicated = decideBaixiaoChallenge(result.victory);
+          if (
+            result.state === 'active' ||
+            (result.state === 'finished' && result.completedAt >= endsAt) ||
+            (result.state === 'missing' && receivedAt >= endsAt)
+          )
+            return unchanged();
+          adjudicated = decideBaixiaoChallenge(
+            result.state === 'finished' && result.victory,
+          );
         } else if (entry.challengeId || command.action === 'challenge-result') {
           return unchanged();
         } else if (command.action === 'card' && !timedOut) {
@@ -368,7 +415,7 @@ export class BaixiaoMeetService {
               actor,
               { settledAt: null },
               updated,
-              answeredQuestion,
+              { answered: answeredQuestion },
             ),
             mail,
           },

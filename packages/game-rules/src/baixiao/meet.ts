@@ -46,74 +46,90 @@ type Quota = {
   maxJudgment: number;
 };
 
-const ORIGINAL_QUOTAS: readonly Quota[] = [
-  { category: 'literature', difficulty: 'easy', count: 3, maxJudgment: 1 },
-  { category: 'literature', difficulty: 'medium', count: 6, maxJudgment: 1 },
-  { category: 'literature', difficulty: 'hard', count: 2, maxJudgment: 0 },
-  { category: 'history', difficulty: 'easy', count: 2, maxJudgment: 1 },
-  { category: 'history', difficulty: 'medium', count: 4, maxJudgment: 1 },
-  { category: 'history', difficulty: 'hard', count: 2, maxJudgment: 0 },
-  { category: 'riddle', difficulty: 'easy', count: 1, maxJudgment: 0 },
-  { category: 'riddle', difficulty: 'medium', count: 3, maxJudgment: 1 },
-  { category: 'riddle', difficulty: 'hard', count: 2, maxJudgment: 0 },
-];
-
-const EXPANDED_QUOTAS: readonly Quota[] = [
-  { category: 'literature', difficulty: 'easy', count: 2, maxJudgment: 1 },
+const BAIXIAO_QUOTAS: readonly Quota[] = [
+  { category: 'literature', difficulty: 'easy', count: 1, maxJudgment: 1 },
   { category: 'literature', difficulty: 'medium', count: 5, maxJudgment: 1 },
   { category: 'literature', difficulty: 'hard', count: 2, maxJudgment: 0 },
   { category: 'history', difficulty: 'easy', count: 2, maxJudgment: 1 },
-  { category: 'history', difficulty: 'medium', count: 4, maxJudgment: 1 },
+  { category: 'history', difficulty: 'medium', count: 3, maxJudgment: 1 },
   { category: 'history', difficulty: 'hard', count: 1, maxJudgment: 0 },
   { category: 'riddle', difficulty: 'easy', count: 1, maxJudgment: 0 },
   { category: 'riddle', difficulty: 'medium', count: 2, maxJudgment: 1 },
-  { category: 'riddle', difficulty: 'hard', count: 2, maxJudgment: 0 },
+  { category: 'riddle', difficulty: 'hard', count: 1, maxJudgment: 0 },
   { category: 'science', difficulty: 'easy', count: 1, maxJudgment: 0 },
   { category: 'science', difficulty: 'medium', count: 2, maxJudgment: 0 },
   { category: 'science', difficulty: 'hard', count: 1, maxJudgment: 0 },
-];
-
-const GAME_QUESTION_QUOTAS: readonly Quota[] = [
-  ...EXPANDED_QUOTAS.map((quota) => {
-    const replace =
-      (quota.category === 'literature' && quota.difficulty === 'easy') ||
-      (quota.category === 'history' && quota.difficulty === 'medium') ||
-      (quota.category === 'riddle' && quota.difficulty === 'hard');
-    return replace ? { ...quota, count: quota.count - 1 } : quota;
-  }),
   { category: 'game', difficulty: 'easy', count: 1, maxJudgment: 0 },
   { category: 'game', difficulty: 'medium', count: 1, maxJudgment: 0 },
   { category: 'game', difficulty: 'hard', count: 1, maxJudgment: 0 },
 ];
 
-function quotaStatus(quotas: readonly Quota[], bank: BaixiaoBankQuestion[]) {
-  return quotas.map((quota) => {
-    const pool = bank.filter(
-      (question) =>
-        question.category === quota.category &&
-        question.difficulty === quota.difficulty,
-    );
-    const judgment = pool.filter(
-      (question) => question.kind === 'judgment',
-    ).length;
-    const available =
-      pool.length - judgment + Math.min(judgment, quota.maxJudgment);
-    return { ...quota, available, pool };
+type QuestionGroup = Pick<
+  BaixiaoBankQuestion,
+  'category' | 'difficulty' | 'kind'
+>;
+type QuestionCandidate = QuestionGroup &
+  Pick<BaixiaoBankQuestion, 'id' | 'knowledgeKey' | 'options'>;
+type QuestionGroupCount = QuestionGroup & { count: number };
+
+function groupKey({ category, difficulty, kind }: QuestionGroup) {
+  return `${category}:${difficulty}:${kind}`;
+}
+
+export function baixiaoSampleLimits(): QuestionGroupCount[] {
+  return BAIXIAO_QUOTAS.flatMap(
+    ({ category, difficulty, count, maxJudgment }) => {
+      const groups: QuestionGroupCount[] = [
+        { category, difficulty, kind: 'choice', count },
+      ];
+      if (maxJudgment > 0)
+        groups.push({
+          category,
+          difficulty,
+          kind: 'judgment',
+          count: maxJudgment,
+        });
+      return groups;
+    },
+  );
+}
+
+export function countBaixiaoQuotas(groups: readonly QuestionGroupCount[]) {
+  const counts = new Map(groups.map((group) => [groupKey(group), group.count]));
+  return BAIXIAO_QUOTAS.map((quota) => {
+    const choices = counts.get(groupKey({ ...quota, kind: 'choice' })) ?? 0;
+    const judgments = counts.get(groupKey({ ...quota, kind: 'judgment' })) ?? 0;
+    return {
+      ...quota,
+      available: choices + Math.min(judgments, quota.maxJudgment),
+    };
   });
 }
 
-export function baixiaoQuotaStatus(bank: readonly BaixiaoBankQuestion[]) {
+export function baixiaoQuotaStatus<T extends QuestionCandidate>(
+  bank: readonly T[],
+) {
   const unique = [
     ...new Map(
       bank.map((question) => [question.knowledgeKey, question]),
     ).values(),
   ];
-  // Select the blueprint from the same frozen bank used to draw every paper.
-  for (const blueprint of [GAME_QUESTION_QUOTAS, EXPANDED_QUOTAS]) {
-    const quotas = quotaStatus(blueprint, unique);
-    if (quotas.every((quota) => quota.available >= quota.count)) return quotas;
+  const groups = new Map<string, QuestionGroupCount>();
+  for (const { category, difficulty, kind } of unique) {
+    const group = { category, difficulty, kind };
+    const key = groupKey(group);
+    const existing = groups.get(key);
+    if (existing) existing.count++;
+    else groups.set(key, { ...group, count: 1 });
   }
-  return quotaStatus(ORIGINAL_QUOTAS, unique);
+  return countBaixiaoQuotas([...groups.values()]).map((quota) => ({
+    ...quota,
+    pool: unique.filter(
+      (question) =>
+        question.category === quota.category &&
+        question.difficulty === quota.difficulty,
+    ),
+  }));
 }
 
 function shuffled<T>(items: readonly T[], drawIndex: (size: number) => number) {
@@ -126,15 +142,18 @@ function shuffled<T>(items: readonly T[], drawIndex: (size: number) => number) {
 }
 
 export function createBaixiaoPaper(
-  bank: readonly BaixiaoBankQuestion[],
+  bank: readonly QuestionCandidate[],
   drawIndex: (size: number) => number,
+  { preservePoolOrder = false } = {},
 ): BaixiaoPaperSlot[] | null {
   const quotas = baixiaoQuotaStatus(bank);
   if (quotas.some((quota) => quota.available < quota.count)) return null;
   const drawn = quotas.flatMap(({ pool, count, maxJudgment }) => {
     let judgments = 0;
-    const selected: BaixiaoBankQuestion[] = [];
-    for (const question of shuffled(pool, drawIndex)) {
+    const selected: QuestionCandidate[] = [];
+    for (const question of preservePoolOrder
+      ? pool
+      : shuffled(pool, drawIndex)) {
       if (question.kind === 'judgment') {
         if (judgments >= maxJudgment) continue;
         judgments++;
@@ -144,12 +163,30 @@ export function createBaixiaoPaper(
     }
     return selected;
   });
-  return shuffled(drawn, drawIndex).map((question) => ({
+  return orderBaixiaoPaper(
+    drawn.map(({ id, kind, options }) => ({
+      id,
+      kind,
+      optionCount: options.length,
+    })),
+    drawIndex,
+  );
+}
+
+function orderBaixiaoPaper(
+  questions: readonly {
+    id: string;
+    kind: BaixiaoBankQuestion['kind'];
+    optionCount: number;
+  }[],
+  drawIndex: (size: number) => number,
+): BaixiaoPaperSlot[] {
+  return shuffled(questions, drawIndex).map((question) => ({
     questionId: question.id,
     order:
       question.kind === 'choice'
         ? shuffled(
-            question.options.map((_, index) => index),
+            Array.from({ length: question.optionCount }, (_, index) => index),
             drawIndex,
           )
         : [0, 1],

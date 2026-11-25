@@ -32,11 +32,12 @@ export function baixiaoPhase(
   clock: Clock,
   now: number,
   round?: Pick<Round, 'settledAt'>,
+  ready = true,
 ): BaixiaoPhase {
   if (now < clock.opensAt) return 'waiting';
   if (now >= clock.closesAt) return round?.settledAt ? 'settled' : 'closed';
   if (now > clock.lastStartAt) return 'closing';
-  return round ? 'open' : 'unavailable';
+  return round && ready ? 'open' : 'unavailable';
 }
 
 function baixiaoQuestionDeadline(entry: Entry) {
@@ -69,7 +70,10 @@ export async function baixiaoView(
   actor: ActiveCultivatorRef,
   round?: Pick<Round, 'settledAt'>,
   entry?: Entry,
-  answeredQuestion?: BaixiaoQuestionData,
+  questions?: {
+    active?: BaixiaoQuestionData;
+    answered?: BaixiaoQuestionData;
+  },
 ): Promise<BaixiaoStatus> {
   const otherCharacter = Boolean(
     entry && entry.cultivatorId !== actor.cultivatorId,
@@ -90,7 +94,7 @@ export async function baixiaoView(
   let review: BaixiaoQuestionReview | null = null;
   if (player?.issuedAt && !finished && !challengeId) {
     const slot = player.paper[position];
-    const active = await readBaixiaoQuestion(tx, slot);
+    const active = questions?.active ?? (await readBaixiaoQuestion(tx, slot));
     question = {
       ...questionHeading(active, position),
       kind: active.kind,
@@ -105,7 +109,7 @@ export async function baixiaoView(
     last.verdict !== 'correct'
   ) {
     const reviewed =
-      answeredQuestion ??
+      questions?.answered ??
       (await readBaixiaoQuestion(tx, player.paper[position - 1]));
     review = {
       ...questionHeading(reviewed, position - 1),
