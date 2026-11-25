@@ -60,35 +60,13 @@ export const HuntTeamCommandSchema = z.discriminatedUnion('type', [
 
 export type HuntTeamCommand = z.infer<typeof HuntTeamCommandSchema>;
 
-export const HUNT_TEAM_CHAT_MAX_CHARS = 100;
-
-export const HuntTeamChatSendSchema = z
-  .object({
-    text: z.string().max(400),
-    replyToMessageId: z.uuid().optional(),
-  })
-  .strict();
-
-export type HuntTeamChatSend = z.infer<typeof HuntTeamChatSendSchema>;
-
-export type HuntTeamChatReply = {
-  messageId: string;
-  senderName: string;
-  summary: string;
-};
-
-export type HuntTeamChatMessage = {
-  id: string;
-  teamId: string;
-  senderCultivatorId: string;
-  senderName: string;
-  senderRealm: string;
-  senderRealmStage: string;
-  senderTitle?: string | null;
-  text: string;
-  reply: HuntTeamChatReply | null;
-  createdAt: string;
-};
+export {
+  PARTY_CHAT_MAX_CHARS as HUNT_TEAM_CHAT_MAX_CHARS,
+  PartyChatSendSchema as HuntTeamChatSendSchema,
+  type PartyChatMessage as HuntTeamChatMessage,
+  type PartyChatReply as HuntTeamChatReply,
+  type PartyChatSend as HuntTeamChatSend,
+} from './party.js';
 
 export type HuntLobby = {
   event: HuntEvent;

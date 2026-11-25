@@ -1,6 +1,6 @@
 import { GameImage } from '@app/components/ui/GameImage';
 import { InkButton } from '@app/components/ui/InkButton';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { Link } from 'react-router';
 import './weekly-activity.css';
 
@@ -46,8 +46,9 @@ export function WeeklyActivityLobby({
   action,
   rankHref,
   rankName,
+  children,
 }: {
-  art: string;
+  art: string | ReactElement;
   place: string;
   title: string;
   note: string;
@@ -57,13 +58,18 @@ export function WeeklyActivityLobby({
   action?: ReactNode;
   rankHref: string;
   rankName: string;
+  children?: ReactNode;
 }) {
   return (
     <section
       className="weekly-activity-lobby"
       aria-labelledby="weekly-activity-state"
     >
-      <GameImage src={art} alt="" className="weekly-activity-art" />
+      {typeof art === 'string' ? (
+        <GameImage src={art} alt="" className="weekly-activity-art" />
+      ) : (
+        <div className="weekly-activity-art">{art}</div>
+      )}
       <div className="weekly-activity-lobby-inner">
         <div className="weekly-activity-entry">
           <p className="weekly-activity-place">{place}</p>
@@ -87,6 +93,7 @@ export function WeeklyActivityLobby({
             </InkButton>
           </div>
           <p className="weekly-activity-schedule">{schedule}</p>
+          {children}
         </div>
       </div>
     </section>

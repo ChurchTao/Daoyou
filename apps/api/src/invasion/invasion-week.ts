@@ -27,8 +27,8 @@ import {
 import { createHash } from 'node:crypto';
 
 export function invasionIdentity(member: InvasionMember) {
-  const { cultivatorId, name, title, gender, realm } = member;
-  return { cultivatorId, name, title, gender, realm };
+  const { cultivatorId, name, title, gender, realm, realmStage } = member;
+  return { cultivatorId, name, title, gender, realm, realmStage };
 }
 
 export async function prepareInvasionWeek(
@@ -179,7 +179,6 @@ export async function readInvasionRanking(): Promise<InvasionRanking> {
       realm: ranked.realm,
       wave: ranked.wave,
       rank: ranked.rank,
-      battleId: invasionProgress.lastBattleId,
       memberId: invasionProgress.cultivatorId,
       participants: invasionRuns.members,
     })
@@ -204,7 +203,6 @@ export async function readInvasionRanking(): Promise<InvasionRanking> {
       wave: row.wave,
       realm: row.realm,
       rank: row.rank,
-      battleId: row.battleId,
       participants: row.participants.map(invasionIdentity),
       members: [],
     };

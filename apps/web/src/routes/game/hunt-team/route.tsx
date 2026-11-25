@@ -1,5 +1,4 @@
 import { HuntMemberList } from '@app/components/feature/hunts/HuntMemberList';
-import { HuntTeamChat } from '@app/components/feature/hunts/HuntTeamChat';
 import {
   huntTargetLabel,
   huntTeamStatusLabel,
@@ -289,9 +288,6 @@ export default function HuntTeamPage() {
               </InkButton>
             </div>
           )}
-          {actorId ? (
-            <HuntTeamChat key={team.id} team={team} actorId={actorId} />
-          ) : null}
         </div>
       )}
     </GameSceneFrame>

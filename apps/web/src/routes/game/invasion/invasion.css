@@ -2,113 +2,487 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  min-height: 0;
   width: 100%;
+  min-width: 0;
+  min-height: 0;
 }
+
+.invasion-landscape {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--color-sheet) url('/assets/weekly/invasion-rift-camp.webp')
+    64% center / cover no-repeat;
+}
+
 .invasion-camp {
   position: relative;
-  display: flex;
+  isolation: isolate;
   flex: 1;
   min-height: 0;
   overflow: auto;
   background: var(--color-sheet);
-  isolation: isolate;
+  --invasion-surface: color-mix(in srgb, var(--color-paper) 95%, transparent);
 }
-.invasion-landscape {
+.invasion-camp .invasion-landscape {
   position: fixed;
   z-index: -2;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  background: var(--color-sheet) url('/assets/maps/taiyue-baishui-v1.webp')
-    center / cover no-repeat;
 }
 .invasion-camp::after {
   position: fixed;
-  content: '';
   z-index: -1;
   inset: 0;
+  content: '';
   pointer-events: none;
   background: linear-gradient(
-    100deg,
-    var(--color-sheet) 8%,
-    color-mix(in srgb, var(--color-sheet) 72%, transparent) 50%,
-    color-mix(in srgb, var(--color-sheet) 10%, transparent)
+    90deg,
+    var(--color-sheet) 1%,
+    color-mix(in srgb, var(--color-sheet) 75%, transparent) 47%,
+    transparent 90%
   );
 }
-.invasion-body {
-  width: min(100%, 74rem);
-  margin: auto;
-  padding: clamp(1rem, 5vw, 4rem) max(1rem, env(safe-area-inset-right))
-    max(1.5rem, env(safe-area-inset-bottom))
-    max(1rem, env(safe-area-inset-left));
+.invasion-camp[data-stage='operation']::after {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-sheet) 56%, transparent),
+    var(--color-sheet) 85%
+  );
 }
-.invasion-panel {
+.invasion-initial {
   display: grid;
-  gap: 0.85rem;
-  max-width: 36rem;
-  overflow-wrap: anywhere;
+  place-content: center;
+  padding: 1rem;
 }
-.invasion-panel h2 {
-  color: var(--color-ink);
-  font: 400 clamp(1.9rem, 6vw, 3.35rem)/1.15 var(--font-heading);
+.invasion-body {
+  width: min(100%, 73rem);
+  margin: 0 auto;
+  padding: clamp(1rem, 6vh, 3.75rem) max(3rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom))
+    max(1.4rem, env(safe-area-inset-left));
 }
-.invasion-panel h3 {
-  font-weight: 600;
-  margin-bottom: 0.45rem;
+.invasion-body > .ink-notice {
+  margin-bottom: 0.8rem;
 }
-.invasion-panel small {
-  font-size: 0.8rem;
-  color: var(--color-ink-secondary);
+.invasion-assembly {
+  display: grid;
+  max-width: 42rem;
+  gap: 0.9rem;
+  padding: clamp(0.9rem, 2.7vw, 1.6rem);
+  border: 1px solid var(--color-ink-border);
+  border-top: 2px solid var(--color-wood);
+  background: var(--invasion-surface);
+  box-shadow: 0 0.5rem 2rem
+    color-mix(in srgb, var(--color-ink) 10%, transparent);
 }
-.invasion-kicker,
-.invasion-list li {
+.invasion-assembly-heading,
+.invasion-section-heading,
+.invasion-brief,
+.invasion-wave-banner,
+.invasion-recruit-list li {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.55rem;
+  gap: 0.45rem 0.75rem;
 }
-.invasion-list li {
-  padding: 0.45rem 0;
-  border-bottom: 1px solid var(--color-ink-border);
+.invasion-eyebrow,
+.invasion-note,
+.invasion-section-heading > span,
+.invasion-clock small {
+  color: var(--color-ink-secondary);
+  font-size: 0.86rem;
 }
-.invasion-actions {
+.invasion-assembly h2,
+.invasion-transition h2 {
+  font: 400 clamp(2rem, 4.2vw, 3rem) / 1.15 var(--font-heading);
+}
+.invasion-clock {
+  text-align: end;
+}
+.invasion-clock small,
+.invasion-clock b {
+  display: block;
+}
+.invasion-clock b {
+  font-size: 1.2rem;
+}
+.invasion-brief {
+  flex-wrap: wrap;
+  padding: 0.65rem 0.8rem;
+  border-inline-start: 2px solid var(--color-crimson);
+  background: var(--color-paper-2);
+  font-size: 0.9rem;
+}
+.invasion-brief > div {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+}
+.invasion-brief strong {
+  font-size: 1.1rem;
+}
+.invasion-section-heading h3 {
+  font-weight: 700;
+}
+.invasion-roster {
+  display: grid;
+  gap: 0.42rem;
+}
+.invasion-member {
+  display: grid;
+  grid-template-columns: 2.8rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.55rem;
+  min-width: 0;
+  border: 1px solid var(--color-ink-border);
+  border-inline-start: 2px solid var(--color-ink-border);
+  background: var(--color-paper);
+}
+.invasion-member[data-ready='true'] {
+  border-inline-start-color: var(--color-teal);
+}
+.invasion-portrait {
+  width: 2.65rem;
+  height: 2.65rem;
+  border: 1px solid var(--color-ink-border);
+  border-radius: 50%;
+  background: var(--color-paper-2);
+}
+.invasion-member-identity p,
+.invasion-member-name small {
+  color: var(--color-ink-secondary);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+.invasion-member-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.42rem;
+}
+.invasion-member-name strong {
+  overflow-wrap: anywhere;
+}
+.invasion-captain,
+.invasion-readiness {
+  padding: 0.1rem 0.32rem;
+  width: fit-content;
+  border: 1px solid var(--color-ink-border);
+  font-size: 0.73rem;
+  white-space: nowrap;
+}
+.invasion-captain {
+  color: var(--color-wood);
+}
+.invasion-readiness {
+  color: var(--color-ink-secondary);
+}
+.invasion-readiness[data-ready='true'] {
+  color: var(--color-teal);
+  border-color: color-mix(in srgb, var(--color-teal) 38%, transparent);
+  background: color-mix(in srgb, var(--color-teal) 8%, transparent);
+}
+.invasion-member-controls,
+.invasion-action-row,
+.invasion-secondary {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.2rem 0.65rem;
 }
-.invasion-actions button,
-.invasion-list button,
-.invasion-ranking-link {
+.invasion-member-controls {
+  justify-content: end;
+}
+.invasion-member-controls button,
+.invasion-action-row button,
+.invasion-secondary :is(a, summary),
+.invasion-recruit-list button {
   min-height: 44px;
 }
-.invasion-ranking-link {
-  display: inline-flex;
-  align-items: center;
+.invasion-secondary summary {
+  cursor: pointer;
+  align-content: center;
   color: var(--color-teal);
-  text-decoration: underline;
+}
+.invasion-secondary details[open] {
+  width: 100%;
+}
+.invasion-recruit-list {
+  max-height: 12rem;
+  overflow: auto;
+  background: color-mix(in srgb, var(--color-paper) 92%, transparent);
+  padding-inline: 0.6rem;
+}
+.invasion-recruit-list li + li {
+  border-top: 1px solid var(--color-ink-border);
+}
+.invasion-receipt {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--color-ink-border);
+  background: var(--color-paper);
+  font-size: 0.88rem;
+}
+.invasion-receipt dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.15rem;
+  color: var(--color-teal);
+}
+.invasion-receipt dd {
+  font: 600 1rem var(--font-mono);
+}
+.invasion-transition {
+  display: grid;
+  justify-items: start;
+  gap: 0.65rem;
   width: fit-content;
+  padding: 1.35rem;
+  background: var(--invasion-surface);
 }
-.invasion-cards {
+.invasion-operations {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+  gap: 0.85rem;
+  animation: invasion-open 220ms ease-out both;
+}
+@keyframes invasion-open {
+  from {
+    opacity: 0.5;
+    transform: translateY(0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.invasion-wave-banner {
+  padding: 0.65rem clamp(0.8rem, 3vw, 1.5rem);
+  border: 1px solid var(--color-ink-border);
+  border-top: 2px solid var(--color-crimson);
+  background: var(--invasion-surface);
+}
+.invasion-wave-banner h2 {
+  font: 400 clamp(2.25rem, 6vw, 4.5rem) / 1.05 var(--font-heading);
+  margin-block: 0.15rem 0.3rem;
+}
+.invasion-wave-countdown {
+  display: grid;
+  justify-items: end;
+  gap: 0.18rem;
+  color: var(--color-crimson);
+}
+.invasion-wave-countdown strong {
+  font-size: clamp(1.9rem, 5vw, 3.2rem);
+  line-height: 1;
+}
+.invasion-wave-countdown progress {
+  width: clamp(4rem, 15vw, 8rem);
+  height: 0.28rem;
+  accent-color: var(--color-crimson);
+}
+.invasion-preparation {
+  display: grid;
+  grid-template-columns: minmax(15.5rem, 0.8fr) minmax(0, 1.2fr);
+  align-items: start;
+  gap: 0.8rem;
+}
+.invasion-preparation-actions {
+  display: grid;
+  min-width: 0;
+  gap: 0.8rem;
+}
+.invasion-vitals,
+.invasion-supplies,
+.invasion-hand {
+  display: grid;
+  min-width: 0;
+  gap: 0.6rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--color-ink-border);
+  background: var(--invasion-surface);
+}
+.invasion-vital {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: center;
+  padding-block: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--color-ink-border);
+}
+.invasion-vital:last-child {
+  border-bottom: 0;
+}
+.invasion-vital-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem;
+}
+.invasion-vital-name strong {
+  overflow-wrap: anywhere;
+}
+.invasion-vital-name span {
+  color: var(--color-ink-secondary);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.invasion-vital-name span[data-ready='true'] {
+  color: var(--color-teal);
+}
+.invasion-vital-bars {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.2rem 0.55rem;
+  margin-top: 0.22rem;
+  font-size: 0.75rem;
+  color: var(--color-ink-secondary);
+}
+.invasion-vital-bars > div {
+  min-width: 0;
+}
+.invasion-vital-bars strong {
+  white-space: nowrap;
+}
+.invasion-vital-bars meter {
+  display: block;
+  width: 100%;
+  height: 0.47rem;
+}
+.invasion-vital-bars meter::-webkit-meter-optimum-value {
+  background: var(--color-crimson);
+}
+.invasion-vital-bars meter[data-mana]::-webkit-meter-optimum-value {
+  background: var(--color-teal);
+}
+.invasion-deck {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 7.25rem);
+  gap: 0.5rem;
+}
+.invasion-card-slot {
+  position: relative;
+}
+.invasion-card {
+  display: grid;
+  grid-template-rows: 1rem 1fr auto;
+  width: 100%;
+  min-height: 10.5rem;
   gap: 0.4rem;
+  padding: 0.36rem 0.38rem 0.48rem;
+  border: 1px solid var(--color-ink-border);
+  border-radius: 0.4rem;
+  text-align: center;
+  background: var(--color-paper-2);
+  box-shadow: 0 2px 0
+    color-mix(in srgb, var(--color-ink-border) 65%, transparent);
 }
-.invasion-cards button {
+.invasion-card:enabled {
+  cursor: pointer;
+}
+.invasion-card:is(:focus-visible, :hover:enabled, [aria-pressed='true']) {
+  border-color: var(--color-crimson);
+}
+.invasion-card[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 1px var(--color-crimson);
+  background: color-mix(in srgb, var(--color-crimson) 7%, var(--color-paper));
+}
+.invasion-card:focus-visible {
+  outline: 2px solid var(--color-crimson);
+  outline-offset: 2px;
+}
+.invasion-card:disabled {
+  opacity: 0.68;
+}
+.invasion-card strong {
+  font-size: 0.95rem;
+}
+.invasion-card-top {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.7rem;
+  color: var(--color-crimson);
+}
+.invasion-card-top small {
+  color: var(--color-ink-secondary);
+  font-size: inherit;
+  font-weight: 600;
+}
+.invasion-card-picture {
   display: grid;
-  min-height: 44px;
-  padding: 0.45rem;
-  text-align: start;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-ink-border) 72%, transparent);
+  border-radius: 45% 45% 0.2rem 0.2rem;
+  background: radial-gradient(
+    ellipse at 50% 85%,
+    color-mix(in srgb, var(--color-wood) 12%, transparent),
+    transparent 78%
+  );
+}
+.invasion-deck .invasion-card-art {
+  width: 4.35rem;
+  height: 4.35rem;
+}
+.invasion-card-detail {
+  margin-top: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  border-inline-start: 2px solid var(--color-crimson);
+  background: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  font-size: 0.875rem;
+  scroll-margin-block-end: 5rem;
+}
+.invasion-card-detail p {
+  color: var(--color-ink-secondary);
+}
+.invasion-operation-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  padding: 0.52rem 0.8rem;
   border: 1px solid var(--color-ink-border);
   background: var(--color-paper);
 }
-.invasion-cards button[aria-pressed='true'] {
-  border-color: var(--color-teal);
-  box-shadow: inset 0 -2px var(--color-teal);
+.invasion-operation-footer p {
+  color: var(--color-ink-secondary);
+  font-size: 0.81rem;
 }
-@media (max-width: 38rem) {
+
+@media (max-width: 46rem) {
+  .invasion-body {
+    padding: 0.8rem 0.85rem max(1rem, env(safe-area-inset-bottom));
+  }
   .invasion-camp::after {
-    background: color-mix(in srgb, var(--color-sheet) 85%, transparent);
+    background: color-mix(in srgb, var(--color-sheet) 58%, transparent);
+  }
+  .invasion-preparation {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .invasion-operation-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+  }
+  .invasion-member-controls {
+    flex-direction: column;
+    gap: 0;
+  }
+  .invasion-member-controls button {
+    min-height: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .invasion-operations {
+    animation: none;
+  }
+}
+
+@media (max-aspect-ratio: 4/5) {
+  .invasion-landscape canvas {
+    transform: translateX(-14%);
   }
 }

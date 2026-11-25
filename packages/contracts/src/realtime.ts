@@ -1,5 +1,5 @@
 import type { ArenaRoomStatusV1, ArenaRoomV1 } from './arena.js';
-import type { HuntTeamChatMessage } from './hunts.js';
+import type { PartyChatMessage } from './party.js';
 import type { ResourceChange, ResourceScope } from './resources/index.js';
 import type {
   RedPacketSummary,
@@ -66,7 +66,7 @@ export type RealtimeServerEvent =
     }
   | {
       type: 'hunt-team.chat';
-      payload: HuntTeamChatMessage;
+      payload: PartyChatMessage;
     }
   | {
       type: 'hunt-team.started';

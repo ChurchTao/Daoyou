@@ -25,6 +25,7 @@ export interface InkDetailDrawerProps {
   closeOnEscape?: boolean;
   closeOnOverlayClick?: boolean;
   className?: string;
+  bodyClassName?: string;
   overlayClassName?: string;
 }
 
@@ -58,6 +59,7 @@ export function InkDetailDrawer({
   closeOnEscape = true,
   closeOnOverlayClick = true,
   className,
+  bodyClassName,
   overlayClassName = 'ink-overlay',
 }: InkDetailDrawerProps) {
   const titleId = useId();
@@ -168,7 +170,12 @@ export function InkDetailDrawer({
             </div>
           ) : null}
         </header>
-        <div className="battle-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pt-4 pr-[max(env(safe-area-inset-right),1rem)] pb-[max(env(safe-area-inset-bottom),1rem)] pl-[max(env(safe-area-inset-left),1rem)] md:pr-[max(env(safe-area-inset-right),1.25rem)] md:pb-[max(env(safe-area-inset-bottom),1.25rem)] md:pl-5">
+        <div
+          className={cn(
+            'battle-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pt-4 pr-[max(env(safe-area-inset-right),1rem)] pb-[max(env(safe-area-inset-bottom),1rem)] pl-[max(env(safe-area-inset-left),1rem)] md:pr-[max(env(safe-area-inset-right),1.25rem)] md:pb-[max(env(safe-area-inset-bottom),1.25rem)] md:pl-5',
+            bodyClassName,
+          )}
+        >
           {children}
         </div>
         {footer ? (

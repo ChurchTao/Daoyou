@@ -433,6 +433,7 @@ export default function RankingsPage() {
           activeValue={contestTab}
           onChange={handleTabChange}
           items={rankingTabs}
+          compact
         />
         {contestTab === 'alchemy' ? <AlchemyContestRanking /> : contestTab === 'baixiao' ? <BaixiaoRanking /> : <InvasionRanking />}
       </GameSceneFrame>
@@ -565,6 +566,7 @@ export default function RankingsPage() {
           activeValue={activeTab}
           onChange={handleTabChange}
           items={rankingTabs}
+          compact
         />
         {activeTab === 'battle' ? (
           <RealmTokenBar

@@ -32,3 +32,33 @@ export type PartyView = {
   }>;
 };
 export type CurrentParty = { party: PartyView | null; roleMismatch?: boolean };
+
+export const PARTY_CHAT_MAX_CHARS = 100;
+
+export const PartyChatSendSchema = z
+  .object({
+    text: z.string().max(400),
+    replyToMessageId: z.uuid().optional(),
+  })
+  .strict();
+
+export type PartyChatSend = z.infer<typeof PartyChatSendSchema>;
+
+export type PartyChatReply = {
+  messageId: string;
+  senderName: string;
+  summary: string;
+};
+
+export type PartyChatMessage = {
+  id: string;
+  teamId: string;
+  senderCultivatorId: string;
+  senderName: string;
+  senderRealm: string;
+  senderRealmStage: string;
+  senderTitle?: string | null;
+  text: string;
+  reply: PartyChatReply | null;
+  createdAt: string;
+};

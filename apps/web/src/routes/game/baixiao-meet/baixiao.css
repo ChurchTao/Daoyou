@@ -334,8 +334,7 @@ body:has(.baixiao-hall) [data-ink-toast-host] {
   border-radius: 0.2rem;
   text-align: center;
 }
-.baixiao-card:enabled,
-.baixiao-card-info {
+.baixiao-card:enabled {
   cursor: pointer;
 }
 .baixiao-card:enabled:hover,
@@ -358,37 +357,6 @@ body:has(.baixiao-hall) [data-ink-toast-host] {
 .baixiao-card-icon {
   width: clamp(2.75rem, 13vw, 4.1rem);
   height: clamp(2.75rem, 13vw, 4.1rem);
-}
-.baixiao-card-info {
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline-end: 0;
-  display: grid;
-  width: 44px;
-  height: 44px;
-  padding: 0.28rem 0.32rem;
-  place-items: start end;
-  color: var(--color-ink-secondary);
-}
-.baixiao-card-info > span {
-  display: grid;
-  width: 1.15rem;
-  height: 1.15rem;
-  place-items: center;
-  border: 1px solid var(--color-ink-border);
-  border-radius: 50%;
-  background: var(--color-paper);
-  font: 600 0.75rem/1 var(--font-mono);
-}
-.baixiao-card-info:hover > span,
-.baixiao-card-info[aria-expanded='true'] > span,
-.baixiao-card-info:focus-visible > span {
-  border-color: var(--color-crimson);
-  color: var(--color-crimson);
-}
-.baixiao-card-info:focus-visible {
-  outline: 2px solid var(--color-crimson);
-  outline-offset: -2px;
 }
 .baixiao-card-bonus {
   position: absolute;

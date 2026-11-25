@@ -1,6 +1,7 @@
 import { realtimeClient } from '@app/lib/realtime/realtimeClient';
 import { GuideOverlay } from '@app/components/feature/guide/GuideOverlay';
 import { SceneGate } from '@app/components/feature/story/SceneGate';
+import { PartyChatDock } from '@app/components/feature/party/PartyChatDock';
 import { HuntTeamBar } from '@app/components/feature/hunts/HuntTeamBar';
 import { WorldChatPreviewBar } from '@app/components/feature/world-chat/WorldChatPreviewBar';
 import { WorldChatFeedProvider } from '@app/components/feature/world-chat/useWorldChatFeedModel';
@@ -90,7 +91,12 @@ function PlayerShell() {
     );
   }
 
-  return <Outlet />;
+  return (
+    <AuthProvider>
+      <Outlet />
+      <PartyChatDock />
+    </AuthProvider>
+  );
 }
 
 export function GameViewportLayout() {
@@ -152,7 +158,6 @@ function GameViewportBody({ scene }: { scene: GameSceneHandle | null }) {
 
   return (
     <PaperSurface data-game-viewport className="min-h-dvh" style={viewportStyle}>
-      <AuthProvider>
       <WorldChatFeedProvider>
         <div className="flex min-h-dvh flex-col">
           <PaperSurface className="sticky top-0 z-30">
@@ -196,7 +201,6 @@ function GameViewportBody({ scene }: { scene: GameSceneHandle | null }) {
           </PaperSurface>
         </div>
       </WorldChatFeedProvider>
-      </AuthProvider>
     </PaperSurface>
   );
 }

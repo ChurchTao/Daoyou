@@ -1,3 +1,4 @@
+import { ActivityCardInfoButton } from '@app/components/feature/weekly-activity/ActivityCardInfoButton';
 import { useInkUI } from '@app/components/providers/useInkUI';
 import { InkButton } from '@app/components/ui';
 import { GameIcon } from '@app/components/ui/GameIcon';
@@ -229,9 +230,7 @@ export function BaixiaoHandPanel({
                   </span>
                 )}
               </button>
-              <button
-                className="baixiao-card-info"
-                type="button"
+              <ActivityCardInfoButton
                 aria-label={`查看${names[card]}效果`}
                 aria-expanded={shown && !confirming}
                 aria-controls={shown && !confirming ? detailId : undefined}
@@ -258,9 +257,7 @@ export function BaixiaoHandPanel({
                       : { card, position, mode: 'inspect' },
                   );
                 }}
-              >
-                <span aria-hidden="true">?</span>
-              </button>
+              />
             </div>
           );
         })}

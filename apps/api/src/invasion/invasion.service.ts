@@ -258,6 +258,8 @@ export class InvasionService {
           members: run.members.map(invasionIdentity),
           ready: run.ready,
           leader: run.leaderId === actor.userId,
+          captainId: run.members.find(({ userId }) => userId === run.leaderId)!
+            .cultivatorId,
           phase: run.phase,
           regrouping,
           wave: run.wave,
@@ -302,6 +304,8 @@ export class InvasionService {
       ready,
       recruiting: advertised,
       leader: party.leaderId === actor.userId,
+      captainId: members.find(({ userId }) => userId === party.leaderId)!
+        .cultivatorId,
       busyMembers: entries.some(
         (progress) =>
           progress.activeRunId !== null ||
@@ -498,6 +502,7 @@ export class InvasionService {
     }
     if (
       input.type !== 'leave' &&
+      input.type !== 'kick' &&
       input.type !== 'recruit' &&
       input.type !== 'ready' &&
       input.type !== 'start'
@@ -511,6 +516,22 @@ export class InvasionService {
       if (Date.now() >= closesAt) throw new ConflictException('活动已截止');
       if (input.type === 'leave') {
         await changeParty(actor, party.id, { type: 'leave' }, tx);
+        return;
+      }
+      if (input.type === 'kick') {
+        if (party.leaderId !== actor.userId)
+          throw new ForbiddenException('只有队长可以请离队员');
+        const member = party.members.find(
+          ({ cultivatorId }) => cultivatorId === input.cultivatorId,
+        );
+        if (!member || member.userId === actor.userId)
+          throw new BadRequestException('该道友已不在队中');
+        await changeParty(
+          actor,
+          party.id,
+          { type: 'kick', userId: member.userId },
+          tx,
+        );
         return;
       }
       const { ready } = await recruitment(party, week, tx);

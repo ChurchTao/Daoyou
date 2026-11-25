@@ -1,3 +1,4 @@
+import { notifyPartyChanged } from '@app/components/feature/party/partyEvents';
 import { GameLoadingState, GameSceneFrame } from '@app/components/game-shell';
 import { InkButton, InkDialog, InkNotice } from '@app/components/ui';
 import { apiFetch } from '@app/lib/api/fetch';
@@ -81,6 +82,7 @@ function PartyWorkspace({ actor }: { actor?: string }) {
     setNotice('');
     try {
       setValue(await requestParty(command));
+      notifyPartyChanged();
       if (command.type === 'join') setQuery({}, { replace: true });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '暂时无法完成操作');

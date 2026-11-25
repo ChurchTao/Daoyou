@@ -8,9 +8,9 @@ import { huntEventsAt } from '@daoyou/game-rules/hunts';
 import { Injectable } from '@nestjs/common';
 import { huntBattleReward } from '@server/hunts/application/HuntRewardProjector.js';
 import {
-  listHuntTeamChat,
-  sendHuntTeamChat,
-} from '@server/hunts/application/HuntTeamChat.js';
+  listPartyChat,
+  sendPartyChat,
+} from '@server/parties/party-chat.js';
 import {
   commandHuntTeam,
   createHuntTeam,
@@ -76,7 +76,7 @@ export class HuntsService {
   async chat(actor: ActiveCultivatorRef, teamId: string) {
     return {
       success: true,
-      data: { messages: await listHuntTeamChat(actor, teamId) },
+      data: { messages: await listPartyChat(actor, teamId) },
     };
   }
 
@@ -87,7 +87,7 @@ export class HuntsService {
   ) {
     return {
       success: true,
-      data: await sendHuntTeamChat(actor, teamId, input),
+      data: await sendPartyChat(actor, teamId, input),
     };
   }
 }

@@ -1,3 +1,4 @@
+import { partyChatKey } from '@server/parties/party-chat.js';
 import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
 import {
   ARENA_SPARRING_RULES_V1,
@@ -47,7 +48,6 @@ import { and, eq } from 'drizzle-orm';
 export type HuntActor = { userId: string; cultivatorId: string };
 export const huntTeamKey = (id: string) => `hunt:v1:team:${id}`;
 export const huntMemberKey = (id: string) => `hunt:v1:member:${id}`;
-export const huntTeamChatKey = (id: string) => `hunt:v1:chat:${id}`;
 const teamKey = huntTeamKey;
 const memberKey = huntMemberKey;
 const eventTeamsKey = (id: string) => `hunt:v1:teams:${id}`;
@@ -224,7 +224,7 @@ return 1`,
     previous?.event?.id ?? '',
     team.event?.id ?? '',
     String(team.event?.expiresAt ?? 0),
-    huntTeamChatKey(team.id),
+    partyChatKey(team.id),
   );
   if (Number(result) !== 1) throw new ArenaV6Error('队伍有变，请重新查看');
   if (

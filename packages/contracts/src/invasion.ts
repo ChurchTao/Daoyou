@@ -14,6 +14,7 @@ export const InvasionCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('create') }),
   z.strictObject({ type: z.literal('join'), teamId: z.uuid().optional() }),
   z.strictObject({ type: z.literal('leave') }),
+  z.strictObject({ type: z.literal('kick'), cultivatorId: z.uuid() }),
   z.strictObject({ type: z.literal('recruit'), advertised: z.boolean() }),
   z.strictObject({ type: z.literal('start') }),
   z.strictObject({ type: z.literal('withdraw') }),
@@ -31,7 +32,7 @@ export const InvasionCommandSchema = z.discriminatedUnion('type', [
 export type InvasionCommand = z.infer<typeof InvasionCommandSchema>;
 export type InvasionIdentity = Pick<
   InvasionMember,
-  'cultivatorId' | 'name' | 'title' | 'gender' | 'realm'
+  'cultivatorId' | 'name' | 'title' | 'gender' | 'realm' | 'realmStage'
 >;
 export type InvasionPublicTeam = { id: string; members: InvasionIdentity[] };
 export type InvasionStatus = {
@@ -51,6 +52,7 @@ export type InvasionStatus = {
         phase: InvasionPhase;
         realm: RealmType;
         leader: boolean;
+        captainId: string;
         busyMembers?: boolean;
         regrouping?: boolean;
         recruiting?: boolean;
@@ -71,7 +73,6 @@ export type InvasionRanking = {
     realm: RealmType;
     rank: number;
     wave: number;
-    battleId: string | null;
     participants: InvasionIdentity[];
   })[];
 };

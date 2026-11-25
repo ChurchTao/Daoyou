@@ -119,7 +119,7 @@ describe('resolveDungeonMapConfig', () => {
       realm_requirement: '炼气',
     });
     expect(satelliteNodes.find(({ id }) => id === INVASION_NODE_ID)).toMatchObject({
-      type: 'landmark', parent_id: 'TN_YUE_01', realm_requirement: '炼气',
+      type: 'landmark', parent_id: 'TN_ZMG_01', realm_requirement: '炼气',
     });
     expect(satelliteNodes
       .filter(({ id }) => !activityIds.has(id))

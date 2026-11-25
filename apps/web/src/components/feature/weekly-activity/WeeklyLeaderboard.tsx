@@ -38,34 +38,78 @@ export function WeeklyBoardPending({
   );
 }
 
-export function WeeklyLeaderboard({
-  name,
-  date,
-  place,
-  period,
-  subject,
-  status,
-  emptyTitle,
-  emptyNote,
-  emblem,
-  href,
-  action,
-  entries,
-  mine,
-  currentResult,
-  onSelect,
-}: {
+type WeeklyBoardHeaderProps = {
   name: string;
   date: string;
   place: string;
   period: '本期' | '已封榜';
   subject?: string;
+  href: string;
+  action: string;
+};
+
+export function WeeklyBoardHeader({
+  name,
+  date,
+  place,
+  period,
+  subject,
+  href,
+  action,
+}: WeeklyBoardHeaderProps) {
+  return (
+    <header className="weekly-rank-heading">
+      <div>
+        <p className="weekly-rank-date">
+          {date} · {place} · {period}
+        </p>
+        <h2>{name}</h2>
+        {subject && <p className="weekly-rank-subject">{subject}</p>}
+      </div>
+      <InkButton variant="secondary" href={href}>
+        {action}
+      </InkButton>
+    </header>
+  );
+}
+
+export function WeeklyBoardEmpty({
+  title,
+  note,
+  emblem,
+}: {
+  title: string;
+  note?: string;
+  emblem: string;
+}) {
+  return (
+    <div className="weekly-rank-wait">
+      <GameIcon
+        value={emblem}
+        purpose="artwork"
+        className="weekly-rank-furnace"
+      />
+      <h3>{title}</h3>
+      {note && <p>{note}</p>}
+    </div>
+  );
+}
+
+export function WeeklyLeaderboard({
+  status,
+  emptyTitle,
+  emptyNote,
+  emblem,
+  entries,
+  mine,
+  currentResult,
+  onSelect,
+  ...header
+}: WeeklyBoardHeaderProps & {
   status: string;
   emptyTitle: string;
   emptyNote?: string;
   emblem: string;
-  href: string;
-  action: string;
   entries: WeeklyRankEntry[];
   mine?: { rank: number | null; score?: string };
   currentResult?: string;
@@ -136,19 +180,8 @@ export function WeeklyLeaderboard({
   }
 
   return (
-    <section className="weekly-rank-board" aria-label={name}>
-      <header className="weekly-rank-heading">
-        <div>
-          <p className="weekly-rank-date">
-            {date} · {place} · {period}
-          </p>
-          <h2>{name}</h2>
-          {subject && <p className="weekly-rank-subject">{subject}</p>}
-        </div>
-        <InkButton variant="secondary" href={href}>
-          {action}
-        </InkButton>
-      </header>
+    <section className="weekly-rank-board" aria-label={header.name}>
+      <WeeklyBoardHeader {...header} />
       <p className="weekly-rank-status">{status}</p>
       {entries.length ? (
         <>
@@ -164,15 +197,7 @@ export function WeeklyLeaderboard({
           )}
         </>
       ) : (
-        <div className="weekly-rank-wait">
-          <GameIcon
-            value={emblem}
-            purpose="artwork"
-            className="weekly-rank-furnace"
-          />
-          <h3>{emptyTitle}</h3>
-          {emptyNote && <p>{emptyNote}</p>}
-        </div>
+        <WeeklyBoardEmpty title={emptyTitle} note={emptyNote} emblem={emblem} />
       )}
       {mine && (
         <div className="weekly-rank-self">
