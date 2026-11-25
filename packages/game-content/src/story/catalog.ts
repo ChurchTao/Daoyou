@@ -2,6 +2,9 @@ import { StoryChapterSchema } from './schema.js';
 
 import arrivalChapter from './data/arrival.json' with { type: 'json' };
 import mineBaishui from './data/mine-baishui.json' with { type: 'json' };
+import mineBaishuiLamp from './data/mine-baishui-lamp.json' with { type: 'json' };
+import mineBaishuiNight from './data/mine-baishui-night.json' with { type: 'json' };
+import mineBaishuiMedicine from './data/mine-baishui-medicine.json' with { type: 'json' };
 import mineCrossing from './data/mine-crossing.json' with { type: 'json' };
 import mineDeparture from './data/mine-departure.json' with { type: 'json' };
 import mineErrand from './data/mine-errand.json' with { type: 'json' };
@@ -144,6 +147,9 @@ const chapters = new Map<string, StoryChapter>([
   [mineSparring.id, parseChapter(mineSparring)],
   [mineErrand.id, parseChapter(mineErrand)],
   [mineBaishui.id, parseChapter(mineBaishui)],
+  [mineBaishuiLamp.id, parseChapter(mineBaishuiLamp)],
+  [mineBaishuiNight.id, parseChapter(mineBaishuiNight)],
+  [mineBaishuiMedicine.id, parseChapter(mineBaishuiMedicine)],
   [mineLodging.id, parseChapter(mineLodging)],
 ]);
 

@@ -135,6 +135,7 @@ const performanceBeatSchema = z
     outcome: z.string().trim().min(1).max(40),
     // 可在这一幕选择重打上一幕实际落败的一场。
     retryLostBattle: z.literal(true).optional(),
+    requireBattleVictory: z.literal(true).optional(),
     // 从主线入口续读时先播放，也可稍后从现场入口接续。
     playOnResume: z.literal(true).optional(),
     arrival: storyArrival,
@@ -404,12 +405,12 @@ export function createStoryChapterSchema({
         }
         if (
           beat.kind === 'performance' &&
-          beat.retryLostBattle &&
+          (beat.retryLostBattle || beat.requireBattleVictory) &&
           chapter.beats[index - 1]?.kind !== 'battle'
         ) {
           context.addIssue({
             code: 'custom',
-            message: `再试前须是剧情战：${beat.id}`,
+            message: `核对战果的演出前须是剧情战：${beat.id}`,
           });
         }
         if (beat.gift) {

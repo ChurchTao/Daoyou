@@ -176,7 +176,7 @@ const areaContent: Readonly<Record<string, MapAreaContent>> = {
         description: '过河弯后，和接引亭同岸的石阶渡埠。去对岸要在此换客渡。',
         scene: {
           description:
-            '木牌立在芦苇旁，石阶一直伸进水里。横渡的客船还没有靠岸。',
+            '木牌立在芦苇旁，石阶一直伸进水里。渡钟立在石阶上方。',
           npcs: [
             {
               id: 'cake-vendor',
@@ -193,6 +193,12 @@ const areaContent: Readonly<Record<string, MapAreaContent>> = {
               details:
                 '去白水镇的客船从这儿过河，候船可以坐石阶上。',
             },
+            {
+              id: 'reed-berth',
+              name: '芦苇口旧泊位',
+              purpose: '沿岸查看旧木桩',
+              details: '从石阶沿着本岸往下游走，芦苇间斜露出几截旧桩。',
+            },
           ],
         },
       },
@@ -200,6 +206,17 @@ const areaContent: Readonly<Record<string, MapAreaContent>> = {
         id: 'baishui-town',
         name: '白水镇',
         description: '白水镇和药铺都在河对岸。平日从白水渡搭客船过河。',
+        scene: {
+          description: '泊船灯挂在石阶上方。上岸沿巷子走，便到药铺。',
+          npcs: [
+            {
+              id: 'pharmacy-keeper',
+              name: '药铺掌柜',
+              action: '到药铺问问掌柜',
+              reply: '要问什么药？进来说吧。',
+            },
+          ],
+        },
       },
     ],
   },
@@ -233,6 +250,13 @@ const passages: readonly MapPassage[] = [
       name: '阿禾的船',
       description: '沿接引亭这面河岸顺流到白水渡。',
     },
+  },
+  {
+    id: 'baishui-ferry-to-town',
+    from: { kind: 'area', areaId: 'TN_YUE_01', placeId: 'baishui-ferry' },
+    to: { kind: 'area', areaId: 'TN_YUE_01', placeId: 'baishui-town' },
+    label: '搭夜渡去白水镇',
+    entrance: { name: '白水镇夜渡', description: '从石阶登船，横渡到白水镇。' },
   },
 ];
 

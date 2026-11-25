@@ -341,6 +341,15 @@ export function acknowledgePerformance(
     );
   }
   if (beat.outcome !== outcome) throw new Error('演出结果不属于这一幕');
+  if (beat.requireBattleVictory) {
+    const previous = chapter.beats[chapter.beats.indexOf(beat) - 1];
+    if (
+      previous?.kind !== 'battle' ||
+      !progress.marks.includes(flagMark(battleFlag(previous.battle, 'won')))
+    ) {
+      throw new Error('胜过这一场才能继续剧情');
+    }
+  }
   if (chosen.flags.some((flag) => !chosen.allowed.includes(flag))) {
     throw new Error('演出里没有这个选择');
   }

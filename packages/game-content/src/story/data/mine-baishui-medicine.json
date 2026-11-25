@@ -1,0 +1,71 @@
+{
+  "id": "mine-baishui-medicine",
+  "track": "main",
+  "title": "药到了",
+  "deferredUnlocks": ["alchemy", "refine", "sect-alchemy", "sect-refinery"],
+  "beats": [
+    {
+      "id": "signal",
+      "kind": "performance",
+      "arrival": "location",
+      "script": "mine-baishui-signal",
+      "outcome": "done",
+      "scene": "map",
+      "prompt": "到石阶举灯，引夜渡靠岸。",
+      "actionLabel": "去石阶引船",
+      "finishLabel": "去客渡泊位乘船",
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "baishui-ferry"
+      },
+      "entry": { "kind": "facility", "id": "ferry-berth" }
+    },
+    {
+      "id": "cross",
+      "kind": "passage",
+      "arrival": "location",
+      "scene": "map",
+      "prompt": "夜渡已经靠岸。带药匣搭船去白水镇。",
+      "actionLabel": "搭夜渡去白水镇",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "baishui-ferry"
+      },
+      "passage": { "id": "baishui-ferry-to-town" }
+    },
+    {
+      "id": "deliver",
+      "kind": "performance",
+      "arrival": "location",
+      "script": "mine-baishui-deliver",
+      "outcome": "done",
+      "scene": "map",
+      "prompt": "已经到了白水镇。沿巷子去药铺，把药匣交给掌柜。",
+      "actionLabel": "把药匣交给掌柜",
+      "finishLabel": "走出药铺",
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "baishui-town"
+      },
+      "entry": { "kind": "npc", "id": "pharmacy-keeper" }
+    },
+    {
+      "id": "delivered",
+      "kind": "life",
+      "scene": "map",
+      "prompt": "白水镇药铺收下了药。你和同门走出药铺，沿巷子往镇渡走。",
+      "actionLabel": "看看白水镇",
+      "href": "/game",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "baishui-town"
+      }
+    }
+  ]
+}

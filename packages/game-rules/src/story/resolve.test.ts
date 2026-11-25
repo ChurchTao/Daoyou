@@ -16,6 +16,7 @@ import {
   OPENING_STORY_CHAPTER,
 } from '@daoyou/game-content/story/catalog';
 import {
+  acknowledgeBattle,
   acknowledgeGuide,
   acknowledgePerformance,
   acknowledgeStoryPassage,
@@ -209,8 +210,59 @@ describe('地点剧情与通路', () => {
     ).progress;
     expect(presentStory(chapter, returned, facts)).toMatchObject({
       beatId: 'returned',
-      kind: 'life',
+      kind: 'performance',
       location: { placeId: 'baishui-ferry' },
+    });
+    const resumed = rewindToUnwatchedPerformance(chapter, returned, facts);
+    expect(resumed.beatId).toBe('returned');
+    expect(
+      acknowledgePerformance(chapter, resumed, facts, 'mine-baishui-returned', 'done').finished,
+    ).toBe(true);
+    const next = getStoryChapter(chapter.next);
+    expect(presentStory(next, openingStoryProgress(next.id), facts)).toMatchObject({
+      beatId: 'ask-boatman',
+      location: { placeId: 'baishui-ferry' },
+    });
+  });
+
+  it('夜渡停船后，只有胜利和拔旗才能接引船与交药', () => {
+    const chapter = getStoryChapter('mine-baishui-night');
+    const facts = emptyStoryFacts();
+    const warn = acknowledgePerformance(
+      chapter,
+      openingStoryProgress(chapter.id),
+      facts,
+      'mine-baishui-warn',
+      'done',
+    ).progress;
+    const flag = acknowledgePerformance(chapter, warn, facts, 'mine-baishui-flag', 'done').progress;
+    const battle = 'mine-baishui-rogue';
+    const verdict = 'mine-baishui-verdict';
+    const lost = acknowledgeBattle(chapter, flag, facts, battle, 'lost').progress;
+    expect(() => acknowledgePerformance(chapter, lost, facts, verdict, 'done')).toThrow(
+      '胜过这一场才能继续剧情',
+    );
+    const retry = acknowledgePerformance(chapter, lost, facts, verdict, 'retry').progress;
+    expect(retry.beatId).toBe('fight');
+    expect(retry.acks).toContain('mine-baishui-flag:done');
+    const won = acknowledgeBattle(chapter, retry, facts, battle, 'won').progress;
+    expect(acknowledgePerformance(chapter, won, facts, verdict, 'done').finished).toBe(true);
+
+    const next = getStoryChapter(chapter.next);
+    const dock = openingStoryProgress(next.id);
+    const passage = { chapterId: next.id, beatId: 'cross', passageId: 'baishui-ferry-to-town' };
+    expect(() => acknowledgeStoryPassage(next, dock, facts, passage)).toThrow('当前没有这段行程');
+    const ready = acknowledgePerformance(next, dock, facts, 'mine-baishui-signal', 'done').progress;
+    const arrived = acknowledgeStoryPassage(next, ready, facts, passage).progress;
+    expect(presentStory(next, arrived, facts)).toMatchObject({
+      location: { placeId: 'baishui-town' },
+      entry: { kind: 'npc', id: 'pharmacy-keeper' },
+    });
+    const delivered = acknowledgePerformance(next, arrived, facts, 'mine-baishui-deliver', 'done').progress;
+    expect(presentStory(next, delivered, facts)).toMatchObject({
+      beatId: 'delivered',
+      kind: 'life',
+      location: { placeId: 'baishui-town' },
     });
   });
 });
@@ -1266,6 +1318,9 @@ describe('volume one', () => {
       'mine-lesson',
       'mine-sparring',
       'mine-errand',
+      'mine-baishui',
+      'mine-baishui-lamp',
+      'mine-baishui-night',
     ]);
     expect(seen.slice(0, 4).every((id) => getStoryChapter(id).gated)).toBe(
       true,
@@ -1276,7 +1331,7 @@ describe('volume one', () => {
       script: 'mine-gate-landing',
     });
     expect(current.gated).toBeUndefined();
-    expect(current.id).toBe('mine-baishui');
+    expect(current.id).toBe('mine-baishui-medicine');
     expect(current.beats.at(-1)?.kind).toBe('life');
   });
 

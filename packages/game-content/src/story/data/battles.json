@@ -59,5 +59,21 @@
     ],
     "defeat": "pass",
     "fresh": true
+  },
+  {
+    "id": "mine-baishui-rogue",
+    "title": "芦苇口的散修",
+    "opponents": [
+      {
+        "name": "炼气散修",
+        "icon": "icon:portrait-wanderer-m",
+        "level": 1,
+        "kind": "normal",
+        "hp": 0.50,
+        "attack": 0.85
+      }
+    ],
+    "defeat": "pass",
+    "fresh": true
   }
 ]

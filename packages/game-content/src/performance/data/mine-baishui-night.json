@@ -1,0 +1,394 @@
+[
+  {
+    "id": "mine-baishui-returned",
+    "title": "红帆又靠岸",
+    "requires": [],
+    "cast": {},
+    "cues": [
+      { "type": "scene", "alt": "白水渡 · 客渡泊位" },
+      {
+        "type": "narration",
+        "text": "你把湿缆套回石柱。刚才解绳时留下的水印还在，绳圈正落在那道印子上。"
+      },
+      { "type": "end", "outcome": "done" }
+    ]
+  },
+  {
+    "id": "mine-baishui-ask-boatman",
+    "title": "灯挂错了",
+    "requires": [],
+    "cast": {
+      "player": { "name": "你" },
+      "boatman": { "name": "红帆船夫" },
+      "porter": { "name": "岸上伙计" },
+      "peer": { "name": "隔壁同门" }
+    },
+    "cues": [
+      { "type": "scene", "alt": "白水渡 · 客渡泊位" },
+      { "type": "title", "text": "灯挂错了" },
+      { "type": "line", "speaker": "player", "text": "你瞧木牌后头。" },
+      {
+        "type": "narration",
+        "text": "船夫扶着篙往岸上望。卖饼人正给第一张饼翻面，饼边铲破了一个角。"
+      },
+      {
+        "type": "line",
+        "speaker": "boatman",
+        "text": "我走的时候你刚和好面。怎么还在白水渡？"
+      },
+      {
+        "type": "narration",
+        "text": "岸上伙计几步跳上船，把歪在船舷边的青果筐扶稳。筐旁露出一块空船板。"
+      },
+      {
+        "type": "line",
+        "speaker": "porter",
+        "text": "红绳扎的那包呢？药铺托咱们带的灵货。"
+      },
+      {
+        "type": "narration",
+        "text": "船夫和他翻了一遍船舱。方才收缆擦破了手，他一下没抓牢筐沿，几颗青果滚出来，撞上了船板上的篙。"
+      },
+      {
+        "type": "line",
+        "speaker": "boatman",
+        "text": "先把余下的送去，少的我当面跟掌柜说。你们也去药铺？上来吧。白日的客渡早过了，下一趟得入夜。"
+      },
+      {
+        "type": "narration",
+        "text": "同门提着匣子走下两级石阶。搭这趟船还能赶在收门板前交药。可那红帆刚从近岸的芦苇里钻出来，你想不通他在哪儿调的头。"
+      },
+      { "type": "line", "speaker": "player", "text": "你在雾里靠过岸么？" },
+      {
+        "type": "line",
+        "speaker": "boatman",
+        "text": "看见镇上的泊船灯，我就收桨了。水浅，船舷还刮了一下。再往前没几篙，我就看见你站在这儿。"
+      },
+      {
+        "type": "narration",
+        "text": "你蹲下去看船舷。贴水处有一道新刮出来的白印，一小片湿木皮还卡在缝里。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "镇上靠船的地方也有木桩？"
+      },
+      {
+        "type": "line",
+        "speaker": "boatman",
+        "text": "镇上是石阶，灯挂得高。芦苇口倒有几根旧桩，以前的小船拐进去歇过脚。"
+      },
+      { "type": "narration", "text": "你指给船夫看红帆刚冒出来的地方。" },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "你先别走。再顺那盏灯划，下一回兴许就不止刮掉一点木皮了。"
+      },
+      { "type": "narration", "text": "同门提着匣子退回干石阶。" },
+      { "type": "line", "speaker": "peer", "text": "药我们等一等。" },
+      {
+        "type": "narration",
+        "text": "船夫把篙放回船板，请伙计沿岸去接引亭报信。卖饼人招呼候船的人先别下石阶。"
+      },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "咱们这儿能留住人，镇里那条船怎么叫它别来？"
+      },
+      { "type": "narration", "text": "船夫走到石阶上头，把渡钟指给你们看。" },
+      {
+        "type": "line",
+        "speaker": "boatman",
+        "text": "末班船入弯前会吹一声号。有险就连敲三下钟，船工会在外水收桨。那船比我这条宽，挤进旧桩里，桨都伸不开。"
+      },
+      {
+        "type": "narration",
+        "text": "你告诉同门要去芦苇口看一眼。他抱着药匣在干石阶上坐回去，说等你回来。"
+      },
+      { "type": "end", "outcome": "done" }
+    ]
+  },
+  {
+    "id": "mine-baishui-find-lamp",
+    "title": "芦苇里的灯",
+    "requires": [],
+    "cast": {},
+    "cues": [
+      { "type": "scene", "alt": "白水渡 · 芦苇口旧泊位" },
+      {
+        "type": "narration",
+        "text": "你沿岸找到旧桩，咪咪也跟了过来。芦苇间露着几截桩头，有一截刚刮过，露着白木。再往外望，只看见浅水和雾。"
+      },
+      { "type": "scene", "alt": "入夜 · 白水渡芦苇口" },
+      {
+        "type": "narration",
+        "text": "等天暗下来，你沿白日走过的路又去了一趟。芦苇缝里透出一团灯光，照亮了底下几根苇梢。你往前走几步，灯离你只隔着岸边这片芦苇。"
+      },
+      {
+        "type": "aside",
+        "text": "镇上的灯该在对岸的石阶上。这盏灯就在我脚下这面岸。"
+      },
+      {
+        "type": "narration",
+        "text": "从这里望出去，正好是夜渡要吹号的河弯。你喊上咪咪，沿岸往石阶跑。"
+      },
+      { "type": "end", "outcome": "done" }
+    ]
+  },
+  {
+    "id": "mine-baishui-warn",
+    "title": "先拦船",
+    "requires": [],
+    "cast": { "player": { "name": "你" }, "peer": { "name": "隔壁同门" } },
+    "cues": [
+      { "type": "scene", "alt": "入夜 · 白水渡石阶" },
+      { "type": "title", "text": "先拦船" },
+      { "type": "line", "speaker": "player", "text": "先把匣子放下。" },
+      {
+        "type": "narration",
+        "text": "你跑回石阶时，同门还坐在原处。他提着匣子起来。"
+      },
+      { "type": "line", "speaker": "peer", "text": "找到灯了？" },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "就在咱们这岸，断桩边上。夜渡从河弯过来，一抬头就能瞧见。"
+      },
+      {
+        "type": "narration",
+        "text": "卖饼人从摊上腾出地方。同门把药匣托给他，再交代了一句怕水，他便把匣子放到了摊子里头的高凳上。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "你守着钟。一听见号，就把船叫停。我能从岸上走到灯下，去看看怎么把它弄灭。"
+      },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "三下。我记着呢。你回来就到钟下找我。"
+      },
+      {
+        "type": "narration",
+        "text": "同门走到钟下，招呼候船的人往石阶上头挪。咪咪跟着你，从木牌边绕了出去。"
+      },
+      { "type": "end", "outcome": "done" }
+    ]
+  },
+  {
+    "id": "mine-baishui-flag",
+    "title": "旧泊位的阵旗",
+    "requires": [],
+    "cast": { "player": { "name": "你" }, "rogue": { "name": "炼气散修" } },
+    "cues": [
+      { "type": "scene", "alt": "入夜 · 白水渡芦苇口" },
+      {
+        "type": "narration",
+        "text": "你从干地绕过芦苇，看见一条小船贴着泥岸。有人正把岸上的货往船里搬。货堆上头有个扎红绳的包，伙计在青果筐旁找的就是这么一包。"
+      },
+      {
+        "type": "narration",
+        "text": "那人要搬一只木箱，箱角碰到插在泥里的一面小旗。旗杆一歪，苇梢上的光就没了。他忙蹲下把旗扶正，芦苇口又亮起来。"
+      },
+      { "type": "aside", "text": "只要拔了旗，灯应该就会灭。" },
+      {
+        "type": "narration",
+        "text": "那人重新抱起木箱，箱板挡了他的肩膀。和晚练时一样，你朝旁边错开半步，这才看见他从箱沿下伸手来护旗。"
+      },
+      { "type": "line", "speaker": "rogue", "text": "别碰。" },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "还有船要从这儿过。先把灯灭了。"
+      },
+      {
+        "type": "line",
+        "speaker": "rogue",
+        "text": "等我出了水口，你想怎么弄都成。"
+      },
+      {
+        "type": "narration",
+        "text": "等他把小船撑出去，夜渡也该进弯了。你刚伸手，他就撂下木箱，跨过来挡住旗杆。河面响起一声长号。你才站稳，石阶那头的钟已经响了，连着三下。"
+      },
+      { "type": "end", "outcome": "done" }
+    ]
+  },
+  {
+    "id": "mine-baishui-verdict",
+    "title": "旧桩边的战果",
+    "requires": [],
+    "cast": { "player": { "name": "你" }, "peer": { "name": "隔壁同门" } },
+    "cues": [
+      { "type": "scene", "alt": "入夜 · 白水渡芦苇口" },
+      {
+        "type": "narration",
+        "text": "散修退到小船边，旗杆露了出来。芦苇外还有那团光，照着断桩间的窄水口。",
+        "when": { "flag": "battle.mine-baishui-rogue.won" }
+      },
+      {
+        "type": "choice",
+        "options": [{ "label": "（拔掉阵旗）" }],
+        "when": { "flag": "battle.mine-baishui-rogue.won" }
+      },
+      {
+        "type": "narration",
+        "text": "旗杆刚离地，苇梢下的光就灭了。远处雾里还能瞧见夜渡船头的灯，一直停在原处。它听见同门的钟了。",
+        "when": { "flag": "battle.mine-baishui-rogue.won" }
+      },
+      {
+        "type": "narration",
+        "text": "散修抓起扎红绳的货包，跳进小船。你沿岸追几步，还来得及赶到水口。石阶那边有人举着灯，夜渡还等在那里。",
+        "when": { "flag": "battle.mine-baishui-rogue.won" }
+      },
+      {
+        "type": "narration",
+        "text": "你跨过地上的木箱，喊上咪咪往石阶跑。身后传来篙打水的响动，等你回头，小船已经出了芦苇口。",
+        "when": { "flag": "battle.mine-baishui-rogue.won" }
+      },
+      {
+        "type": "end",
+        "outcome": "done",
+        "when": { "flag": "battle.mine-baishui-rogue.won" }
+      },
+      {
+        "type": "narration",
+        "text": "你退到断桩那头。散修捡起木箱，站回小旗旁。假灯仍照着水口，你顺来路退回石阶。",
+        "when": { "flag": "battle.mine-baishui-rogue.lost" }
+      },
+      {
+        "type": "scene",
+        "alt": "入夜 · 白水渡石阶",
+        "when": { "flag": "battle.mine-baishui-rogue.lost" }
+      },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "我敲了三下。你往外头看，船停住了。",
+        "when": { "flag": "battle.mine-baishui-rogue.lost" }
+      },
+      {
+        "type": "narration",
+        "text": "夜渡的船头灯隔着雾，停在进弯的地方。再往下游望，苇梢上的光还在。船要往前走，照见的还是旧桩那个口子。",
+        "when": { "flag": "battle.mine-baishui-rogue.lost" }
+      },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "先缓一缓。我在这儿看着船。",
+        "when": { "flag": "battle.mine-baishui-rogue.lost" }
+      },
+      {
+        "type": "choice",
+        "options": [{ "label": "（回旧泊位再战）", "outcome": "retry" }],
+        "when": { "flag": "battle.mine-baishui-rogue.lost" }
+      }
+    ]
+  },
+  {
+    "id": "mine-baishui-signal",
+    "title": "举灯引船",
+    "requires": [],
+    "cast": {
+      "peer": { "name": "隔壁同门" },
+      "player": { "name": "你" },
+      "ferryman": { "name": "夜渡船工" }
+    },
+    "cues": [
+      { "type": "scene", "alt": "入夜 · 白水渡客渡泊位" },
+      {
+        "type": "narration",
+        "text": "同门在钟下朝你招手。石阶上已经有人提着灯，卖饼人也从摊子上拿来一盏。"
+      },
+      { "type": "line", "speaker": "peer", "text": "灭了么？" },
+      { "type": "line", "speaker": "player", "text": "灭了。船还没进来？" },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "还等着呢。你来这儿，水上的人看得见。"
+      },
+      {
+        "type": "narration",
+        "text": "卖饼人把提灯递给你。同门招呼后头的人也往前来。"
+      },
+      { "type": "choice", "options": [{ "label": "（举灯引船）" }] },
+      {
+        "type": "narration",
+        "text": "几盏灯一并举到系缆的石柱边，照亮了下面的石阶。河上有人应了一声，才响起划桨的动静。船头从雾里出来，慢慢贴上石阶，船工把跳板搭了过来。"
+      },
+      {
+        "type": "line",
+        "speaker": "ferryman",
+        "text": "听见钟我就收桨了。你们这灯举得好。要过河的，等船上的人下来就上吧。"
+      },
+      {
+        "type": "narration",
+        "text": "卖饼人取回放在高凳上的药匣。匣底是干的，丹房系的绳也好端端在上头。同门接过来，红帆船夫也向船工讨了个位，要去药铺交代货损。"
+      },
+      { "type": "end", "outcome": "done" }
+    ]
+  },
+  {
+    "id": "mine-baishui-deliver",
+    "title": "药到了",
+    "requires": [],
+    "cast": {
+      "player": { "name": "你" },
+      "peer": { "name": "隔壁同门" },
+      "boatman": { "name": "红帆船夫" },
+      "keeper": { "name": "药铺掌柜" }
+    },
+    "cues": [
+      { "type": "scene", "alt": "白水镇 · 药铺" },
+      { "type": "title", "text": "药到了" },
+      {
+        "type": "narration",
+        "text": "夜渡靠在白水镇的石阶边。你下船时抬眼看了看，真正的泊船灯就挂在石阶上方。红帆船夫领着你们走到药铺，门板已经上了，缝里还透着亮。"
+      },
+      {
+        "type": "narration",
+        "text": "红帆船夫用没受伤的那只手敲门。门里的人提着灯来，卸下一块门板。"
+      },
+      {
+        "type": "line",
+        "speaker": "keeper",
+        "text": "我正等山上的药呢。这么晚才到？"
+      },
+      { "type": "line", "speaker": "peer", "text": "渡口耽搁了。药在这儿。" },
+      { "type": "choice", "options": [{ "label": "（把药匣交给掌柜）" }] },
+      { "type": "narration", "text": "你托着匣底，和同门一道把药匣放到案上。" },
+      {
+        "type": "line",
+        "speaker": "boatman",
+        "text": "红绳那包货丢了。其余的还在我船上，旧桩边还有只木箱，等伙计回来我再去认认。"
+      },
+      {
+        "type": "narration",
+        "text": "船夫伸手在案上比了比那包货的长短。掌柜在灯下看见了他虎口上的擦伤。"
+      },
+      {
+        "type": "line",
+        "speaker": "keeper",
+        "text": "你坐会儿。少的货待会儿再说。"
+      },
+      {
+        "type": "narration",
+        "text": "掌柜拆匣挑出一包药，给船夫上药、包扎，再把其余的几包收进柜里。"
+      },
+      { "type": "line", "speaker": "keeper", "text": "药都收到了。" },
+      { "type": "scene", "alt": "白水镇 · 药铺外" },
+      {
+        "type": "narration",
+        "text": "你叫上门槛边的咪咪，和同门沿巷往镇渡走。隔河还能看见白水渡石阶上的几盏灯。就隔着这么点水，刚才想让镇上的船晚些开，还得等船来捎话。"
+      },
+      { "type": "line", "speaker": "player", "text": "回山我想去问问教习。" },
+      { "type": "line", "speaker": "peer", "text": "问什么？" },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "就这么宽一条河。我还得练多久，才能飞过来喊人？"
+      },
+      { "type": "line", "speaker": "peer", "text": "你去问的时候叫上我。" },
+      { "type": "end", "outcome": "done" }
+    ]
+  }
+]

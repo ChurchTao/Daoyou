@@ -2,6 +2,7 @@
   "id": "mine-baishui",
   "track": "main",
   "title": "这船刚走",
+  "next": "mine-baishui-lamp",
   "deferredUnlocks": ["alchemy", "refine", "sect-alchemy", "sect-refinery"],
   "beats": [
     {
@@ -59,16 +60,21 @@
     },
     {
       "id": "returned",
-      "kind": "life",
+      "kind": "performance",
+      "arrival": "location",
+      "script": "mine-baishui-returned",
+      "outcome": "done",
       "scene": "map",
       "prompt": "那条帆上补了红布的货船，又靠回了白水渡。",
-      "actionLabel": "回白水渡石阶",
-      "href": "/game",
+      "actionLabel": "接过船夫的缆绳",
+      "finishLabel": "问船夫怎么回来的",
+      "href": "/game/story",
       "location": {
         "kind": "area",
         "areaId": "TN_YUE_01",
         "placeId": "baishui-ferry"
-      }
+      },
+      "entry": { "kind": "facility", "id": "ferry-berth" }
     }
   ]
 }

@@ -40,6 +40,7 @@ export { createSectFirstPath } from './sect-first-path.js';
 export { createTavernConversation };
 
 import mineBaishui from './data/mine-baishui.json' with { type: 'json' };
+import mineBaishuiNight from './data/mine-baishui-night.json' with { type: 'json' };
 import mineCrossing from './data/mine-crossing.json' with { type: 'json' };
 import mineDeparture from './data/mine-departure.json' with { type: 'json' };
 import mineErrand from './data/mine-errand.json' with { type: 'json' };
@@ -100,6 +101,7 @@ const scripts = new Map<string, PerformanceScript>([
     ...mineDeparture,
     ...mineErrand,
     ...mineBaishui,
+    ...mineBaishuiNight,
     ...mineGate,
     ...mineGateSchools,
   ].map((entry): [string, PerformanceScript] => [
