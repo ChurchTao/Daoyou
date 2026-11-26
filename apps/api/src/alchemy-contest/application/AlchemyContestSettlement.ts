@@ -4,6 +4,7 @@ import {
   ContestPaperSchema,
   type ContestStanding,
 } from '@daoyou/game-domain/alchemy/contest';
+import type { RewardSelection } from '@daoyou/game-domain/rewards';
 import {
   compareContestStandings,
   contestRewardForRank,
@@ -167,35 +168,33 @@ export class AlchemyContestSettlement {
         .where(filters)
         .for('update');
       if (!entry?.reward || !entry.rank || entry.mailedAt) return null;
-      const [recipient] = await tx
-        .select({ id: cultivators.id })
-        .from(cultivators)
-        .where(
-          and(
-            eq(cultivators.id, entry.cultivatorId),
-            eq(cultivators.userId, userId),
-          ),
-        );
-      const delivery = recipient
-        ? await MailService.sendNewRewardMail(
+      const rewards: RewardSelection[] = [];
+      const { reputation, item } = entry.reward;
+      if (reputation > 0)
+        rewards.push({ type: 'reputation', quantity: reputation });
+      if (item) rewards.push({ type: 'inventory_v1', inventory: item });
+      let delivery = null;
+      if (rewards.length) {
+        const [recipient] = await tx
+          .select({ id: cultivators.id })
+          .from(cultivators)
+          .where(
+            and(
+              eq(cultivators.id, entry.cultivatorId),
+              eq(cultivators.userId, userId),
+            ),
+          );
+        if (recipient) {
+          delivery = await MailService.sendNewRewardMail(
             recipient.id,
             '炼丹大会奖励',
             `道友在 ${week} 的炼丹大会中位列第 ${entry.rank} 名。丹塔将奖励随信送上。`,
-            rewardAttachments([
-              { type: 'reputation', quantity: entry.reward.reputation },
-              ...(entry.reward.item
-                ? [
-                    {
-                      type: 'inventory_v1' as const,
-                      inventory: entry.reward.item,
-                    },
-                  ]
-                : []),
-            ]),
+            rewardAttachments(rewards),
             'reward',
             tx,
-          )
-        : null;
+          );
+        }
+      }
       await tx
         .update(entries)
         .set({

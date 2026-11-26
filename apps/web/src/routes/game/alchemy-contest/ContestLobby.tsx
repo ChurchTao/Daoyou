@@ -6,11 +6,11 @@ import { contestRewardForRank } from '@daoyou/game-rules/alchemy/contest';
 
 const rankBands = [
   [1, '第 1 名'],
-  [2, '第 2 名'],
-  [3, '第 3 名'],
+  [2, '第 2 至 3 名'],
   [4, '第 4 至 10 名'],
   [11, '第 11 至 50 名'],
-  [51, '第 51 名及以后'],
+  [51, '第 51 至 100 名'],
+  [101, '第 101 名起'],
 ] as const;
 const percent = (value: number) => `${Number((value * 100).toFixed(2))}%`;
 
@@ -19,7 +19,8 @@ export function ContestRewards() {
     <section className="contest-rewards">
       <h3>上榜奖励</h3>
       <p>
-        封榜后，丹塔会把声望和抽中的奖品寄到邮箱。每位上榜道友抽一次，最多得一件奖品。
+        前 100
+        名可获声望。每位成绩达标的道友抽奖一次，最多得一件奖品。奖励在封榜后通过传音发放。
       </p>
       <table className="contest-rewards-table">
         <thead>
@@ -37,7 +38,7 @@ export function ContestRewards() {
             return (
               <tr key={rank}>
                 <th scope="row">{label}</th>
-                <td>{reputation}</td>
+                <td>{reputation || '—'}</td>
                 <td>{percent(odds.book)}</td>
                 <td>{percent(odds.dew)}</td>
                 <td>{percent(odds.material)}</td>

@@ -6,13 +6,21 @@ import {
 import { materialFactsOf } from '@daoyou/game-domain/inventory';
 import { ItemLibraryMaterialPayloadSchema } from '@daoyou/game-domain/items/catalog';
 import type { invasionWeek } from '@daoyou/game-rules/invasion';
-import { db } from '@server/lib/drizzle/db.js';
 import {
+  MAX_WEEKLY_REPUTATION_RANK,
+  weeklyReputationForRank,
+} from '@daoyou/game-rules/rankings/ranking';
+import { rewardAttachments } from '@daoyou/game-rules/rewards/materials';
+import { db, type DbExecutor } from '@server/lib/drizzle/db.js';
+import {
+  cultivators,
   invasionProgress,
   invasionRuns,
   invasionWeeks,
   itemLibrary,
 } from '@server/lib/drizzle/schema.js';
+import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
+import { MailService } from '@server/mail/application/MailService.js';
 import { createAndPublishWorldChatMessage } from '@server/social/application/chatDelivery.js';
 import {
   and,
@@ -113,13 +121,13 @@ export async function publishInvasionWeeks(now: number) {
     )
     .limit(10);
   for (const { week } of weeks) {
-    await db.transaction(async (tx) => {
+    const mails = await db.transaction(async (tx) => {
       const [round] = await tx
         .select()
         .from(invasionWeeks)
         .where(eq(invasionWeeks.week, week))
         .for('update');
-      if (round.publishedAt) return;
+      if (!round || round.publishedAt) return [];
       const [running] = await tx
         .select({ id: invasionRuns.id })
         .from(invasionRuns)
@@ -130,13 +138,94 @@ export async function publishInvasionWeeks(now: number) {
           ),
         )
         .limit(1);
-      if (!running)
-        await tx
-          .update(invasionWeeks)
-          .set({ publishedAt: new Date() })
-          .where(eq(invasionWeeks.week, week));
+      if (running) return [];
+
+      const rows = await invasionRankingRows(tx, week);
+      const sent = [];
+      for (const { rank, realm, recipientId } of rows) {
+        if (!recipientId) continue;
+        const quantity = weeklyReputationForRank(rank);
+        sent.push(
+          await MailService.sendNewRewardMail(
+            recipientId,
+            '古魔入侵排名奖励',
+            `本期古魔入侵已封榜。道友在${realm}除魔榜位列第 ${rank} 名，请收下声望 ${quantity}。`,
+            rewardAttachments([{ type: 'reputation', quantity }]),
+            'reward',
+            tx,
+          ),
+        );
+      }
+      await tx
+        .update(invasionWeeks)
+        .set({ publishedAt: new Date() })
+        .where(eq(invasionWeeks.week, week));
+      return sent;
     });
+    for (const mail of mails) {
+      publishTransactionalMessageBestEffort(mail.domainEventId, {
+        source: 'invasion-ranking-reward',
+        mailId: mail.id,
+      });
+    }
   }
+}
+
+function invasionRankingRows(executor: DbExecutor, week: string) {
+  const scores = executor.$with('invasion_scores').as(
+    executor
+      .select({
+        runId: invasionRuns.id,
+        realm: invasionRuns.realm,
+        wave: invasionProgress.completedWave,
+      })
+      .from(invasionProgress)
+      .innerJoin(invasionRuns, eq(invasionRuns.id, invasionProgress.lastRunId))
+      .where(eq(invasionProgress.week, week))
+      .groupBy(invasionRuns.id, invasionProgress.completedWave),
+  );
+  const ranked = executor.$with('invasion_ranked').as(
+    executor
+      .select({
+        runId: scores.runId,
+        realm: scores.realm,
+        wave: scores.wave,
+        rank: sql<number>`rank() over (partition by ${scores.realm} order by ${scores.wave} desc)`
+          .mapWith(Number)
+          .as('rank'),
+      })
+      .from(scores),
+  );
+  return executor
+    .with(scores, ranked)
+    .select({
+      runId: ranked.runId,
+      realm: ranked.realm,
+      wave: ranked.wave,
+      rank: ranked.rank,
+      memberId: invasionProgress.cultivatorId,
+      participants: invasionRuns.members,
+      recipientId: cultivators.id,
+    })
+    .from(ranked)
+    .innerJoin(invasionRuns, eq(invasionRuns.id, ranked.runId))
+    .innerJoin(
+      invasionProgress,
+      and(
+        eq(invasionProgress.week, week),
+        eq(invasionProgress.lastRunId, ranked.runId),
+        eq(invasionProgress.completedWave, ranked.wave),
+      ),
+    )
+    .leftJoin(
+      cultivators,
+      and(
+        eq(cultivators.id, invasionProgress.cultivatorId),
+        eq(cultivators.userId, invasionProgress.userId),
+      ),
+    )
+    .where(lte(ranked.rank, MAX_WEEKLY_REPUTATION_RANK))
+    .orderBy(ranked.rank, ranked.runId, invasionProgress.userId);
 }
 
 export async function readInvasionRanking(): Promise<InvasionRanking> {
@@ -148,53 +237,7 @@ export async function readInvasionRanking(): Promise<InvasionRanking> {
     .limit(1);
   if (!latest) return { week: null, rows: [] };
 
-  const scores = db.$with('invasion_scores').as(
-    db
-      .select({
-        runId: invasionRuns.id,
-        realm: invasionRuns.realm,
-        wave: invasionProgress.completedWave,
-      })
-      .from(invasionProgress)
-      .innerJoin(invasionRuns, eq(invasionRuns.id, invasionProgress.lastRunId))
-      .where(eq(invasionProgress.week, latest.week))
-      .groupBy(invasionRuns.id, invasionProgress.completedWave),
-  );
-  const ranked = db.$with('invasion_ranked').as(
-    db
-      .select({
-        runId: scores.runId,
-        realm: scores.realm,
-        wave: scores.wave,
-        rank: sql<number>`rank() over (partition by ${scores.realm} order by ${scores.wave} desc)`
-          .mapWith(Number)
-          .as('rank'),
-      })
-      .from(scores),
-  );
-  const rows = await db
-    .with(scores, ranked)
-    .select({
-      runId: ranked.runId,
-      realm: ranked.realm,
-      wave: ranked.wave,
-      rank: ranked.rank,
-      memberId: invasionProgress.cultivatorId,
-      participants: invasionRuns.members,
-    })
-    .from(ranked)
-    .innerJoin(invasionRuns, eq(invasionRuns.id, ranked.runId))
-    .innerJoin(
-      invasionProgress,
-      and(
-        eq(invasionProgress.week, latest.week),
-        eq(invasionProgress.lastRunId, ranked.runId),
-        eq(invasionProgress.completedWave, ranked.wave),
-      ),
-    )
-    .where(lte(ranked.rank, 100))
-    .orderBy(ranked.rank, ranked.runId, invasionProgress.userId);
-
+  const rows = await invasionRankingRows(db, latest.week);
   const groups = new Map<string, InvasionRanking['rows'][number]>();
   for (const row of rows) {
     const id = `${row.runId}:${row.wave}`;

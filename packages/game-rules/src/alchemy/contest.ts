@@ -18,6 +18,7 @@ import {
   type ContestRecipe,
   type ContestStanding,
 } from '@daoyou/game-domain/alchemy/contest';
+import { weeklyReputationForRank } from '../rankings/ranking.js';
 import {
   normalizeAlchemyEffectRoute,
   resolveAlchemyEffects,
@@ -332,18 +333,7 @@ export function contestStanding(
 }
 
 export function contestRewardForRank(rank: number) {
-  const reputation =
-    rank === 1
-      ? 300
-      : rank === 2
-        ? 250
-        : rank === 3
-          ? 200
-          : rank <= 10
-            ? 150
-            : rank <= 50
-              ? 100
-              : 50;
+  const reputation = weeklyReputationForRank(rank);
   const odds =
     rank <= 3
       ? { book: 0.01, dew: 0.08, material: 0.4 }

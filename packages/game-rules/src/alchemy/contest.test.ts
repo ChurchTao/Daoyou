@@ -159,9 +159,12 @@ describe('炼丹大会', () => {
       compareContestStandings(base, { ...base, usedMaterials: 6 }),
     ).toBeLessThan(0);
     expect(
-      [1, 2, 3, 10, 11, 50, 51, 101].map(
+      [1, 2, 3, 4, 10, 11, 50, 51, 100, 101].map(
         (rank) => contestRewardForRank(rank).reputation,
       ),
-    ).toEqual([300, 250, 200, 150, 100, 100, 50, 50]);
+    ).toEqual([300, 200, 200, 200, 200, 100, 100, 50, 50, 0]);
+    expect(contestRewardForRank(101).odds).toEqual(
+      contestRewardForRank(100).odds,
+    );
   });
 });
