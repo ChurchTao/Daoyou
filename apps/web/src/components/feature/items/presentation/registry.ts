@@ -13,6 +13,7 @@ import {
 import { consumableAdapter } from './consumable';
 import { equipmentAdapter } from './equipment';
 import { inscriptionAdapter } from './inscription';
+import { mysteryBagAdapter } from './mysteryBag';
 import type { DisplayItem, ItemAdapter } from './types';
 
 const adapters = {
@@ -27,6 +28,7 @@ const adapters = {
   beast_refinement: refinementAdapter,
   beast_rejuvenation: rejuvenationAdapter,
   beast_lure: beastLureAdapter,
+  mystery_bag: mysteryBagAdapter,
 } satisfies Record<ItemDefinition['kind'], ItemAdapter>;
 
 export function resolveItemPresentation(item: DisplayItem) {

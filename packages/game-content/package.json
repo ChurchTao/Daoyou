@@ -54,6 +54,7 @@
     "./items/consumables": "./dist/items/consumables.js",
     "./items/equipment": "./dist/public/items/equipment.js",
     "./items/inscriptions": "./dist/items/inscriptions.js",
+    "./items/mystery-bags": "./dist/items/mystery-bags.js",
     "./legacy/manual-migration": "./dist/legacy/manual-migration.js",
     "./manuals": "./dist/public/manuals.js",
     "./market": "./dist/market.js",

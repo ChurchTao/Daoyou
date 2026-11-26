@@ -62,6 +62,7 @@
     "./inventory/recycle": "./dist/public/inventory/recycle.js",
     "./inventory/stacking": "./dist/inventory/stack-key.js",
     "./items/legacy-material": "./dist/items/legacy-material.js",
+    "./items/mystery-bags": "./dist/items/mystery-bags.js",
     "./journal/changes": "./dist/journal/changes.js",
     "./legacy/artifacts": "./dist/artifact-migration/rules.js",
     "./legacy/manuals": "./dist/manual-migration/rules.js",

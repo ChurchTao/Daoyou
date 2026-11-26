@@ -4,6 +4,7 @@ export interface ItemDefinition {
   id: string;
   name: string;
   kind:
+    | 'mystery_bag'
     | 'beast_book'
     | 'beast_refinement'
     | 'beast_rejuvenation'

@@ -27,9 +27,10 @@ function PreviewLineView({
   return (
     <div
       className={cn(
-        row.label
-          ? 'grid grid-cols-[minmax(0,5.5em)_minmax(0,1fr)] gap-x-2'
-          : '',
+        row.label &&
+          (row.layout === 'spread'
+            ? 'flex justify-between gap-x-3'
+            : 'grid grid-cols-[minmax(0,5.5em)_minmax(0,1fr)] gap-x-2'),
         tones[row.tone ?? tone],
       )}
     >
@@ -38,6 +39,7 @@ function PreviewLineView({
         className={cn(
           'min-w-0 whitespace-pre-line',
           row.numeric && 'font-mono',
+          row.layout === 'spread' && 'shrink-0',
         )}
       >
         {row.value}

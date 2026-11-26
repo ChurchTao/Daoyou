@@ -2,6 +2,7 @@
 
 export const INVENTORY_KINDS = [
   ['all', '全部'],
+  ['mystery_bag', '神秘储物袋'],
   ['beast_book', '传承灵印'],
   ['beast_refinement', '归元灵露'],
   ['beast_rejuvenation', '化生果'],

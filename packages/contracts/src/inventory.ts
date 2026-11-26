@@ -20,6 +20,7 @@ export const InventoryQuerySchema = z
     kind: z
       .enum([
         'all',
+        'mystery_bag',
         'seed',
         'beast_book',
         'beast_refinement',
@@ -70,6 +71,12 @@ export const InventoryQuerySchema = z
     { message: '回收品质范围无效' },
   );
 export const InventoryActionSchema = z.discriminatedUnion('action', [
+  z.strictObject({
+    action: z.literal('open_mystery_bag'),
+    id: z.uuid(),
+    revision: ref.revision,
+    requestId: z.uuid(),
+  }),
   z
     .object({
       action: z.literal('feed'),
@@ -162,6 +169,12 @@ export const InventoryActionSchema = z.discriminatedUnion('action', [
     .strict(),
 ]);
 export type InventoryAction = z.infer<typeof InventoryActionSchema>;
+export type OpenMysteryBagResult = {
+  name: string;
+  quantity: number;
+  destination: 'currency' | 'bag' | 'storage' | 'bag_and_storage';
+};
+
 export type InventoryView = {
   items: (InventoryItem & {
     name: string;

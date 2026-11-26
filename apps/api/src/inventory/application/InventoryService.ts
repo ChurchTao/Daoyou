@@ -505,7 +505,7 @@ function normalizeConsumableStack(item: InventoryItem): InventoryItem {
 
 export async function mutateInventory(
   owner: string,
-  input: InventoryAction,
+  input: Exclude<InventoryAction, { action: 'open_mystery_bag' }>,
   database: DbClient = db,
 ) {
   const committed = await withRedisLock(

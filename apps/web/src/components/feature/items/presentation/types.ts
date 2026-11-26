@@ -13,6 +13,7 @@ export type PreviewLine = {
   label?: string;
   value: string | number;
   comparison?: { value: string; tone: PreviewTone };
+  layout?: 'spread';
   numeric?: boolean;
   tone?: PreviewTone;
 };

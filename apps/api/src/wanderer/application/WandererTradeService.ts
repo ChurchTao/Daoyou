@@ -6,14 +6,19 @@ import type {
   WandererBookPurchaseResult,
   WandererDewPurchaseResult,
   WandererIncensePurchaseResult,
+  WandererMysteryBagPurchase,
+  WandererMysteryBagPurchaseResult,
   WandererPurchase,
   WandererState,
 } from '@daoyou/contracts/wanderer';
-import { BEAST_LURE } from '@daoyou/game-content/items/beasts';
 import { findItemDefinition } from '@daoyou/game-content/items';
+import { BEAST_LURE } from '@daoyou/game-content/items/beasts';
+import { findMysteryBag } from '@daoyou/game-content/items/mystery-bags';
 import {
   InventoryRuleError,
+  MYSTERY_BAG_IDS,
   type ItemGrant,
+  type MysteryBagId,
 } from '@daoyou/game-domain/inventory';
 import {
   WANDERER_DEW_PRICE,
@@ -22,6 +27,7 @@ import {
   wandererAppearance,
   wandererBookPrice,
   wandererSuperiorBookIds,
+  wandererWindow,
 } from '@daoyou/game-rules/wanderer';
 import { assertBeastIdle } from '@server/combat/application/BeastMutationGuard.js';
 import { updateSpiritStones } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
@@ -31,17 +37,19 @@ import {
   grantInventory,
 } from '@server/inventory/operations.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
-import type { DbTransaction } from '@server/lib/drizzle/db.js';
+import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db.js';
 import { db } from '@server/lib/drizzle/db.js';
 import {
   cultivatorBeasts,
   wandererBookSales,
 } from '@server/lib/drizzle/schema.js';
+import { redis } from '@server/lib/redis/index.js';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock.js';
 import {
   readBeastRoster,
   saveBeastLineup,
 } from '@server/lib/repositories/combatV6BeastRepository.js';
+import { findPlayerMutationRequest } from '@server/lib/repositories/playerStateRepository.js';
 import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
 import { and, eq, sql } from 'drizzle-orm';
 import { randomInt } from 'node:crypto';
@@ -56,10 +64,14 @@ export class WandererError extends Error {
 }
 
 export async function readWandererState(
+  cultivatorId: string,
   now = Date.now(),
 ): Promise<WandererState> {
   const appearance = wandererAppearance(now);
-  const sales = await readBookSales(appearance.id);
+  const [sales, purchases] = await Promise.all([
+    readBookSales(appearance.id),
+    readPurchasedMysteryBags(cultivatorId, appearance.id),
+  ]);
   return {
     id: appearance.id,
     regionId: appearance.regionId,
@@ -74,6 +86,7 @@ export async function readWandererState(
     bookPrice: wandererBookPrice(sales),
     dewPrice: WANDERER_DEW_PRICE,
     incensePrice: WANDERER_INCENSE_PRICE,
+    purchasedMysteryBags: purchases,
   };
 }
 
@@ -198,6 +211,127 @@ export async function buyWandererDew(
     command: (tx) => buyDew(actor, input, tx),
   });
   return committed.result;
+}
+
+const MYSTERY_BAG_PURCHASE_SOURCE = 'wanderer-mystery-bag-purchase';
+const MYSTERY_BAG_PURCHASED = 'purchased';
+
+function mysteryBagPurchaseKey(
+  cultivatorId: string,
+  windowId: string,
+  definitionId: MysteryBagId,
+) {
+  return `wanderer:mystery-bag:${windowId}:${cultivatorId}:${definitionId}`;
+}
+
+async function isMysteryBagPurchased(
+  cultivatorId: string,
+  marker: string | null,
+  executor?: DbExecutor,
+) {
+  if (marker === MYSTERY_BAG_PURCHASED) return true;
+  if (marker === null) return false;
+  // A request ID is a reservation. Consult its receipt if commit and Redis
+  // finalization were interrupted.
+  return !!(await findPlayerMutationRequest(
+    cultivatorId,
+    MYSTERY_BAG_PURCHASE_SOURCE,
+    marker,
+    executor,
+  ));
+}
+
+async function readPurchasedMysteryBags(
+  cultivatorId: string,
+  windowId: string,
+) {
+  const markers = await redis.mget(
+    ...MYSTERY_BAG_IDS.map((id) =>
+      mysteryBagPurchaseKey(cultivatorId, windowId, id),
+    ),
+  );
+  const purchased = await Promise.all(
+    markers.map((marker) => isMysteryBagPurchased(cultivatorId, marker)),
+  );
+  return MYSTERY_BAG_IDS.filter((_, index) => purchased[index]);
+}
+
+export async function buyWandererMysteryBag(
+  actor: ActiveCultivatorRef,
+  input: WandererMysteryBagPurchase,
+) {
+  const { cultivatorId, userId } = actor;
+  const key = mysteryBagPurchaseKey(
+    cultivatorId,
+    input.windowId,
+    input.definitionId,
+  );
+  const committed =
+    await playerCommandExecutor.executeWithLock<WandererMysteryBagPurchaseResult>(
+      {
+        userId,
+        cultivatorId,
+        source: MYSTERY_BAG_PURCHASE_SOURCE,
+        requestId: input.requestId,
+        idempotency: {
+          key: input.requestId,
+          fingerprint: `${input.windowId}:${input.definitionId}:${input.expectedPrice}`,
+        },
+        lock: { context: 'wanderer-mystery-bag', timeoutMs: 30_000 },
+        command: async (tx) => {
+          await assertInventoryIdle(cultivatorId, tx);
+          const window = wandererWindow(Date.now());
+          if (input.windowId !== window.id)
+            throw new WandererError(409, '货架已刷新，请重新确认');
+          const bag = findMysteryBag(input.definitionId);
+          if (!bag || bag.price !== input.expectedPrice)
+            throw new WandererError(409, '标价已变化，请按现价重新确认');
+
+          if (
+            await isMysteryBagPurchased(cultivatorId, await redis.get(key), tx)
+          )
+            throw new WandererError(409, '本期这档储物袋已购买');
+
+          const spiritStones = await spendSpiritStones(
+            tx,
+            userId,
+            cultivatorId,
+            bag.price,
+          );
+          await giveItems(cultivatorId, bag.id, 1, tx);
+          // The character row stays locked through commit. A later transaction
+          // can replace this reservation if there is no committed receipt.
+          await redis.set(key, input.requestId, 'PXAT', window.expiresAt);
+          return {
+            result: { definitionId: bag.id },
+            resourceChanges: [
+              ...bagChange(),
+              currencyChange('currency.wanderer.mystery_bag', spiritStones),
+            ],
+          };
+        },
+      },
+    );
+
+  try {
+    await redis.eval(
+      `
+        if redis.call('GET', KEYS[1]) == ARGV[1] then
+          redis.call('SET', KEYS[1], ARGV[2], 'KEEPTTL')
+        end
+      `,
+      1,
+      key,
+      input.requestId,
+      MYSTERY_BAG_PURCHASED,
+    );
+  } catch (error) {
+    console.warn('[wanderer] failed to finalize mystery bag purchase', {
+      key,
+      error,
+    });
+  }
+  return { data: committed.result, state: committed.state };
 }
 
 async function sellBeast(

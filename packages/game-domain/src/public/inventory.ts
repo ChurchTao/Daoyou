@@ -15,6 +15,8 @@ export {
   consumableFactsOf,
 } from '../items/consumable-facts.js';
 export type { ConsumableFacts } from '../items/consumable-facts.js';
+export { MYSTERY_BAG_IDS } from '../items/mystery-bags.js';
+export type { MysteryBagId } from '../items/mystery-bags.js';
 export type { ItemDefinition } from '../items/definition.js';
 export {
   InventoryItemStructureSchema,

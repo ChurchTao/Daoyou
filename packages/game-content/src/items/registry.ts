@@ -8,10 +8,12 @@ import { BLUEPRINTS } from './equipment-blueprints.js';
 import { MANUAL_JADES } from './manual-jades.js';
 import { MATERIAL_ITEM } from './materials.js';
 import { INSCRIPTION_ITEMS } from './inscriptions.js';
+import { MYSTERY_BAGS } from './mystery-bags.js';
 import { SEED_ITEM } from './seeds.js';
 import type { ItemDefinition } from '@daoyou/game-domain/inventory';
 export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
   ...BOOKS,
+  ...MYSTERY_BAGS,
   ...BEAST_REFINEMENT.items.map((item) => ({
     ...item,
     kind: 'beast_refinement' as const,
