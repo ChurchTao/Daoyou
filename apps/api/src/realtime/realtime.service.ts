@@ -67,8 +67,7 @@ export class RealtimeService {
     return result;
   }
 
-  // HTTP fallback and upgrades share identity and quota checks. HTTP has already
-  // passed the API admission middleware and must not count that rate limit twice.
+  // HTTP fallback and upgrades share identity and connection quota checks.
   async reserveConnection(headers: Headers): Promise<Verification> {
     if (!isAllowedRealtimeOrigin(headers.get('origin')))
       return { status: 403, message: 'Forbidden origin' };

@@ -5,7 +5,9 @@ import {
   Inject,
   Post,
   UseFilters,
+  UseGuards,
 } from '@nestjs/common';
+import { minutes, Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { redisLockErrorResponse } from '@server/lib/http/errors.js';
 import { AttributeResetServiceError } from '@server/cultivator/application/AttributeResetService.js';
@@ -140,6 +142,8 @@ export class ProfileController {
   @Post('redeem-code/claim')
   @HttpCode(200)
   @UseFilters(RedeemErrors)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 8, ttl: minutes(10) } })
   redeem(
     @CurrentCultivator() actor: ActiveCultivatorRef,
     @JsonBody(new ZodPipe(RedeemSchema)) input: z.infer<typeof RedeemSchema>,

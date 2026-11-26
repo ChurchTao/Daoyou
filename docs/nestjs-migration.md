@@ -3,9 +3,11 @@
 > 现行 AI 调用已统一为原生 `AiService`，旧 `aiClient`、加权路由与 LLM 观测已退役；下文旧入口、配置及测量结果保留为历史记录，当前接入见 [开发说明](development.md#ai-能力)。
 
 
-> 2026-10-03 架构整理补记：已补齐 AppConfigService、Nest SQL/资源读取的 Drizzle 注入、领域实现归位、shared 包边界、显式 apiFetch 和 PR 质量检查。此前材料堆叠与九劫内容哈希的两项测试失败已按既有规则提交核对并修正断言，完整 237 文件/2403 测试通过。下文历史阶段结果保持原样；特殊数据、自然续期和生产灰度/回滚验收不因本次构建验证而视为完成。现行结构见 [架构审查与规范](monorepo-architecture.md)。
+> 2026-10-03 架构整理补记：已补齐 AppConfigService、Nest SQL/资源读取的 Drizzle 注入、领域实现归位、shared 包边界、显式 apiFetch 和 PR 质量检查。此前材料堆叠与九劫内容哈希的两项测试失败已按既有规则提交核对并修正断言，完整 237 文件/2403 测试通过。下文按批次保留验收记录。特殊数据、自然续期和生产灰度/回滚验收仍待验证。现行结构见 [架构审查与规范](monorepo-architecture.md)。
 
 > 现行模型配置：BYOK 已退役，全部模型调用使用服务端配置；下文 BYOK 校验、隔离和并发检查保留为当时的历史记录，不代表现行功能。
+>
+> 现行 HTTP 限流见[开发指南的路由限流章节](development.md#http-路由限流)。
 
 ## 目标与边界
 
@@ -49,7 +51,7 @@
 - Express adapter、原生 WsAdapter 与 ESM 服务端构建，显式 `@Inject` 不依赖编译器隐式生成设计类型元数据。
 - Better Auth 原始请求处理器独立于框架，保留 ALTCHA 和原认证管理路径屏蔽。注册不再收集昵称；账号 `name` 在创建时按邮箱前缀补齐。
 - 默认要求登录的 AccessGuard，可声明 public、active、admin、account-admin；透传会话续期 Cookie。
-- Zod Pipe、异常 Filter、请求日志、CORS、Origin 校验、BYOK 校验及现有 Redis IP 限流。
+- Zod Pipe、异常 Filter、请求日志、CORS、Origin 校验及 BYOK 校验。
 - AsyncLocalStorage保存框架无关的身份和LLM配置，由Nest请求层填充；后台任务无请求上下文时维持服务端路由选择。
 - 角色引用与缓存失效从 Hono middleware 抽离；服务层不再反向依赖该 middleware。
 - 认证、验证码、账号密码、健康检查、玩家资源快照／事件窗口、每日占卜 Controller。
@@ -58,7 +60,7 @@
 - 现有消息基础设施由Nest生命周期管理；Nest Schedule使用迁出的十项UTC调度定义，保留发布去重键。
 - 社交、剧情、任务、邮件、角色名号／属性／状态、修仙日志、反馈，以及游戏壳的战斗活动和宗门身份查询已接入 `AppModule`。
 - 背包、灵兽、功法、宗门战斗养成、训练、野外战斗、突破试炼、宗门任务战斗、自动策略、回放、狩猎队伍、秘境、蜃楼幻境、竞技场、炼器、铭文、悟道、炼丹、丹方、市场、拍卖、灵田、声望商店、黑市、排行榜、社区配置、敌人查询、宗门组织／社交、角色生成／保存／删除、命格生成／重塑、身份重塑、公开天机、赞助、internal cron、闭关／历练、旧产物与功法／法宝迁移已接入。全量静态清单核对及后续socket普通HTTP补齐见第十七、十九批；Better Auth通配入口与原生WebSocket单独处理。代码接入不表示全部方法和异常路径均已运行验收。
-- 竞技场房间服务和开战编排通过 Nest factory provider 注入；竞技场 Gateway 接入参战者及观战者两类动态 URL。升级请求由同一个 WsAdapter listener 分派，保留通用实时频道的固定路径，两类 Gateway 共用 BYOK 和 IP 限流检查。竞技场连接在销毁阶段先关闭订阅、等待异步连接与 presence 清理，再进入消息设施／数据库／Redis 的退出流程。
+- 竞技场房间服务和开战编排通过 Nest factory provider 注入；竞技场 Gateway 接入参战者及观战者两类动态 URL。升级请求由同一个 WsAdapter listener 分派，保留通用实时频道的固定路径。竞技场连接在销毁阶段先关闭订阅、等待异步连接与 presence 清理，再进入消息设施／数据库／Redis 的退出流程。
 - 业务请求体由`JsonBody`的首个Pipe在Guard之后按原始字节读取、解析，之后才执行Zod等校验Pipe。参数工厂保持同步，避免Nest 12将未解析的Promise直接交给校验器（修复见第二十四批）。不按Content-Encoding自动解压，保留原Bun的128MiB读取上限；Webhook独立限制256KiB。每个Controller显式保留原JSON解析失败回退（undefined、null或空对象）；Zod仍是输入契约，不引入第二套DTO校验。方法级Filter保留各接口的领域错误、锁冲突及状态码。
 
 第二批接入范围（38 个 HTTP 方法）：
@@ -489,10 +491,10 @@ DevToolsModule仅在`allowsLocalDevTools(APP_ENV, NODE_ENV)`为true时导入，�
 ## 第十九批：WebSocket地址的HTTP访问与连接名额（2026-10-01）
 
 - 增加通用实时HTTP Controller／Guard，以及擂台参与者、观战socket的HTTP回退，共补齐3条已有地址的普通HTTP行为。通用连接保留Origin→登录→配额顺序；擂台保留活跃角色→Origin→UUID→参与／观战资格顺序。真正的升级仍由原生Gateway处理，不经HTTP Controller。
-- 通用实时服务提取可共用的身份／配额预留，升级入口继续执行独立的API admission；HTTP入口已通过Express的BYOK／限流，不重复执行。Guard逐条透传Set-Cookie及其他认证响应头，并在finally释放普通HTTP请求的临时名额，不创建订阅、在线记录或WS pending项。
+- 通用实时服务提取可共用的身份／配额预留。Guard逐条透传Set-Cookie及其他认证响应头，并在finally释放普通HTTP请求的临时名额，不创建订阅、在线记录或WS pending项。
 - Hono与Nest顺序运行，同一local2会话完成5项已登录路径对照及3项非法Origin对照，状态码与响应体8/8一致：通用已登录普通GET404，擂台非法UUID400、缺失战斗404；非法Origin保留通用`{success:false,error}`与擂台`{error}`两种403结构。另12项匿名／Origin／非法BYOK组合全部一致，证明已验证输入下的校验顺序。
 - 实际复现旧Hono的失败升级名额泄漏：一次普通GET404之后追加4次请求，结果404、429、429、429。源码中事件工厂在确认升级成功前删除pending reservation，失败升级无法释放名额。Nest回退连续6次均404；这是明确修复的旧缺陷，不宣称其泄漏行为也已等价迁移。旧Hono源文件未修改，重启后进程内残留名额清除。
-- 使用独立本地探测IP发起两次匿名普通HTTP请求，均401，限流remaining从9999到9998，每请求只计一次。只验证正常请求计数，不覆盖全局限流上限、失败Redis和所有握手响应头。
+- 两次匿名普通HTTP请求均返回401。
 - 真实游戏页面确认通用WS握手101并收到ready，包含local2角色、player-state／world-chat频道及account／cultivator／sect资源scope。增加同账号页面触发连接限制429；关闭一条已连接的测试页面后，失败页面自动重连101并再次收到ready。该实验验证限额触发与名额释放／自动重连，不证明IP40条边界、心跳超时、背压、资源事件漏读恢复或擂台实战／观战恢复。
 - `bun run lint`、`bun run build`、`bun run build:nest`、`bunx prettier --check apps/api/src/realtime apps/api/src/arena`及`git diff --check`通过；前端既有分包警告保留。构建日志为`/tmp/daoyou-nest-socket-{lint,build,nest-build}.log`，协议记录为`/tmp/daoyou-nest-socket-http-{anonymous,authenticated}.json`，脱敏连接事件为`/tmp/daoyou-nest-socket-live-results.json`。
 - 未发送消息、创建擂台、开战、扣费、领奖或修改角色配置；临时请求拦截均清除。共享引擎未改，不重复全量共享测试，原两个已知失败保留；没有新增测试／验收脚本。后续仍需处理未知受保护路径、原生握手失败响应头／body、认证续期与隔离、长连接恢复及活跃请求停机，再切换默认启动／部署并移除Hono。
@@ -524,9 +526,9 @@ DevToolsModule仅在`allowsLocalDevTools(APP_ENV, NODE_ENV)`为true时导入，�
 
 ## 第二十二批：升级拒绝响应与请求读取（2026-10-01）
 
-- 真实旧Hono升级请求证实：拒绝握手返回JSON，携带CORS、限流及会话响应头。Nest适配器统一执行升级API admission，随后调用各功能服务的身份／配额检查，成功与失败均透传响应头；不再在服务里重复限流。握手工作登记到请求工作集合，停机等待其结束后才关闭基础设施。
+- 真实旧Hono升级请求证实：拒绝握手返回JSON，携带CORS及会话响应头。Nest适配器调用各功能服务的身份／配额检查，成功与失败均透传响应头。握手工作登记到请求工作集合，停机等待其结束后才关闭基础设施。
 - 保留通用实时Origin→session与擂台session→active→Origin顺序，擂台Origin错误继续使用`{error}`，其余错误保留`{success:false,error}`。原`ws`拒绝回调会拼接数组头为逗号字符串，且小写content-type无法覆盖内建的同名大写头；首次检查暴露JSON仍标记为text/html，遂使用经过Headers校验的字段序列化失败响应，独立输出各条Set-Cookie。没有读取或记录用户Cookie值。多Cookie续期的真实运行分支尚未触发，当前此项为源码证据。
-- 顺序运行Hono与Nest，对照6项匿名升级（允许／拒绝Origin、非法BYOK、参与者／观战路径）。最终状态码和JSON均一致，CORS／Vary／限流头保留；Content-Type统一为`application/json; charset=utf-8`，不声称与旧服务的有无charset／空格逐字一致。另在仅本地进程临时将IP限额设为1，两次升级分别401、429，限额／remaining均正确，第二次包含Retry-After:60。未修改环境文件或全局Redis限流配置。
+- 顺序运行Hono与Nest，对照6项匿名升级（允许／拒绝Origin、非法BYOK、参与者／观战路径）。最终状态码和JSON均一致，CORS／Vary头保留；Content-Type统一为`application/json; charset=utf-8`，不声称与旧服务的有无charset／空格逐字一致。
 - 真实对照发现原Express raw解析的三类迁移偏差：查询超过1,000项被截断、1MiB新限制先于鉴权返回413、Content-Encoding自动解压或拒绝编码先于业务处理。现使用显式raw-body依赖按原始字节读取，业务读取和JSON解析都放到Guard之后；大小上限按Bun公开类型中记录的默认128MiB保留，Webhook独立保持256KiB。Node querystring设置maxKeys=0，保留既有FirstQuery首值行为。方法级领域Filter把读取超限交给全局413响应。
 - 8项请求体／查询对照全部与旧服务状态码和body一致：超过1,000项的末尾page、编码参数、畸形参数、匿名1.1MB请求、匿名伪gzip头、实际gzip字节、公开接口伪gzip头、Webhook伪gzip头。另验证1.1MB合法JSON但无业务必需字段的开发请求返回400；声明Content-Length为128MiB+1但不发送大体积内容时返回413。未传输128MiB实际数据，不将此项当作完整分块上限验证；413的JSON结构也没有与Bun原生超限body做逐字对照。
 - Webhook262144字节仍进处理器并返回无效Webhook400，262145字节返回旧契约500。匿名受保护请求仅发请求头、不发正文，也立即401，确认不再等待未授权请求体。没有以这些无效输入触发资源发放、创建角色或有效支付订单。

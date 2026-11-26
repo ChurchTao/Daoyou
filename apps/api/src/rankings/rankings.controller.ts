@@ -10,7 +10,9 @@ import {
   Inject,
   Post,
   UseFilters,
+  UseGuards,
 } from '@nestjs/common';
+import { minutes, Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { FirstQuery } from '../http/first-query.js';
@@ -63,6 +65,8 @@ export class RankingsController {
   @Post('probe')
   @HttpCode(200)
   @UseFilters(RankingProbeErrors)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 30, ttl: minutes(1) } })
   probe(@JsonBody() input: { targetId?: unknown }) {
     return this.rankings.probe(input);
   }

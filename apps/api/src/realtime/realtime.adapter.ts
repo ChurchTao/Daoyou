@@ -13,8 +13,8 @@ import { ArenaRealtimeService } from '../arena/arena-realtime.service.js';
 import { ARENA_SOCKET_PATH, arenaSocketRoute } from '../arena/arena-socket.js';
 import { RequestWorkService } from '../http/request-work.service.js';
 import {
-  verifyWebSocketRequest,
   type HandshakeError,
+  webSocketResponseHeaders,
 } from '../http/websocket-request.js';
 import { RealtimeService } from './realtime.service.js';
 
@@ -65,11 +65,7 @@ export class RealtimeAdapter extends WsAdapter {
         );
       };
       const verify = async () => {
-        const admission = await verifyWebSocketRequest(
-          fromNodeHeaders(info.req.headers),
-        );
-        headers = admission.headers ?? headers;
-        if ('status' in admission) return reject(admission);
+        headers = webSocketResponseHeaders(fromNodeHeaders(info.req.headers));
         const result = await service.verify(info.req);
         result.headers?.forEach((value, key) => {
           if (key !== 'set-cookie') headers.set(key, value);

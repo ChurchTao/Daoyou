@@ -31,6 +31,7 @@ import { HealthModule } from './health/health.module.js';
 import { ApiExceptionFilter } from './http/api-exception.filter.js';
 import { HttpContextModule } from './http/http-context.module.js';
 import { NotFoundModule } from './http/not-found.module.js';
+import { RateLimitModule } from './http/rate-limit.module.js';
 import { HuntsModule } from './hunts/hunts.module.js';
 import { InscriptionsModule } from './inscriptions/inscriptions.module.js';
 import { InventoryModule } from './inventory/inventory.module.js';
@@ -59,6 +60,7 @@ import { WandererModule } from './wanderer/wanderer.module.js';
   imports: [
     ConfigurationModule,
     HttpContextModule,
+    RateLimitModule,
     ...(allowsLocalDevTools(
       getRuntimeEnvironment().APP_ENV,
       getRuntimeEnvironment().NODE_ENV,
