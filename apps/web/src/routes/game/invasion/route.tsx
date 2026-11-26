@@ -82,10 +82,7 @@ function Receipt({ status }: { status: InvasionStatus }) {
             </div>
           </dl>
           {reward.drops.length > 0 && (
-            <p>
-              战利品已寄出 ·{' '}
-              {reward.drops.map(dungeonRewardItemName).join('、')}
-            </p>
+            <p>战利品 · {reward.drops.map(dungeonRewardItemName).join('、')}</p>
           )}
         </>
       )}
@@ -370,16 +367,16 @@ function Camp({ playerId }: { playerId?: string }) {
           <section>
             <h3>首通与排名</h3>
             <p>
-              打赢个人待挑战的下一波，获得约 2 小时 24
-              分钟历练收益。重打或跳波均为助战。各挑战境界分别按有效通关波次排名，同波并列。封榜后，各榜前
+              打赢个人待挑战的下一波，获得同境界普通除祟 S
+              级的五分之一基础资源。重打或跳波均为助战。各挑战境界分别按有效通关波次排名，同波并列。封榜后，各榜前
               100 名的有效通关队员可通过传音领取排名声望。
             </p>
           </section>
           <section>
             <h3>首领战利品</h3>
             <p>
-              个人首次击退第 5、10、15……波首领时独立抽取一次。妖兽材料
-              85%，传承灵印 13%，上品传承灵印 2%。
+              个人首次击退第 5 波首领按 B 级除祟掉落，第 10、15 波按 A 级，第 20
+              波起每逢 5 波按 S 级。掉落的道具通过传音领取。
             </p>
           </section>
         </div>

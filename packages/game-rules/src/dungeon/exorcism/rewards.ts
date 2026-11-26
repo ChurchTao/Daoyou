@@ -14,6 +14,7 @@ import type {
   ExorcismEndReason,
   ExorcismGrade,
 } from '@daoyou/game-domain/dungeon/exorcism';
+import { getRealmStageLevel } from '@daoyou/game-domain/progression';
 import { planDungeonReward } from '../../rewards/dungeon.js';
 import { getDungeonRewardBonus } from '../../world/dungeon.js';
 
@@ -182,6 +183,38 @@ export function planExorcismSettlement(
     insight: row.insight,
     ...planResources(seed, key, row, context, factor),
     plan: planItems(seed, key, 'completion', row.chance * factor, level, pack),
+  };
+}
+
+export function planExorcismGradeReward(
+  seed: number,
+  grade: ExorcismGrade,
+  context: ExorcismRewardContext,
+) {
+  const level = getRealmStageLevel(context.mapRealm, '初期');
+  const wins = Array.from({ length: EXORCISM_GRADE_WINS[grade] }, (_, index) =>
+    planExorcismWinReward(seed, index + 1, level, context),
+  );
+  const settlement = planExorcismSettlement(
+    seed,
+    grade,
+    grade === 'S' || grade === 'A' ? 'cleared' : 'retreated',
+    level,
+    context,
+  );
+  const rewards = [...wins, settlement];
+  return {
+    difficultyTier: context.difficultyTier,
+    insight: settlement.insight,
+    cultivationExp: rewards.reduce(
+      (total, reward) => total + reward.experience,
+      0,
+    ),
+    spiritStones: rewards.reduce(
+      (total, reward) => total + reward.spiritStones,
+      0,
+    ),
+    plans: rewards.map((reward) => reward.plan),
   };
 }
 

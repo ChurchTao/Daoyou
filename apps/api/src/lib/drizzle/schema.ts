@@ -1,5 +1,5 @@
 import type { ArenaRuntime } from '@daoyou/contracts/combat/arena';
-import type { InvasionCard, InvasionCards, InvasionMember, InvasionPhase, InvasionResources, InvasionReward } from '@daoyou/game-domain/invasion';
+import type { InvasionCard, InvasionCards, InvasionMember, InvasionPhase, InvasionResources, InvasionRewardSummary } from '@daoyou/game-domain/invasion';
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import type {
   BaixiaoAnswer, BaixiaoFinish, BaixiaoPaperSlot, BaixiaoQuestionData, BaixiaoResources, BaixiaoReward, BaixiaoScore,
@@ -3006,7 +3006,7 @@ export const invasionProgress = pgTable('wanjiedaoyou_invasion_progress', {
   resources: jsonb('resources').$type<Record<string, InvasionResources>>().notNull().default({}),
   cards: jsonb('cards').$type<InvasionCards>().notNull().default({}),
   rewardedWave: integer('rewarded_wave').notNull().default(0),
-  reward: jsonb('reward').$type<InvasionReward>(),
+  reward: jsonb('reward').$type<InvasionRewardSummary>(),
 }, (table) => [
   primaryKey({ columns: [table.week, table.userId] }),
   index('invasion_progress_active_idx').on(table.activeRunId).where(sql`${table.activeRunId} is not null`),

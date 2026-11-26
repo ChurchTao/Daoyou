@@ -1,6 +1,4 @@
 import type { RealmType } from '@daoyou/constants/realms';
-import type { ExorcismGrade } from '@daoyou/game-domain/dungeon/exorcism';
-import { getRealmStageLevel } from '@daoyou/game-domain/progression';
 import {
   BAIXIAO_CARD_STREAK,
   BAIXIAO_CARD_TYPES,
@@ -20,11 +18,10 @@ import {
   type BaixiaoResources,
   type BaixiaoScore,
 } from '@daoyou/game-domain/baixiao/meet';
+import type { ExorcismGrade } from '@daoyou/game-domain/dungeon/exorcism';
 import {
-  EXORCISM_GRADE_WINS,
   exorcismGradeExperience,
-  planExorcismSettlement,
-  planExorcismWinReward,
+  planExorcismGradeReward,
   type ExorcismRewardContext,
 } from '../dungeon/exorcism/rewards.js';
 
@@ -312,7 +309,8 @@ export function finishBaixiao(score: BaixiaoScore): BaixiaoFinish | null {
 
 export function baixiaoRewardBudget(realm: RealmType): BaixiaoResources {
   return {
-    cultivationExp: 2 * exorcismGradeExperience('S', baixiaoExorcismContext(realm)),
+    cultivationExp:
+      2 * exorcismGradeExperience('S', baixiaoExorcismContext(realm)),
     spiritStones: 0,
     insight: 0,
   };
@@ -330,35 +328,24 @@ export function planBaixiaoClearRewards(
   const minimumCorrect = BAIXIAO_QUESTION_COUNT - BAIXIAO_MISS_LIMIT + 1;
   if (correct < minimumCorrect) throw new Error('百晓盛会未通关');
   const grades = [
-    'D', 'C', 'B', 'A', 'S',
+    'D',
+    'C',
+    'B',
+    'A',
+    'S',
   ] as const satisfies readonly ExorcismGrade[];
   const grade = grades[Math.min(correct - minimumCorrect, grades.length - 1)];
-  const context = baixiaoExorcismContext(realm);
-  const level = getRealmStageLevel(realm, '初期');
-  const wins = Array.from({ length: EXORCISM_GRADE_WINS[grade] }, (_, index) =>
-    planExorcismWinReward(seed, index + 1, level, context),
-  );
-  const settlement = planExorcismSettlement(
-    seed,
-    grade,
-    grade === 'S' || grade === 'A' ? 'cleared' : 'retreated',
-    level,
-    context,
-  );
-  const rewards = [...wins, settlement];
-  return {
-    grade,
-    difficultyTier: context.difficultyTier,
-    insight: settlement.insight,
-    spiritStones: rewards.reduce(
-      (total, reward) => total + reward.spiritStones,
-      0,
-    ),
-    plans: rewards.map((reward) => reward.plan),
-  };
+  const { difficultyTier, insight, spiritStones, plans } =
+    planExorcismGradeReward(seed, grade, baixiaoExorcismContext(realm));
+  return { grade, difficultyTier, insight, spiritStones, plans };
 }
 
-export const BAIXIAO_MANUAL_QUALITIES = ['地品', '天品', '仙品', '神品'] as const;
+export const BAIXIAO_MANUAL_QUALITIES = [
+  '地品',
+  '天品',
+  '仙品',
+  '神品',
+] as const;
 const BAIXIAO_MANUAL_WEIGHTS = {
   炼气: [90, 9, 1, 0],
   筑基: [84, 12, 4, 0],

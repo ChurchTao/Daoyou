@@ -3,8 +3,6 @@ import {
   INVASION_NODE_ID,
   type InvasionMember,
 } from '@daoyou/game-domain/invasion';
-import { materialFactsOf } from '@daoyou/game-domain/inventory';
-import { ItemLibraryMaterialPayloadSchema } from '@daoyou/game-domain/items/catalog';
 import type { invasionWeek } from '@daoyou/game-rules/invasion';
 import {
   MAX_WEEKLY_REPUTATION_RANK,
@@ -17,7 +15,6 @@ import {
   invasionProgress,
   invasionRuns,
   invasionWeeks,
-  itemLibrary,
 } from '@server/lib/drizzle/schema.js';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
 import { MailService } from '@server/mail/application/MailService.js';
@@ -42,38 +39,24 @@ export function invasionIdentity(member: InvasionMember) {
 export async function prepareInvasionWeek(
   clock: ReturnType<typeof invasionWeek>,
 ) {
+  const columns = { announcedAt: invasionWeeks.announcedAt };
   const [existing] = await db
-    .select()
+    .select(columns)
     .from(invasionWeeks)
     .where(eq(invasionWeeks.week, clock.week));
   if (existing) return existing;
-  const found = await db
-    .select({ payload: itemLibrary.payload })
-    .from(itemLibrary)
-    .where(
-      and(
-        eq(itemLibrary.type, 'material'),
-        eq(itemLibrary.status, 'published'),
-        eq(itemLibrary.category, 'monster'),
-      ),
-    )
-    .orderBy(sql`random()`)
-    .limit(100);
-  const materials = found.flatMap(({ payload }) => {
-    const parsed = ItemLibraryMaterialPayloadSchema.safeParse(payload);
-    if (!parsed.success) return [];
-    const instanceData = materialFactsOf(parsed.data);
-    return instanceData.type === 'monster'
-      ? [{ definitionId: 'material.v1', quantity: 1, instanceData }]
-      : [];
-  });
-  if (!materials.length) return;
-  await db
+  const [prepared] = await db
     .insert(invasionWeeks)
-    .values({ week: clock.week, closesAt: new Date(clock.closesAt), materials })
-    .onConflictDoNothing();
+    .values({
+      week: clock.week,
+      closesAt: new Date(clock.closesAt),
+      materials: [],
+    })
+    .onConflictDoNothing()
+    .returning(columns);
+  if (prepared) return prepared;
   const [week] = await db
-    .select()
+    .select(columns)
     .from(invasionWeeks)
     .where(eq(invasionWeeks.week, clock.week));
   return week;

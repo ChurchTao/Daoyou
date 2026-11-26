@@ -119,19 +119,14 @@ export function BaixiaoResult({
             </dl>
           )}
           {items.length > 0 && (
-            <div>
-              <div className="flex flex-wrap items-center justify-between gap-x-2">
-                <p className="text-ink-secondary text-sm">
-                  道具已随系统传音送达。
-                </p>
-                <InkButton
-                  href={SYSTEM_MAIL_HREF}
-                  variant="primary"
-                  className="min-h-11"
-                >
-                  查看传音
-                </InkButton>
-              </div>
+            <div className="space-y-2">
+              <InkButton
+                href={SYSTEM_MAIL_HREF}
+                variant="primary"
+                className="min-h-11"
+              >
+                查看传音
+              </InkButton>
               <RewardItemGrid grants={items} />
             </div>
           )}

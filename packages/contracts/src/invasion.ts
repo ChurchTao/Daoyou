@@ -36,6 +36,10 @@ export type InvasionIdentity = Pick<
   'cultivatorId' | 'name' | 'title' | 'gender' | 'realm' | 'realmStage'
 >;
 export type InvasionPublicTeam = { id: string; members: InvasionIdentity[] };
+export type InvasionPreviousWave = { wave: number } & (
+  | { status: 'assist' | 'pending' }
+  | { status: 'settled'; reward: InvasionReward | null }
+);
 export type InvasionStatus = {
   opensAt: number;
   closesAt: number;
@@ -61,6 +65,7 @@ export type InvasionStatus = {
         restEndsAt: number | null;
         battleId: string | null;
         firstClear: boolean;
+        previousWave?: InvasionPreviousWave;
         resources: Record<string, InvasionResources>;
         self: { cards: InvasionCards; selected?: InvasionCard };
         recovery: { id: string; name: string; quantity: number }[];

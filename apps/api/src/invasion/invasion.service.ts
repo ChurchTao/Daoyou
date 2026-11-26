@@ -1,6 +1,7 @@
 import { type RealmStage, type RealmType } from '@daoyou/constants/realms';
 import type {
   InvasionCommand,
+  InvasionPreviousWave,
   InvasionStatus,
 } from '@daoyou/contracts/invasion';
 import type { GenderType } from '@daoyou/game-domain/character';
@@ -129,6 +130,22 @@ const arena = new CombatV6ArenaStore();
 
 const readProgress = (week: string, userId: string) =>
   db.query.invasionProgress.findFirst({ where: progressKey(week, userId) });
+
+function previousWaveResult(
+  run: InvasionRun,
+  entry: InvasionProgress,
+): InvasionPreviousWave {
+  const wave = run.wave - 1;
+  if (entry.lastRunId !== run.id || entry.completedWave !== wave)
+    return { wave, status: 'assist' };
+  if (entry.rewardedWave < wave) return { wave, status: 'pending' };
+  const lastWave = entry.reward?.lastWave;
+  return {
+    wave,
+    status: 'settled',
+    reward: lastWave?.wave === wave ? lastWave.reward : null,
+  };
+}
 
 function partyProgress(
   week: string,
@@ -262,6 +279,7 @@ export class InvasionService {
     const serverNow = Date.now();
     const clock = invasionWeek(serverNow);
     const entry = await readProgress(clock.week, actor.userId);
+    const reward = entry?.reward;
     const view: InvasionStatus = {
       opensAt: clock.opensAt,
       closesAt: clock.closesAt,
@@ -273,7 +291,14 @@ export class InvasionService {
       ),
       completedWave: entry?.completedWave ?? 0,
       lastBattleId: entry?.lastBattleId ?? null,
-      reward: entry?.reward ?? null,
+      reward: reward
+        ? {
+            cultivationExp: reward.cultivationExp,
+            spiritStones: reward.spiritStones,
+            insight: reward.insight,
+            drops: reward.drops,
+          }
+        : null,
       rewardsPending: !!entry && entry.rewardedWave < entry.completedWave,
       team: null,
     };
@@ -291,6 +316,8 @@ export class InvasionService {
       });
       if (run && run.phase !== 'finished') {
         const members = await runProgress(run.id);
+        const own =
+          members.find(({ userId }) => userId === actor.userId) ?? entry;
         const resources = memberResources(members);
         const regrouping =
           run.phase === 'rest' && !(await invasionRosterMatches(run));
@@ -316,6 +343,8 @@ export class InvasionService {
           restEndsAt: run.phase === 'rest' ? run.dueAt : null,
           battleId: run.battleId,
           firstClear: invasionFirstClear(view.completedWave, run.wave),
+          previousWave:
+            run.phase === 'rest' ? previousWaveResult(run, own) : undefined,
           resources,
           self: {
             cards: entry.cards,

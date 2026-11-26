@@ -1,4 +1,5 @@
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
+import { RewardItemGrid } from '@app/components/feature/items/RewardItemGrid';
 import { ActivityCardInfoButton } from '@app/components/feature/weekly-activity/ActivityCardInfoButton';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
@@ -6,6 +7,7 @@ import { useInventoryBag } from '@app/lib/resources/bag';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
 import type {
   InvasionCommand,
+  InvasionPreviousWave,
   InvasionStatus,
 } from '@daoyou/contracts/invasion';
 import {
@@ -24,6 +26,59 @@ import { invasionClock } from './request';
 
 type Team = NonNullable<InvasionStatus['team']>;
 type Send = (input: InvasionCommand) => Promise<boolean>;
+const rewardNumber = new Intl.NumberFormat('zh-CN');
+
+function PreviousWaveReward({ result }: { result: InvasionPreviousWave }) {
+  const reward = result.status === 'settled' ? result.reward : null;
+  return (
+    <section
+      className="invasion-receipt"
+      aria-label="上一波收益"
+      aria-live="polite"
+    >
+      <div className="invasion-section-heading">
+        <h3>上一波收益</h3>
+        <span>
+          第 <b className="font-mono">{result.wave}</b> 波 ·{' '}
+          {result.status === 'assist' ? '助战成功' : '已通关'}
+        </span>
+      </div>
+      {reward ? (
+        <div className="invasion-wave-rewards">
+          <dl>
+            <div>
+              <dt>修为</dt>
+              <dd>+{rewardNumber.format(reward.cultivationExp)}</dd>
+            </div>
+            <div>
+              <dt>灵石</dt>
+              <dd>+{rewardNumber.format(reward.spiritStones)}</dd>
+            </div>
+            <div>
+              <dt>感悟</dt>
+              <dd>+{rewardNumber.format(reward.insight)}</dd>
+            </div>
+          </dl>
+          {reward.drops.length > 0 ? (
+            <div className="min-w-0" aria-label="道具奖励" role="group">
+              <RewardItemGrid grants={reward.drops} />
+            </div>
+          ) : (
+            <p className="invasion-note">本波无道具掉落</p>
+          )}
+        </div>
+      ) : (
+        <p className="invasion-note">
+          {result.status === 'pending'
+            ? '正在结算本波收益……'
+            : result.status === 'assist'
+              ? '本波为助战，无个人收益。'
+              : '本波收益明细未记录。'}
+        </p>
+      )}
+    </section>
+  );
+}
 
 function RecoverySlots({
   team,
@@ -281,6 +336,7 @@ export function InvasionRest({
           />
         </div>
       </header>
+      {team.previousWave && <PreviousWaveReward result={team.previousWave} />}
       <div className="invasion-preparation">
         <section className="invasion-vitals" aria-label="队伍战况">
           <div className="invasion-section-heading">

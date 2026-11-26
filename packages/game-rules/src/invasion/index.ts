@@ -1,9 +1,5 @@
 import type { Command, LineupUnit } from '@daoyou/combat-core/types';
-import {
-  REALM_VALUES,
-  type RealmStage,
-  type RealmType,
-} from '@daoyou/constants/realms';
+import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
 import { earlyBaselines } from '@daoyou/game-content/combat/early-baselines';
 import {
   INVASION_FORMATIONS,
@@ -11,13 +7,18 @@ import {
 } from '@daoyou/game-content/invasion';
 import { TOWER_ENCOUNTER_PACK } from '@daoyou/game-content/tower';
 import type { ArenaState } from '@daoyou/game-domain/combat/arena';
-import { INVASION_CARDS } from '@daoyou/game-domain/invasion';
+import type { ExorcismGrade } from '@daoyou/game-domain/dungeon/exorcism';
+import {
+  INVASION_CARDS,
+  type InvasionReward,
+} from '@daoyou/game-domain/invasion';
 import { compileExorcismEncounter } from '../dungeon/exorcism/encounter.js';
-import { YieldCalculator } from '../yield/YieldCalculator.js';
+import { planExorcismGradeReward } from '../dungeon/exorcism/rewards.js';
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
 export const INVASION_REST_MS = 30_000;
+export const INVASION_WAVES_PER_REWARD = 5;
 export const invasionNextWave = (completedWave: number) => completedWave + 1;
 export const invasionFirstClear = (completedWave: number, wave: number) =>
   invasionNextWave(completedWave) === wave;
@@ -27,7 +28,15 @@ export function invasionDifficulty(members: readonly { realm: RealmType }[]) {
     Math.max(0, ...members.map(({ realm }) => REALM_VALUES.indexOf(realm)))
   ];
 }
-export const invasionBossWave = (wave: number) => wave % 5 === 0;
+export const invasionBossWave = (wave: number) =>
+  wave % INVASION_WAVES_PER_REWARD === 0;
+export function invasionBossRewardGrade(wave: number) {
+  if (wave <= 0 || !invasionBossWave(wave)) return null;
+  if (wave === 5) return 'B';
+  if (wave < 20) return 'A';
+  return 'S';
+}
+
 export const invasionWaveMultiplier = (wave: number) =>
   1.05 ** (wave - 1) * (invasionBossWave(wave) ? 1.2 : 1);
 
@@ -51,27 +60,44 @@ export function invasionCardDrop(roll: number, cardRoll: number, wave: number) {
   return INVASION_CARDS[Math.floor(cardRoll * INVASION_CARDS.length)];
 }
 
-export function invasionResourceBudget(
+export function planInvasionReward(
   realm: RealmType,
-  realmStage: RealmStage,
-  waves: number,
+  seed: number,
+  grade: ExorcismGrade,
 ) {
-  const input = { realm, realmStage, hoursElapsed: 12 };
-  const first = YieldCalculator.calculateCultivatorYield(input, () => 0.25);
-  const second = YieldCalculator.calculateCultivatorYield(input, () => 0.75);
-  const amount = (
-    type: 'cultivation_exp' | 'spirit_stones' | 'comprehension_insight',
-  ) =>
-    Math.floor(
-      (((first.find((row) => row.type === type)?.value ?? 0) +
-        (second.find((row) => row.type === type)?.value ?? 0)) *
-        waves) /
-        10,
-    );
+  return planExorcismGradeReward(seed, grade, {
+    mapRealm: realm,
+    playerRealm: realm,
+    difficultyTier: 'normal',
+  });
+}
+
+export function invasionResourceDelta(
+  budget: Omit<InvasionReward, 'drops'>,
+  before: number,
+  after: number,
+) {
+  const delta = (amount: number) =>
+    Math.floor((amount * after) / INVASION_WAVES_PER_REWARD) -
+    Math.floor((amount * before) / INVASION_WAVES_PER_REWARD);
   return {
-    cultivationExp: amount('cultivation_exp'),
-    spiritStones: amount('spirit_stones'),
-    insight: amount('comprehension_insight'),
+    cultivationExp: delta(budget.cultivationExp),
+    spiritStones: delta(budget.spiritStones),
+    insight: delta(budget.insight),
+  };
+}
+
+export function invasionLastWaveResources(
+  settled: Omit<InvasionReward, 'drops'>,
+  earlier: Omit<InvasionReward, 'drops'>,
+) {
+  return {
+    cultivationExp: Math.max(
+      0,
+      settled.cultivationExp - earlier.cultivationExp,
+    ),
+    spiritStones: Math.max(0, settled.spiritStones - earlier.spiritStones),
+    insight: Math.max(0, settled.insight - earlier.insight),
   };
 }
 
