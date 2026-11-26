@@ -1,0 +1,1 @@
+ALTER TABLE "wanjiedaoyou_alchemy_contest_entries" ADD COLUMN "completion_reward" jsonb;

@@ -1,5 +1,6 @@
 import type {
   ContestAttempt,
+  ContestCompletionReward,
   ContestMaterial,
   ContestPaper,
   ContestQuestion,
@@ -51,6 +52,7 @@ export type ContestStatus = {
           bestAttempt: number;
         })
       | null;
+    completionReward: ContestCompletionReward | null;
     question: ContestQuestion;
     materials: ContestMaterialView[];
   } | null;

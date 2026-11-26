@@ -2,6 +2,8 @@ import { ELEMENT_VALUES } from '@daoyou/constants/elements';
 import { QUALITY_VALUES, type Quality } from '@daoyou/constants/qualities';
 import { z } from 'zod';
 import { ALCHEMY_PROPERTY_KEY_VALUES } from '../consumable.js';
+import type { ExorcismGrade } from '../dungeon/exorcism.js';
+import type { ItemGrant } from '../items/inventory.js';
 import { INVENTORY_MATERIAL_TYPES } from '../items/material-facts.js';
 
 export const CONTEST_ATTEMPTS = 3;
@@ -106,4 +108,11 @@ export type ContestStanding = {
   score: number;
   effectScore: number;
   usedMaterials: number;
+};
+export type ContestCompletionReward = {
+  grade: ExorcismGrade;
+  cultivationExp: number;
+  spiritStones: number;
+  insight: number;
+  items: ItemGrant[];
 };

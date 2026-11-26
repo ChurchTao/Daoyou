@@ -582,6 +582,13 @@
       "when": 1795676270871,
       "tag": "0083_baixiao_exorcism_rewards",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1795688608550,
+      "tag": "0084_alchemy_contest_completion_rewards",
+      "breakpoints": true
     }
   ]
 }

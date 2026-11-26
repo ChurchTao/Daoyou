@@ -37,6 +37,7 @@ import {
 } from '@server/lib/drizzle/schema.js';
 import { and, asc, desc, eq, inArray, isNotNull, lte } from 'drizzle-orm';
 import { randomInt } from 'node:crypto';
+import { grantContestCompletion } from './AlchemyContestRewards.js';
 
 type Round = typeof rounds.$inferSelect;
 type Entry = typeof entries.$inferSelect;
@@ -120,6 +121,7 @@ function view(
             qi: budget.qi,
             attempts,
             standing: contestStanding(paper.materials, attempts),
+            completionReward: player.completionReward,
           }
         : null,
     otherCharacter,
@@ -201,8 +203,8 @@ export class AlchemyContestService {
     });
   }
 
-  brew(command: ContestBrewCommand, actor: ActiveCultivatorRef) {
-    return this.db.transaction(async (tx) => {
+  async brew(command: ContestBrewCommand, actor: ActiveCultivatorRef) {
+    const status = await this.db.transaction(async (tx) => {
       const { round, entry } = await this.lockEntry(tx, command.week, actor);
       if (!entry) throw new ConflictException('请先入场参赛。');
       const now = Date.now();
@@ -284,10 +286,11 @@ export class AlchemyContestService {
         .returning();
       return view(clock, now, round, updated, actor);
     });
+    return this.withCompletionReward(status, actor);
   }
 
-  finish(week: string, actor: ActiveCultivatorRef) {
-    return this.db.transaction(async (tx) => {
+  async finish(week: string, actor: ActiveCultivatorRef) {
+    const status = await this.db.transaction(async (tx) => {
       const { round, entry } = await this.lockEntry(tx, week, actor);
       if (!entry) throw new ConflictException('请先入场参赛。');
       const now = Date.now();
@@ -302,6 +305,27 @@ export class AlchemyContestService {
         .where(and(eq(entries.week, week), eq(entries.userId, actor.userId)));
       return view(weekTimes(week), now, round, { ...entry, finishedAt }, actor);
     });
+    return this.withCompletionReward(status, actor);
+  }
+
+  private async withCompletionReward(
+    status: ContestStatus,
+    actor: ActiveCultivatorRef,
+  ) {
+    const { session } = status;
+    if (!session?.finished || !session.standing || session.completionReward)
+      return status;
+    try {
+      const completionReward = await grantContestCompletion(status.week, actor);
+      return { ...status, session: { ...session, completionReward } };
+    } catch (error) {
+      console.error(
+        '[alchemy-contest] completion reward failed',
+        status.week,
+        error,
+      );
+      return status;
+    }
   }
 
   private async publishedRound(

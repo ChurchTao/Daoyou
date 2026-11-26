@@ -1,4 +1,5 @@
 import { QUALITY_ORDER } from '@daoyou/constants/qualities';
+import type { RealmType } from '@daoyou/constants/realms';
 import {
   BASE_STABILITY_BY_TYPE,
   BASE_TOXICITY_BY_TYPE,
@@ -18,7 +19,8 @@ import {
   type ContestRecipe,
   type ContestStanding,
 } from '@daoyou/game-domain/alchemy/contest';
-import { weeklyReputationForRank } from '../rankings/ranking.js';
+import type { ExorcismGrade } from '@daoyou/game-domain/dungeon/exorcism';
+import { planExorcismGradeReward } from '../dungeon/exorcism/rewards.js';
 import {
   normalizeAlchemyEffectRoute,
   resolveAlchemyEffects,
@@ -332,13 +334,29 @@ export function contestStanding(
   };
 }
 
-export function contestRewardForRank(rank: number) {
-  const reputation = weeklyReputationForRank(rank);
-  const odds =
-    rank <= 3
-      ? { book: 0.01, dew: 0.08, material: 0.4 }
-      : rank <= 10
-        ? { book: 0.005, dew: 0.05, material: 0.3 }
-        : { book: 0.002, dew: 0.02, material: 0.15 };
-  return { reputation, odds };
+export const CONTEST_REWARD_GRADES = [
+  { grade: 'S', minimumScore: 90 },
+  { grade: 'A', minimumScore: 80 },
+  { grade: 'B', minimumScore: 70 },
+  { grade: 'C', minimumScore: 60 },
+  { grade: 'D', minimumScore: 0 },
+] as const satisfies readonly { grade: ExorcismGrade; minimumScore: number }[];
+
+export function planContestCompletionReward(
+  realm: RealmType,
+  score: number,
+  seed: number,
+) {
+  const grade = CONTEST_REWARD_GRADES.find(
+    ({ minimumScore }) => score >= minimumScore,
+  )?.grade;
+  if (!grade) throw new Error('炼丹大会结算成绩无效');
+  return {
+    grade,
+    ...planExorcismGradeReward(seed, grade, {
+      mapRealm: realm,
+      playerRealm: realm,
+      difficultyTier: 'normal',
+    }),
+  };
 }

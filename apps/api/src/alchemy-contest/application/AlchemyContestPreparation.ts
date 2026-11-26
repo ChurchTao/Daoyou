@@ -3,7 +3,6 @@ import type {
   AdminAlchemyContest,
   ContestPreparationResult,
 } from '@daoyou/contracts/alchemy/contest';
-import { DUNGEON_REWARD_PACK } from '@daoyou/game-content/rewards/dungeon';
 import {
   ContestMaterialDraftSchema,
   ContestMaterialSchema,
@@ -13,16 +12,22 @@ import {
   type ContestMaterial,
   type ContestPaper,
 } from '@daoyou/game-domain/alchemy/contest';
-import { materialFactsOf } from '@daoyou/game-domain/inventory';
 import {
   ItemLibraryItemIdSchema,
   ItemLibraryMaterialPayloadSchema,
 } from '@daoyou/game-domain/items/catalog';
 import { contestWeek } from '@daoyou/game-rules/alchemy/contest';
 import { authorContestQuestion } from '@daoyou/game-rules/alchemy/contest/authoring';
+import {
+  HIGH_GRADE_MATERIAL_QUALITIES,
+  libraryMaterialGrant,
+} from '@daoyou/game-rules/rewards/materials';
 import { AiService } from '@nestjs/ai';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { ITEM_LIBRARY_SYSTEM_USER_ID } from '@server/admin/application/MaterialLibraryService.js';
+import {
+  ITEM_LIBRARY_SYSTEM_USER_ID,
+  sampleMaterialLibraryEntries,
+} from '@server/admin/application/MaterialLibraryService.js';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import { isBackgroundLlmEnabled } from '@server/lib/config/environment.js';
 import type { DbClient, DbTransaction } from '@server/lib/drizzle/db.js';
@@ -309,28 +314,22 @@ export class AlchemyContestPreparation {
   }
 
   private async rewardPool() {
-    const found = await this.db
-      .select({ payload: itemLibrary.payload })
-      .from(itemLibrary)
-      .where(
-        and(
-          eq(itemLibrary.type, 'material'),
-          eq(itemLibrary.status, 'published'),
-          inArray(itemLibrary.category, ['herb', 'tcdb']),
-          inArray(itemLibrary.quality, QUALITY_VALUES.slice(3)),
-        ),
-      )
-      .orderBy(sql`random()`)
-      .limit(32);
-    if (!found.length) throw new Error('材料库暂无高品药材或天材地宝');
+    const found = await sampleMaterialLibraryEntries(
+      HIGH_GRADE_MATERIAL_QUALITIES.map((quality) => ({
+        materialType: 'herb',
+        quality,
+        count: 8,
+      })),
+      this.db,
+    );
+    const materials = HIGH_GRADE_MATERIAL_QUALITIES.flatMap((quality) => {
+      const entries = found.get(`herb:${quality}`);
+      if (!entries?.length) throw new Error(`材料库暂无${quality}草药`);
+      return entries.map(libraryMaterialGrant);
+    });
     return {
       version: 1 as const,
-      books: DUNGEON_REWARD_PACK.superiorBooks,
-      materials: found.map(({ payload }) => ({
-        definitionId: 'material.v1',
-        quantity: 1,
-        instanceData: materialFactsOf(LibraryFactsSchema.parse(payload)),
-      })),
+      materials,
     };
   }
 
