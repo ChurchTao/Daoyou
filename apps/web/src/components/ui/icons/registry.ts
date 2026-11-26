@@ -60,6 +60,12 @@ export const iconRegistry: ReadonlyMap<string, string> = new Map([
   ['beast-fusion-cauldron', '/assets/icons/beast-fusion-cauldron.png'],
   ['earthfire-furnace', '/assets/icons/earthfire-furnace-ink.png'],
   ['xuanfire-furnace', '/assets/icons/xuanfire-furnace-ink.png'],
+  ['item-mystery-bag-common', '/assets/icons/item-mystery-bag-common.webp'],
+  ['item-mystery-bag-fine', '/assets/icons/item-mystery-bag-fine.webp'],
+  [
+    'item-mystery-bag-luxurious',
+    '/assets/icons/item-mystery-bag-luxurious.webp',
+  ],
   ['map-wild', '/assets/icons/map-wild.webp'],
   ['map-dungeon', '/assets/icons/map-dungeon.webp'],
   ['map-market', '/assets/icons/map-market.webp'],

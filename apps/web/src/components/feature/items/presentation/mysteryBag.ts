@@ -1,14 +1,21 @@
 import { tierColorMap } from '@app/components/ui/inkBadgeTiers';
 import { findMysteryBag } from '@daoyou/game-content/items/mystery-bags';
+import type { MysteryBagId } from '@daoyou/game-domain/inventory';
 import { describeMysteryBagRewards } from '@daoyou/game-rules/items/mystery-bags';
 import { quantity } from './helpers';
 import type { ItemAdapter } from './types';
+
+const mysteryBagIcons = {
+  'mystery-bag.common': 'icon:item-mystery-bag-common',
+  'mystery-bag.fine': 'icon:item-mystery-bag-fine',
+  'mystery-bag.luxurious': 'icon:item-mystery-bag-luxurious',
+} satisfies Record<MysteryBagId, string>;
 
 export const mysteryBagAdapter: ItemAdapter = (item, definition) => {
   const bag = findMysteryBag(definition.id)!;
   return {
     summary: {
-      icon: '👝',
+      icon: mysteryBagIcons[bag.id],
       color: tierColorMap[bag.color],
       tier: bag.grade,
       type: '神秘储物袋',
