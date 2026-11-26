@@ -30,17 +30,17 @@ import {
 } from './meet.js';
 
 describe('百晓盛会', () => {
-  it('在北京时间周四 14:00 开场，最晚入场还剩 45 分钟', () => {
+  it('在北京时间周四 14:00 开场、17:00 结束，最晚入场还剩 45 分钟', () => {
     const clock = baixiaoWeek(Date.parse('2026-11-25T16:00:00Z'));
     expect(clock.week).toBe('2026-11-23');
     expect(new Date(clock.opensAt).toISOString()).toBe(
       '2026-11-26T06:00:00.000Z',
     );
     expect(new Date(clock.lastStartAt).toISOString()).toBe(
-      '2026-11-26T07:15:00.000Z',
+      '2026-11-26T08:15:00.000Z',
     );
     expect(new Date(clock.closesAt).toISOString()).toBe(
-      '2026-11-26T08:00:00.000Z',
+      '2026-11-26T09:00:00.000Z',
     );
     expect(baixiaoWeek(Date.parse('2026-11-29T16:00:00Z')).week).toBe(
       '2026-11-30',

@@ -4,6 +4,11 @@ import {
   BAIXIAO_RANK_UNIT_MS,
 } from '@daoyou/game-domain/baixiao/meet';
 import { baixiaoWeek } from '@daoyou/game-rules/baixiao/meet';
+import {
+  MAX_WEEKLY_REPUTATION_RANK,
+  weeklyReputationForRank,
+} from '@daoyou/game-rules/rankings/ranking';
+import { rewardAttachments } from '@daoyou/game-rules/rewards/materials';
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
@@ -11,7 +16,10 @@ import type { DbClient } from '@server/lib/drizzle/db.js';
 import {
   baixiaoEntries as entries,
   baixiaoRounds as rounds,
+  cultivators,
 } from '@server/lib/drizzle/schema.js';
+import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
+import { MailService } from '@server/mail/application/MailService.js';
 import { createAndPublishWorldChatMessage } from '@server/social/application/chatDelivery.js';
 import { and, asc, desc, eq, isNotNull, isNull, lte, sql } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
@@ -80,15 +88,15 @@ export class BaixiaoStandings {
       .where(eq(rounds.week, clock.week));
   }
 
-  private settle(week: string) {
-    return this.db.transaction(async (tx) => {
+  private async settle(week: string) {
+    const mails = await this.db.transaction(async (tx) => {
       const [round] = await tx
         .select({ settledAt: rounds.settledAt, closesAt: rounds.closesAt })
         .from(rounds)
         .where(eq(rounds.week, week))
         .for('update');
       const now = new Date();
-      if (!round || round.settledAt || round.closesAt > now) return;
+      if (!round || round.settledAt || round.closesAt > now) return [];
       await tx
         .update(entries)
         .set({ status: 'expired', issuedAt: null, challengeId: null })
@@ -106,11 +114,49 @@ export class BaixiaoStandings {
         UPDATE ${entries} SET rank = ranked.rank::int FROM ranked
         WHERE ${entries.week} = ${week} AND ${entries.userId} = ranked.owner
       `);
+      const recipients = await tx
+        .select({ cultivatorId: entries.cultivatorId, rank: entries.rank })
+        .from(entries)
+        .innerJoin(
+          cultivators,
+          and(
+            eq(cultivators.id, entries.cultivatorId),
+            eq(cultivators.userId, entries.userId),
+          ),
+        )
+        .where(
+          and(
+            eq(entries.week, week),
+            lte(entries.rank, MAX_WEEKLY_REPUTATION_RANK),
+          ),
+        )
+        .orderBy(asc(entries.cultivatorId));
+      const sent = [];
+      for (const { cultivatorId, rank } of recipients) {
+        if (rank === null) continue;
+        const quantity = weeklyReputationForRank(rank);
+        const { id, domainEventId } = await MailService.sendNewRewardMail(
+          cultivatorId,
+          '百晓盛会排名奖励',
+          `本期百晓盛会已封榜。道友在才子榜位列第 ${rank} 名，请收下声望 ${quantity}。`,
+          rewardAttachments([{ type: 'reputation', quantity }]),
+          'reward',
+          tx,
+        );
+        sent.push({ id, domainEventId });
+      }
       await tx
         .update(rounds)
         .set({ settledAt: now })
         .where(eq(rounds.week, week));
+      return sent;
     });
+    for (const mail of mails) {
+      publishTransactionalMessageBestEffort(mail.domainEventId, {
+        source: 'baixiao-ranking-reward',
+        mailId: mail.id,
+      });
+    }
   }
 
   async ranking(actor: ActiveCultivatorRef): Promise<BaixiaoRanking> {

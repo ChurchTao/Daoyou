@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { rankingDay, rankingOrderAfterBattle } from './ranking.js';
+import {
+  rankingDay,
+  rankingOrderAfterBattle,
+  weeklyReputationForRank,
+} from './ranking.js';
 
 describe('天骄榜结算规则', () => {
+  it('周榜声望按前百名档位发放', () => {
+    expect(
+      [0, 1, 2, 10, 11, 50, 51, 100, 101].map(weeklyReputationForRank),
+    ).toEqual([0, 300, 200, 200, 100, 100, 50, 50, 0]);
+  });
   it('按上海发起日计次，跨日不受进程时区影响', () => {
     expect(rankingDay(Date.parse('2026-09-08T15:59:59Z'))).toBe('2026-09-08');
     expect(rankingDay(Date.parse('2026-09-08T16:00:00Z'))).toBe('2026-09-09');

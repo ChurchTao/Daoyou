@@ -95,7 +95,7 @@ function Lobby({
       place="大晋 · 晋京"
       title={state.title}
       note={status.otherCharacter ? '本账号已用另一位角色参赛。' : state.note}
-      schedule="每周四 14:00–16:00 · 北京时间"
+      schedule="每周四 14:00–17:00 · 北京时间"
       facts={[
         `个人赛时 ${sessionMinutes} 分钟`,
         '共 25 关',

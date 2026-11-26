@@ -38,7 +38,7 @@ export function baixiaoWeek(now: number) {
     Date.UTC(china.getUTCFullYear(), china.getUTCMonth(), china.getUTCDate()) -
     ((china.getUTCDay() + 6) % 7) * DAY;
   const opensAt = monday + 3 * DAY + 14 * HOUR - CHINA_OFFSET;
-  const closesAt = opensAt + 2 * HOUR;
+  const closesAt = opensAt + 3 * HOUR;
   return {
     week: new Date(monday).toISOString().slice(0, 10),
     opensAt,
