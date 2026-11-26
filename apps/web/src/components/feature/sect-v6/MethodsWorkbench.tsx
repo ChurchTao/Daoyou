@@ -17,7 +17,11 @@ import {
 export function MethodsWorkbench({ view, pending, act }: SectWorkspaceProps) {
   const progress = view.progress!;
   const definition = COMBAT_V6_SECT_DEFINITIONS[progress.sectId];
-  const [methodId, setMethodId] = useState(definition.methods[0].id);
+  const [methodId, setMethodId] = useState(
+    () =>
+      definition.methods.find((method) => method.isPrimary)?.id ??
+      definition.methods[0].id,
+  );
   const [skillId, setSkillId] = useState<string>();
   const method = definition.methods.find((entry) => entry.id === methodId)!;
   const level = progress.methods[method.id];

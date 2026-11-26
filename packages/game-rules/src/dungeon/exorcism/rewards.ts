@@ -20,6 +20,14 @@ import { getDungeonRewardBonus } from '../../world/dungeon.js';
 type Pack = typeof EXORCISM_REWARD_PACK;
 type Step = Pack['search'];
 
+export const EXORCISM_GRADE_WINS: Record<ExorcismGrade, number> = {
+  D: 1,
+  C: 2,
+  B: 3,
+  A: 4,
+  S: 4,
+};
+
 export interface ExorcismRewardContext {
   mapRealm: RealmType;
   playerRealm: RealmType;
@@ -43,6 +51,33 @@ function streamRng(seed: number, identity: string) {
   return new SeededRng(stream);
 }
 
+function planExperience(
+  dailyExpFraction: number,
+  context: ExorcismRewardContext,
+  bonus: number,
+  factor: number,
+) {
+  const budget =
+    REALM_DAILY_EXP_BUDGET[
+      exorcismExpRealm(context.playerRealm, context.mapRealm)
+    ];
+  return Math.floor(budget * dailyExpFraction * bonus * factor);
+}
+
+export function exorcismGradeExperience(
+  grade: ExorcismGrade,
+  context: ExorcismRewardContext,
+  pack = EXORCISM_REWARD_PACK,
+) {
+  const bonus = getDungeonRewardBonus(context.difficultyTier);
+  const steps = pack.wins.slice(0, EXORCISM_GRADE_WINS[grade]);
+  return [...steps, pack.grades[grade]].reduce(
+    (total, step) =>
+      total + planExperience(step.dailyExpFraction, context, bonus, 1),
+    0,
+  );
+}
+
 function planResources(
   seed: number,
   key: string,
@@ -51,13 +86,9 @@ function planResources(
   factor = 1,
 ) {
   const bonus = getDungeonRewardBonus(context.difficultyTier);
-  const budget =
-    REALM_DAILY_EXP_BUDGET[
-      exorcismExpRealm(context.playerRealm, context.mapRealm)
-    ];
   const rng = streamRng(seed, `${key}:exorcism.resources:1`);
   return {
-    experience: Math.floor(budget * step.dailyExpFraction * bonus * factor),
+    experience: planExperience(step.dailyExpFraction, context, bonus, factor),
     spiritStones: Math.floor(
       REALM_YIELD_RATES[context.mapRealm] *
         step.stoneHours *
@@ -172,19 +203,11 @@ export function exorcismRewardExpectation(
   const searchShare = options.searchShare ?? 0.45;
   const defeatShare = options.defeatShare ?? 0.8;
   const defeatFactor = 1 - defeatShare * (1 - pack.defeatSettlementFactor);
-  const winsOf: Record<ExorcismGrade | 'none', number> = {
-    none: 0,
-    D: 1,
-    C: 2,
-    B: 3,
-    A: 4,
-    S: 4,
-  };
   const total = { exp: 0, stones: 0, items: 0 };
   for (const [name, probability] of Object.entries(distribution) as Array<
     [ExorcismGrade | 'none', number]
   >) {
-    const wins = winsOf[name];
+    const wins = name === 'none' ? 0 : EXORCISM_GRADE_WINS[name];
     const steps = pack.wins.slice(0, wins);
     const searches = Math.min(wins, 3) * searchShare;
     let exp =

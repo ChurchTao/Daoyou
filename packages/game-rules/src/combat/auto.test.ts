@@ -1144,12 +1144,12 @@ describe('当前场次托管', () => {
           'wuxiang.path.compassion': ['wuxiang.skill.nectar'],
           'wanqiao.path.resonance': [
             'wanqiao.skill.rest', 'wanqiao.skill.resonate',
-            'wanqiao.skill.chorus', 'wanqiao.skill.pierce',
+            'wanqiao.skill.chorus',
           ],
           'wanqiao.path.subtlety': [
             'wanqiao.skill.rest', 'wanqiao.skill.coda',
             'wanqiao.skill.catalyze', 'wanqiao.skill.undertone',
-            'wanqiao.skill.echo', 'wanqiao.skill.pierce',
+            'wanqiao.skill.echo',
           ],
           'xiaoyue.path.blood': [
             'xiaoyue.skill.lion_strike', 'xiaoyue.skill.transform', 'xiaoyue.skill.chain_strike',
@@ -1164,7 +1164,7 @@ describe('当前场次托管', () => {
       }
     }
   });
-  it.each([0, 1] as const)('万窍山道途%s在尚未学会主动法术时托管使用普攻', pathIndex => {
+  it.each([0, 1] as const)('万窍山道途%s在炼气期托管能使用裂帛', pathIndex => {
     const projection = projectCharacterToCombatV6({
       ...towerReferenceBuild('wanqiao', '炼气', '中期', pathIndex),
       side: 0, slot: 0, resourcePolicy: 'full',
@@ -1187,7 +1187,7 @@ describe('当前场次托管', () => {
       { statusDefs: projection.statusDefs,
         strategies: { [projection.unit.id]: DEFAULT_AUTO_STRATEGIES[path.id] } },
     )[0].command;
-    expect(command).toMatchObject({ type: 'attack', target: 'enemy' });
+    expect(command).toMatchObject({ type: 'skill', skillId: 'wanqiao.skill.pierce', targets: ['enemy'] });
   });
   it('灵兽选择优于普攻的主动物法技能，缺蓝或技能伤害不足时普攻', () => {
     const physical: SkillDef = {

@@ -177,7 +177,7 @@ describe('arena public host', () => {
       effects: [{ type: EffectType.Revive, hpRatio: 0.5 }],
     };
     const own = arenaView(runtime, 'u0', 0);
-    expect(own.display.skillDetails?.s0.description).toContain('复起');
+    expect(own.display.skillDetails?.s0.description).toContain('复活');
     expect(
       arenaView(runtime, 'u1', 0).display.skillDetails?.s0,
     ).toBeUndefined();

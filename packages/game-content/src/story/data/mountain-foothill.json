@@ -1,0 +1,79 @@
+{
+  "id": "mountain-foothill",
+  "title": "自己报的名字",
+  "track": "main",
+  "next": "mountain-forge",
+  "beats": [
+    {
+      "id": "rest",
+      "kind": "performance",
+      "script": "mountain-bamboo",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "坡下有人叫了两声。",
+      "href": "/game/story"
+    },
+    {
+      "id": "letter",
+      "kind": "performance",
+      "script": "mountain-letter-home",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "给家里捎一封信。",
+      "href": "/game/story"
+    },
+    {
+      "id": "visit",
+      "kind": "performance",
+      "script": "mountain-register",
+      "outcome": "done",
+      "scene": "sect-onboarding",
+      "prompt": "在酒楼向小二打听各家山门。",
+      "href": "/game/sect/onboarding?entry=gate"
+    },
+    {
+      "id": "join",
+      "kind": "practice",
+      "scene": "sect-onboarding",
+      "prompt": "到看中的山门，亲自报上名字。",
+      "href": "/game/sect/onboarding?entry=gate",
+      "accept": [
+        {
+          "type": "fact",
+          "fact": "sect_joined"
+        }
+      ]
+    },
+    {
+      "id": "address",
+      "kind": "performance",
+      "script": "mountain-address",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "亲口报上你的名字。",
+      "href": "/game/story"
+    },
+    {
+      "id": "path",
+      "kind": "practice",
+      "scene": "sect-onboarding",
+      "prompt": "去听早课，看看想先从哪一路学起。",
+      "href": "/game/sect/onboarding?entry=path&from=story",
+      "accept": [
+        {
+          "type": "fact",
+          "fact": "sect_ready"
+        }
+      ]
+    },
+    {
+      "id": "meal",
+      "kind": "performance",
+      "script": "mountain-chopsticks",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "练到饭点了，方才一块儿练功的同门在等你。",
+      "href": "/game/story"
+    }
+  ]
+}

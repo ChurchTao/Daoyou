@@ -6,15 +6,11 @@
 }
 /* 场景贴在视口底部，只作远景，正文始终压在纸色上。 */
 .exorcism-scene {
+  --mystery-scene-art-opacity: 0.42;
+  --mystery-scene-art-fade: 45%;
+
   position: fixed;
   inset: auto 0 0;
   z-index: -1;
   height: min(62vh, 34rem);
-  pointer-events: none;
-  background-position: center bottom;
-  background-repeat: no-repeat;
-  background-size: cover;
-  opacity: 0.42;
-  -webkit-mask-image: linear-gradient(to bottom, transparent, black 45%);
-  mask-image: linear-gradient(to bottom, transparent, black 45%);
 }

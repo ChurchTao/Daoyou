@@ -7,11 +7,15 @@ export type WorldChatChannel = WorldChatMessageChannel;
 
 export const WORLD_CHAT_MESSAGE_TYPES = [
   'hunt_rumor',
+  'alchemy_contest_rumor',
+  'baixiao_rumor',
+  'invasion_rumor',
   'text',
   'item_showcase',
   'beast_showcase',
   'combat_v6_replay',
   'hunt_recruit',
+  'party_recruit',
   'red_packet',
 ] as const;
 export type WorldChatMessageType = (typeof WORLD_CHAT_MESSAGE_TYPES)[number];
@@ -102,12 +106,21 @@ export interface WorldChatPagination {
 }
 
 export interface WorldChatPayloadMap {
+  invasion_rumor: { text: string; week: string; nodeId: string };
+  baixiao_rumor: { text: string; week: string; nodeId: string };
+  alchemy_contest_rumor: { text: string; week: string; nodeId: string };
   hunt_rumor: { text: string; eventId: string; nodeId: string };
   text: WorldChatTextPayload;
   item_showcase: WorldChatItemShowcasePayload;
   beast_showcase: WorldChatBeastShowcasePayload;
   combat_v6_replay: WorldChatCombatV6ReplayPayload;
   hunt_recruit: WorldChatHuntRecruitPayload;
+  party_recruit: {
+    version: 1;
+    partyId: string;
+    recruitmentId: string;
+    text: string;
+  };
   red_packet: { version: 1; packet: RedPacketSummary };
 }
 

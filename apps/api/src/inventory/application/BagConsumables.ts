@@ -64,6 +64,7 @@ export async function consumeBagConsumable(
   id: string,
   quantity: number,
   q: DbExecutor | DbTransaction,
+  options: { includeInvasion?: boolean } = {},
 ) {
   if (!Number.isSafeInteger(quantity) || quantity < 1)
     throw new Error('消耗数量无效');
@@ -81,7 +82,7 @@ export async function consumeBagConsumable(
     .for('update');
   if (!row || row.quantity < quantity)
     throw new Error('随身消耗品不足，请先从洞府宝库或储藏室取出');
-  await assertInventoryIdle(owner, q);
+  await assertInventoryIdle(owner, q, options);
   const filter = and(
     eq(inventoryItems.id, id),
     eq(inventoryItems.cultivatorId, owner),

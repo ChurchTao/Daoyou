@@ -1,9 +1,13 @@
-import { z } from 'zod';
-import { DropPoolSchema, type DropPool } from '@daoyou/game-domain/rewards';
-import { findItemDefinition } from '../items/registry.js';
-import { MATERIAL_ITEM } from '../items/materials.js';
-import { MaterialFactsSchema } from '@daoyou/game-domain/inventory';
 import { formatContentPackErrors } from '@daoyou/game-domain/content-pack-errors';
+import { MaterialFactsSchema } from '@daoyou/game-domain/inventory';
+import { DropPoolSchema, type DropPool } from '@daoyou/game-domain/rewards';
+import { z } from 'zod';
+import {
+  FOUNDATION_LESSON_DOSE,
+  FOUNDATION_LESSON_MATERIALS,
+} from '../alchemy/foundation-lesson.js';
+import { MATERIAL_ITEM } from '../items/materials.js';
+import { findItemDefinition } from '../items/registry.js';
 import raw from './data/story.json' with { type: 'json' };
 
 export const STORY_SPIRIT_STONE_REWARD = 'currency.spirit-stones';
@@ -163,4 +167,41 @@ export function storyDropPool(
   });
 }
 
-export const STORY_REWARD_PACK = loadStoryRewardPack(raw);
+export const STORY_REWARD_PACK = loadStoryRewardPack({
+  ...raw,
+  materials: { ...raw.materials, ...FOUNDATION_LESSON_MATERIALS },
+  payouts: [
+    ...raw.payouts,
+    {
+      id: 'foundation-furnace-lesson',
+      poolVersion: 1,
+      groups: [
+        ...Object.keys(FOUNDATION_LESSON_MATERIALS).map((rewardId) => ({
+          id: rewardId,
+          chance: 1,
+          entries: [
+            {
+              rewardId,
+              weight: 1,
+              quantity: {
+                min: FOUNDATION_LESSON_DOSE,
+                max: FOUNDATION_LESSON_DOSE,
+              },
+            },
+          ],
+        })),
+        {
+          id: 'stones',
+          chance: 1,
+          entries: [
+            {
+              rewardId: STORY_SPIRIT_STONE_REWARD,
+              weight: 1,
+              quantity: { min: 2400, max: 2400 },
+            },
+          ],
+        },
+      ],
+    },
+  ],
+});

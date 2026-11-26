@@ -1,0 +1,103 @@
+{
+  "id": "mountain-forge",
+  "title": "借炉的人",
+  "track": "main",
+  "next": "mountain-sparring",
+  "beats": [
+    {
+      "id": "ladle",
+      "kind": "performance",
+      "script": "mountain-forge-ladle",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "跟同门去器坊。",
+      "href": "/game/story"
+    },
+    {
+      "id": "grip",
+      "kind": "performance",
+      "script": "mountain-forge-grip",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "问问老师傅，能不能自己做一件法兵。",
+      "href": "/game/story"
+    },
+    {
+      "id": "borrow",
+      "kind": "performance",
+      "script": "mountain-forge-borrow",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "跟执事借一口炉，做件自己用得惯的兵器。",
+      "href": "/game/story",
+      "gift": "first-weapon"
+    },
+    {
+      "id": "forge",
+      "kind": "practice",
+      "scene": "sect-refinery",
+      "prompt": "选图纸、青石和器形，核对用料后开炉。",
+      "href": "/game/sect/refinery?workspace=craft&guide=forge-first-weapon",
+      "lesson": "forge-first-weapon",
+      "accept": [{ "type": "fact", "fact": "weapon_forged" }]
+    },
+    {
+      "id": "cool",
+      "kind": "performance",
+      "script": "mountain-forge-cool",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "炉火渐小，执事招手叫你过去。",
+      "actionLabel": "听执事说话",
+      "indicatorFrom": ["/game/sect/refinery?workspace=craft"],
+      "href": "/game/story"
+    },
+    {
+      "id": "equip",
+      "kind": "practice",
+      "scene": "inventory",
+      "prompt": "穿戴刚铸成的法兵。",
+      "href": "/game/inventory?guide=weapon-equip",
+      "actionLabel": "打开储物袋",
+      "indicatorFrom": ["/game/cave/storage/new"],
+      "missingItemAction": {
+        "label": "再借一口炉",
+        "href": "/game/sect/refinery?workspace=craft"
+      },
+      "lesson": "weapon-equip",
+      "accept": [{ "type": "fact", "fact": "story_weapon_equipped" }]
+    },
+    {
+      "id": "try",
+      "kind": "performance",
+      "script": "mountain-forge-try",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "新兵器已经穿戴好，该试试趁不趁手了。",
+      "actionLabel": "回院里试手",
+      "indicatorFrom": [
+        "/game/inventory",
+        "/game/cave/storage/new?location=bag"
+      ],
+      "href": "/game/story"
+    },
+    {
+      "id": "visit",
+      "kind": "performance",
+      "script": "mountain-forge-visit",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "去请教老师傅，怎么练才能收招站稳。",
+      "href": "/game/story"
+    },
+    {
+      "id": "apprentice",
+      "kind": "performance",
+      "script": "mountain-forge-apprentice",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "再去器坊，请老师傅看看这几日练的那一招。",
+      "href": "/game/story"
+    }
+  ]
+}

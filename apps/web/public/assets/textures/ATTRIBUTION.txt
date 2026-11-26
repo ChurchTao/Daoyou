@@ -1,30 +1,51 @@
-Paper texture assets
+Xuan paper backgrounds
 
-Sources: the two paper photographs supplied by the user in this chat.
-Original image rights remain with their respective rights holders.
+The three source images were generated separately with the built-in ImageGen
+tool. The supplied close-up of intact paper set the fiber scale. The blank
+fields in the three painting examples informed the CSS paper tones. The game
+composites transparent, neutral fiber textures over those tones.
 
-xuan-fine.webp — first photograph, fine white paper relief
-Source: codex-clipboard-0dfc8702-b065-4240-bf3e-9a3bd205b871.png
-Source SHA-256: 1b0ce4984a01273e8dfce3c129434c1e1f2b5182ce4667bd4c25b37a2f4c9e99
+xuan-sheng-fibers.webp — open, very fine cellulose fiber structure.
+xuan-ban-shu-fibers.webp — lightly consolidated pulp.
+xuan-shu-fibers.webp — evenly consolidated, subtle micrograin.
 
-xuan-classic-soft.webp — second photograph, softened handmade paper relief
-Source: codex-clipboard-92db4d80-cff0-4c78-9f6b-b67405e45f8b.png
-Source SHA-256: 00139338545aec1d1ab360306fe9e239cbf1308bcd2dc4cc5942726a7e4fca72
+Material references
+- Fibre structure of modern unsized Xuan paper
+  https://doi.org/10.1007/s10570-020-03554-3
+- Microscopy of raw and alum–gelatin-sized Xuan paper, Figure 2
+  https://doi.org/10.1039/C9RA08349A
+- Red Star's description of Sheng, Ban Shu and Shu Xuan
+  https://www.hongxingxuanpaper.com.cn/hongxingpinpai/xuanzhizhishi/1401.html
 
-Processing (direct pixel extraction, 2026-11-11):
-- Keep the photographed grain, fibers and color details.
-- Subtract broad illumination with a 96-source-pixel Gaussian blur.
-- Reconcile opposite edges by periodic-plus-smooth decomposition.
-- Scale local shadow/highlight relief (fine: 1.0/0.6; classic: 0.85/0.6).
-- Soften the classic relief with a periodic Gaussian filter (sigma 1 source
-  pixel), then reduce contrast while preserving each pixel's color direction:
-  M = max(abs(R), abs(G), abs(B)); scale = 10 * tanh(0.5 * M / 10) / M.
-  Recenter the softened relief before converting it back to RGBA. This limits
-  prominent dark fibers and fragments as well as raised white fiber highlights.
-- Center the local relief on the existing game paper color #f3efe7.
-- Convert that relief into per-pixel RGBA using the minimum alpha needed to
-  reconstruct it over #f3efe7; the paper substrate becomes transparent.
-- Original-resolution PNG masters: 2048 x 1365.
-- Runtime tiles: 1024 x 683, Lanczos reduction and lossless RGBA WebP.
+Export
+- Resample the source images in sRGB to 1024 × 1024 pixels.
+- Feather corresponding opposing pixels within the outer 32 pixels.
+- Subtract locally averaged luminance using a wrapped Gaussian blur with a
+  10-pixel standard deviation. This isolates the fine fiber relief.
+- Encode the relief as translucent white highlights and black shadows in
+  lossless RGBA WebP. Highlight alpha uses steps of four for compression.
+  The CSS paper tone shows through the transparent areas.
+- The shared PaperSurface tiles each texture at 512 CSS pixels.
 
-Use normal compositing at opacity 1 and the tile's intrinsic dimensions.
+Reference photographs
+- Paper surface close-up — codex-clipboard-693973c8-dd80-4c81-a445-ada211872f5d.jpg
+- Sheng xuan paint example — codex-clipboard-3a45e2ab-a9a0-47d8-9780-ecb69ee91413.jpg
+- Ban shu xuan paint example — codex-clipboard-446028e3-a041-4ed4-b93f-23ff7900a1de.jpg
+- Shu xuan paint example — codex-clipboard-9f216162-35c3-4695-8e1b-c3d473a78b60.jpg
+
+The original reference photographs remain with their respective rights holders.
+Previous texture credits are recorded in commit 23c7cebdf.
+
+Generation prompts
+
+Shared instructions
+Asset type: new photographic material tile for a modern Xuan paper website reading surface. Use image 1 as the evidence for the shape and scale of the extremely subtle FINE, compact fuzz on the smooth INTACT INTERIOR of the paper only. Ignore the lifted/deckled/torn edge completely. The other image is a color reference for its flat unpainted field only; do not reproduce the reference photographs or use their pixels, figures, illustration, ink, writing, frame or textile-like pattern. Produce a single square 1:1 photorealistic reflection scan of a clean fresh unmarked Anhui Jingxian Xuan sheet, edge-to-edge view of a square approximately 13 cm across at 1000-1250 pixels. Sheet is pressed and lies absolutely flat against scan glass. Uniform diffuse lighting, normal incidence, no geometry or relighting. Almost completely plain at first glance as a clean even writing sheet, with very tiny, soft pulp topology visible on close inspection only. Micrograin should consist of compact contiguous 1-4 pixel low-contrast flecks and occasional short pale embedded fiber overlaps; extremely low amplitude in contrast. Matte, smooth, visibly handmade modern cellulose stock. For seamless repetition, edges must retain the same illumination and tone. Absolutely no white raised strands, conspicuous looping veins, thread, elongated wrinkling, wrinkles, folds, embossing, raised patterns, vignettes, old stained paper, fibrous border, brown marks, directional lighting, cloudlike mottling, canvas, crosshatch, grain noise, icons or words. Deliberately reduce high contrast by a lot, but preserve credible miniature cellulose structure throughout. The final image is the uninterrupted paper surface only.
+
+Sheng xuan
+Make dry uncoated Sheng Xuan 生宣. Paper tint nearly neutral chalky ivory, light translucent-looking cellulose color similar to the paper beside the lotus, target #f6f4ed. Interior fiber interstices and minute granular overlaps are a little more legible than the sized grades, evenly spread as a very soft close knit fuzz that stays tightly embedded. Take the scale from the intact middle of the top left paper in image 1. Maintain absolute flatness despite the tiny grain.
+
+Ban shu xuan
+Make lightly alum-gelatin sized Ban Shu Xuan 半熟宣. Use a soft desaturated rice-straw ivory that is warmer than the other two, target #f0e9dc, a much lighter and calmer echo of the brownish blank area behind the bird in image 2. Partial sizing has filled some of the small interstices. Render tightly felted sub-surface pulp with a quiet close-packed fine formation: tiny broad soft tone variations approximately 3-7 pixels in scale, very short fibers faintly showing, smaller and less contrasty than raw Xuan. Paper lays perfectly flat, no weave or visible coating marks.
+
+Shu xuan
+Make fully alum-gelatin sized Shu Xuan 熟宣, a plain refined paper for gongbi painting. Light pearl cream, target #f4efe3, use the quiet ivory tone in the blank paper behind image 2's flower, less tan than half-sized. Fine dry size fills the tiniest gaps, the flat surface appears even and gently consolidated with only a suggestion of very tiny, closely spaced, low-contrast matte fibers seen through it. No continuous strong speckled noise, keep it close to the even delicate texture of the blank area without visible illustration, weave or glare. This is the smoothest and most subdued of the three.

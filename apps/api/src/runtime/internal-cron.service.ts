@@ -1,3 +1,6 @@
+import { BaixiaoStandings } from '@server/baixiao/application/BaixiaoStandings.js';
+import { AlchemyContestPreparation } from '@server/alchemy-contest/application/AlchemyContestPreparation.js';
+import { AlchemyContestSettlement } from '@server/alchemy-contest/application/AlchemyContestSettlement.js';
 import { AiService } from '@nestjs/ai';
 import { Inject, Injectable } from '@nestjs/common';
 import { AuctionBuyOrderOperations } from '@server/auction/application/AuctionBuyOrderService.js';
@@ -20,11 +23,25 @@ import { runSocialMaintenance } from '@server/social/social-lifecycle.js';
 @Injectable()
 export class InternalCronService {
   constructor(
+    @Inject(AlchemyContestPreparation) private readonly alchemyPreparation: AlchemyContestPreparation,
+    @Inject(AlchemyContestSettlement) private readonly alchemySettlement: AlchemyContestSettlement,
+    @Inject(BaixiaoStandings) private readonly baixiao: BaixiaoStandings,
     @Inject(AiService) private readonly ai: AiService,
     @Inject(AuctionOperations) private readonly auction: AuctionOperations,
     @Inject(AuctionBuyOrderOperations)
     private readonly buyOrders: AuctionBuyOrderOperations,
   ) {}
+
+  alchemyContestPrepare() {
+    return this.alchemyPreparation.prepare();
+  }
+  alchemyContestSettle() {
+    return this.alchemySettlement.run();
+  }
+
+  baixiaoMeet() {
+    return this.baixiao.run();
+  }
 
   auctionExpire() {
     return runAuctionExpireJob(this.auction, this.buyOrders);

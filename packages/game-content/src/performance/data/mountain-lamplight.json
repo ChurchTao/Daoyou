@@ -1,0 +1,60 @@
+{
+  "id": "mountain-lamplight",
+  "title": "明早走哪条路",
+  "requires": [],
+  "cast": {
+    "herb": {
+      "name": "采药人",
+      "portrait": "icon:portrait-elder-m"
+    },
+    "player": {
+      "name": "你"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "山脚 · 入夜"
+    },
+    {
+      "type": "title",
+      "kicker": "过了那道弯",
+      "text": "明早走哪条路"
+    },
+    {
+      "type": "narration",
+      "text": "夜里你拿眼睛沿山顶慢慢找，远处茫茫的，终于在白天晒被子的地方见到一点灯。原来从人家屋里往下看，也看得见这山脚。"
+    },
+    {
+      "type": "narration",
+      "text": "门外传来采药人的声音。"
+    },
+    {
+      "type": "line",
+      "speaker": "herb",
+      "text": "明儿过山口就得各走各的了。几家山门都在收人，你可想好往哪家去？"
+    },
+    {
+      "type": "narration",
+      "text": "被子上那点分量压得你翻不了身。你只好仰着脸答他。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "我明早想一家家看。"
+    },
+    {
+      "type": "line",
+      "speaker": "herb",
+      "text": "那你可得赶早。"
+    },
+    {
+      "type": "narration",
+      "text": "灯在山上又亮了一阵。等你再睁眼去找，已经熄了。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

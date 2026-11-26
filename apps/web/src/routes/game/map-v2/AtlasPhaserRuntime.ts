@@ -13,6 +13,7 @@ import {
   type AtlasPoint,
 } from '@daoyou/game-rules/world/atlas';
 import * as Phaser from 'phaser';
+import { ATLAS_ARTWORK } from './atlasArtwork';
 import { ATLAS_CATEGORY_STYLE } from './atlasMarkerStyle';
 
 export interface AtlasView {
@@ -51,15 +52,6 @@ interface AtlasArguments {
 
 const WIDTH = 1536;
 const HEIGHT = 1024;
-const TEXTURES = {
-  world: '/assets/maps/world-overview-v1.webp',
-  tiannan: '/assets/maps/tiannan-region-v1.webp',
-  luanxinghai: '/assets/maps/luanxinghai-region-v1.webp',
-  mulan: '/assets/maps/mulan-region-v1.webp',
-  dajin: '/assets/maps/dajin-region-v1.webp',
-  nanjiang: '/assets/maps/nanjiang-region-v1.webp',
-  northland: '/assets/maps/northland-region-v1.webp',
-} satisfies Record<AtlasView['region'], string>;
 const INITIAL_FOCUS: Partial<Record<AtlasView['region'], AtlasPoint>> = {
   luanxinghai: ATLAS_ANCHORS.luanxinghai.LX_INNER_01,
   dajin: ATLAS_ANCHORS.dajin.DJ_CENTRAL_01,
@@ -68,7 +60,10 @@ const INITIAL_FOCUS: Partial<Record<AtlasView['region'], AtlasPoint>> = {
 const INK = 0x352f29;
 const CINNABAR = 0x9d4033;
 // Only camera snapshots survive page navigation; no textures or player state.
-const cameraMemory = new Map<string, { x: number; y: number; zoom: number }>();
+const cameraMemory = new Map<
+  string,
+  { x: number; y: number; zoomFactor: number }
+>();
 
 interface Marker {
   id: string;
@@ -122,7 +117,6 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
 
     create() {
       runtime.scene = this;
-      this.cameras.main.setBackgroundColor('#eee7d8');
       this.load.on(Phaser.Loader.Events.COMPLETE, () => this.showView());
       this.showView();
     }
@@ -135,7 +129,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
         if (!this.textures.exists(view.region)) {
           args.onLoading();
           if (!this.load.isLoading()) {
-            this.load.image(view.region, TEXTURES[view.region]);
+            this.load.image(view.region, ATLAS_ARTWORK[view.region]);
             this.load.start();
           }
           return;
@@ -186,7 +180,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
         const saved = cameraMemory.get(view.region);
         if (saved) {
           camera
-            .setZoom(Math.max(this.minZoom, saved.zoom * pixelRatio))
+            .setZoom(this.clampZoom(this.minZoom * saved.zoomFactor))
             .centerOn(saved.x, saved.y);
           this.clampCamera();
         } else {
@@ -208,7 +202,6 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
       ) {
         // Returning from gameplay restores the saved camera; explicit searches still locate.
         if (this.focusRequest !== -1 || !cameraMemory.has(view.region)) {
-          camera.setZoom(Math.max(camera.zoom, this.minZoom * 2));
           camera.centerOn(target.x, target.y);
           this.clampCamera();
         }
@@ -322,22 +315,19 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
         cameraMemory.set(this.shownRegion, {
           x: camera.scrollX + camera.width / 2,
           y: camera.scrollY + camera.height / 2,
-          zoom: camera.zoom / pixelRatio,
+          zoomFactor: camera.zoom / this.minZoom,
         });
     }
 
-    resize(center?: { x: number; y: number }, densityChange = 1) {
+    resize(center?: { x: number; y: number }) {
       const camera = this.cameras.main;
-      const wasFit = Math.abs(camera.zoom - this.minZoom) < 0.001;
-      camera.setZoom(camera.zoom * densityChange);
+      const zoomFactor = camera.zoom / this.minZoom;
       for (const marker of this.markers) {
         if (marker.label.style.resolution !== pixelRatio)
           marker.label.setResolution(pixelRatio);
       }
       this.minZoom = Math.max(camera.width / WIDTH, camera.height / HEIGHT);
-      camera.setZoom(
-        wasFit ? this.minZoom : Math.max(this.minZoom, camera.zoom),
-      );
+      camera.setZoom(this.clampZoom(this.minZoom * zoomFactor));
       if (center) camera.centerOn(center.x, center.y);
       this.clampCamera();
       this.layoutMarkers();
@@ -371,19 +361,21 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
       const camera = this.cameras.main;
       camera.preRender();
       const before = camera.getWorldPoint(x * pixelRatio, y * pixelRatio);
-      camera.setZoom(
-        Phaser.Math.Clamp(
-          camera.zoom * factor,
-          this.minZoom,
-          Math.max(2.5 * pixelRatio, this.minZoom * 5),
-        ),
-      );
+      camera.setZoom(this.clampZoom(camera.zoom * factor));
       camera.preRender();
       const after = camera.getWorldPoint(x * pixelRatio, y * pixelRatio);
       camera.scrollX += before.x - after.x;
       camera.scrollY += before.y - after.y;
       this.clampCamera();
       this.layoutMarkers();
+    }
+
+    private clampZoom(zoom: number) {
+      return Phaser.Math.Clamp(
+        zoom,
+        this.minZoom,
+        Math.max(2.5 * pixelRatio, this.minZoom * 5),
+      );
     }
 
     pan(dx: number, dy: number) {
@@ -401,6 +393,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
     }
 
     pick(x: number, y: number) {
+      if (this.shownRegion !== view.region) return;
       const hits = this.hits(x, y);
       if (!hits.length) {
         args.onClear();
@@ -424,6 +417,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
     }
 
     key(event: KeyboardEvent) {
+      if (this.shownRegion !== view.region) return;
       if (event.key === 'Escape') {
         args.onClear();
         return;
@@ -650,6 +644,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
     }
 
     private layoutMarkers() {
+      if (this.shownRegion !== view.region) return;
       const camera = this.cameras.main;
       camera.preRender();
       const huntPoints: HuntMapPoint[] = [];
@@ -879,7 +874,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
     width: Math.max(1, Math.round(args.root.clientWidth * pixelRatio)),
     height: Math.max(1, Math.round(args.root.clientHeight * pixelRatio)),
     scale: { zoom: 1 / pixelRatio },
-    backgroundColor: '#eee7d8',
+    transparent: true,
     banner: false,
     audio: { noAudio: true },
     input: { mouse: false, touch: false, keyboard: false },
@@ -1011,7 +1006,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
       Math.max(1, Math.round(args.root.clientWidth * pixelRatio)),
       Math.max(1, Math.round(args.root.clientHeight * pixelRatio)),
     );
-    runtime.scene?.resize(center, pixelRatio / previousRatio);
+    runtime.scene?.resize(center);
   };
   const resize = new ResizeObserver(resizeCanvas);
   resize.observe(args.root);

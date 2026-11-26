@@ -45,6 +45,6 @@ export class InventoryController {
     @JsonBody(new ZodPipe(InventoryActionSchema))
     action: z.infer<typeof InventoryActionSchema>,
   ) {
-    return this.inventory.mutate(actor.cultivatorId, action);
+    return this.inventory.mutate(actor, action);
   }
 }

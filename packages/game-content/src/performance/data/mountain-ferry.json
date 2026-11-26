@@ -1,0 +1,71 @@
+{
+  "id": "mountain-ferry",
+  "title": "上渡见",
+  "requires": [],
+  "cast": {
+    "granny": {
+      "name": "婆婆",
+      "portrait": "icon:portrait-elder-f"
+    },
+    "player": {
+      "name": "你"
+    },
+    "dyer": {
+      "name": "染坊里的人"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "上渡 · 启程"
+    },
+    {
+      "type": "title",
+      "kicker": "三次花开",
+      "text": "上渡见"
+    },
+    {
+      "type": "narration",
+      "text": "该还的伞还了，该送的信也都送到了。临行这天，你把新补过的鞋踩了两脚，右脚后跟还有点硬。"
+    },
+    {
+      "type": "narration",
+      "text": "路过面棚，婆婆正背对着你揉面。桌子已经支好了。你蹲下来，拿手比了比，那两座小山旁边，还够画一座。"
+    },
+    {
+      "type": "line",
+      "speaker": "granny",
+      "text": "别画了。你回来，我还要翻过来看看，是他们俩谁说得准。"
+    },
+    {
+      "type": "narration",
+      "text": "她头都没回。你刚应了一声，她又喊住你，递给你一张摊凉的葱饼。这回她记着没放辣末。你跑到巷口才想起来，连忙拢起手。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "谢啦！"
+    },
+    {
+      "type": "narration",
+      "text": "染坊里探出个脑袋。"
+    },
+    {
+      "type": "line",
+      "speaker": "dyer",
+      "text": "大清早的，谢谁呢？"
+    },
+    {
+      "type": "narration",
+      "text": "上渡已经有人等着。采药人把背筐紧了紧，给你让出一道能看清山路的空隙。平日来给人送行，你总是在那根系船桩边站定。这回鞋底蹭过木桩，走出去好几步，脚后跟磨得发热，你才记起要回一次头。"
+    },
+    {
+      "type": "narration",
+      "text": "镇上的早点摊都升了烟。你摸了摸怀里还温着的葱饼，跟上了前面的脚步。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

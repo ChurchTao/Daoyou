@@ -138,12 +138,12 @@ export function DungeonModeSwitch({
         }
       }}
       className={cn(
-        'min-w-0 flex-1 px-1 py-2 transition-opacity md:flex-none md:px-0',
+        'dungeon-mode-title min-w-0 flex-1 px-1 py-2 transition-opacity md:flex-none md:px-0',
         target === 'exorcism'
           ? 'text-right md:order-2'
           : 'text-left md:order-0',
       )}
-      style={{ opacity: 0.32 + 0.68 * share }}
+      style={{ ['--dungeon-mode-share' as string]: share }}
     >
       <span
         className={cn(
@@ -164,7 +164,7 @@ export function DungeonModeSwitch({
       {/* 除祟一侧随转轮位置泛一层朱砂，不压暗纸面。 */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_right,rgba(193,18,31,0.09),transparent_70%)] transition-opacity duration-300"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_right,var(--color-battle-crimson-soft),transparent_70%)] transition-opacity duration-300"
         style={{ opacity: shown }}
       />
       <div
@@ -201,7 +201,7 @@ export function DungeonModeSwitch({
             className="dungeon-mode-wheel-disc absolute inset-0 rounded-full shadow-[0_4px_14px_rgba(44,24,16,0.4)]"
             style={{ transform: `rotate(${shown * 180}deg)` }}
           />
-          <span className="font-heading text-paper relative text-2xl md:text-3xl">
+          <span className="font-heading text-scene-ink relative text-2xl md:text-3xl">
             {shown >= 0.5 ? MODES.exorcism.seal : MODES.mystery.seal}
           </span>
         </button>

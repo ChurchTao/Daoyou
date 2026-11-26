@@ -1,3 +1,4 @@
+import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db.js';
 import * as schema from '@server/lib/drizzle/schema.js';
 import { hasActiveDungeon } from '@server/dungeon/occupancy.js';
@@ -83,6 +84,13 @@ export const ConsumableUseEngine = {
       tx?: DbTransaction;
       lease?: RedisLeaseContext;
       quantity?: number;
+      localRecovery?: {
+        hp: number;
+        mp: number;
+        maxHp: number;
+        maxMp: number;
+        save(tx: DbTransaction, resources: { hp: number; mp: number }): Promise<void>;
+      };
     } = {},
   ): Promise<{
     message: string;
@@ -109,12 +117,14 @@ export const ConsumableUseEngine = {
     if (quantity > consumable.quantity) throw new Error('随身消耗品数量不足');
     if (quantity > 1 && !isPillConsumable(consumable))
       throw new Error('仅丹药支持批量服用');
+    if (options.localRecovery && (!options.tx || !isDungeonRecoveryPill(consumable)))
+      throw new Error('休憩时只能使用回复气血或法力的消耗品');
     let exorcismRow: {
       id: string;
       runState: unknown;
       battlePayload: unknown;
     } | null = null;
-    if (await hasActiveDungeon(cultivatorId)) {
+    if (!options.localRecovery && await hasActiveDungeon(cultivatorId)) {
       const [run] = await getExecutor(options.tx)
         .select({
           id: schema.dungeonRuns.id,
@@ -272,18 +282,27 @@ export const ConsumableUseEngine = {
     const exorcismState = exorcismRow?.runState as
       | (Pick<DungeonState, 'exorcism' | 'encounter'> & Record<string, unknown>)
       | undefined;
-    const inRun = exorcismState?.exorcism?.resources?.player;
-    if (exorcismRow && (!inRun || (inRun.hp >= inRun.maxHp && inRun.mp >= inRun.maxMp)))
+    const exorcismPlayer = exorcismState?.exorcism?.resources?.player;
+    const inRun = options.localRecovery ?? exorcismPlayer;
+    if (exorcismRow && (!exorcismPlayer || (exorcismPlayer.hp >= exorcismPlayer.maxHp && exorcismPlayer.mp >= exorcismPlayer.maxMp)))
       throw new Error('局内气血法力已满，不需要服药');
-    const realResources = cultivator.condition?.resources;
+    const condition = options.localRecovery
+      ? ConditionService.normalizeCondition(cultivator, cultivator.condition)
+      : cultivator.condition;
+    const realResources = condition?.resources;
+    const authority = cultivator.combatV6ResourceAuthority;
+    const localAuthority = options.localRecovery && authority
+      ? { ...authority, maxHp: options.localRecovery.maxHp, maxMp: options.localRecovery.maxMp, recoveryPaused: true }
+      : authority;
     let nextCultivator: PillCultivatorFacts =
-      inRun && cultivator.condition
+      inRun && condition
         ? {
             ...cultivator,
+            combatV6ResourceAuthority: localAuthority,
             condition: {
-              ...cultivator.condition,
+              ...condition,
               resources: {
-                ...cultivator.condition.resources,
+                ...condition.resources,
                 hp: { current: inRun.hp },
                 mp: { current: inRun.mp },
               },
@@ -362,6 +381,14 @@ export const ConsumableUseEngine = {
 
     const persistPillEffect = async (tx: DbTransaction) => {
       await persistExorcismRestore(tx);
+      if (options.localRecovery && nextCultivator.condition && realResources) {
+        const { hp, mp } = nextCultivator.condition.resources;
+        await options.localRecovery.save(tx, { hp: hp.current, mp: mp.current });
+        nextCultivator = {
+          ...nextCultivator,
+          condition: { ...nextCultivator.condition, resources: realResources },
+        };
+      }
       await tx
         .update(schema.cultivators)
         .set({
@@ -395,6 +422,7 @@ export const ConsumableUseEngine = {
         consumableId,
         consumedQuantity,
         tx,
+        { includeInvasion: !options.localRecovery },
       );
     };
 

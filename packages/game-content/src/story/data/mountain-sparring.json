@@ -1,0 +1,48 @@
+{
+  "id": "mountain-sparring",
+  "title": "替我看一眼",
+  "track": "main",
+  "next": "mountain-lodging",
+  "beats": [
+    {
+      "id": "tooth",
+      "kind": "performance",
+      "script": "mountain-sparring-tooth",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "师父让你去演武场，看看对练的人出招前哪里先动。",
+      "actionLabel": "去演武场",
+      "href": "/game/story"
+    },
+    {
+      "id": "footwork",
+      "kind": "performance",
+      "script": "mountain-sparring-footwork",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "去演武场赴约，换个地方看昨天那一招。",
+      "actionLabel": "去看对练",
+      "href": "/game/story"
+    },
+    {
+      "id": "watch",
+      "kind": "performance",
+      "script": "mountain-sparring-watch",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "带上自己的法兵，再去演武场。",
+      "actionLabel": "去演武场",
+      "href": "/game/story"
+    },
+    {
+      "id": "supper",
+      "kind": "performance",
+      "script": "mountain-sparring-supper",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "回器坊，把在演武场看到的事说给师父听。",
+      "actionLabel": "回器坊",
+      "href": "/game/story"
+    }
+  ]
+}

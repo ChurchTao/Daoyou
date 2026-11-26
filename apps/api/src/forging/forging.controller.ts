@@ -25,6 +25,7 @@ import { apiErrorFilter } from '../http/error-filter.js';
 import { FirstQuery } from '../http/first-query.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 import { ForgingService } from './forging.service.js';
 
 const ForgingErrors = apiErrorFilter((error) => {
@@ -69,6 +70,7 @@ export class ForgingController {
   @Post()
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
+  @StoryGate('sect-refinery')
   forge(
     @CurrentCultivator() actor: ActiveCultivatorRef,
     @JsonBody({ fallback: undefined }, new ZodPipe(ForgeRequestSchema))

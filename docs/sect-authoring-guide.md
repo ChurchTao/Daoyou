@@ -14,7 +14,7 @@ packages/shared/src/engine/sect/content/<sect-id>/
   paths/<path-id>/nodes/*.ts
   paths/<path-id>/variants.ts
   organization/theme.ts        # 可选，仅换任务和组织称谓
-  presentation.ts              # 生产宗门必填入门演出，可继续覆盖前端主题
+  presentation.ts              # 宗门地图、房间、角色与题签
 ```
 
 ## 稳定 ID 与标准规则
@@ -139,11 +139,9 @@ builder.setAbility(
 
 ## 入门演出
 
-生产宗门在 `SectPresentationTheme.onboarding` 中提供玩家摘要、三个特色词和 `NarrativePerformanceScript`。脚本按幕声明场景、正文、可选人物台词与背景焦点；通用演出舞台负责显字、前后切幕和终幕拜师。
+各宗入门演出在[山门演出稿](../packages/game-content/src/performance/mountain-gate-arrivals.ts)中写抵达时的见闻和名册前的问答。新人从刚听到或看见的事问起，掌籍弟子回答门里教什么，来历随问题带出来。山门图可作为演出底图。听完接引介绍，玩家可重选去处，拜入由服务端准入策略和幂等事务处理。
 
-入门文案只使用世界内语言，不展示等级、倍率、冷却、消耗、配置、构筑或其他实现术语。主视觉必须是无文字的本地资源，并提供替代文本；加入宗门仍由服务端准入策略和幂等事务兜底，不以浏览器演出状态作为安全边界。
-
-入宗选择卡与宗门能力页会根据 `foundationPassiveId` 自动展示“宗门根基”。名称和描述直接来自能力定义，能力页的精确效果来自当前编译产物；不要在前端主题中复制根基被动数据。
+[初习流派演出](../packages/game-content/src/performance/sect-first-path.ts)按当前宗门的流派编号取 NPC 台词。每一路用交手的例子讲清打法，在玩家选择前交代日后的切换方式。选项从服务端的流派列表生成，启用使用现有的构筑版本校验。已有流派的弟子在参悟处切换流派并管理经脉。
 
 ## 流派与节点
 

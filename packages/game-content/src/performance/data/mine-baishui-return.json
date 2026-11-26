@@ -1,0 +1,288 @@
+[
+  {
+    "id": "mine-baishui-morning",
+    "title": "头一趟船",
+    "requires": [],
+    "cast": {
+      "peer": {
+        "name": "隔壁同门"
+      },
+      "ferryman": {
+        "name": "船工"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "白水镇 · 次晨镇渡"
+      },
+      {
+        "type": "narration",
+        "text": "天刚亮，船工就在镇渡搭好了跳板。"
+      },
+      {
+        "type": "narration",
+        "text": "你扶着船舷要上去，掌心一吃力，昨夜裹的布边便洇出一点红。同门回身托了你一把。",
+        "when": {
+          "flag": "baishui.battle-hurt"
+        }
+      },
+      {
+        "type": "line",
+        "speaker": "ferryman",
+        "text": "回白水渡的，坐这一趟。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-baishui-home",
+    "title": "回宗",
+    "requires": [],
+    "cast": {
+      "peer": {
+        "name": "隔壁同门"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "本宗 · 山门"
+      },
+      {
+        "type": "title",
+        "text": "还能站住么"
+      },
+      {
+        "type": "narration",
+        "text": "进了山门，同门陪你走过饭堂，到洞府岔路才停下。"
+      },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "你回洞府歇一会儿。丹房我去说，几时交的药，我记着呢。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-baishui-reflect",
+    "title": "泉边",
+    "requires": [],
+    "cast": {},
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "洞府 · 灵眼之泉"
+      },
+      {
+        "type": "narration",
+        "text": "洞府里只听见泉响。坐在池边，你又想起昨夜握住的那块裂木皮。那会儿只顾盯着散修手里的刀，等鞋里灌了水，你才忙着把脚收回来。"
+      },
+      {
+        "type": "narration",
+        "text": "那三下钟听着近，像同门就在苇子后头。眼下再想，他那时守在石阶，面前有一船人要照应。"
+      },
+      {
+        "type": "aside",
+        "text": "我要是再退一步，落水那点声，钟下听得见么？"
+      },
+      {
+        "type": "narration",
+        "text": "昨晚拔了旗就得去举灯，夜渡一靠岸又得去交药。到这会儿你才肯想，若真滑下去，那根裂了皮的断桩能借上多少力？想折回岸上，散修的刀还在前头。"
+      },
+      {
+        "type": "narration",
+        "text": "你在泉边坐了好一阵，还是想不出脱身的办法。守阁长老知道你练过哪几卷心法，你想把这几步说给他听。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-baishui-ask-foundation",
+    "title": "还能站住么",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "elder": {
+        "name": "守阁长老"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "本宗 · 传承处"
+      },
+      {
+        "type": "line",
+        "speaker": "elder",
+        "text": "哪一卷读不懂？"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "我想问昨晚在渡口交手的事。我退到断桩边时，旗还在那人背后。他再往前一步，我就只好往水里走了。那时候我是真怕。"
+      },
+      {
+        "type": "line",
+        "speaker": "elder",
+        "text": "你站的地方离旗有多远？"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "大约就从门槛到您案前。"
+      },
+      {
+        "type": "line",
+        "speaker": "elder",
+        "text": "炼气往上是筑基。到了筑基，气在丹田里扎了根，隔着几步出手也聚得住。照你说的来势，你站在门槛那儿就有把握荡开第一刀。趁他收刀，你还有余力往前抢几步，伸手去够旗。"
+      },
+      {
+        "type": "narration",
+        "text": "你回头看门槛。进来时顺脚走过的那几步，昨夜得从那把刀底下抢。要是隔着这么远便能出手，你连那根桩都用不着扶。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "长老，我怎样才能练到筑基？"
+      },
+      {
+        "type": "line",
+        "speaker": "elder",
+        "text": "先把炼气修到圆满。冲关时那股气容易散，要借丹药凝神。门里通常备筑基丹。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "我能学着炼么？"
+      },
+      {
+        "type": "line",
+        "speaker": "elder",
+        "text": "去丹房找你取药时见过的值事。他会带你去找管炉的长老。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-foundation-ask",
+    "title": "筑基丹",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "steward": {
+        "name": "丹房值事"
+      },
+      "elder": {
+        "name": "丹房长老"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "本宗 · 丹房"
+      },
+      {
+        "type": "title",
+        "text": "筑基丹"
+      },
+      {
+        "type": "narration",
+        "text": "你等取药的人从屋里出来，才进去叫了声值事。"
+      },
+      {
+        "type": "line",
+        "speaker": "steward",
+        "text": "白水镇的药记过了。你那同门方才来过，说掌柜昨晚就收了。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "我来学炼筑基丹。管炉的长老在么？"
+      },
+      {
+        "type": "narration",
+        "text": "值事带你进了里间。长老把称好的药倒回碟子里，才问你还有多久到炼气圆满。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "还早。昨晚险些掉进河里，回了山我才去问守阁长老，知道了冲关还要备药。到时候丹是我自己要吃的。我想弄明白哪味药能帮我稳住气。您能从称药教我么？"
+      },
+      {
+        "type": "narration",
+        "text": "长老把秤推过来，旁边搁着两碟药。白节根已经切成薄片，灰背蓼翻着叶背，还看得见上头的细绒。"
+      },
+      {
+        "type": "line",
+        "speaker": "elder",
+        "text": "白节根把气往丹田里领，走得快。配上灰背蓼，药力才能多留一会儿。各称两份，叶子瞧着少，也得认秤。"
+      },
+      {
+        "type": "line",
+        "speaker": "elder",
+        "text": "这炉药，你想拿来做什么？"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "等我冲关的时候，帮我把气聚住。"
+      },
+      {
+        "type": "line",
+        "speaker": "elder",
+        "text": "那就取冲关蓄势的丹意。开炉前看一眼要用多少灵石，火你自己引。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-foundation-ready",
+    "title": "第一炉丹",
+    "requires": [],
+    "cast": {
+      "elder": {
+        "name": "丹房长老"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "本宗 · 丹房"
+      },
+      {
+        "type": "narration",
+        "text": "你把炼好的丹拿给长老看。他接过来闻了闻，把丹还给你。"
+      },
+      {
+        "type": "line",
+        "speaker": "elder",
+        "text": "成了。等你冲关时，这丹能帮你稳住那口气。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  }
+]

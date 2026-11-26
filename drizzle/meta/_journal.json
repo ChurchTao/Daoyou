@@ -554,6 +554,34 @@
       "when": 1794896530456,
       "tag": "0079_achievement_reputation_rewards",
       "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1795422352705,
+      "tag": "0080_alchemy_contest",
+      "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1795576930486,
+      "tag": "0081_baixiao_meet",
+      "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1795593510222,
+      "tag": "0082_ancient_demon_invasion_and_parties",
+      "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1795676270871,
+      "tag": "0083_baixiao_exorcism_rewards",
+      "breakpoints": true
     }
   ]
 }

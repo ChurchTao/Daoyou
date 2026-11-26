@@ -1,3 +1,5 @@
+import { PartiesModule } from '@server/parties/parties.module.js';
+import { InvasionModule } from '@server/invasion/invasion.module.js';
 import { allowsLocalDevTools } from '@daoyou/contracts/dev-tools-access';
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
@@ -5,6 +7,8 @@ import { getRuntimeEnvironment } from '@server/lib/config/environment.js';
 import { AccountModule } from './account/account.module.js';
 import { AchievementsModule } from './achievements/achievements.module.js';
 import { AdminModule } from './admin/admin.module.js';
+import { BaixiaoModule } from './baixiao/baixiao.module.js';
+import { AlchemyContestModule } from './alchemy-contest/alchemy-contest.module.js';
 import { AlchemyModule } from './alchemy/alchemy.module.js';
 import { ArenaModule } from './arena/arena.module.js';
 import { AuctionModule } from './auction/auction.module.js';
@@ -77,6 +81,10 @@ import { WandererModule } from './wanderer/wanderer.module.js';
     ReputationShopModule,
     SpiritFieldModule,
     AlchemyModule,
+    AlchemyContestModule,
+    BaixiaoModule,
+    InvasionModule,
+    PartiesModule,
     EnlightenmentModule,
     ForgingModule,
     InscriptionsModule,

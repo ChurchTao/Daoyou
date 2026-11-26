@@ -1,0 +1,80 @@
+{
+  "id": "mine-baishui",
+  "track": "main",
+  "title": "这船刚走",
+  "next": "mine-baishui-lamp",
+  "deferredUnlocks": ["alchemy", "refine", "sect-alchemy", "sect-refinery"],
+  "beats": [
+    {
+      "id": "ask",
+      "kind": "performance",
+      "arrival": "location",
+      "script": "mine-baishui-ask",
+      "outcome": "done",
+      "scene": "map",
+      "prompt": "到山脚渡埠找阿禾，问去白水镇的船。",
+      "actionLabel": "向阿禾问船",
+      "finishLabel": "展开水路舆图",
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "foothill-pavilion"
+      },
+      "entry": { "kind": "npc", "id": "ahe" }
+    },
+    {
+      "id": "sail",
+      "kind": "passage",
+      "arrival": "map",
+      "scene": "map",
+      "prompt": "在舆图上找同岸、过了河弯的渡口。",
+      "actionLabel": "展开水路舆图",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "foothill-pavilion"
+      },
+      "passage": {
+        "id": "foothill-to-baishui",
+        "hint": "从接引亭顺流走，过了河弯也不换岸。"
+      }
+    },
+    {
+      "id": "wait",
+      "kind": "performance",
+      "arrival": "activity",
+      "script": "mine-baishui-wait",
+      "outcome": "done",
+      "scene": "map",
+      "prompt": "在白水渡的石阶上等过河的客船。",
+      "actionLabel": "在石阶等船",
+      "finishLabel": "回白水渡石阶",
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "baishui-ferry"
+      },
+      "entry": { "kind": "facility", "id": "ferry-berth" }
+    },
+    {
+      "id": "returned",
+      "kind": "performance",
+      "arrival": "location",
+      "script": "mine-baishui-returned",
+      "outcome": "done",
+      "scene": "map",
+      "prompt": "那条帆上补了红布的货船，又靠回了白水渡。",
+      "actionLabel": "接过船夫的缆绳",
+      "finishLabel": "问船夫怎么回来的",
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "baishui-ferry"
+      },
+      "entry": { "kind": "facility", "id": "ferry-berth" }
+    }
+  ]
+}

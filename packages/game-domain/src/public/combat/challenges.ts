@@ -2,6 +2,7 @@
 export type {
   BreakthroughChallengeId,
   BreakthroughSnapshot,
+  StoryBattleSnapshot,
 } from '../../combat/breakthrough.js';
 export type {
   SectBattleOpponent,

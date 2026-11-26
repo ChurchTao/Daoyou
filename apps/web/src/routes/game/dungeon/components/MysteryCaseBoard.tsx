@@ -13,6 +13,7 @@ import { MysteryBrief } from './MysteryBrief';
 import { MysteryMiniMap } from './MysteryMiniMap';
 import { MysteryPortrait } from './MysteryPortrait';
 import { mysteryDialogueWith, type MysteryQuestion } from './mysteryQuestions';
+import { MysterySceneArt } from './MysterySceneArt';
 import { MYSTERY_EVIDENCE_LIMIT, type MysteryNotes } from './useMysteryNotes';
 
 export type MysteryBoardTab = 'brief' | 'clues' | 'people' | 'places' | 'log';
@@ -329,12 +330,7 @@ export function MysteryCaseBoard({
       {tab === 'places' ? (
         <div className="space-y-3">
           {sceneUrl ? (
-            <img
-              src={sceneUrl}
-              alt=""
-              aria-hidden="true"
-              className="aspect-[2/1] w-full [mask-image:linear-gradient(to_bottom,transparent,black_18%)] object-cover object-bottom"
-            />
+            <MysterySceneArt src={sceneUrl} className="aspect-[2/1]" />
           ) : null}
           <MysteryMiniMap
             map={view.map}

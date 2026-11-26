@@ -1,4 +1,8 @@
 import {
+  CompleteStoryPassageSchema,
+  type CompleteStoryPassage,
+} from '@daoyou/contracts/story';
+import {
   Controller,
   Get,
   HttpCode,
@@ -18,7 +22,21 @@ import { ZodPipe } from '../http/zod.pipe.js';
 import { StoryService } from './story.service.js';
 
 const CompleteSchema = z
-  .object({ outcome: z.string().trim().min(1).max(40) })
+  .object({
+    outcome: z.string().trim().min(1).max(40),
+    // 这一场里选下、要记住的标记。
+    chosen: z
+      .array(
+        z
+          .string()
+          .trim()
+          .min(1)
+          .max(60)
+          .regex(/^[a-z0-9]+(?:[-.:][a-z0-9]+)*$/),
+      )
+      .max(8)
+      .default([]),
+  })
   .strict();
 const PerformanceErrors = apiErrorFilter((error) => {
   const message =
@@ -52,6 +70,20 @@ const GuideErrors = apiErrorFilter((error) => {
     },
   );
 });
+const PassageErrors = apiErrorFilter((error) => {
+  const message =
+    error instanceof z.ZodError
+      ? '行程参数无效'
+      : error instanceof Error
+        ? error.message
+        : '这段行程未能记下';
+  return Response.json(
+    { error: message },
+    {
+      status: message === '当前没有这段行程' ? 409 : 400,
+    },
+  );
+});
 class LessonIdPipe implements PipeTransform<string, string> {
   transform(value: string) {
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value) || value.length > 80)
@@ -70,6 +102,17 @@ export class StoryController {
     return this.story.read(actor);
   }
 
+  @Post('passages/complete')
+  @HttpCode(200)
+  @UseFilters(PassageErrors)
+  passage(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody({ fallback: null }, new ZodPipe(CompleteStoryPassageSchema))
+    input: CompleteStoryPassage,
+  ) {
+    return this.story.passage(actor, input);
+  }
+
   @Post('performances/:scriptId/complete')
   @HttpCode(200)
   @UseFilters(PerformanceErrors)
@@ -79,7 +122,7 @@ export class StoryController {
     @JsonBody({ fallback: null }, new ZodPipe(CompleteSchema))
     input: z.infer<typeof CompleteSchema>,
   ) {
-    return this.story.performance(actor, scriptId, input.outcome);
+    return this.story.performance(actor, scriptId, input.outcome, input.chosen);
   }
 
   @Post('guides/:lessonId/complete')

@@ -1,0 +1,122 @@
+{
+  "id": "mountain-bamboo",
+  "title": "借一句话",
+  "requires": [],
+  "cast": {
+    "player": {
+      "name": "你"
+    },
+    "echo": {
+      "name": "竹管里的声音"
+    },
+    "girl": {
+      "name": "青衣姑娘",
+      "portrait": "icon:portrait-disciple-f"
+    },
+    "herb": {
+      "name": "采药人",
+      "portrait": "icon:portrait-elder-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "太岳 · 石阶"
+    },
+    {
+      "type": "title",
+      "kicker": "自己报的名字",
+      "text": "借一句话"
+    },
+    {
+      "type": "narration",
+      "text": "咪咪先听见，蹲在门槛上，两只耳朵齐齐朝着坡下。"
+    },
+    {
+      "type": "line",
+      "speaker": "echo",
+      "text": "爹，我这儿都好。"
+    },
+    {
+      "type": "narration",
+      "text": "是个姑娘的声音。你探头往坡下看，一条石阶空荡荡的。等你穿好鞋，那姑娘又说了一遍，连说到「好」字前吸的那口气都和方才一样。"
+    },
+    {
+      "type": "narration",
+      "text": "采药人正在门外紧筐绳。"
+    },
+    {
+      "type": "line",
+      "speaker": "herb",
+      "text": "前儿我下山就听她说这句。还没寄出去啊。"
+    },
+    {
+      "type": "narration",
+      "text": "转过石墙才看见人。一个穿青布衣裳的姑娘蹲在泉边，手里捏着一截竹管，正在跟自己生气。她把竹管在水里一浸，再举到唇边。咪咪偏在这时叫了一声。"
+    },
+    {
+      "type": "narration",
+      "text": "姑娘把竹管往掌心一磕。这回她没张嘴，声音是从竹管里传出来的。"
+    },
+    {
+      "type": "line",
+      "speaker": "echo",
+      "text": "爹，我这儿都好。"
+    },
+    {
+      "type": "narration",
+      "text": "话音刚落，竹管里又响了一声猫叫。姑娘低头看着咪咪。"
+    },
+    {
+      "type": "line",
+      "speaker": "girl",
+      "text": "你家的？"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "昨天才算我家的。要重来么？"
+    },
+    {
+      "type": "narration",
+      "text": "她把湿漉漉的竹管在衣襟上擦干，小心塞进一个布套。"
+    },
+    {
+      "type": "line",
+      "speaker": "girl",
+      "text": "就这遍吧。我爹上回嫌我每次都只说平安。这回听见猫叫，够他问上半天的。"
+    },
+    {
+      "type": "narration",
+      "text": "姑娘把布套揣好。采药人背起药筐，临走又蹲下来，挠了挠咪咪的下巴。"
+    },
+    {
+      "type": "line",
+      "speaker": "herb",
+      "text": "昨晚它肯给你腾地方么？"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "我半夜醒了一回。它睡在正中间，我就剩个被角。"
+    },
+    {
+      "type": "narration",
+      "text": "采药人笑了。咪咪还仰着脸等他挠，他又挠了两下，这才起身往岔路上去。"
+    },
+    {
+      "type": "line",
+      "speaker": "girl",
+      "text": "我得赶去集上。今日盐船回上渡，错过这趟，我爹还得再等半个月。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "回上渡？我也想捎封信。我跟你走。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

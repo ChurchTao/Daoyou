@@ -1,0 +1,14 @@
+{
+  "id": "baishui-spring",
+  "title": "灵眼之泉",
+  "steps": [
+    {
+      "type": "look",
+      "anchor": "spring.recovery",
+      "text": "引泉能回满气血和法力。确认前先看灵石花费和可能折损的修为。已经恢复的话，可以直接继续主线。"
+    },
+    {
+      "type": "end"
+    }
+  ]
+}

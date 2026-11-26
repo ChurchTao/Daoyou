@@ -12,39 +12,39 @@ export const LINGXIAO_DEFINITION: SectDefinition = {
     {
       id: 'lingxiao-canon',
       slot: 1,
-      name: '《红尘剑录》',
+      name: '《红尘问心》',
       isPrimary: true,
       description:
-        '历代门人将一生所见与问剑所得录入其中。此录不定剑招，只论剑从何起、当向何处。',
+        '历代门人将一生所见与问剑所得录入其中。此卷不定剑招，只论剑从何起、当向何处。',
     },
     {
       id: 'sword-guidance',
       slot: 3,
-      name: '《剑气长歌》',
+      name: '《且按剑》',
       description: '以气驭剑，使锋芒连绵不绝；剑气养于胸臆，动时如长风振野。',
     },
     {
       id: 'void-step',
       slot: 4,
-      name: '《凌虚步》',
+      name: '《侠客行》',
       description: '御气踏虚，身随剑走；方寸之间腾挪换位，不使自身困于敌势。',
     },
     {
       id: 'edge-cleansing',
       slot: 2,
-      name: '《观微剑意》',
+      name: '《秋毫》',
       description: '静观一息之变，明察毫厘之机；敌势未成，破绽已映于剑心。',
     },
     {
       id: 'origin-returning',
       slot: 5,
-      name: '《澄心剑诀》',
+      name: '《横剑当关》',
       description: '收束心神，使剑意澄明；外法虽变化万端，不能动摇持剑之念。',
     },
     {
       id: 'sword-nurturing',
       slot: 6,
-      name: '《不灭剑体》',
+      name: '《人剑合一》',
       description: '以身作剑，以骨为脊，经千锤百炼而锋芒不折、形神不摧。',
     },
   ],
@@ -342,14 +342,14 @@ export const LINGXIAO_DEFINITION: SectDefinition = {
           layerId: '1',
           name: '探虚',
           description:
-            '《问剑式》每累计命中2次，额外获得1点剑意，并施加1层随《红尘剑录》成长的剑痕。',
+            '《问剑式》每累计命中2次，额外获得1点剑意，并施加1层随《红尘问心》成长的剑痕。',
         },
         {
           id: 'swift-split-light',
           layerId: '2',
           name: '分光',
           description:
-            '《剑荡山河》维持3段攻击并获得3点剑意；总伤害随《剑气长歌》成长。',
+            '《剑荡山河》维持3段攻击并获得3点剑意；总伤害随《且按剑》成长。',
         },
         {
           id: 'swift-stacking-waves',
@@ -368,7 +368,7 @@ export const LINGXIAO_DEFINITION: SectDefinition = {
           layerId: '3',
           name: '燕返',
           description:
-            '提高《藏锋听雷》的首次闪避反击伤害，命中后施加1层随《红尘剑录》成长的剑痕。',
+            '提高《藏锋听雷》的首次闪避反击伤害，命中后施加1层随《红尘问心》成长的剑痕。',
         },
         {
           id: 'swift-borrowed-force',
@@ -388,7 +388,7 @@ export const LINGXIAO_DEFINITION: SectDefinition = {
           layerId: '4',
           name: '破妄',
           description:
-            '施展《此剑平生》时消耗全部剑痕；每消耗1层，追加一次随《红尘剑录》成长且无视防御的伤害。',
+            '施展《此剑平生》时消耗全部剑痕；每消耗1层，追加一次随《红尘问心》成长且无视防御的伤害。',
         },
         {
           id: 'swift-life-chasing',
@@ -401,7 +401,7 @@ export const LINGXIAO_DEFINITION: SectDefinition = {
           layerId: '4',
           name: '归鞘',
           description:
-            '《此剑平生》伤害降低15%，施展后返还2点剑意，并获得随《红尘剑录》成长的护盾。剑有出时，也应有归处。',
+            '《此剑平生》伤害降低15%，施展后返还2点剑意，并获得随《红尘问心》成长的护盾。剑有出时，也应有归处。',
         },
         {
           id: 'swift-gapless',
@@ -429,7 +429,7 @@ export const LINGXIAO_DEFINITION: SectDefinition = {
           layerId: 'ultimate',
           name: '无间',
           description:
-            '施展《此剑平生》后，追加随《红尘剑录》成长的追击并获得1点剑意，每3回合最多触发一次。',
+            '施展《此剑平生》后，追加随《红尘问心》成长的追击并获得1点剑意，每3回合最多触发一次。',
         },
         {
           id: 'swift-shadow-line',
@@ -443,7 +443,7 @@ export const LINGXIAO_DEFINITION: SectDefinition = {
           layerId: 'ultimate',
           name: '回风',
           description:
-            '每次《藏锋听雷》持续期间首次闪避时，获得随《凌虚步》成长的护盾，并施加1层剑痕。',
+            '每次《藏锋听雷》持续期间首次闪避时，获得随《侠客行》成长的护盾，并施加1层剑痕。',
         },
       ],
     },
@@ -603,7 +603,7 @@ export const LINGXIAO_DEFINITION: SectDefinition = {
           layerId: '2',
           name: '蓄岳',
           description:
-            '提高《藏锋听雷》蓄势期间随《凌虚步》成长的直接伤害减免。',
+            '提高《藏锋听雷》蓄势期间随《侠客行》成长的直接伤害减免。',
         },
         {
           id: 'heavy-shattering-armor',
@@ -616,7 +616,7 @@ export const LINGXIAO_DEFINITION: SectDefinition = {
           layerId: '2',
           name: '守心',
           description:
-            '施展《藏锋听雷》开始蓄势时，获得随《凌虚步》成长的护盾。',
+            '施展《藏锋听雷》开始蓄势时，获得随《侠客行》成长的护盾。',
         },
         {
           id: 'heavy-crossing-pass',
@@ -675,14 +675,14 @@ export const LINGXIAO_DEFINITION: SectDefinition = {
           layerId: '5',
           name: '回峰',
           description:
-            '《此剑平生》伤害降低15%，施展后返还2点剑意，并获得随《红尘剑录》成长的护盾。',
+            '《此剑平生》伤害降低15%，施展后返还2点剑意，并获得随《红尘问心》成长的护盾。',
         },
         {
           id: 'heavy-heaven-cleaving',
           layerId: 'ultimate',
           name: '开天',
           description:
-            '《此剑平生》改为仅可在6点剑意时施展，提高随《红尘剑录》成长的总倍率并获得20%穿防；冷却增加1回合。',
+            '《此剑平生》改为仅可在6点剑意时施展，提高随《红尘问心》成长的总倍率并获得20%穿防；冷却增加1回合。',
         },
         {
           id: 'heavy-immovable-mountain',
@@ -696,7 +696,7 @@ export const LINGXIAO_DEFINITION: SectDefinition = {
           layerId: 'ultimate',
           name: '山河回响',
           description:
-            '施展《此剑平生》后恢复气血并获得随《红尘剑录》成长的护盾，每3回合最多触发一次。',
+            '施展《此剑平生》后恢复气血并获得随《红尘问心》成长的护盾，每3回合最多触发一次。',
         },
       ],
     },

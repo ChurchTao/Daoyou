@@ -4,6 +4,7 @@ import { InkSwitch } from '@app/components/ui/InkSwitch';
 import { updateGameSettings, useGameSettings } from '@app/lib/game-setting';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
 import { useState } from 'react';
+import { AppearanceChoices } from './AppearanceChoices';
 import { PaperTextureChoices } from './PaperTextureChoices';
 import {
   SettingsField,
@@ -14,7 +15,7 @@ import {
 import { formatDateTime } from './utils';
 
 export function GameSettingsTab() {
-  const { mapMode, imageOpacity, paperTexture, keepCombatAuto } =
+  const { colorScheme, mapMode, imageOpacity, paperTexture, keepCombatAuto } =
     useGameSettings();
   const cultivator = useCultivatorIdentity().data?.cultivator;
   const pwa = usePwaInstall();
@@ -60,6 +61,12 @@ export function GameSettingsTab() {
   return (
     <div className="space-y-6">
       <SettingsSection>
+        <AppearanceChoices
+          value={colorScheme}
+          onChange={(colorScheme) => updateGameSettings({ colorScheme })}
+        />
+      </SettingsSection>
+      <SettingsSection>
         <label className="flex items-center justify-between gap-3">
           <span className="min-w-0">
             <span className="text-ink block text-sm leading-6">保持自动</span>
@@ -76,7 +83,7 @@ export function GameSettingsTab() {
           />
         </label>
       </SettingsSection>
-      <SettingsSection>
+      <SettingsSection className="dark:hidden">
         <PaperTextureChoices
           value={paperTexture}
           onChange={(texture) => updateGameSettings({ paperTexture: texture })}

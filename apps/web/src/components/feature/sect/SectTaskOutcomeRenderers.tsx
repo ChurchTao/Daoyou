@@ -105,7 +105,7 @@ export function RewardClaimedOutcome({
             {receipt.lines.map((line) => (
               <p key={line}>{line}</p>
             ))}
-            <p className="pt-2 text-stone-500">以上奖励已经入账</p>
+            <p className="pt-2 text-ink-secondary">以上奖励已经入账</p>
           </div>
         ),
         confirmLabel: '收下赏赐',

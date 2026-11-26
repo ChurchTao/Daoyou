@@ -1,3 +1,4 @@
+import type { CompleteStoryPassage } from '@daoyou/contracts/story';
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
@@ -6,6 +7,7 @@ import { toPlayerStateMutationResponse } from '@server/player/application/state/
 import { readResourceWithMeta } from '@server/player/application/state/ResourceReadService.js';
 import {
   completeStoryGuideCommand,
+  completeStoryPassageCommand,
   completeStoryPerformanceCommand,
 } from '@server/story/application/StoryApplicationService.js';
 import { StoryService as StoryDomain } from '@server/story/application/StoryService.js';
@@ -22,10 +24,21 @@ export class StoryService {
     );
   }
 
+  async passage(actor: ActiveCultivatorRef, input: CompleteStoryPassage) {
+    return toPlayerStateMutationResponse(
+      await completeStoryPassageCommand({
+        userId: actor.userId,
+        cultivatorId: actor.cultivatorId,
+        input,
+      }),
+    );
+  }
+
   async performance(
     actor: ActiveCultivatorRef,
     scriptId: string,
     outcome: string,
+    chosen: readonly string[],
   ) {
     return toPlayerStateMutationResponse(
       await completeStoryPerformanceCommand({
@@ -33,6 +46,7 @@ export class StoryService {
         cultivatorId: actor.cultivatorId,
         scriptId,
         outcome,
+        chosen,
       }),
     );
   }

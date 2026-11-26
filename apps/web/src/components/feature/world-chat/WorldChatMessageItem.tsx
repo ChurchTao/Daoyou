@@ -1,8 +1,7 @@
 import { BeastTradeDetails } from '@app/components/feature/beasts/BeastTradePreview';
 import { CharacterCardTrigger } from '@app/components/feature/character-card/CharacterCardTrigger';
 import { ChatMessageFrame } from '@app/components/feature/chat/ChatMessageFrame';
-import { notifyHuntTeamChanged } from '@app/components/feature/hunts/huntTeamView';
-import { huntRequest } from '@app/components/feature/hunts/useHunts';
+import { partyInviteHref } from '@app/components/feature/party/partyWorkspaceApi';
 import { itemPresentation } from '@app/components/feature/items/itemPresentation';
 import { ItemPreview } from '@app/components/feature/items/ItemPreview';
 import { InkModal } from '@app/components/layout';
@@ -57,9 +56,6 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
 }: WorldChatMessageItemProps) {
   const cultivator = useCultivatorIdentity(!readOnly).data?.cultivator;
   const [detailOpen, setDetailOpen] = useState(false);
-  const [joining, setJoining] = useState(false);
-  const [joinError, setJoinError] = useState('');
-  const [joined, setJoined] = useState(false);
   const isSystemRumor =
     message.channel === 'system' ||
     (message.senderCultivatorId === null &&
@@ -95,15 +91,28 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
     message.channel === 'system' && huntEventId
       ? huntEventById(huntEventId)
       : undefined;
+  const payload = message.payload;
   const recruit =
-    message.messageType === 'hunt_recruit' &&
-    'version' in message.payload &&
-    message.payload.version === 1 &&
-    'teamId' in message.payload &&
-    typeof message.payload.teamId === 'string' &&
-    'text' in message.payload &&
-    typeof message.payload.text === 'string'
-      ? { teamId: message.payload.teamId, text: message.payload.text }
+    'version' in payload && payload.version === 1 &&
+    'text' in payload && typeof payload.text === 'string'
+      ? message.messageType === 'party_recruit' &&
+        'partyId' in payload && 'recruitmentId' in payload
+        ? {
+            text: payload.text,
+            href: partyInviteHref(payload.partyId, {
+              kind: 'public',
+              recruitmentId: payload.recruitmentId,
+            }),
+          }
+        : message.messageType === 'hunt_recruit' && 'teamId' in payload
+          ? {
+              text: payload.text,
+              href: isOwn ? '/game/hunt-team' : partyInviteHref(payload.teamId, {
+                kind: 'hunt',
+                eventId: payload.eventId ?? null,
+              }),
+            }
+          : null
       : null;
   const beastShowcase =
     message.messageType === 'beast_showcase' &&
@@ -235,7 +244,7 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
             className={cn(
               'border-crimson/30 block w-full max-w-xs border text-left',
               packet.status === 'open'
-                ? 'bg-crimson/90 text-paper'
+                ? 'bg-crimson/90 text-on-crimson'
                 : 'bg-crimson/8 text-ink-secondary',
             )}
             onClick={() => onSelectRedPacket?.(packet.id)}
@@ -270,47 +279,20 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
         ) : recruit ? (
           <span>
             {recruit.text}{' '}
-            {readOnly ? null : message.senderCultivatorId &&
-              message.senderCultivatorId === cultivator?.id ? (
-              <Link
-                className="text-teal font-semibold underline"
-                to="/game/hunt-team"
-              >
-                加入队伍
+            {!readOnly && (
+              <Link className="text-teal font-semibold underline"
+                to={recruit.href}>
+                {isOwn ? '查看招募' : '申请入队'}
               </Link>
-            ) : (
-              <button
-                type="button"
-                className="text-teal font-semibold underline disabled:opacity-50"
-                disabled={joining || joined || !cultivator}
-                onClick={() => {
-                  const actorId = cultivator?.id;
-                  if (!actorId || joining) return;
-                  setJoining(true);
-                  setJoinError('');
-                  void huntRequest(
-                    `/api/hunts/teams/${recruit.teamId}/join`,
-                    actorId,
-                    {},
-                  )
-                    .then(() => {
-                      setJoined(true);
-                      notifyHuntTeamChanged();
-                    })
-                    .catch((cause: unknown) => {
-                      setJoinError(
-                        cause instanceof Error ? cause.message : '暂时未能加入',
-                      );
-                    })
-                    .finally(() => setJoining(false));
-                }}
-              >
-                {joined ? '已加入' : joining ? '加入中' : '加入队伍'}
-              </button>
             )}
-            {joinError ? (
-              <span className="text-crimson ml-2">{joinError}</span>
-            ) : null}
+          </span>
+        ) : message.channel === 'system' && (message.messageType === 'alchemy_contest_rumor' || message.messageType === 'baixiao_rumor' || message.messageType === 'invasion_rumor') &&
+          'nodeId' in message.payload && typeof message.payload.nodeId === 'string' ? (
+          <span>
+            {renderTextMessage(message)}{' '}
+            <Link className="text-teal font-semibold underline" to={`/game/map-v2?nodeId=${encodeURIComponent(message.payload.nodeId)}`}>
+              {message.messageType === 'invasion_rumor' ? '前往镇魔营地' : message.messageType === 'baixiao_rumor' ? '前往百晓盛会' : '前往丹塔'}
+            </Link>
           </span>
         ) : hunt ? (
           <span>
@@ -332,7 +314,7 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
           Array.isArray(message.payload.sides[0]) &&
           Array.isArray(message.payload.sides[1]) ? (
           <Link
-            className="border-ink/15 hover:border-teal block border border-dashed bg-white/55 px-3 py-2"
+            className="border-ink/15 hover:border-teal block border border-dashed bg-white/55 px-3 py-2 dark:bg-paper-2"
             to={`/combat-replay/${message.payload.shareCode}`}
           >
             <span className="text-teal font-semibold">

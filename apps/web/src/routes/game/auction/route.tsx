@@ -396,7 +396,7 @@ export default function AuctionPage() {
               单价{' '}
               <SpiritStones amount={listing.price} />
             </p>
-            <p className="text-amber-800">
+            <p className="text-amber-800 dark:text-wood">
               合计{' '}
               <SpiritStones amount={total} className="font-semibold" />
             </p>

@@ -153,7 +153,7 @@
     {
       "id": "dao_equipment.essence.huming",
       "name": "护命",
-      "description": "命火将熄时，器灵有{chancePercent}%概率护主复起，恢复气血上限的{hpRatioPercent}%；受禁复活之法压制时无效。",
+      "description": "命火将熄时，器灵有{chancePercent}%概率护主复活，恢复气血上限的{hpRatioPercent}%；受禁复活之法压制时无效。",
       "stackPolicy": "unique",
       "effect": {
         "type": "revival",
@@ -372,7 +372,7 @@
         "type": "revive",
         "hpRatio": 0.2
       },
-      "description": "引命火归身，复起己方单体并恢复最大气血的{hpRatioPercent}%；受禁复活、减疗与伤势上限约束。"
+      "description": "引命火归身，复活己方单体并恢复最大气血的{hpRatioPercent}%；受禁复活、减疗与伤势上限约束。"
     },
     {
       "id": "dao_equipment.art.qingxin",
@@ -822,7 +822,7 @@
         "hpRatio": 0.5,
         "capPerLevel": 20
       },
-      "description": "牵引命火，复起己方单体并恢复最大气血的{hpRatioPercent}%，基础回复不超过目标境界映射等级×{capPerLevel}；受禁复活、禁止回复、减疗与伤势上限约束。"
+      "description": "牵引命火，复活己方单体并恢复最大气血的{hpRatioPercent}%，基础回复不超过目标境界映射等级×{capPerLevel}；受禁复活、禁止回复、减疗与伤势上限约束。"
     },
     {
       "id": "dao_equipment.art.due",
@@ -836,7 +836,7 @@
         "remainingHpRatio": 0.1,
         "remainingMpRatio": 0
       },
-      "description": "复起己方全部在场倒地单位，按最大气血的{hpRatioPercent}%恢复，受减疗与伤势上限约束；跳过禁复活或禁止回复者，不治疗存活队友。自身气血须高于上限的{remainingHpRatioPercent}%，发动后降至该比例，法力降至上限的{remainingMpRatioPercent}%。无可复活目标时不发动，不扣战意或自损。"
+      "description": "复活己方全部在场倒地单位，按最大气血的{hpRatioPercent}%恢复，受减疗与伤势上限约束；跳过禁复活或禁止回复者，不治疗存活队友。自身气血须高于上限的{remainingHpRatioPercent}%，发动后降至该比例，法力降至上限的{remainingMpRatioPercent}%。无可复活目标时不发动，不扣战意或自损。"
     },
     {
       "id": "dao_equipment.art.dongxu",

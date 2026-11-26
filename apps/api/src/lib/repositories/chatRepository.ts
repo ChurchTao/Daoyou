@@ -108,7 +108,8 @@ function replySummary(message: MessageRow): string {
   if (message.messageType === 'item_showcase') return '物品展示';
   if (message.messageType === 'beast_showcase') return '灵兽展示';
   if (message.messageType === 'combat_v6_replay') return '战绩回放';
-  if (message.messageType === 'hunt_recruit') return '组队招募';
+  if (message.messageType === 'hunt_recruit' || message.messageType === 'party_recruit')
+    return '组队招募';
   return '传音';
 }
 

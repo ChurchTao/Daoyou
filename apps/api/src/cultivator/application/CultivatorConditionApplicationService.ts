@@ -25,6 +25,7 @@ import { RESOURCE_DATA_SCHEMAS } from '@server/lib/resources/schemas.js';
 import { recordJournalChange } from '@server/player/application/JournalSettlement.js';
 import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
 import { and, eq, sql } from 'drizzle-orm';
+import { StoryService } from '@server/story/application/StoryService.js';
 
 type Actor = { userId: string; cultivatorId: string };
 
@@ -185,6 +186,11 @@ export function consumeCultivatorConsumable(args: {
             args.consumableId,
             tx,
           );
+          const story = await StoryService.noteFact(
+            args.actor.cultivatorId,
+            'consumable_used',
+            tx,
+          );
           return {
             result: {
               message: result.message,
@@ -199,7 +205,7 @@ export function consumeCultivatorConsumable(args: {
                 realmStage: state.realmStage as RealmStage,
                 spiritualRoots: result.profilePatch?.spiritual_roots,
               },
-            }),
+            }).concat(story?.changes ?? []),
           };
         },
       }),
@@ -207,17 +213,20 @@ export function consumeCultivatorConsumable(args: {
 }
 
 export async function recoverCultivatorAtInn(args: { actor: Actor }) {
-  const cultivator = await loadPlayerInnRecoveryFacts(
-    args.actor.userId,
-    args.actor.cultivatorId,
-  );
-  if (!cultivator) throw new Error('角色不存在');
-  const recovery = InnRecoveryService.buildRecoveryResult(cultivator);
   return playerCommandExecutor.executeWithLock({
     userId: args.actor.userId,
     cultivatorId: args.actor.cultivatorId,
     source: 'inn_recovery',
     command: async (tx) => {
+      const cultivator = await loadPlayerInnRecoveryFacts(
+        args.actor.userId,
+        args.actor.cultivatorId,
+        tx,
+      );
+      if (!cultivator) throw new Error('角色不存在');
+      if (!InnRecoveryService.needsRecovery(cultivator))
+        throw new Error('气息已经恢复');
+      const recovery = InnRecoveryService.buildRecoveryResult(cultivator);
       const [updated] = await tx
         .update(cultivators)
         .set({
@@ -241,6 +250,11 @@ export async function recoverCultivatorAtInn(args: { actor: Actor }) {
           `囊中羞涩，灵石不足（至少需要 ${recovery.spiritStoneCost} 灵石）`,
         );
       }
+      const story = await StoryService.noteFact(
+        args.actor.cultivatorId,
+        'spring_recovered',
+        tx,
+      );
       return {
         result: {
           cultivator: {
@@ -258,7 +272,7 @@ export async function recoverCultivatorAtInn(args: { actor: Actor }) {
           condition: recovery.nextCondition,
           spiritStones: updated.spiritStones,
           progress: recovery.nextCultivationProgress,
-        }),
+        }).concat(story?.changes ?? []),
       };
     },
   });

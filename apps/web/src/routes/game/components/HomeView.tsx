@@ -1,42 +1,42 @@
 import { YieldCard } from '@app/components/feature/cultivator/YieldCard';
 import { useCultivatorDisplayProjection } from '@app/components/feature/cultivator/useCultivatorDisplayProjection';
-import { CaveQuickGrid } from '@app/components/feature/home/CaveQuickGrid';
-import { HomeAside } from '@app/components/feature/home/HomeAside';
-import { HomeUrgentRow } from '@app/components/feature/home/HomeUrgentRow';
+import { HomeAct, HomeLabel } from '@app/components/feature/home/HomeAct';
+import { HomeCaller } from '@app/components/feature/home/HomeCaller';
+import { HomeDays } from '@app/components/feature/home/HomeDays';
+import { HomeDivination } from '@app/components/feature/home/HomeDivination';
 import {
-  GameSceneFrame,
-  GameSceneLoading,
-} from '@app/components/game-shell/GameSceneFrame';
-import { GameSceneSection } from '@app/components/game-shell/GameSceneSection';
+  HomeDoors,
+  type HomeDoor,
+} from '@app/components/feature/home/HomeDoors';
+import { HomeRoad, type HomeStop } from '@app/components/feature/home/HomeRoad';
+import { HomeRumors } from '@app/components/feature/home/HomeRumors';
+import { getSectIdentityLabels } from '@app/components/feature/sect/sectIdentityDisplay';
+import { GameSceneLoading } from '@app/components/game-shell/GameSceneFrame';
 import { InkButton, InkNotice } from '@app/components/ui';
+import { GameImage } from '@app/components/ui/GameImage';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
-import { useCultivatorProgress } from '@app/lib/resources/player';
+import {
+  useCultivatorProgress,
+  usePlayerSession,
+  useSectMembership,
+} from '@app/lib/resources/player';
+import { storyPerformanceContext } from '@app/lib/story/performanceContext';
 import { useStory } from '@app/lib/story/useStory';
 import {
   findCurrentMajorBreakthroughTask,
   getBreakthroughNextStep,
 } from '@app/lib/tasks/taskClient';
-import { getBodyCultivationSummary } from '@daoyou/game-rules/body-cultivation/progress';
-import {
-  getConditionStatusTemplate,
-  getPillToxicityStage,
-  isConditionStatusActive,
-} from '@daoyou/game-rules/condition';
+import { storyGateOpen, storySceneOpen } from '@daoyou/game-domain/story/gates';
 import { getNextMajorRealm } from '@daoyou/game-rules/consumables/breakthrough';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo } from 'react';
 
-function calculateYieldHours(lastYieldAt: Date | string | undefined) {
-  if (!lastYieldAt) return 0;
-
-  const timestamp = new Date(lastYieldAt).getTime();
-  if (!Number.isFinite(timestamp)) return 0;
-
-  return Math.max(0, Math.floor((Date.now() - timestamp) / (1000 * 60 * 60)));
-}
+const WATCHES = '子丑寅卯辰巳午未申酉戌亥';
 
 export function HomeView() {
   const projection = useCultivatorDisplayProjection();
   const progress = useCultivatorProgress();
+  const sect = useSectMembership();
+  const session = usePlayerSession();
   const cultivator = useMemo(
     () =>
       projection.data && progress.data
@@ -55,67 +55,30 @@ export function HomeView() {
     error: taskError,
     reload: reloadTasks,
   } = useTaskList(cultivator?.id);
-  const [yieldHours, setYieldHours] = useState(() =>
-    calculateYieldHours(cultivator?.last_yield_at),
-  );
-  const [yieldInteractionActive, setYieldInteractionActive] = useState(false);
-
-  useEffect(() => {
-    const update = () =>
-      setYieldHours(calculateYieldHours(cultivator?.last_yield_at));
-    update();
-
-    const timer = window.setInterval(update, 60_000);
-    return () => window.clearInterval(timer);
-  }, [cultivator?.last_yield_at]);
-
-  const caveStatus = useMemo(() => {
+  const body = useMemo(() => {
     if (!cultivator) return null;
 
     const hp = display?.resources.hp;
     const mp = display?.resources.mp;
     const maxHp = Math.max(1, Math.floor(hp?.max ?? 1));
     const maxMp = Math.max(1, Math.floor(mp?.max ?? 1));
-    const currentHp = Math.max(0, Math.floor(hp?.current ?? maxHp));
-    const currentMp = Math.max(0, Math.floor(mp?.current ?? maxMp));
-    const activeStatuses = (cultivator.condition?.statuses ?? []).filter(
-      (status) =>
-        isConditionStatusActive(status, projection.data?.now ?? new Date()),
-    );
-    const pillToxicityStage = getPillToxicityStage(cultivator.condition);
     const cultivationProgress = cultivator.cultivation_progress;
-    const cultivationPercent = cultivationProgress
-      ? Math.floor(
-          (cultivationProgress.cultivation_exp / cultivationProgress.exp_cap) *
-            100,
-        )
-      : 0;
-
-    const bodySummary = getBodyCultivationSummary(cultivator.condition);
-    const strongestBodyTrack = [...bodySummary.tracks].sort(
-      (a, b) => b.level - a.level,
-    )[0];
-    const bodySummaryText =
-      bodySummary.totalLevel > 0 && strongestBodyTrack
-        ? [
-            `肉身·${bodySummary.realm.label} 总 Lv.${bodySummary.totalLevel}`,
-            `${strongestBodyTrack.layerName} Lv.${strongestBodyTrack.level}`,
-            strongestBodyTrack.currentEffects[0],
-          ].join(' · ')
-        : null;
 
     return {
-      activeStatuses,
-      currentHp,
-      currentMp,
-      maxHp,
-      maxMp,
-      pillToxicityStage,
-      cultivationPercent,
-      bodySummaryText,
-      insight: cultivationProgress?.comprehension_insight ?? 0,
+      hpLow: Math.floor(hp?.current ?? maxHp) < maxHp,
+      mpLow: Math.floor(mp?.current ?? maxMp) < maxMp,
+      cultivationPercent: cultivationProgress
+        ? Math.min(
+            100,
+            Math.floor(
+              (cultivationProgress.cultivation_exp /
+                cultivationProgress.exp_cap) *
+                100,
+            ),
+          )
+        : 0,
     };
-  }, [cultivator, display, projection.data?.now]);
+  }, [cultivator, display]);
 
   const currentMajorTask = useMemo(
     () => (tasks ? findCurrentMajorBreakthroughTask(cultivator, tasks) : null),
@@ -124,11 +87,11 @@ export function HomeView() {
   const story = useStory(Boolean(cultivator));
   const storyCue = story.story?.prompt ? story.story : null;
 
-  if (isLoading || (!taskError && (tasksLoading || !tasks))) {
+  if (isLoading || story.loading || (!taskError && (tasksLoading || !tasks))) {
     return <GameSceneLoading message="正在进入洞府……" />;
   }
 
-  if (!cultivator) {
+  if (!cultivator || !body) {
     return (
       <div className="flex h-full items-center justify-center px-4">
         <InkNotice>
@@ -141,178 +104,237 @@ export function HomeView() {
     );
   }
 
-  const urgentItems: ReactNode[] = [];
-  const unallocatedAttributePoints =
-    cultivator.unallocated_attribute_points ?? 0;
-  const hasYieldAlert = yieldHours >= 1;
-  const hasResourceAlert =
-    caveStatus !== null &&
-    (caveStatus.currentHp < caveStatus.maxHp ||
-      caveStatus.currentMp < caveStatus.maxMp ||
-      caveStatus.pillToxicityStage.key !== 'none' ||
-      caveStatus.activeStatuses.length > 0);
-  const hasBreakthroughAlert = (caveStatus?.cultivationPercent ?? 0) >= 60;
+  const unlocked = story.story?.unlocked ?? null;
+  const fresh = story.story?.fresh ?? [];
+  const opened = (id: string) => storySceneOpen(unlocked, id);
+  const percent = body.cultivationPercent;
+  const hurt = body.hpLow || body.mpLow;
   const isMajorBreakthroughCandidate = Boolean(
     cultivator.realm_stage === '圆满' && getNextMajorRealm(cultivator.realm),
   );
-  if (taskError && isMajorBreakthroughCandidate) {
-    urgentItems.push(
-      <HomeUrgentRow
-        key="breakthrough-refresh"
-        title="破境卷宗待核对"
-        summary="卷宗暂未读到，重新核对即可查看下一步准备。"
-        action={
-          <InkButton onClick={() => void reloadTasks()}>重新核对</InkButton>
-        }
-      />,
-    );
-  }
-  if (storyCue) {
-    urgentItems.push(
-      <HomeUrgentRow
-        key="story-cue"
-        title={<span className="text-wood">{storyCue.chapterTitle}</span>}
-        summary={storyCue.prompt}
-        action={
-          <InkButton href={storyCue.href} variant="primary">
-            继续
-          </InkButton>
-        }
-      />,
-    );
-  }
+  const unallocated = cultivator.unallocated_attribute_points ?? 0;
+  const showYield = storyGateOpen(unlocked, 'yield');
+  const showAttributes = unallocated > 0 && opened('cultivator-attributes');
+  const showBreakthrough = currentMajorTask && opened('retreat');
+  const retryBreakthrough =
+    taskError && isMajorBreakthroughCandidate && opened('retreat');
 
-  if (unallocatedAttributePoints > 0) {
-    urgentItems.push(
-      <HomeUrgentRow
-        key="unallocated-attributes"
-        title={<span className="text-wood">✦ 根基待定</span>}
-        summary={`尚有 ${unallocatedAttributePoints} 点可分配属性点`}
-        action={
-          <InkButton href="/game/cultivator/attributes" variant="primary">
-            分配
-          </InkButton>
-        }
-      />,
-    );
-  }
+  const doors: HomeDoor[] = [
+    {
+      id: 'retreat',
+      label: '修炼室',
+      href: '/game/retreat',
+      note:
+        percent >= 100 ? (
+          isMajorBreakthroughCandidate ? (
+            '可破境'
+          ) : (
+            '已满'
+          )
+        ) : (
+          <span className="font-mono font-semibold tracking-tight">
+            {percent}%
+          </span>
+        ),
+      hot: percent >= 100,
+    },
+    {
+      id: 'inn',
+      label: '灵眼之泉',
+      href: '/game/inn',
+      note: hurt ? '带伤' : '无伤',
+      hot: hurt,
+      guide: 'cave.spring',
+    },
+    { id: 'alchemy', label: '炼丹房', href: '/game/craft/alchemy' },
+    { id: 'refine', label: '炼器室', href: '/game/craft/refine' },
+    { id: 'training-room', label: '练功房', href: '/game/training-room' },
+    { id: 'beast-room', label: '育兽室', href: '/game/beast-room' },
+    {
+      id: 'storage',
+      label: '储藏室',
+      href: '/game/cave/storage/new?location=storage',
+    },
+    { id: 'spirit-field', label: '灵田', href: '/game/spirit-field' },
+    { id: 'enlightenment', label: '悟道室', href: '/game/enlightenment' },
+    { id: 'inscriptions', label: '阵纹室', href: '/game/inscriptions' },
+  ];
 
-  if (hasYieldAlert || yieldInteractionActive) {
-    urgentItems.push(
-      <YieldCard
-        key="yield"
-        cultivator={cultivator}
-        variant="compact"
-        onInteractionActiveChange={setYieldInteractionActive}
-      />,
-    );
-  }
+  const sectLabels =
+    sect.data?.status === 'active' ? getSectIdentityLabels(sect.data) : null;
+  const stops: HomeStop[] = [
+    {
+      at: '门口',
+      places: [
+        {
+          id: 'sect',
+          label: '宗门',
+          href: '/game/sect',
+          note: sectLabels
+            ? `${sectLabels.sectName} · ${sectLabels.rankLabel}`
+            : '还没有师门',
+        },
+      ],
+    },
+    {
+      at: '山脚',
+      places: [
+        { id: 'market', label: '坊市', href: '/game/map-v2?intent=market' },
+        { id: 'auction', label: '拍卖行', href: '/game/auction' },
+      ],
+    },
+    {
+      at: '远处',
+      places: [
+        { id: 'map', label: '山河舆图', href: '/game/map-v2' },
+        { id: 'dungeon', label: '云游', href: '/game/dungeon' },
+        { id: 'tower', label: '蜃楼幻境', href: '/game/tower' },
+        { id: 'hunt-team', label: '结伴讨伐', href: '/game/hunt-team' },
+      ],
+    },
+  ];
+  const anyRoad = stops.some((stop) =>
+    stop.places.some((place) => opened(place.id)),
+  );
 
-  if (currentMajorTask) {
-    const summary = getBreakthroughNextStep(currentMajorTask);
-    urgentItems.push(
-      <HomeUrgentRow
-        key="major-breakthrough-task"
-        title={<span className="text-crimson">⚡ 突破境界</span>}
-        summary={summary}
-        action={
-          <InkButton
-            href={
-              currentMajorTask.status === 'completed'
-                ? '/game/retreat'
-                : '/game/tasks'
-            }
-            variant="primary"
-          >
-            {currentMajorTask.status === 'completed' ? '前往静室' : '查看任务'}
-          </InkButton>
-        }
-      />,
-    );
-  }
-
-  if (
-    hasBreakthroughAlert &&
-    !currentMajorTask &&
-    (!isMajorBreakthroughCandidate || taskError || !tasksLoading)
-  ) {
-    urgentItems.push(
-      <HomeUrgentRow
-        key="breakthrough"
-        title={<span className="text-crimson">⚡ 突破瓶颈</span>}
-        summary={`修为进度已达 ${Math.min(100, caveStatus?.cultivationPercent ?? 0)}%`}
-        action={
-          <InkButton href="/game/retreat" variant="primary">
-            前往静室
-          </InkButton>
-        }
-      />,
-    );
-  }
-
-  if (hasResourceAlert) {
-    const statusNames = caveStatus?.activeStatuses
-      .slice(0, 2)
-      .map(
-        (status) => getConditionStatusTemplate(status.key)?.name ?? status.key,
-      )
-      .join('、');
-    const parts = [
-      caveStatus?.pillToxicityStage.key !== 'none'
-        ? caveStatus.pillToxicityStage.label
-        : null,
-      statusNames
-        ? `${statusNames}${(caveStatus?.activeStatuses.length ?? 0) > 2 ? '等状态' : ''}`
-        : null,
-      caveStatus?.bodySummaryText,
-    ].filter(Boolean);
-
-    urgentItems.push(
-      <HomeUrgentRow
-        key="resource"
-        title={<span className="text-crimson">☯ 道体状态</span>}
-        summary={parts.join(' · ')}
-        action={
-          <InkButton href="/game/cultivator" variant="primary">
-            查看
-          </InkButton>
-        }
-      />,
-    );
-  }
+  const watch = WATCHES[Math.floor(((new Date().getHours() + 1) % 24) / 2)];
+  const showJournal = opened('journal');
+  const showDivination = opened('divination');
+  const showRumors = opened('map');
 
   return (
-    <GameSceneFrame
-      title="洞府"
-      aside={
-        cultivator.id ? <HomeAside cultivatorId={cultivator.id} /> : undefined
-      }
-    >
-      <GameSceneSection title="当下要事">
-        <div>
-          {urgentItems.length > 0 ? (
-            urgentItems.slice(0, 4)
-          ) : (
-            <HomeUrgentRow
-              title={<span className="text-teal">◎ 今日安稳</span>}
-              summary="暂无急报，可按心意静修或参悟"
-              action={
-                <InkButton
-                  href="/game/retreat"
-                  variant="primary"
-                  className="px-0"
-                >
-                  修炼
-                </InkButton>
-              }
-            />
-          )}
-        </div>
-      </GameSceneSection>
+    <div className="mx-auto w-full max-w-5xl px-3 py-3 md:px-6 md:py-4">
+      <article className="animate-fade-in bg-paper shadow-paper-panel grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:grid-rows-[auto_1fr]">
+        <figure className="relative isolate h-44 overflow-hidden sm:h-56 lg:col-start-1 lg:row-start-1 lg:aspect-[3/2] lg:h-auto dark:bg-[radial-gradient(ellipse_at_50%_0%,#334542,transparent_72%)]">
+          <GameImage
+            src="/assets/mystery/scenes/cave.webp"
+            alt=""
+            className="absolute inset-0 size-full object-cover object-[center_72%] mix-blend-multiply dark:mix-blend-screen dark:[filter:grayscale(1)_invert(1)_brightness(0.48)]"
+          />
+          <figcaption className="from-paper absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t to-transparent px-5 pt-10 pb-2 md:px-7">
+            <h1 className="font-heading text-ink text-3xl leading-tight">
+              洞府
+            </h1>
+            <span className="text-ink-secondary text-xs tracking-[0.28em]">
+              {watch}时
+            </span>
+          </figcaption>
+        </figure>
 
-      <GameSceneSection title="洞府各处">
-        <CaveQuickGrid />
-      </GameSceneSection>
-    </GameSceneFrame>
+        <div className="flex min-w-0 flex-col gap-7 px-5 pt-4 pb-7 md:px-7 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:pt-7">
+          {(storyCue ||
+            showYield ||
+            showAttributes ||
+            showBreakthrough ||
+            retryBreakthrough ||
+            showDivination) && (
+            <section>
+              <HomeLabel>当下要事</HomeLabel>
+              {storyCue && (
+                <HomeCaller
+                  story={storyCue}
+                  context={storyPerformanceContext(
+                    cultivator,
+                    session.data?.activeCultivator?.sectId,
+                  )}
+                  sectId={session.data?.activeCultivator?.sectId}
+                />
+              )}
+              {showYield && (
+                <YieldCard
+                  key={`yield:${cultivator.id}`}
+                  cultivator={cultivator}
+                  trigger={({ hours, retry, claiming, claim }) => (
+                    <HomeAct
+                      lead={
+                        claiming
+                          ? '领取中…'
+                          : retry
+                            ? '重试领取历练收益'
+                            : hours > 0
+                              ? '领取历练收益'
+                              : '历练收益'
+                      }
+                      note={
+                        claiming || retry ? null : hours > 0 ? (
+                          <>
+                            <b className="font-mono">{hours}</b> 小时
+                            {hours === 24 && ' · 已满'}
+                          </>
+                        ) : (
+                          '满 1 小时可领'
+                        )
+                      }
+                      onClick={claim}
+                      busy={claiming}
+                      disabled={hours < 1 && !retry}
+                    />
+                  )}
+                />
+              )}
+              {showDivination && (
+                <HomeDivination key={`divination:${cultivator.id}`} />
+              )}
+              {showAttributes && (
+                <HomeAct
+                  href="/game/cultivator"
+                  lead="分配属性"
+                  note={
+                    <>
+                      <b className="font-mono">{unallocated}</b> 点可分配
+                    </>
+                  }
+                />
+              )}
+              {showBreakthrough ? (
+                <HomeAct
+                  href="/game/retreat"
+                  lead={
+                    currentMajorTask.status === 'completed'
+                      ? '开始突破'
+                      : '查看突破条件'
+                  }
+                  note={getBreakthroughNextStep(currentMajorTask)}
+                />
+              ) : (
+                retryBreakthrough && (
+                  <HomeAct
+                    lead="重试加载突破条件"
+                    onClick={() => void reloadTasks()}
+                  />
+                )
+              )}
+            </section>
+          )}
+
+          <section>
+            <HomeLabel>洞中</HomeLabel>
+            <HomeDoors doors={doors} unlocked={unlocked} fresh={fresh} />
+          </section>
+
+          {anyRoad ? (
+            <section>
+              <HomeLabel>山下</HomeLabel>
+              <HomeRoad stops={stops} unlocked={unlocked} fresh={fresh} />
+            </section>
+          ) : null}
+        </div>
+
+        {(showJournal || showRumors) && (
+          <div className="border-ink/10 min-w-0 space-y-6 border-t px-5 pt-5 pb-7 md:px-7 lg:col-start-1 lg:row-start-2 lg:border-t-0 lg:pt-2">
+            {showJournal && (
+              <HomeDays key={cultivator.id} cultivatorId={cultivator.id!} />
+            )}
+            {showRumors && (
+              <HomeRumors
+                realm={cultivator.realm}
+                showHunts={opened('hunt-team')}
+                showAlchemy={opened('alchemy')}
+              />
+            )}
+          </div>
+        )}
+      </article>
+    </div>
   );
 }

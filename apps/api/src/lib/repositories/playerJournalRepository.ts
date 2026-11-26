@@ -123,17 +123,26 @@ export async function listPlayerJournal(
     )
     .orderBy(desc(playerJournal.createdAt), desc(playerJournal.id))
     .limit(31);
-  const items = rows.slice(0, 30).map((row) => ({
-    id: row.id,
-    event: PlayerJournalEventSchema.parse(row.event),
-    createdAt: row.createdAt.toISOString(),
-  }));
-  const last = items.at(-1);
+  // 别的版本写下、这一版还不认识的条目跳过，不让一条坏掉整页。
+  const page = rows.slice(0, 30);
+  const items = page.flatMap((row) => {
+    const event = PlayerJournalEventSchema.safeParse(row.event);
+    return event.success
+      ? [
+          {
+            id: row.id,
+            event: event.data,
+            createdAt: row.createdAt.toISOString(),
+          },
+        ]
+      : [];
+  });
+  const last = page.at(-1);
   return {
     items,
     nextCursor:
       rows.length > 30 && last
-        ? { id: last.id, createdAt: last.createdAt }
+        ? { id: last.id, createdAt: last.createdAt.toISOString() }
         : null,
   };
 }

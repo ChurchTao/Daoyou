@@ -81,6 +81,16 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/tower-enemy-sets',
   },
   {
+    title: '炼丹大会',
+    description: '查看赛期题目、材料与备用题，手动补跑准备',
+    href: '/admin/alchemy-contest',
+  },
+  {
+    title: '百晓盛会',
+    description: '检查组卷并批量导入题目',
+    href: '/admin/baixiao-meet',
+  },
+  {
     title: '云游剧本',
     description: '解谜副本剧本库存、剧本详情与生成任务',
     href: '/admin/dungeon-scenarios',

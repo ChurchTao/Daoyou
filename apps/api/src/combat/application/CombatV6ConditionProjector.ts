@@ -80,8 +80,11 @@ export async function projectCombatV6Condition(
         if (!claimed) return;
         return runJournalSettlement(tx, s.cultivatorId, 'wild_settlement', battleId, async () => {
         describeJournal(tx, s.cultivatorId, record.reason === 'fled' ? '逃离' : record.reason === 'technical-abort' ? '中止' : '结算');
+        // 主线只问有没有照过面：打完、逃开、自己放弃都算。
         const met =
-          (record.reason === 'battle-ended' || record.reason === 'fled') &&
+          (record.reason === 'battle-ended' ||
+            record.reason === 'fled' ||
+            record.reason === 'player-abandoned') &&
           s.metadata.payload.nodeId
             ? storyMarkForSignal({
                 type: 'wild.met',

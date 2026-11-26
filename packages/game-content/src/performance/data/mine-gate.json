@@ -1,0 +1,297 @@
+[
+  {
+    "id": "mine-gate-landing",
+    "title": "到了山脚",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "he": {
+        "name": "阿禾"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "早渡 · 船上"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "到了山脚"
+      },
+      {
+        "type": "narration",
+        "text": "早渡出了村口。你让咪咪挨着你坐稳，问阿禾："
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "人家要问我会什么，我说只在矿上干过活，行么？"
+      },
+      {
+        "type": "line",
+        "speaker": "he",
+        "text": "照实说。你是去学的。"
+      },
+      {
+        "type": "scene",
+        "alt": "山脚 · 渡埠"
+      },
+      {
+        "type": "narration",
+        "text": "船在山脚靠岸。阿禾把药包交给来接货的伙计，指了指岸上的石亭。你看见有人抱着包袱走进亭里，等你踏上岸，那人和包袱都不见了。"
+      },
+      {
+        "type": "line",
+        "speaker": "he",
+        "text": "拿路帖去找亭里守阵的。回村还来这儿找我。"
+      },
+      {
+        "type": "narration",
+        "text": "你应了一声，抱着咪咪往接引亭去。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-gate-study",
+    "title": "先看看",
+    "requires": [
+      "path_teacher"
+    ],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "guide": {
+        "name": "山门弟子"
+      },
+      "teacher": {
+        "name": "{path_teacher}"
+      },
+      "student": {
+        "name": "院中少年"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "山门 · 练功院"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "先看看"
+      },
+      {
+        "type": "narration",
+        "text": "守门弟子瞧见你拿着路帖，问你是不是来投名。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "我想先看看。刚进门的人，都从什么学起？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "院里有新人在练。进去看吧。"
+      },
+      {
+        "type": "narration",
+        "text": "案上排着三粒豆子。教习叫一个少年只挪中间那粒。少年一抬手，三粒全滚了出去，有一粒滚到你脚边。你拾起来还他。"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "text": "拣准中间那粒，再送气，少使些劲。"
+      },
+      {
+        "type": "narration",
+        "text": "再试时，中间那粒沿木纹往前挪了一点，两旁的还在原处。"
+      },
+      {
+        "type": "line",
+        "speaker": "student",
+        "text": "这一点算不算？"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "text": "算。记住你方才怎么送的，再来一回。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "先生，我想学御风。昨天有人带我飞过一条河。我该打哪儿练起？"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "text": "你试过引气？"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "试过。一使劲，气就散了。"
+      },
+      {
+        "type": "narration",
+        "text": "教习把豆子推回原处。"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "text": "就从这儿练。先让它走得动，再学让它在哪儿停。人飞起来，也得能停在自己想落脚的地方。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "我若留下，明早也能来练这个？"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "text": "能。来晚了，案子可没你的份。"
+      },
+      {
+        "type": "narration",
+        "text": "你回到门边。管名册的人见你出来，问你还想不想去别处看看。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-gate-register",
+    "title": "投名",
+    "requires": [
+      "name",
+      "receptionist"
+    ],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "clerk": {
+        "name": "{receptionist}"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "山门 · 名册前"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "投名"
+      },
+      {
+        "type": "line",
+        "speaker": "clerk",
+        "text": "叫什么名字？"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "{name}。"
+      },
+      {
+        "type": "narration",
+        "text": "他在名册上记了你的名字，叫你去练功院找教习。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-gate-home",
+    "title": "领洞府钥匙",
+    "requires": [
+      "instructor"
+    ],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "teacher": {
+        "name": "{instructor}"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "山门 · 练功院"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "领洞府钥匙"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "先生，我想学御风。明早该从哪儿练起？"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "text": "先练引气。明早听见钟响就来，我教你怎么收住那口气。"
+      },
+      {
+        "type": "narration",
+        "text": "教习从案上拿了把钥匙给你。"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "text": "给你分了间洞府。绕过饭堂沿岩壁走，门槛缺了一角的就是。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "咪咪能跟我住一间么？"
+      },
+      {
+        "type": "line",
+        "speaker": "teacher",
+        "text": "能。它要肯在旁边等你，明早也带来。"
+      },
+      {
+        "type": "scene",
+        "alt": "山门 · 洞府"
+      },
+      {
+        "type": "narration",
+        "text": "你沿岩壁找到那道缺了角的门槛。屋里有张石榻，榻上卷着席子，墙边搁了个旧蒲团。你把包袱放到门边的矮凳上。"
+      },
+      {
+        "type": "narration",
+        "text": "咪咪跳上石榻，挨着那卷席子趴下。你把钥匙搁到包袱旁，也坐了下来。"
+      },
+      {
+        "type": "choice",
+        "options": [
+          {
+            "label": "（在洞府歇下）",
+            "outcome": "done"
+          }
+        ]
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  }
+]

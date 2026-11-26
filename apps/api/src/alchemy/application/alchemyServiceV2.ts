@@ -16,6 +16,7 @@ import {
   calculateAlchemyCost,
   calculateAlchemyQiCost,
   calculateHighestMaterialRank,
+  foundationLessonPlan,
   isAlchemyMaterialType,
   normalizeAlchemyEffectRoute,
   rollAlchemyYieldProfile,
@@ -388,9 +389,10 @@ export function createAlchemyService(
       cost: qiCost,
     });
 
+    const lessonPlan = foundationLessonPlan(preparedMaterials, prompt);
     let recipePlan: AlchemyRecipePlan;
     try {
-      recipePlan = await planner.plan({
+      recipePlan = lessonPlan ?? await planner.plan({
         materials: preparedMaterials,
         userPrompt: prompt,
       });
@@ -401,7 +403,7 @@ export function createAlchemyService(
     const synthesis = synthesizeAlchemyFromPlan(preparedMaterials, recipePlan);
     const breakthroughTargetRealm =
       synthesis.family === 'breakthrough'
-        ? getNextMajorRealm(cultivator.realm as RealmType)
+        ? (lessonPlan ? '筑基' : getNextMajorRealm(cultivator.realm as RealmType))
         : null;
     const route = normalizeAlchemyEffectRoute({
       effects: synthesis.propertyVector,
@@ -426,7 +428,7 @@ export function createAlchemyService(
       spec.alchemyMeta.breakthroughTargetRealm = breakthroughTargetRealm;
     }
     const generatedCopy =
-      await alchemyNarrativeEnricher.generateImprovisedPillCopy({
+      lessonPlan ? null : await alchemyNarrativeEnricher.generateImprovisedPillCopy({
         family: synthesis.family,
         dominantElement: synthesis.dominantElement,
         quality: highestMaterialRank,

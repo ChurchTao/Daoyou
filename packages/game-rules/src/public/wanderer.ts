@@ -7,6 +7,8 @@ export {
   WANDERER_WANTED_BOTTLES,
   wandererAppearance,
   wandererBookPrice,
+  wandererLocationAt,
+  wandererLocationLabel,
   wandererRumor,
   wandererSuperiorBookIds,
   wandererWindow,

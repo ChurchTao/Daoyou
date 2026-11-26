@@ -16,18 +16,24 @@ import {
 } from '@app/components/ui';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { SpiritStones } from '@app/components/ui/SpiritStones';
+import { apiFetch } from '@app/lib/api/fetch';
 import { cn } from '@app/lib/cn';
+import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import type {
   WandererBeastOffer,
   WandererBeastSaleResult,
   WandererBookPurchaseResult,
   WandererDewPurchaseResult,
   WandererIncensePurchaseResult,
+  WandererMysteryBagPurchaseResult,
   WandererState,
 } from '@daoyou/contracts/wanderer';
 import { BEAST_SUPERIOR_BOOK_SKILL_IDS } from '@daoyou/game-content/beasts';
-import { BEAST_LURE } from '@daoyou/game-content/items/beasts';
 import { findItemDefinition } from '@daoyou/game-content/items';
+import { BEAST_LURE } from '@daoyou/game-content/items/beasts';
+import { MYSTERY_BAGS } from '@daoyou/game-content/items/mystery-bags';
+import type { MysteryBagId } from '@daoyou/game-domain/inventory';
+import { describeMysteryBagRewards } from '@daoyou/game-rules/items/mystery-bags';
 import { WANDERER_SUPERIOR_DEW_ID } from '@daoyou/game-rules/wanderer';
 import { useState, type ReactNode } from 'react';
 
@@ -35,7 +41,13 @@ type View = 'meet' | 'beasts' | 'stall';
 type Received =
   | { kind: 'dew'; quantity: number; line: string }
   | { kind: 'book'; definitionId: string; line: string }
-  | { kind: 'incense'; line: string };
+  | { kind: 'incense'; line: string }
+  | {
+      kind: 'mystery_bag';
+      definitionId: MysteryBagId;
+      windowId: string;
+      line: string;
+    };
 
 function sealedBookIcon() {
   const skillId = [...BEAST_SUPERIOR_BOOK_SKILL_IDS][0];
@@ -107,7 +119,7 @@ function LoadError({
 
 function Receipt({ received }: { received: Received }) {
   const item =
-    received.kind === 'book'
+    received.kind === 'book' || received.kind === 'mystery_bag'
       ? shelfItem(received.definitionId, 1)
       : received.kind === 'incense'
         ? shelfItem(BEAST_LURE.id, 1)
@@ -249,6 +261,55 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
             }),
           );
           return { kind: 'incense', line: '拿好，进山前点燃。' };
+        }),
+    });
+  };
+
+  const askMysteryBag = (bag: (typeof MYSTERY_BAGS)[number]) => {
+    if (pending || !state || state.purchasedMysteryBags.includes(bag.id))
+      return;
+    const windowId = state.id;
+    openDialog({
+      title: bag.name,
+      content: (
+        <div className="space-y-2 text-sm leading-6">
+          <p>
+            花费 <SpiritStones amount={bag.price} /> 灵石买 1 个，每档每日限购 1
+            个。开袋消耗袋子，获得下列 1 项奖励。
+          </p>
+          <ul className="space-y-1">
+            {describeMysteryBagRewards(bag.id).map(
+              ({ label, chance }, index) => (
+                <li key={index} className="flex justify-between gap-3">
+                  <span>{label}</span>
+                  <span className="shrink-0 font-mono">{chance}</span>
+                </li>
+              ),
+            )}
+          </ul>
+        </div>
+      ),
+      confirmLabel: '买下',
+      cancelLabel: '再想想',
+      onConfirm: () =>
+        trade(async () => {
+          const result = await consumeResourceMutation<WandererMysteryBagPurchaseResult>(
+            await apiFetch(
+              '/api/wanderer/mystery-bag',
+              mutationBody({
+                requestId: crypto.randomUUID(),
+                definitionId: bag.id,
+                expectedPrice: bag.price,
+                windowId,
+              }),
+            ),
+          );
+          return {
+            kind: 'mystery_bag',
+            definitionId: result.definitionId,
+            windowId,
+            line: '收进随身物品了，得空再打开。',
+          };
         }),
     });
   };
@@ -490,6 +551,51 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
                 )}
               </div>
             </div>
+          ) : null}
+          {state ? (
+            <section className="border-ink/15 space-y-2 border-t pt-3">
+              <h3 className="font-semibold">神秘储物袋</h3>
+              <p className="text-ink-secondary text-xs">
+                每档限购 1 个，随游商每日 {closingTime(state.expiresAt)} 刷新。
+              </p>
+              <div className="grid grid-cols-3 items-start gap-3">
+                {MYSTERY_BAGS.map((bag) => {
+                  const purchased =
+                    state.purchasedMysteryBags.includes(bag.id) ||
+                    (received?.kind === 'mystery_bag' &&
+                      received.definitionId === bag.id &&
+                      received.windowId === state.id);
+                  return (
+                    <div
+                      key={bag.id}
+                      className="w-full max-w-28 justify-self-center"
+                    >
+                      <ItemSlot item={shelfItem(bag.id, 1)} className="w-full">
+                        {purchased
+                          ? undefined
+                          : (close) => (
+                              <InkButton
+                                disabled={pending}
+                                onClick={() => {
+                                  close();
+                                  askMysteryBag(bag);
+                                }}
+                              >
+                                买下
+                              </InkButton>
+                            )}
+                      </ItemSlot>
+                      <StonePrice amount={bag.price} />
+                      {purchased ? (
+                        <p className="text-ink-secondary text-center text-xs">
+                          本期已购
+                        </p>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
           ) : null}
         </div>
       ) : null}

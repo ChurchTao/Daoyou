@@ -1,0 +1,413 @@
+[
+  {
+    "id": "mine-gate-study-lingxiao",
+    "title": "绳子荡回来",
+    "requires": [],
+    "cast": {
+      "guide": {
+        "name": "守坪弟子"
+      },
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "红尘剑宗 · 试剑坪"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "绳子荡回来"
+      },
+      {
+        "type": "narration",
+        "text": "试剑坪上吊了根草绳。一个少年追着绳尾砍了三剑，绳子一荡回来，反抽了他一下。守坪的弟子接住绳，等他站稳才放手。"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "你站这儿等。它自己会回来。"
+      },
+      {
+        "type": "narration",
+        "text": "这回少年等绳子荡到身前才出剑。半截绳尾落了地，剑尖还稳稳停在身前。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "御剑也要练这个？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "追出去容易。等你站到剑上，停猛了，人还得往前飞。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-gate-study-wuxiang",
+    "title": "莲池边一只药碗",
+    "requires": [],
+    "cast": {
+      "guide": {
+        "name": "赤脚僧"
+      },
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "无相禅宗 · 莲池"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "莲池边一只药碗"
+      },
+      {
+        "type": "narration",
+        "text": "莲池边，一个练拳的少年擦破了手，赤脚僧叫住他，拿干布给他裹上。旁边的老船工正端着药，两只手都在抖。"
+      },
+      {
+        "type": "narration",
+        "text": "赤脚僧托着老船工的手，等他喝完。老船工见你走路不利索，往凳子里头挪了挪。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "昨天摔了膝盖，还能跟他们练么？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "先坐。我看看你哪条腿能使劲。"
+      },
+      {
+        "type": "narration",
+        "text": "你接过老船工手里的空碗，挨着他坐下了。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-gate-study-tianyan",
+    "title": "雨里点灯",
+    "requires": [],
+    "cast": {
+      "guide": {
+        "name": "看灯弟子"
+      },
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "天衍圣地 · 昆吾山"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "雨里点灯"
+      },
+      {
+        "type": "narration",
+        "text": "昆吾山下着雨。檐下的弟子往灯芯上搭了片晒卷的叶子。灯芯还带着水，碰着叶子就着了。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "这么大的雨，哪儿晒的叶子？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "对头那一峰。早上我去摘的时候，晒得后颈都疼。"
+      },
+      {
+        "type": "narration",
+        "text": "他把灯挂到檐下。你顺着他指的方向看过去，一道山沟隔着两边，对头山坡果然还晒着太阳。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "天黑了还能走过去？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "我走得惯。新来的采药弟子天黑了才回，得留盏灯，省得他们过了沟还找不着路。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-gate-study-youdu",
+    "title": "雾里有人答应",
+    "requires": [],
+    "cast": {
+      "guide": {
+        "name": "提灯人"
+      },
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "幽都 · 无日关"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "雾里有人答应"
+      },
+      {
+        "type": "narration",
+        "text": "你刚要问无日关的名册放在哪儿，提灯人便请你在石阶上等等。阶下坐着一位老妇人，攥着一只布鞋。"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "您再喊一回他的小名。"
+      },
+      {
+        "type": "narration",
+        "text": "她朝雾里喊小满。有人应了一声，她便举起鞋，问他如今还穿不穿得下。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "我从后头绕过去，会惊着她么？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "走石桥，别进灯照着的地方。让她再说几句。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-gate-study-jiujie",
+    "title": "等雷过了再走",
+    "requires": [],
+    "cast": {
+      "guide": {
+        "name": "守碑弟子"
+      },
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "九劫天宫 · 天阶"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "等雷过了再走"
+      },
+      {
+        "type": "narration",
+        "text": "你一脚刚踏上天阶，守碑的弟子就拦住了你。一道雷劈进石槽，你连鞋底都震得发麻。你见雷停了，抬脚要走，他还挡着。"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "先看槽里。"
+      },
+      {
+        "type": "narration",
+        "text": "槽里的白光还在沿湿石往外爬。弟子拿刀鞘贴到槽边，等那点光钻进鞘尾，才给你让路。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "刚才那一点，也能伤人？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "上回有人急着跨过去，下山时一条腿都抬不起来。来，踩我踩过的地方。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-gate-study-bailu",
+    "title": "只定住一张纸",
+    "requires": [],
+    "cast": {
+      "guide": {
+        "name": "抱书弟子"
+      },
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "白鹿书院 · 松庭"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "只定住一张纸"
+      },
+      {
+        "type": "narration",
+        "text": "松庭起了阵风，案上的纸卷了起来。抱书的少年喊了声「定」，只拦住一张，余下全飞出了院门。"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "帮我抱一下书！我去追那几张。"
+      },
+      {
+        "type": "narration",
+        "text": "他跑出去捡纸。你替他抱着书，直到他赶回来，停在空中的那张才落下去。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "头一天进来，也学这个字？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "我头一天喊到吃饭，一张也没留住。先生在隔壁，你要投名就找他。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-gate-study-wanqiao",
+    "title": "隔溪还有一声",
+    "requires": [],
+    "cast": {
+      "guide": {
+        "name": "青衣弟子"
+      },
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "万窍山 · 太岳深谷"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "隔溪还有一声"
+      },
+      {
+        "type": "narration",
+        "text": "你在溪边喊了声借路，竹屋那头应道「踩中间两块」。过溪一看，屋前的人正用牙咬住绳头，给窗台上的竹管打结。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "方才是谁应的？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "竹管。早上给它留了句话，过溪的人一开口，它就替我答。"
+      },
+      {
+        "type": "narration",
+        "text": "咪咪凑到管口叫了一声。弟子把竹管倒过来，里头也叫了一声。咪咪跑去窗后找，没找着，又绕回管口。"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "回去时听见有两只猫叫，别把我的竹管也抱走了。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-gate-study-xiaoyue",
+    "title": "给鹿留一步",
+    "requires": [],
+    "cast": {
+      "guide": {
+        "name": "穿葛衣的弟子"
+      },
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "百兽崖 · 南坡"
+      },
+      {
+        "type": "title",
+        "kicker": "先看看",
+        "text": "给鹿留一步"
+      },
+      {
+        "type": "narration",
+        "text": "百兽崖上有道石坎。小鹿的前蹄够上去了，后腿还在打滑。守路的弟子往旁边让了让，一头老猿上前托住鹿屁股，把它送了上去。"
+      },
+      {
+        "type": "narration",
+        "text": "你抱着咪咪到坎下。它探头闻了闻老猿的手，又缩了回去。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "它胆子小，我抱着它进门行么？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "行。那只小鹿头一回进门，也是抱进来的。"
+      },
+      {
+        "type": "narration",
+        "text": "弟子伸手拉你。你刚够上石坎，咪咪已经借着你的肩膀跳了上去。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  }
+]

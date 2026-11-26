@@ -4,9 +4,9 @@ import {
   type HuntMapPoint,
 } from '@app/components/feature/hunts/HuntMapMarkers';
 import { useHunts } from '@app/components/feature/hunts/useHunts';
+import { MapCanvasSurface } from '@app/components/feature/map/MapCanvasSurface';
 import {
-  buildNodeActions,
-  buildSectLandmarkActions,
+  buildMapLocationActions,
   resolveMapIntent,
 } from '@app/components/feature/map/mapActions';
 import { WandererDrawer } from '@app/components/feature/wanderer/WandererDrawer';
@@ -14,18 +14,22 @@ import {
   WandererMarker,
   type WandererMapPoint,
 } from '@app/components/feature/wanderer/WandererMarker';
-import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
+import { ImmersiveGameFrame } from '@app/components/game-shell/ImmersiveGameFrame';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { bodyFontFamily } from '@app/lib/fonts';
 import { updateGameSettings, useGameSettings } from '@app/lib/game-setting';
 import { usePlayerSession } from '@app/lib/resources/player';
 import { type WandererState } from '@daoyou/contracts/wanderer';
-import { getWorldMapLocation } from '@daoyou/game-content/world/map';
+import {
+  getMapAreaContent,
+  getWorldMapLocation,
+} from '@daoyou/game-content/world/map';
 import { type HuntEvent } from '@daoyou/game-domain/hunts';
 import { huntMapHref } from '@daoyou/game-rules/hunts';
 import {
   ATLAS_REGIONS,
+  getAtlasCategory,
   getAtlasLocations,
   getAtlasRegion,
   getAtlasShortName,
@@ -41,14 +45,40 @@ import {
   useState,
   type CSSProperties,
 } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { Navigate, useNavigate, useSearchParams } from 'react-router';
+import { AtlasArea } from './AtlasArea';
 import { AtlasNodeKinds } from './AtlasNodeKinds';
 import { AtlasNodePanel } from './AtlasNodePanel';
 import type { AtlasController, AtlasView } from './AtlasPhaserRuntime';
 import { AtlasTextMap } from './AtlasTextMap';
-import { AtlasToolbar } from './AtlasToolbar';
+import { AtlasToolbar, type AtlasSearchResult } from './AtlasToolbar';
+import { atlasAreaHref } from './areaNavigation';
+import { ATLAS_ARTWORK } from './atlasArtwork';
 
 const locations = getAtlasLocations();
+const searchEntries = locations.flatMap<AtlasSearchResult>((location) => {
+  const region = getAtlasRegion(location);
+  const entry = {
+    id: location.id,
+    name: location.name,
+    context: region?.name,
+    category: getAtlasCategory(location),
+    regionId: region?.id,
+  };
+  const places =
+    'region' in location ? (getMapAreaContent(location.id)?.places ?? []) : [];
+  return [
+    entry,
+    ...places.map((place): AtlasSearchResult => ({
+      id: place.id,
+      name: place.name,
+      context: location.name,
+      category: 'landmark',
+      regionId: region?.id,
+      areaId: location.id,
+    })),
+  ];
+});
 // Region switches reuse the Canvas runtime, so prepare every map label once.
 const atlasFontText = [
   ...ATLAS_REGIONS.map((region) => region.name),
@@ -57,6 +87,30 @@ const atlasFontText = [
 ].join('');
 
 export default function AtlasPage() {
+  const [params] = useSearchParams();
+  if (params.get('entry') === 'gate') {
+    return <Navigate to="/game/sect/onboarding?entry=gate" replace />;
+  }
+  const area = getWorldMapLocation(params.get('area') ?? '');
+  const nodeId = params.get('nodeId');
+  const node = nodeId ? getWorldMapLocation(nodeId) : undefined;
+  if (
+    area &&
+    'region' in area &&
+    (!nodeId ||
+      node?.id === area.id ||
+      (node && 'parent_id' in node && node.parent_id === area.id))
+  ) {
+    return <AtlasArea key={area.id} area={area} params={params} node={node} />;
+  }
+  return (
+    <ImmersiveGameFrame>
+      <AtlasMap />
+    </ImmersiveGameFrame>
+  );
+}
+
+function AtlasMap() {
   const { mapMode } = useGameSettings();
   const root = useRef<HTMLDivElement>(null);
   const toolbar = useRef<HTMLElement>(null);
@@ -157,6 +211,7 @@ export default function AtlasPage() {
     next.delete('hunt');
     next.delete('wanderer');
     next.delete('nodeId');
+    next.delete('area');
     if (id) next.set('region', id);
     else next.delete('region');
     setParams(next);
@@ -174,6 +229,7 @@ export default function AtlasPage() {
     if (!matchesAtlasCategories(location, categories)) next.set('types', 'all');
     next.delete('hunt');
     next.delete('wanderer');
+    next.delete('area');
     next.set('nodeId', id);
     next.set('region', targetRegion.id);
     setParams(next);
@@ -368,46 +424,61 @@ export default function AtlasPage() {
     loading,
   ]);
 
-  const actions =
-    selected && !('sect_id' in selected)
-      ? buildNodeActions(
-          {
-            selectedNodeId: selected.id,
-            isMainNode: 'region' in selected,
-            marketEnabled:
-              'market_config' in selected && !!selected.market_config?.enabled,
-          },
-          launch,
-        )
-      : selected && 'sect_id' in selected
-        ? buildSectLandmarkActions(
-            selected.sect_id,
-            player.data?.activeCultivator?.sectId ?? null,
-            launch,
-          )
-        : [];
+  const actions = selected
+    ? buildMapLocationActions(
+        selected,
+        player.data?.activeCultivator?.sectId ?? null,
+        launch,
+      )
+    : [];
+  if (selected && 'region' in selected) {
+    const areaHref = atlasAreaHref(mapParams, {
+      area: selected.id,
+      region: selectedRegion?.id,
+    });
+    const prioritizeMarket =
+      intent === 'market' && actions.some((action) => action.gate === 'market');
+    const enterArea = {
+      key: 'enter-area',
+      label: '进入区域',
+      onClick: () => navigate(areaHref),
+    };
+    if (prioritizeMarket) {
+      actions.push({ ...enterArea, variant: 'secondary' });
+    } else {
+      for (const action of actions) action.variant = 'secondary';
+      actions.unshift({ ...enterArea, variant: 'primary' });
+    }
+  }
   const regionLocations = locations.filter(
     (location) => getAtlasRegion(location)?.id === region?.id,
   );
   const visibleLocations = regionLocations.filter((location) =>
     matchesAtlasCategories(location, categories),
   );
-  const results = locations.filter((location) => {
-    if (!searchAll && !matchesAtlasCategories(location, categories))
+  const searchTerm = query.trim();
+  const results = searchEntries.filter((location) => {
+    if (
+      !searchAll &&
+      categories.length &&
+      !categories.includes(location.category)
+    )
       return false;
-    if (query.trim()) return location.name.includes(query.trim());
-    if (searchAll) return true;
-    return !region || getAtlasRegion(location)?.id === region.id;
+    if (searchTerm) return location.name.includes(searchTerm);
+    return searchAll || !region || location.regionId === region.id;
   });
 
   return (
     <div
-      className="relative h-full bg-[#eee7d8]"
+      className={`relative h-full bg-[#eee7d8] ${isAtlas ? '' : 'dark:bg-sheet'}`}
       style={
         { '--atlas-toolbar-bottom': `${toolbarBottom}px` } as CSSProperties
       }
     >
-      <div ref={root} className="absolute inset-0 overflow-hidden" />
+      <MapCanvasSurface
+        root={root}
+        image={isAtlas ? ATLAS_ARTWORK[view.region] : undefined}
+      />
 
       {!teachingMap && !error && (!isAtlas || !loading) ? (
         <HuntMapMarkers
@@ -453,9 +524,12 @@ export default function AtlasPage() {
         </p>
       ) : null}
       {isAtlas && loading && !error ? (
-        <div className="bg-paper/90 absolute inset-0 z-10">
-          <GameLoadingState variant="scene" message="正在展开山河画卷……" />
-        </div>
+        <p
+          role="status"
+          className="bg-paper/95 text-ink-secondary pointer-events-none absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-sm px-3 py-2 text-sm"
+        >
+          正在展开山河画卷……
+        </p>
       ) : null}
 
       <AtlasToolbar
@@ -496,7 +570,19 @@ export default function AtlasPage() {
           setFilterOpen(false);
         }}
         onCategories={updateCategories}
-        onSelect={(id) => selectNode(id, true)}
+        onSelect={(result) => {
+          if (result.areaId) {
+            navigate(
+              atlasAreaHref(mapParams, {
+                area: result.areaId,
+                site: result.id,
+                region: result.regionId,
+              }),
+            );
+          } else {
+            selectNode(result.id, true);
+          }
+        }}
       />
 
       {!isAtlas ? (
@@ -595,7 +681,7 @@ export default function AtlasPage() {
 
       {isAtlas && error ? (
         <div
-          className="bg-paper/95 absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 px-6 text-center"
+          className="bg-paper/95 absolute inset-x-3 top-1/2 z-20 mx-auto flex w-fit -translate-y-1/2 flex-col items-center gap-4 rounded-sm p-4 text-center shadow-sm"
           role="alert"
         >
           <p>{error}</p>

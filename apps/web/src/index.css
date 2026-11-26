@@ -1,21 +1,25 @@
 @import 'tailwindcss';
 @import './assets/fonts/daoyou-emoji.css';
 
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
 @theme {
   --font-emoji: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji',
     'Daoyou Emoji';
   /* 四档底色。纸纹只由 PaperSurface 绘制。
      sheet 纸底，paper / bgpaper 正文板，paper-2 凹槽，scene 画境页，scene-scrim 画上的深色条。 */
-  --color-sheet: #f3efe7;
-  --color-bgpaper: #f8f3e6;
-  --color-paper: #f8f3e6;
+  --color-sheet: var(--theme-sheet);
+  --color-bgpaper: var(--theme-paper);
+  --color-paper: var(--theme-paper);
   --color-paper-2: #f1ead8;
   --color-scene: #141918;
   --color-scene-scrim: #1c1712;
-  --color-ink: #2c1810;
+  --color-scene-ink: #e7dcc6;
+  --color-ink: var(--theme-ink);
   --color-ink-secondary: #5a4a42;
-  --color-crimson: #c1121f;
-  --color-primary: #c1121f;
+  --color-crimson: var(--theme-crimson);
+  --color-primary: var(--theme-crimson);
+  --color-on-crimson: #fff7e9;
   --color-teal: #4a7c59;
   --color-wood: #8b4513;
   --color-gold: #efbf04;
@@ -63,6 +67,10 @@
   --color-tier-xian: #801dae;
   --color-tier-shen: #c1121f;
   --color-realm-huashen: #5b58a6;
+
+  --shadow-paper-panel: inset 0 1px 0 rgb(255 255 255 / 0.32),
+    0 10px 30px rgb(44 24 16 / 0.06);
+  --shadow-paper-inset: inset 0 1px 0 rgb(255 255 255 / 0.18);
 }
 
 @theme inline {
@@ -73,9 +81,10 @@
 }
 
 :root {
-  /* 两档纸纹的独立底色；无纹理时沿用 --color-sheet。 */
-  --color-sheet-fine: #f7f5ef;
-  --color-sheet-classic: #f0e7d8;
+  /* 三档宣纸的底色。纯色纸底沿用 --color-sheet。 */
+  --color-sheet-fine: #f6f4ed;
+  --color-sheet-semi-sized: #f0e9dc;
+  --color-sheet-classic: #f4efe3;
 
   /* 正文先用中文字体，太极等已有符号保持文楷。系统表情排在雅黑之前，
      避免中文回退字体把表情画成黑白。图标另用 --font-emoji。 */
@@ -83,6 +92,79 @@
     'Noto Color Emoji', 'STFangsong', FangSong, 'Songti SC', SimSun, serif;
   --font-ma-shan-zheng: 'Ma Shan Zheng', 'Segoe UI Emoji', 'Apple Color Emoji',
     'Noto Color Emoji', cursive;
+}
+
+:root,
+[data-theme-preview='light'] {
+  --theme-sheet: #f3efe7;
+  --theme-paper: #f8f3e6;
+  --theme-ink: #2c1810;
+  --theme-crimson: #c1121f;
+}
+
+/* 缩略预览与游戏共用色板，预览颜色独立于当前主题。 */
+:root[data-theme='dark'],
+[data-theme-preview='dark'] {
+  --theme-sheet: #151e1e;
+  --theme-paper: #202b2b;
+  --theme-ink: #e9dfc9;
+  --theme-crimson: #ea8b7b;
+}
+
+/* 松烟墨底与暖白正文。朱砂保留操作语义，青玉与旧金用于收益和品阶。 */
+:root[data-theme='dark'] {
+  --color-paper-2: #192323;
+  --color-ink-secondary: #b8b4a3;
+  --color-on-crimson: #251612;
+  --color-teal: #8fbd9f;
+  --color-wood: #caa788;
+  --color-gold: #d5b475;
+  --color-muted: rgb(233 223 201 / 0.08);
+  --color-paper-dark: rgb(233 223 201 / 0.06);
+  --color-ink-border: rgb(233 223 201 / 0.24);
+  --color-ink-muted: rgb(233 223 201 / 0.68);
+
+  --color-battle-rule: rgb(233 223 201 / 0.2);
+  --color-battle-rule-strong: rgb(233 223 201 / 0.34);
+  --color-battle-muted: #ada995;
+  --color-battle-faint: rgb(233 223 201 / 0.08);
+  --color-battle-crimson-soft: rgb(234 139 123 / 0.12);
+  --color-battle-teal-soft: rgb(143 189 159 / 0.12);
+  --color-battle-gold-soft: rgb(213 180 117 / 0.36);
+  --color-resource-hp: #de7e76;
+  --color-resource-mp: #77b2c5;
+  --color-resource-shield: #d5b475;
+  --color-resource-shield-soft: rgb(213 180 117 / 0.36);
+  --color-battle-log-ability: #f0a28f;
+  --color-battle-log-damage-generic: #e9918d;
+  --color-battle-log-damage-physical: #f69788;
+  --color-battle-log-damage-magical: #8dc5d7;
+  --color-battle-log-damage-true: #d0a7ee;
+  --color-battle-log-damage-dot: #d9a374;
+  --color-battle-log-positive: #9bcca9;
+  --color-battle-log-negative: #e9918d;
+  --color-battle-log-resource: #d5b475;
+  --color-battle-log-buff: #9bcca9;
+  --color-battle-log-debuff: #e9918d;
+  --color-battle-log-control: var(--color-ink-secondary);
+  --color-battle-log-mechanic: #d5b475;
+  --color-battle-log-defense: #91c8ba;
+  --color-battle-log-critical: #ffb3a6;
+  --color-battle-log-fatal: #ffb3a6;
+
+  --color-tier-fan: #aebbc2;
+  --color-tier-ling: #8cc5a0;
+  --color-tier-xuan: #81bdcf;
+  --color-tier-zhen: #e2a28b;
+  --color-tier-di: #91abe0;
+  --color-tier-tian: #dfbf76;
+  --color-tier-xian: #c5a1dc;
+  --color-tier-shen: #f49a8f;
+  --color-realm-huashen: #b3a6e2;
+
+  --shadow-paper-panel: inset 0 1px 0 rgb(233 223 201 / 0.09),
+    0 10px 30px rgb(0 0 0 / 0.14);
+  --shadow-paper-inset: inset 0 1px 0 rgb(233 223 201 / 0.06);
 }
 
 .app-safe-area-page {
@@ -172,7 +254,7 @@ body {
   border-top: 1px dashed var(--color-battle-rule-strong);
 }
 
-/* One owner for dock background and system clearance. Reserve the maximum
+/* One position for floating tasks and dock. Reserve the maximum
    inset so Chrome's moving system bar changes position instead of padding. */
 .game-bottom-chrome {
   position: fixed;
@@ -180,7 +262,6 @@ body {
   right: 0;
   bottom: calc(env(safe-area-inset-bottom, 0px) - var(--app-bottom-reserve));
   left: 0;
-  padding-bottom: var(--app-bottom-reserve);
 }
 
 .game-bottom-chrome:empty {

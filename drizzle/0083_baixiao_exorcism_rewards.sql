@@ -1,0 +1,1 @@
+ALTER TABLE "wanjiedaoyou_baixiao_rounds" DROP COLUMN "books";

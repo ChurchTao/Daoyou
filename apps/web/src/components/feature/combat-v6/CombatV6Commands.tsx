@@ -39,7 +39,6 @@ export function CombatV6Commands({
   endAction,
   steps,
   commandError,
-  tutorialHint,
   blockedReason,
   onRetryCommand,
   clockOffset,
@@ -63,7 +62,6 @@ export function CombatV6Commands({
   endAction?: ReactNode;
   steps?: ReactNode;
   commandError?: string;
-  tutorialHint?: string;
   blockedReason?: string;
   onRetryCommand?: () => void;
 }) {
@@ -128,8 +126,12 @@ export function CombatV6Commands({
               </button>
             ) : null}
           </div>
-          <div className={capture ? 'cv6-actions has-capture' : 'cv6-actions'}>
+          <div
+            data-guide="combat.actions"
+            className={capture ? 'cv6-actions has-capture' : 'cv6-actions'}
+          >
             <button
+              data-guide="combat.attack"
               disabled={
                 disabled ||
                 !options?.canSubmit ||
@@ -258,6 +260,7 @@ export function CombatV6Commands({
               </button>
             ) : null}
             <button
+              data-guide="combat.flee"
               disabled={disabled || !options?.canSubmit || !options.canFlee}
               onClick={() => void submit({ type: 'flee' })}
             >
@@ -317,11 +320,6 @@ export function CombatV6Commands({
           </div>
         </>
       )}
-      {tutorialHint ? (
-        <p className="cv6-command-hint" role="status">
-          {tutorialHint}
-        </p>
-      ) : null}
       {category && !disabled && !ended ? (
         <CombatV6SkillChoice
           timing={timing}

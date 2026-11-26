@@ -181,10 +181,12 @@ export async function deleteCultivator(
 // ===== 单独获取数据的接口 =====
 
 
+export const SPIRIT_STONE_CEILING = 1_000_000_000;
+
 const RESOURCE_SAFETY = {
   spirit_stones: {
     maxDelta: 99_990_000, // 单次最多变动 9999 万灵石
-    ceiling: 1_000_000_000, // 灵石绝对上限 10 亿
+    ceiling: SPIRIT_STONE_CEILING,
   },
   reputation: {
     maxDelta: 9999, // 单次最多变动 9999 声望

@@ -4,6 +4,28 @@
   animation: mystery-scene-in 0.35s ease-out;
 }
 
+.mystery-scene-art {
+  --mystery-scene-art-mask: linear-gradient(
+    to bottom,
+    transparent,
+    black var(--mystery-scene-art-fade, 18%)
+  );
+
+  opacity: var(--mystery-scene-art-opacity, 1);
+  -webkit-mask-image: var(--mystery-scene-art-mask);
+  mask-image: var(--mystery-scene-art-mask);
+}
+
+/* 淡墨以低对比的月色呈现，透明留白仍由场景底色填充。 */
+:root[data-theme='dark'] .mystery-scene-art {
+  opacity: calc(var(--mystery-scene-art-opacity, 1) * 0.28);
+  filter: invert(1) hue-rotate(180deg) saturate(0.4);
+}
+
+.mystery-reveal-accent {
+  color: color-mix(in srgb, var(--color-crimson) 76%, var(--color-scene-ink));
+}
+
 /* 按错：盘面一震。 */
 .mystery-disc-backlash {
   animation: mystery-disc-shake 0.45s ease-in-out;

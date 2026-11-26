@@ -1,0 +1,72 @@
+.alchemy-score-drawer:focus {
+  outline: none;
+}
+
+.alchemy-score-drawer button:focus-visible {
+  outline: 2px solid var(--color-crimson);
+  outline-offset: 2px;
+}
+
+.alchemy-score-sheet {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.alchemy-score-sheet section h3 {
+  margin-bottom: 0.25rem;
+  font-weight: 700;
+}
+
+.alchemy-score-total {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.65rem;
+  border-bottom: 1px solid var(--color-wood);
+  padding-bottom: 0.6rem;
+}
+
+.alchemy-score-total h3 {
+  font: 400 clamp(1.35rem, 1rem + 1.5vw, 1.95rem) / 1.15 var(--font-heading);
+  overflow-wrap: anywhere;
+}
+
+.alchemy-score-total div p,
+.alchemy-score-note,
+.alchemy-score-evidence dt,
+.alchemy-score-breakdown dd > span {
+  color: var(--color-ink-secondary);
+  font-size: 0.88rem;
+}
+
+.alchemy-score-total > p {
+  color: var(--color-teal);
+  white-space: nowrap;
+}
+
+.alchemy-score-total > p b {
+  font-size: clamp(1.6rem, 1.3rem + 1.25vw, 2.3rem);
+}
+
+.alchemy-score-evidence > div,
+.alchemy-score-breakdown > div {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: baseline;
+  padding-block: 0.25rem;
+}
+
+.alchemy-score-breakdown > div {
+  border-top: 1px solid var(--color-ink-border);
+  padding-block: 0.35rem;
+}
+
+.alchemy-score-breakdown dd {
+  text-align: end;
+}
+
+.alchemy-score-note {
+  margin-top: 0.35rem;
+  line-height: 1.5;
+}

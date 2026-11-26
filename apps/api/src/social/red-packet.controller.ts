@@ -14,8 +14,10 @@ import type { DbClient } from '@server/lib/drizzle/db.js';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { RedPacketService } from './application/RedPacketService.js';
 import { SendErrors } from './world-chat.controller.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 
 @Controller('api/world-chat/red-packets')
+@StoryGate('world-chat')
 @Access('active')
 @UseFilters(SendErrors)
 export class RedPacketController {

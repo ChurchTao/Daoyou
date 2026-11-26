@@ -1,12 +1,13 @@
 import type { MapNodeAction } from '@app/components/feature/map/mapActions';
 import { WildNodePreview } from '@app/components/feature/map/WildNodePreview';
 import { InkButton } from '@app/components/ui/InkButton';
-import { getAtlasCategory } from '@daoyou/game-rules/world/atlas';
+import { useStory } from '@app/lib/story/useStory';
+import { storyGateOpen } from '@daoyou/game-domain/story/gates';
 import { type WorldMapLocation } from '@daoyou/game-domain/world/map';
+import { getAtlasCategory } from '@daoyou/game-rules/world/atlas';
 import { resolveDungeonMapConfig } from '@daoyou/game-rules/world/dungeon';
 import { AtlasNodeKinds } from './AtlasNodeKinds';
 
-/** One nonmodal panel owns both location information and its single gameplay entry. */
 export function AtlasNodePanel({
   location,
   actions,
@@ -14,9 +15,14 @@ export function AtlasNodePanel({
 }: {
   location: WorldMapLocation;
   actions: MapNodeAction[];
-  onClose: () => void;
+  onClose?: () => void;
 }) {
   const category = getAtlasCategory(location);
+  // 新手期舆图上什么都看得见，但主线还没带到的秘境和坊市先不让进。
+  const unlocked = useStory().story?.unlocked;
+  const availableActions = actions.filter(
+    (action) => !action.gate || storyGateOpen(unlocked, action.gate),
+  );
   const dungeon =
     category === 'dungeon' && !('sect_id' in location)
       ? resolveDungeonMapConfig(location)
@@ -24,17 +30,19 @@ export function AtlasNodePanel({
   return (
     <>
       <div className="shrink-0">
-        <div className="flex items-start justify-between gap-3">
-          <p
-            aria-live="polite"
-            className="text-crimson pt-2 text-base font-semibold"
-          >
-            {location.name}
-          </p>
-          <InkButton className="min-h-11 shrink-0" onClick={onClose}>
-            收起
-          </InkButton>
-        </div>
+        {onClose ? (
+          <div className="flex items-start justify-between gap-3">
+            <p
+              aria-live="polite"
+              className="text-crimson pt-2 text-base font-semibold"
+            >
+              {location.name}
+            </p>
+            <InkButton className="min-h-11 shrink-0" onClick={onClose}>
+              收起
+            </InkButton>
+          </div>
+        ) : null}
         <AtlasNodeKinds location={location} />
       </div>
       <div className="min-h-0 overflow-y-auto">
@@ -57,16 +65,21 @@ export function AtlasNodePanel({
       </div>
       {actions.length ? (
         <div className="border-ink/10 mt-3 shrink-0 border-t pt-2">
-          {actions.map((action) => (
+          {availableActions.map((action) => (
             <InkButton
               key={action.key}
               className="min-h-11"
-              variant="primary"
+              variant={action.variant}
               onClick={action.onClick}
             >
               {action.label}
             </InkButton>
           ))}
+          {availableActions.length < actions.length ? (
+            <p className="text-ink-secondary mt-1 text-sm leading-6">
+              跟随主线解锁{category === 'market' ? '坊市' : '历练'}。
+            </p>
+          ) : null}
         </div>
       ) : null}
     </>

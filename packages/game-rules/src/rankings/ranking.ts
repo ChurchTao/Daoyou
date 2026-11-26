@@ -1,4 +1,16 @@
+import { RANKING_REWARDS } from '@daoyou/game-content/economy';
+
 export const MAX_DAILY_RANKING_CHALLENGES = 30;
+export const MAX_WEEKLY_REPUTATION_RANK = 100;
+
+export function weeklyReputationForRank(rank: number): number {
+  if (!Number.isInteger(rank) || rank < 1 || rank > MAX_WEEKLY_REPUTATION_RANK)
+    return 0;
+  if (rank === 1) return RANKING_REWARDS[1];
+  if (rank <= 10) return RANKING_REWARDS['2-10'];
+  if (rank <= 50) return RANKING_REWARDS['11-50'];
+  return RANKING_REWARDS['51-100'];
+}
 
 /** Day ownership is fixed at acceptance, independent of the server timezone. */
 export function rankingDay(now: number) {

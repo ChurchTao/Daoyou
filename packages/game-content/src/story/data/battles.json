@@ -1,0 +1,79 @@
+[
+  {
+    "id": "v1-ambush",
+    "title": "窄路",
+    "opponents": [
+      {
+        "name": "红眼山豕",
+        "icon": "icon:beast-rock-boar",
+        "level": 1,
+        "kind": "normal",
+        "hp": 0.06,
+        "attack": 0.35
+      }
+    ],
+    "defeat": "pass",
+    "rescueAfter": 5,
+    "fresh": true
+  },
+  {
+    "id": "mine-ambush",
+    "title": "桥下的石滩",
+    "solo": true,
+    "opponents": [
+      {
+        "name": "红眼山豕",
+        "icon": "icon:beast-rock-boar",
+        "level": 1,
+        "kind": "normal",
+        "hp": 0.06,
+        "attack": 0.35
+      }
+    ],
+    "defeat": "pass",
+    "rescueAfter": 5,
+    "fresh": true
+  },
+  {
+    "id": "mine-sparring",
+    "title": "木人试手",
+    "opponents": [
+      {
+        "name": "举盾木人",
+        "icon": "icon:portrait-training-dummy",
+        "level": 1,
+        "kind": "normal",
+        "hp": 0.30,
+        "attack": 0.70,
+        "speed": 0.60
+      },
+      {
+        "name": "矮木人",
+        "icon": "icon:portrait-training-dummy",
+        "level": 1,
+        "kind": "normal",
+        "hp": 0.23,
+        "attack": 0.55,
+        "speed": 1.30
+      }
+    ],
+    "defeat": "pass",
+    "fresh": true
+  },
+  {
+    "id": "mine-baishui-rogue",
+    "title": "芦苇口的散修",
+    "opponents": [
+      {
+        "name": "炼气散修",
+        "icon": "icon:portrait-wanderer-m",
+        "level": 1,
+        "kind": "normal",
+        "hp": 0.50,
+        "attack": 0.85
+      }
+    ],
+    "defeat": "pass",
+    "fresh": false
+  }
+]

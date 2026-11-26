@@ -7,6 +7,7 @@ import type {
   SkillDef,
   StatusDef,
 } from '@daoyou/combat-core/types';
+import type { InvasionBattle } from '../invasion/index.js';
 import type { HuntEvent } from '../hunts/event.js';
 import type { HuntRewardSnapshot } from '../hunts/reward.js';
 import type { CombatV6ReplayTimeline } from './replay.js';
@@ -23,6 +24,7 @@ export type ArenaParticipant = {
 };
 export type ArenaState<TView = ArenaSnapshot> = {
   hunt?: HuntEvent;
+  invasion?: InvasionBattle;
   /** Absent on legacy, isolated full-resource hunts. */
   huntResourcePolicy?: 'persistent';
   huntRewards?: Record<string, HuntRewardSnapshot>;
@@ -49,6 +51,7 @@ export type ArenaState<TView = ArenaSnapshot> = {
   expiresAt: number;
   deadlineAt: number;
   playbackEndsAt: number;
+  terminalAt?: number;
   commands: Record<
     string,
     {
@@ -70,6 +73,7 @@ export type ArenaState<TView = ArenaSnapshot> = {
 };
 export type ArenaSnapshot = CombatV6SessionSnapshot & {
   hunt?: HuntEvent;
+  invasion?: InvasionBattle;
   roomId: string;
   controlledUnitId: string;
   spectator?: boolean;

@@ -5,10 +5,10 @@ import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import type { SectV6View } from '@daoyou/contracts/sects/combat';
 import type { SectV6Action } from '@daoyou/game-domain/sects/commands';
 import { useEffect, useRef, useState } from 'react';
+import { Navigate } from 'react-router';
 import { combatV6Request, mutationBody } from '../combat-v6/request';
 import { MeridianEditor } from './MeridianEditor';
 import { MethodsWorkbench } from './MethodsWorkbench';
-import { SectPathChoice } from './SectPathChoice';
 
 const endpoint = '/api/combat-v6/sect';
 export type SectWorkspaceMode = 'methods' | 'paths';
@@ -126,17 +126,7 @@ export function SectWorkspace({
                 </InkButton>
               </div>
               {mode === 'paths' ? (
-                <SectPathChoice
-                  paths={view.build.paths}
-                  pending={pending}
-                  disabled={!!view.blockedReason}
-                  onChoose={(activePathId) =>
-                    void request('/api/combat-v6/sect/path', {
-                      activePathId,
-                      expectedRevision: view.build.revision,
-                    })
-                  }
-                />
+                <Navigate to="/game/sect/onboarding?entry=path" replace />
               ) : (
                 <>
                   {!view.progress.activePathId ? (

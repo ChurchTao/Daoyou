@@ -282,6 +282,7 @@ export async function consumeConsumableById(
   consumableId: string,
   quantity: number,
   tx?: DbTransaction,
+  options: { includeInvasion?: boolean } = {},
 ): Promise<{
   remainingQuantity: number;
   removed: boolean;
@@ -289,5 +290,5 @@ export async function consumeConsumableById(
 }> {
   const dbInstance = getExecutor(tx);
   await assertCultivatorOwnership(userId, cultivatorId, dbInstance);
-  return consumeBagConsumable(cultivatorId, consumableId, quantity, dbInstance);
+  return consumeBagConsumable(cultivatorId, consumableId, quantity, dbInstance, options);
 }

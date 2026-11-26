@@ -30,6 +30,7 @@ export interface ArenaSparringRulesV1 {
 }
 
 export interface ArenaRoomSeatV1 {
+  readonly partyId?: string;
   readonly slot: number;
   readonly userId: string;
   readonly cultivatorId: string;
@@ -74,6 +75,7 @@ export interface ArenaRoomV1 {
   readonly frozenRoster?: ArenaFrozenRosterV1;
   readonly teams: Readonly<Record<ArenaTeamIdV1, readonly ArenaRoomSeatV1[]>>;
   readonly spectators?: readonly ArenaRoomSeatV1[];
+  readonly partyVersions?: Readonly<Record<string, number>>;
 }
 
 export const ArenaInviteCodeSchema = z
@@ -82,12 +84,15 @@ export const ArenaInviteCodeSchema = z
 
 export const ArenaTeamIdSchema = z.enum(['alpha', 'beta']);
 
-export const ArenaCreateRoomSchema = z.object({}).strict();
+export const ArenaCreateRoomSchema = z
+  .object({ withParty: z.boolean().optional() })
+  .strict();
 
 export const ArenaJoinRoomSchema = z
   .object({
     inviteCode: ArenaInviteCodeSchema,
     role: z.enum(['participant', 'spectator']).default('participant'),
+    withParty: z.boolean().optional(),
   })
   .strict();
 

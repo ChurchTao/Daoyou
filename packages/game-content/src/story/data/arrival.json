@@ -184,18 +184,13 @@
       "kind": "practice",
       "accept": [
         {
-          "type": "guide",
-          "lesson": "sect-first-path"
-        },
-        {
           "type": "fact",
           "fact": "sect_ready"
         }
       ],
-      "scene": "sect-enlightenment-cliff",
+      "scene": "sect-onboarding",
       "prompt": "在悟道处选择宗门流派，开启传承后再准备下山。",
-      "href": "/game/sect/enlightenment-cliff?workspace=paths&guide=sect-first-path",
-      "mode": "all"
+      "href": "/game/sect/onboarding?entry=path&from=story"
     },
     {
       "id": "attributes",
@@ -224,9 +219,10 @@
         }
       ],
       "scene": "beasts",
-      "prompt": "选择一位初始灵兽伙伴，确认携带出战与首发，看看它的本领。",
+      "prompt": "打开灵兽袋，看看跟着你的咪咪，确认携带出战与首发。",
       "href": "/game/beasts?guide=beast-pouch",
-      "mode": "all"
+      "mode": "all",
+      "grant": "starter-beast"
     },
     {
       "id": "tracks",
@@ -248,7 +244,8 @@
       ],
       "scene": "wild",
       "prompt": "到青溪坡寻觅，留意遭遇的生灵；战斗、捕捉或退开后回来复命。",
-      "href": "/game/wild?nodeId=SAT_TN_08"
+      "href": "/game/wild?nodeId=SAT_TN_08&guide=battle-basics",
+      "lesson": "battle-basics"
     },
     {
       "id": "remain",
@@ -267,8 +264,8 @@
       "href": "/game/sect/affairs",
       "when": {
         "fact": "breakthrough_available",
-        "prompt": "境界已至圆满，可以去任务中心查看破境卷宗。",
-        "href": "/game/tasks"
+        "prompt": "境界已至圆满，可以回静室看破境的准备。",
+        "href": "/game/retreat"
       }
     }
   ]

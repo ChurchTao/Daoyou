@@ -1,0 +1,45 @@
+{
+  "id": "mine-baishui-lamp",
+  "track": "main",
+  "title": "灯挂错了",
+  "next": "mine-baishui-night",
+  "deferredUnlocks": ["alchemy", "refine", "sect-alchemy", "sect-refinery"],
+  "beats": [
+    {
+      "id": "ask-boatman",
+      "kind": "performance",
+      "arrival": "activity",
+      "script": "mine-baishui-ask-boatman",
+      "outcome": "done",
+      "scene": "map",
+      "prompt": "问红帆船夫，他在雾里看见了什么。",
+      "actionLabel": "问船夫怎么回来的",
+      "finishLabel": "去找同岸的旧木桩",
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "baishui-ferry"
+      },
+      "entry": { "kind": "facility", "id": "ferry-berth" }
+    },
+    {
+      "id": "find-lamp",
+      "kind": "performance",
+      "arrival": "location",
+      "script": "mine-baishui-find-lamp",
+      "outcome": "done",
+      "scene": "map",
+      "prompt": "从白水渡沿本岸往下游找旧木桩。",
+      "actionLabel": "沿岸查看旧木桩",
+      "finishLabel": "回石阶找同门",
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "baishui-ferry"
+      },
+      "entry": { "kind": "facility", "id": "reed-berth" }
+    }
+  ]
+}

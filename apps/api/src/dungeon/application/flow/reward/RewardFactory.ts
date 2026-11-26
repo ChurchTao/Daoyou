@@ -3,6 +3,7 @@
  */
 
 import type { ResourceOperation } from '@daoyou/game-domain/resources';
+import { EXORCISM_REWARD_PACK } from '@daoyou/game-content/dungeon/exorcism';
 import { YieldCalculator } from '@daoyou/game-rules/yield';
 import { calculateDungeonExp } from '@daoyou/game-rules/cultivation';
 import { type DungeonDifficultyTier } from '@daoyou/game-domain/dungeon';
@@ -120,6 +121,22 @@ export class RewardFactory {
         ) * getDungeonRewardBonus(difficultyTier),
       ),
     );
+  }
+
+  static rollExorcismInsight(
+    realm: RealmType,
+    insight: 'full' | 'partial' | 'none',
+    dangerScore: number,
+    difficultyTier: DungeonDifficultyTier,
+  ): number {
+    if (insight === 'none') return 0;
+    const value = this.rollInsight(
+      realm,
+      insight === 'full' ? 'S' : 'A',
+      dangerScore,
+      difficultyTier,
+    );
+    return Math.max(1, Math.floor(value * EXORCISM_REWARD_PACK.insightFactor));
   }
 
   /**

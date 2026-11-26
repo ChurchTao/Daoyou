@@ -73,7 +73,7 @@ export const WANQIAO_DEFINITION: SectDefinition = {
       baseName: '裂帛',
       description: '一声清越如裂帛，凝音攻向一名敌人。',
       role: 'finisher',
-      unlock: { type: 'method', methodId: 'wanqiao.method.tone', level: 20 },
+      unlock: { type: 'method', methodId: 'wanqiao.method.tone', level: 1 },
     },
     {
       id: 'wanqiao.skill.echo',

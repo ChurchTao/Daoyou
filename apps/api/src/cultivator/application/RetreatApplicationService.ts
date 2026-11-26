@@ -33,6 +33,7 @@ import { QiService } from '@server/cultivator/application/QiService.js';
 import { breakthroughChanges, retreatChanges } from '@server/cultivator/application/RetreatResourceChanges.js';
 import { sectOrganizationFacade } from '@server/sects/organization/index.js';
 import { TaskService } from '@server/tasks/application/TaskService.js';
+import { StoryService } from '@server/story/application/StoryService.js';
 
 export type RetreatStorySource =
   | { type: 'breakthrough'; payload: BreakthroughStoryPayload }
@@ -305,6 +306,8 @@ export async function commitCultivationRetreat(args: {
       } catch (error) {
         console.warn('处理寿元耗尽失败：', error);
       }
+      // 主线里有「闭关一次」和境界门槛，闭关落定就让故事跟上。
+      const story = await StoryService.reconcile(args.cultivatorId, tx);
       return {
         result: streamResult,
         journalEvent: {
@@ -327,7 +330,7 @@ export async function commitCultivationRetreat(args: {
           ),
           qi: reservation,
           depleted: Boolean(streamResult.depleted),
-        }),
+        }).concat(story?.changes ?? []),
       };
     },
   });
@@ -429,6 +432,8 @@ export async function commitBreakthroughRetreat(args: {
           )
         ).id;
       }
+      // 主线的等待幕按境界放行，破境有了结果就让故事跟上。
+      const story = await StoryService.reconcile(args.cultivatorId, tx);
       return {
         result: args.retreatResult,
         journalEvent: {
@@ -453,7 +458,7 @@ export async function commitBreakthroughRetreat(args: {
             next.cultivation_progress,
           ),
           qi: reservation,
-        }),
+        }).concat(story?.changes ?? []),
       };
     },
   });

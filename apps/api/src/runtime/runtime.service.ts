@@ -1,3 +1,4 @@
+import { InvasionService } from '@server/invasion/invasion.service.js';
 import {
   Inject,
   Injectable,
@@ -33,6 +34,7 @@ export class RuntimeService
     private readonly training: CombatV6TrainingSessionService,
     @Inject(DatabaseService) private readonly database: DatabaseService,
     @Inject(InternalCronService) private readonly jobs: InternalCronService,
+    @Inject(InvasionService) private readonly invasion: InvasionService,
     @Inject(CronService) private readonly cron: CronService,
     @Inject(HttpAdapterHost) private readonly http: HttpAdapterHost,
     @Inject(RequestWorkService) private readonly work: RequestWorkService,
@@ -44,11 +46,12 @@ export class RuntimeService
       createBackgroundCommandHandlers(this.jobs),
     );
     this.cron.start();
+    this.invasion.start();
   }
 
   async beforeApplicationShutdown(): Promise<void> {
     console.info('[runtime] stopping scheduled work; draining HTTP requests');
-    await this.cron.stop();
+    await Promise.all([this.cron.stop(), this.invasion.stop()]);
     this.drainTimer = setTimeout(() => {
       console.warn(
         '[runtime] HTTP drain exceeded 30s; closing remaining connections',

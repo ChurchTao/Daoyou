@@ -9,6 +9,7 @@ export const COMBAT_V6_REPLAY_SOURCES = [
   'ranking',
   'arena-sparring',
   'hunt',
+  'ancient-demon-invasion',
 ] as const;
 
 export const CombatV6HistoryQuerySchema = z.object({

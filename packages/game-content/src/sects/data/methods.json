@@ -1,13 +1,13 @@
 {
   "$schema": "./methods.schema.json",
   "formatVersion": 1,
-  "contentRevision": 5,
+  "contentRevision": 6,
   "sects": {
     "lingxiao": [
       {
         "id": "lingxiao.method.canon",
         "slot": 1,
-        "name": "《问剑证道总纲》",
+        "name": "《红尘问心》",
         "isPrimary": true,
         "panel": {
           "attr": "physicalAtk",
@@ -18,7 +18,7 @@
       {
         "id": "lingxiao.method.sword_aura",
         "slot": 2,
-        "name": "《剑煞破军录》",
+        "name": "《秋毫》",
         "isPrimary": false,
         "panel": {
           "attr": "hit",
@@ -29,7 +29,7 @@
       {
         "id": "lingxiao.method.waiting",
         "slot": 3,
-        "name": "《伏锋候时篇》",
+        "name": "《且按剑》",
         "isPrimary": false,
         "panel": {
           "attr": "physicalDef",
@@ -40,7 +40,7 @@
       {
         "id": "lingxiao.method.shadow",
         "slot": 4,
-        "name": "《惊鸿逐影诀》",
+        "name": "《侠客行》",
         "isPrimary": false,
         "panel": {
           "attr": "speed",
@@ -51,7 +51,7 @@
       {
         "id": "lingxiao.method.formation",
         "slot": 5,
-        "name": "《裂阵沉锋章》",
+        "name": "《横剑当关》",
         "isPrimary": false,
         "panel": {
           "attr": "maxHp",
@@ -62,7 +62,7 @@
       {
         "id": "lingxiao.method.clarity",
         "slot": 6,
-        "name": "《澄神洗剑经》",
+        "name": "《人剑合一》",
         "isPrimary": false,
         "panel": {
           "attr": "sealResist",
@@ -75,7 +75,7 @@
       {
         "id": "youdu.method.canon",
         "slot": 1,
-        "name": "《幽都轮回总典》",
+        "name": "《渡黄泉》",
         "isPrimary": true,
         "panel": {
           "attr": "maxHp",
@@ -86,7 +86,7 @@
       {
         "id": "youdu.method.judge",
         "slot": 2,
-        "name": "《十殿判魂录》",
+        "name": "《生死簿》",
         "isPrimary": false,
         "panel": {
           "attr": "sealHit",
@@ -97,7 +97,7 @@
       {
         "id": "youdu.method.wither",
         "slot": 3,
-        "name": "《黄泉蚀命篇》",
+        "name": "《销骨》",
         "isPrimary": false,
         "panel": {
           "attr": "magicDef",
@@ -108,7 +108,7 @@
       {
         "id": "youdu.method.shadow",
         "slot": 4,
-        "name": "《无常逐影诀》",
+        "name": "《夜归人》",
         "isPrimary": false,
         "panel": {
           "attr": "speed",
@@ -119,7 +119,7 @@
       {
         "id": "youdu.method.asura",
         "slot": 5,
-        "name": "《六道修罗经》",
+        "name": "《修罗道》",
         "isPrimary": false,
         "panel": {
           "attr": "physicalAtk",
@@ -130,7 +130,7 @@
       {
         "id": "youdu.method.insight",
         "slot": 6,
-        "name": "《幽冥洞照章》",
+        "name": "《灯下见魂》",
         "isPrimary": false,
         "panel": {
           "attr": "hit",
@@ -211,7 +211,7 @@
       {
         "id": "tianyan.method.canon",
         "slot": 1,
-        "name": "《玄元道藏》",
+        "name": "《五气朝元》",
         "isPrimary": true,
         "panel": {
           "attr": "maxMp",
@@ -222,7 +222,7 @@
       {
         "id": "tianyan.method.wood",
         "slot": 2,
-        "name": "《森罗万象经》",
+        "name": "《草木知春》",
         "isPrimary": false,
         "panel": {
           "attr": "maxHp",
@@ -233,7 +233,7 @@
       {
         "id": "tianyan.method.fire",
         "slot": 3,
-        "name": "《焚天秘典》",
+        "name": "《星火燎原》",
         "isPrimary": false,
         "panel": {
           "attr": "magicAtk",
@@ -244,7 +244,7 @@
       {
         "id": "tianyan.method.earth",
         "slot": 4,
-        "name": "《山河镇岳篇》",
+        "name": "《移山》",
         "isPrimary": false,
         "panel": {
           "attr": "physicalDef",
@@ -255,7 +255,7 @@
       {
         "id": "tianyan.method.metal",
         "slot": 5,
-        "name": "《天锋诀》",
+        "name": "《金石可开》",
         "isPrimary": false,
         "panel": {
           "attr": "magicDef",
@@ -266,7 +266,7 @@
       {
         "id": "tianyan.method.water",
         "slot": 6,
-        "name": "《沧海归流经》",
+        "name": "《百川归海》",
         "isPrimary": false,
         "panel": {
           "attr": "speed",

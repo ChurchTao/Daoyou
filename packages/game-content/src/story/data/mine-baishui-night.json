@@ -1,0 +1,81 @@
+{
+  "id": "mine-baishui-night",
+  "track": "main",
+  "title": "先拦船",
+  "next": "mine-baishui-medicine",
+  "deferredUnlocks": ["alchemy", "refine", "sect-alchemy", "sect-refinery"],
+  "beats": [
+    {
+      "id": "warn",
+      "kind": "performance",
+      "arrival": "location",
+      "script": "mine-baishui-warn",
+      "outcome": "done",
+      "scene": "map",
+      "prompt": "回石阶把假灯的位置告诉同门。",
+      "actionLabel": "把灯的位置告诉同门",
+      "finishLabel": "回芦苇口查看假灯",
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "baishui-ferry"
+      },
+      "entry": { "kind": "facility", "id": "ferry-berth" }
+    },
+    {
+      "id": "flag",
+      "kind": "performance",
+      "arrival": "location",
+      "script": "mine-baishui-flag",
+      "outcome": "done",
+      "scene": "map",
+      "prompt": "沿岸回到芦苇口，看看怎样才能灭掉假灯。",
+      "actionLabel": "去假灯下看看",
+      "finishLabel": "迎战散修",
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "baishui-ferry"
+      },
+      "entry": { "kind": "facility", "id": "reed-berth" }
+    },
+    {
+      "id": "fight",
+      "kind": "battle",
+      "arrival": "activity",
+      "battle": "mine-baishui-rogue",
+      "scene": "story-battle",
+      "prompt": "夜渡已听钟收桨，散修仍守着阵旗。",
+      "actionLabel": "迎战散修",
+      "href": "/game/story/battle",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "baishui-ferry"
+      },
+      "entry": { "kind": "facility", "id": "reed-berth" }
+    },
+    {
+      "id": "verdict",
+      "kind": "performance",
+      "arrival": "activity",
+      "script": "mine-baishui-verdict",
+      "outcome": "done",
+      "retryLostBattle": true,
+      "requireBattleVictory": true,
+      "scene": "map",
+      "prompt": "回看旧泊位一战的结果。",
+      "actionLabel": "接续旧泊位一战",
+      "finishLabel": "回石阶引船",
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "baishui-ferry"
+      },
+      "entry": { "kind": "facility", "id": "reed-berth" }
+    }
+  ]
+}

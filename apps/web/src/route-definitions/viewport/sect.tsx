@@ -182,6 +182,7 @@ export const sectRoutes = [
       {
         ...immersive,
         id: 'sect-cultivation-room',
+        presentation: 'service',
         summary: '宗门聚灵阵为现有闭关结算提供修为加成。',
       },
       '宗门修炼室',
@@ -258,6 +259,7 @@ export const sectRoutes = [
       {
         ...immersive,
         id: 'sect-cave',
+        presentation: 'service',
         summary: '查看弟子在宗门中的个人居所资格。',
       },
       '弟子居所',

@@ -1,0 +1,152 @@
+{
+  "id": "mountain-white-paw",
+  "title": "一小截白袜子",
+  "requires": [],
+  "cast": {
+    "herb": {
+      "name": "采药人",
+      "portrait": "icon:portrait-elder-m"
+    },
+    "player": {
+      "name": "你"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "山坡 · 树根旁"
+    },
+    {
+      "type": "title",
+      "kicker": "过了那道弯",
+      "text": "一小截白袜子"
+    },
+    {
+      "type": "narration",
+      "text": "山豕倒在窄路边。你退了半步，背后抵着采药人的膝盖，才发觉自己一直堵在他前面。",
+      "when": {
+        "flag": "battle.v1-ambush.won"
+      }
+    },
+    {
+      "type": "line",
+      "speaker": "herb",
+      "text": "脚挪挪。我那根背带还在你鞋底下。",
+      "when": {
+        "flag": "battle.v1-ambush.won"
+      }
+    },
+    {
+      "type": "narration",
+      "text": "你挪开脚，他把背带抽了出来。你们两个人都坐了一会儿。",
+      "when": {
+        "flag": "battle.v1-ambush.won"
+      }
+    },
+    {
+      "type": "narration",
+      "text": "一阵冲撞把你掀坐在地。再睁眼时，先看见采药人的一只草鞋，鞋帮上还挂着断掉的带子。他已挣脱背带，挡在你前头。山豕被他赶下窄路，你听着动静远了才敢松开手，手里攥着一把连根揪起来的草。",
+      "when": {
+        "flag": "battle.v1-ambush.lost"
+      }
+    },
+    {
+      "type": "narration",
+      "text": "背带终于抽出来，从你脚边嗖地收走。采药人赶到你身侧，接过正面，把山豕逼退下去。最后一阵草响渐渐远了。他还喘着气。",
+      "when": {
+        "flag": "battle.v1-ambush.rescued"
+      }
+    },
+    {
+      "type": "line",
+      "speaker": "herb",
+      "text": "幸好你替我争了这会儿工夫。",
+      "when": {
+        "flag": "battle.v1-ambush.rescued"
+      }
+    },
+    {
+      "type": "narration",
+      "text": "你点点头，还在等那口气喘匀，好把粘在上牙膛的饼皮咽下去。",
+      "when": {
+        "flag": "battle.v1-ambush.rescued"
+      }
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "猫呢？"
+    },
+    {
+      "type": "narration",
+      "text": "路下方响起细细的一声。你朝那边轻轻叫它。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "咪咪。"
+    },
+    {
+      "type": "narration",
+      "text": "连山脚的回声都惊不起来。"
+    },
+    {
+      "type": "narration",
+      "text": "背阴处有个空树根，口上露着一小截白袜子。你一凑近，它就缩回去半寸。旁边几根断草随它呼吸轻轻地动。采药人把筐放倒，伸手从筐底取出一块睡旧的蓝布。"
+    },
+    {
+      "type": "line",
+      "speaker": "herb",
+      "text": "有空陪它坐一会儿么？我得换根带子，还得把药拾起来。它闻得到这块布。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "（把蓝布铺在树根口，坐远一点。）",
+          "then": [
+            {
+              "type": "narration",
+              "text": "你坐到它看得见你膝盖的地方。一只白爪探出来，把布往洞里拖。布太大，卡住了。过了一会儿，它只好连着布一起滚了出来。"
+            }
+          ]
+        },
+        {
+          "label": "（把蓝布搁在膝头，照刚才那样再叫一声。）",
+          "then": [
+            {
+              "type": "narration",
+              "text": "头两声都没回音。第三声还没出口，一颗脑袋已搁到你鞋面上，仰起来嗅蓝布。你忍着脚痒，让它踩着鞋背自己爬上来。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "narration",
+      "text": "采药人换好背带。你试着连猫带布往药筐边送，筐扣一响，两只白爪一下抠紧你的袖子。你低头看它。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "那就先跟我走一段？"
+    },
+    {
+      "type": "narration",
+      "text": "你抬头看向采药人。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "到了地方再还你。"
+    },
+    {
+      "type": "narration",
+      "text": "他把你背上的铺盖接过去，这样你空得出两只手。走到太阳偏西，猫才肯把勾进袖口的爪尖一根根收好。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

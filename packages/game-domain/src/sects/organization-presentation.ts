@@ -1,4 +1,3 @@
-import type { NarrativePerformanceScript } from '../narrative.js';
 import type { SectCapabilityKey } from './organization-contracts.js';
 
 export type SectSceneKey =
@@ -94,11 +93,6 @@ export interface SectPresentationTerms {
 export interface SectPresentationTheme {
   sectId: string;
   announcement: string;
-  onboarding?: {
-    summary: string;
-    traits: readonly [string, string, string];
-    script: NarrativePerformanceScript;
-  };
   map?: {
     image?: string;
     alt?: string;
@@ -117,7 +111,6 @@ export interface SectPresentationTheme {
 export interface ResolvedSectPresentation {
   sectId: string;
   announcement: string;
-  onboarding?: SectPresentationTheme['onboarding'];
   map: {
     image?: string;
     alt: string;

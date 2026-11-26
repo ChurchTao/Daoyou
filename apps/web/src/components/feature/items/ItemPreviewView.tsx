@@ -27,9 +27,10 @@ function PreviewLineView({
   return (
     <div
       className={cn(
-        row.label
-          ? 'grid grid-cols-[minmax(0,5.5em)_minmax(0,1fr)] gap-x-2'
-          : '',
+        row.label &&
+          (row.layout === 'spread'
+            ? 'flex justify-between gap-x-3'
+            : 'grid grid-cols-[minmax(0,5.5em)_minmax(0,1fr)] gap-x-2'),
         tones[row.tone ?? tone],
       )}
     >
@@ -38,6 +39,7 @@ function PreviewLineView({
         className={cn(
           'min-w-0 whitespace-pre-line',
           row.numeric && 'font-mono',
+          row.layout === 'spread' && 'shrink-0',
         )}
       >
         {row.value}
@@ -93,7 +95,7 @@ function ItemPreviewSections({ sections }: { sections: PreviewSection[] }) {
       {visible.map((section, index) =>
         section.collapsible ? (
           <details key={`${section.title}-${index}`} className="space-y-1">
-            <summary className="cursor-pointer font-medium text-amber-800">
+            <summary className="cursor-pointer font-medium text-amber-800 dark:text-wood">
               {section.title}
             </summary>
             <div className="pl-3">
@@ -102,7 +104,7 @@ function ItemPreviewSections({ sections }: { sections: PreviewSection[] }) {
           </details>
         ) : (
           <section key={`${section.title}-${index}`} className="space-y-1">
-            <h3 className="font-medium text-amber-800">{section.title}</h3>
+            <h3 className="font-medium text-amber-800 dark:text-wood">{section.title}</h3>
             <div className="pl-3">
               <PreviewEntries entries={section.entries} tone={section.tone} />
             </div>
@@ -115,7 +117,7 @@ function ItemPreviewSections({ sections }: { sections: PreviewSection[] }) {
 function PreviewHeaderEntry({ entry }: { entry: HeaderEntry }) {
   if (entry.kind === 'field')
     return (
-      <p className="text-amber-800">
+      <p className="text-amber-800 dark:text-wood">
         <span className="text-ink-secondary">{entry.label}：</span>
         {entry.value}
       </p>

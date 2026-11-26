@@ -1,4 +1,3 @@
-import { BeastIcon } from '@app/components/feature/beasts/BeastIcon';
 import { BeastRosterEntry } from '@app/components/feature/beasts/BeastRosterEntry';
 import {
   combatV6Request,
@@ -7,14 +6,11 @@ import {
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
-import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
 import { useStory } from '@app/lib/story/useStory';
+import { storySceneOpen } from '@daoyou/game-domain/story/gates';
 import type { BeastManagementView } from '@daoyou/contracts/beasts';
-import {
-  BEAST_GENERATION,
-  BEAST_STARTER_SPECIES,
-} from '@daoyou/game-content/beasts';
+import {} from '@daoyou/game-content/beasts';
 import {
   BEAST_BAG_CAPACITY,
   BEAST_WAREHOUSE_CAPACITY,
@@ -47,7 +43,6 @@ export default function BeastsPage() {
   const [detailId, setDetailId] = useState<string | undefined>(
     () => searchParams.get('beast') ?? undefined,
   );
-  const [claimId, setClaimId] = useState<string>();
   const [learningId, setLearningId] = useState<string>();
   const [refiningId, setRefiningId] = useState<string>();
   const [rejuvenatingId, setRejuvenatingId] = useState<string>();
@@ -116,27 +111,23 @@ export default function BeastsPage() {
       );
       if (!read.signal.aborted) {
         setView(result);
-        setClaimId(undefined);
         setAction(undefined);
         pushToast({
           message:
             message ??
             (path === 'lineup'
               ? '携带出战已更新'
-              : path === 'claim'
-                ? '结缘成功'
-                : path === 'rest'
-                  ? '休养完成'
-                  : path === 'allocate'
-                    ? '属性已分配'
-                    : path === 'rename'
-                      ? '灵兽名字已更新'
-                      : path === 'place'
-                        ? '灵兽已转移'
-                        : '灵兽已放生'),
+              : path === 'rest'
+                ? '休养完成'
+                : path === 'allocate'
+                  ? '属性已分配'
+                  : path === 'rename'
+                    ? '灵兽名字已更新'
+                    : path === 'place'
+                      ? '灵兽已转移'
+                      : '灵兽已放生'),
           tone: 'success',
         });
-        if (path === 'claim') void story.reload();
         return true;
       }
     } catch (e) {
@@ -178,7 +169,6 @@ export default function BeastsPage() {
     : 0;
   const detail =
     orderedBag.find((beast) => beast.id === detailId) ?? orderedBag[0];
-  const claim = BEAST_STARTER_SPECIES.find((species) => species.id === claimId);
   const renamingBeast = view?.beasts.find((beast) => beast.id === renamingId);
   const actionBeast = view?.beasts.find(
     (beast) => beast.id === action?.beastId,
@@ -217,7 +207,7 @@ export default function BeastsPage() {
       ) : (
         <>
           <div
-            data-guide={view.starterClaimed ? 'beast.starter' : 'beast.bag'}
+            data-guide="beast.bag"
             className="text-ink-secondary flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs"
           >
             <span>
@@ -226,7 +216,14 @@ export default function BeastsPage() {
                 {bagBeasts.length} / {BEAST_BAG_CAPACITY}
               </span>
             </span>
-            <span className="flex flex-wrap items-center justify-end gap-1">
+            {/* 新手期先只认袋里这一只，图鉴、融合、仓库等主线走完再摆出来。 */}
+            <span
+              className={
+                storySceneOpen(story.story?.unlocked, 'beast-codex')
+                  ? 'flex flex-wrap items-center justify-end gap-1'
+                  : 'hidden'
+              }
+            >
               <InkButton disabled={pending} href="/game/beasts/codex">
                 灵兽图鉴
               </InkButton>
@@ -241,27 +238,6 @@ export default function BeastsPage() {
               </InkButton>
             </span>
           </div>
-          {!view.starterClaimed ? (
-            <div
-              data-guide="beast.starter"
-              className="border-ink/15 space-y-3 border-b pb-4"
-            >
-              <p className="text-ink-secondary text-sm">
-                选一位灵兽伙伴，与它一同踏上修行路。
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {BEAST_STARTER_SPECIES.map((species) => (
-                  <InkButton
-                    key={species.id}
-                    disabled={pending || bagBeasts.length >= BEAST_BAG_CAPACITY}
-                    onClick={() => setClaimId(species.id)}
-                  >
-                    <BeastIcon speciesId={species.id} /> {species.name}
-                  </InkButton>
-                ))}
-              </div>
-            </div>
-          ) : null}
           <div className="grid min-w-0 gap-5 md:grid-cols-[180px_minmax(0,1fr)] lg:grid-cols-[200px_minmax(0,1fr)]">
             <aside
               data-guide="beast.roster"
@@ -498,30 +474,6 @@ export default function BeastsPage() {
             })
           }
         />
-      ) : null}
-      {claim ? (
-        <InkDetailDrawer
-          isOpen
-          title={`结缘${claim.name}`}
-          size="sm"
-          onClose={() => setClaimId(undefined)}
-          footer={
-            <InkButton
-              variant="primary"
-              pending={pending}
-              onClick={() => void mutate('claim', { speciesId: claim.id })}
-            >
-              确认结缘
-            </InkButton>
-          }
-        >
-          <p className="text-sm leading-7">
-            每位角色可免费选择一次。伙伴初始为
-            {BEAST_GENERATION.starterLevel}级、
-            {BEAST_GENERATION.lifespan}
-            寿命，资质、成长与技能随机生成，属性点由你分配。有空位时自动携带，满足出战境界且没有首发时设为首发。
-          </p>
-        </InkDetailDrawer>
       ) : null}
     </GameSceneFrame>
   );

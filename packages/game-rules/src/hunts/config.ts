@@ -80,3 +80,7 @@ export function huntIsOpen(event: HuntEvent, now: number) {
 export function huntMapHref(event: HuntEvent) {
   return `/game/map-v2?nodeId=${encodeURIComponent(event.nodeId)}&hunt=${encodeURIComponent(event.id)}`;
 }
+
+export function huntTargetLabel(event: Pick<HuntEvent, 'realm' | 'bossId'>) {
+  return `${event.realm}期·${HUNT_BOSSES[event.bossId].name}`;
+}

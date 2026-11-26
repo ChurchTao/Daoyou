@@ -3,6 +3,7 @@ import Link from '@app/components/router/AppLink';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { cn } from '@app/lib/cn';
+import { useStory } from '@app/lib/story/useStory';
 import type { SocialSummary } from '@daoyou/contracts/social';
 import {
   getCoreDockItemBadge,
@@ -79,7 +80,9 @@ export function GameBottomDock({
   };
   const drawerOpen = dockMode === 'expanded' || isExpanded;
   const coreDockItems = getCoreDockItems();
-  const expandedDockColumns = getExpandedDockColumns();
+  // 新手期只列出主线已经带玩家去过的入口；不在新手期时不设限。
+  const story = useStory();
+  const expandedDockColumns = getExpandedDockColumns(story.story?.unlocked);
 
   if (dockMode === 'hidden') {
     return null;

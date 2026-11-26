@@ -1,0 +1,86 @@
+{
+  "id": "mine-shift",
+  "completionGift": "mine-shift-complete",
+  "track": "main",
+  "title": "下工",
+  "beats": [
+    {
+      "id": "clock-out",
+      "kind": "performance",
+      "script": "mine-shift-clock-out",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "到记工台等最后一筐矿过秤。",
+      "href": "/game/story",
+      "playOnResume": true,
+      "unlocks": ["settings", "feedback", "community", "download", "redeem"],
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "mine-shed"
+      },
+      "actionLabel": "去记工台",
+      "entry": { "kind": "facility", "id": "weighing-station" },
+      "finishLabel": "去棚门口"
+    },
+    {
+      "id": "work",
+      "kind": "performance",
+      "arrival": "activity",
+      "script": "mine-shift-work",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "下工了，咪咪在矿棚外等你。",
+      "href": "/game/story",
+      "gift": "starter-beast",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "mine-shed"
+      },
+      "actionLabel": "去找咪咪",
+      "entry": {
+        "kind": "npc",
+        "id": "mimi"
+      },
+      "finishLabel": "走到木桥"
+    },
+    {
+      "id": "bridge",
+      "kind": "performance",
+      "arrival": "location",
+      "script": "mine-shift-bridge",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "带咪咪过木桥。",
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "wooden-bridge"
+      },
+      "actionLabel": "带咪咪过木桥",
+      "finishLabel": "迎战山豕",
+      "entry": { "kind": "facility", "id": "wooden-crossing" }
+    },
+    {
+      "id": "fight",
+      "kind": "battle",
+      "arrival": "activity",
+      "battle": "mine-ambush",
+      "lesson": "story-battle-basics",
+      "scene": "story-battle",
+      "prompt": "山豕跟到了石滩。",
+      "actionLabel": "迎战山豕",
+      "href": "/game/story/battle?guide=story-battle-basics",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "bridge-shoal"
+      },
+      "entry": { "kind": "facility", "id": "sheltered-pier" }
+    }
+  ],
+  "gated": true,
+  "next": "mine-crossing"
+}

@@ -111,8 +111,8 @@ function inventoryItemName(row: typeof inventoryItems.$inferSelect): string {
     return (row.instanceData as DaoEquipmentInstanceV1).name;
   return itemDefinition(row.definitionId).name;
 }
-export async function assertInventoryIdle(owner: string, tx: DbExecutor = db) {
-  if (await hasActiveCombat(owner, { executor: tx }))
+export async function assertInventoryIdle(owner: string, tx: DbExecutor = db, options: { includeInvasion?: boolean } = {}) {
+  if (await hasActiveCombat(owner, { executor: tx, ...options }))
     throw new InventoryError('请先结束战斗与结算，再调整物品');
 }
 export async function readInventory(
@@ -505,7 +505,7 @@ function normalizeConsumableStack(item: InventoryItem): InventoryItem {
 
 export async function mutateInventory(
   owner: string,
-  input: InventoryAction,
+  input: Exclude<InventoryAction, { action: 'open_mystery_bag' }>,
   database: DbClient = db,
 ) {
   const committed = await withRedisLock(

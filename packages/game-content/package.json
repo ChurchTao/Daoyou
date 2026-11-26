@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./invasion": {
+      "types": "./dist/invasion/index.d.ts",
+      "default": "./dist/invasion/index.js"
+    },
     "./achievements": "./dist/public/achievements.js",
     "./alchemy": "./dist/public/alchemy.js",
     "./auction/config": "./dist/auction/config.js",
@@ -54,6 +58,7 @@
     "./items/consumables": "./dist/items/consumables.js",
     "./items/equipment": "./dist/public/items/equipment.js",
     "./items/inscriptions": "./dist/items/inscriptions.js",
+    "./items/mystery-bags": "./dist/items/mystery-bags.js",
     "./legacy/manual-migration": "./dist/legacy/manual-migration.js",
     "./manuals": "./dist/public/manuals.js",
     "./market": "./dist/market.js",
@@ -93,7 +98,9 @@
     "./social/config": "./dist/social/config.js",
     "./spirit-field/config": "./dist/spirit-field/config.js",
     "./sponsorship/defaults": "./dist/sponsorship/defaults.js",
+    "./story/battles": "./dist/story/battles.js",
     "./story/catalog": "./dist/story/catalog.js",
+    "./story/gifts": "./dist/story/gifts.js",
     "./tower": "./dist/public/tower.js",
     "./world/dungeon": "./dist/world/dungeon.js",
     "./world/map": "./dist/public/world/map.js"

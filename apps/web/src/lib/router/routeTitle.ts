@@ -20,6 +20,7 @@ export type GameSceneGroup =
   | 'trade'
   | 'message'
   | 'social'
+  | 'legacy'
   | 'service';
 
 export type GameSceneChrome = 'standard' | 'immersive';

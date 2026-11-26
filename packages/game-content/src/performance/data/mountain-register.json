@@ -1,0 +1,25 @@
+{
+  "id": "mountain-register",
+  "title": "在这座山留下",
+  "requires": [],
+  "cast": {},
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "山门 · 名册前"
+    },
+    {
+      "type": "title",
+      "kicker": "自己报的名字",
+      "text": "在这座山留下"
+    },
+    {
+      "type": "narration",
+      "text": "掌籍弟子将名册翻到新的一页，给你挪出铺盖落脚的地方。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

@@ -1,6 +1,9 @@
 import type { AiService } from '@nestjs/ai';
 import { REALM_VALUES } from '@daoyou/constants/realms';
-import { RANKING_REWARDS } from '@daoyou/game-content/economy';
+import {
+  MAX_WEEKLY_REPUTATION_RANK,
+  weeklyReputationForRank,
+} from '@daoyou/game-rules/rankings/ranking';
 import {
   generateDailyMarketMaterialLibraryEntries,
   ITEM_LIBRARY_SYSTEM_USER_ID,
@@ -125,13 +128,6 @@ export type ExpiredDataCleanupJobResult = CronJobResult & {
     messageConsumptions: number;
   };
 };
-
-function getRewardByRank(rank: number): number {
-  if (rank === 1) return RANKING_REWARDS[1];
-  if (rank <= 10) return RANKING_REWARDS['2-10'];
-  if (rank <= 50) return RANKING_REWARDS['11-50'];
-  return RANKING_REWARDS['51-100'];
-}
 
 function buildRankingRewardAttachment(reward: number): MailAttachment[] {
   return [
@@ -275,13 +271,16 @@ export async function runRankRewardsJob(
     let processed = 0;
 
     for (const realm of REALM_VALUES) {
-      const topCultivatorIds = await getTopRankingCultivatorIds(realm, 100);
+      const topCultivatorIds = await getTopRankingCultivatorIds(
+        realm,
+        MAX_WEEKLY_REPUTATION_RANK,
+      );
       processed += topCultivatorIds.length;
 
       for (let index = 0; index < topCultivatorIds.length; index += 1) {
         const cultivatorId = topCultivatorIds[index]!;
         const rank = index + 1;
-        const reward = getRewardByRank(rank);
+        const reward = weeklyReputationForRank(rank);
         const [cultivator] = await getExecutor()
           .select({ userId: cultivators.userId })
           .from(cultivators)

@@ -1,3 +1,11 @@
+import { LocalMapCanvas } from '@app/components/feature/map/LocalMapCanvas';
+import {
+  LocalMapText,
+  LocalMapToolbar,
+  type LocalMapBackAction,
+} from '@app/components/feature/map/LocalMapChrome';
+import type { LocalMapController } from '@app/components/feature/map/LocalMapRuntime';
+import { GameTaskIndicator } from '@app/components/game-shell/GameTaskIndicator';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { cn } from '@app/lib/cn';
@@ -10,22 +18,15 @@ import type {
   SectSceneKey,
 } from '@daoyou/game-rules/sect-organization';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { SectMapCanvas } from './SectMapCanvas';
-import {
-  SectMapText,
-  SectMapToolbar,
-  type SectMapBackAction,
-} from './SectMapChrome';
 import {
   resolveSectMapHotspotState,
   type SectMapHotspotState,
   type SectMapMode,
 } from './sectMapState';
-import type { SectMapController } from './SectPhaserRuntime';
 
 interface SectMapProps {
   title: string;
-  backAction: SectMapBackAction;
+  backAction: LocalMapBackAction;
   image?: string;
   alt: string;
   aspectRatio?: number;
@@ -37,6 +38,8 @@ interface SectMapProps {
   scenes?: ResolvedSectPresentation['scenes'];
   visitorEntry?: { hotspotId: string; label: string; route: string };
   initialSelectedId?: string;
+  storySpotId?: string;
+  onCloseLocation?(): void;
   renderLocation?(location: {
     spot: SectMapHotspot;
     description?: string;
@@ -84,10 +87,12 @@ function resolveHotspotDescription(
 function SectMapDirectory({
   locations,
   selectedId,
+  storySpotId,
   onSelect,
 }: {
   locations: readonly Location[];
   selectedId: string | null;
+  storySpotId?: string;
   onSelect(id: string, button: HTMLButtonElement): void;
 }) {
   return (
@@ -111,7 +116,10 @@ function SectMapDirectory({
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-baseline gap-x-2">
                 <strong className="text-sm">{spot.label}</strong>
-                {state.locked ? (
+                {spot.id === storySpotId ? (
+                  <span className="text-crimson text-xs">主线地点</span>
+                ) : null}
+                {state.locked && spot.id !== storySpotId ? (
                   <span className="text-ink-secondary text-xs">未开放</span>
                 ) : null}
               </span>
@@ -145,22 +153,33 @@ export function SectMap({
   scenes,
   visitorEntry,
   initialSelectedId,
+  storySpotId,
+  onCloseLocation,
   renderLocation,
   onNavigate,
 }: SectMapProps) {
-  const { mapMode, imageOpacity } = useGameSettings();
-  const controller = useRef<SectMapController | null>(null);
+  const { mapMode } = useGameSettings();
+  const controller = useRef<LocalMapController | null>(null);
   const directoryTrigger = useRef<HTMLButtonElement | null>(null);
   const returnFocus = useRef<HTMLButtonElement | null>(null);
   const [requestedId, setRequestedId] = useState(initialSelectedId ?? null);
   const [directoryOpen, setDirectoryOpen] = useState(false);
   const locations = useMemo(
     () =>
-      hotspots.map((spot) => ({
-        spot,
-        state: resolveSectMapHotspotState(spot, mode, facilities, permissions),
-      })),
-    [facilities, hotspots, mode, permissions],
+      hotspots.map((spot) => {
+        const state = resolveSectMapHotspotState(
+          spot,
+          mode,
+          facilities,
+          permissions,
+        );
+        return {
+          spot,
+          state:
+            spot.id === storySpotId ? { ...state, selectable: true } : state,
+        };
+      }),
+    [facilities, hotspots, mode, permissions, storySpotId],
   );
   const markers = useMemo(
     () =>
@@ -170,16 +189,19 @@ export function SectMap({
           label: spot.label,
           x: Number.parseFloat(spot.left) / 100,
           y: Number.parseFloat(spot.top) / 100,
-          locked: state.locked,
+          current: spot.id === storySpotId,
+          locked: state.locked && spot.id !== storySpotId,
           selectable: state.selectable,
         }))
         .filter(({ x, y }) => x >= 0 && x <= 1 && y >= 0 && y <= 1),
-    [locations],
+    [locations, storySpotId],
   );
   const selected = locations.find(
     ({ spot, state }) => spot.id === requestedId && state.selectable,
   );
   const selectedId = selected?.spot.id ?? null;
+  const storySpot = hotspots.find(({ id }) => id === storySpotId);
+  const status = mode === 'member' && storySpot ? <GameTaskIndicator /> : null;
   useEffect(() => {
     if (selectedId !== null) return;
     const target = returnFocus.current;
@@ -191,19 +213,22 @@ export function SectMap({
     return () => window.cancelAnimationFrame(frame);
   }, [selectedId]);
 
-  const closeLocation = () => setRequestedId(null);
+  const closeLocation = () => {
+    setRequestedId(null);
+    onCloseLocation?.();
+  };
   const selectLocation = (id: string) => {
     if (
       !locations.some(({ spot, state }) => spot.id === id && state.selectable)
     )
       return;
     setRequestedId(id);
-    controller.current?.focus(id);
   };
   const directory = (
     <SectMapDirectory
       locations={locations}
       selectedId={selectedId}
+      storySpotId={storySpotId}
       onSelect={(id, button) => {
         returnFocus.current = directoryOpen ? directoryTrigger.current : button;
         selectLocation(id);
@@ -232,7 +257,7 @@ export function SectMap({
     ? resolveHotspotDescription(selected, rooms, scenes)
     : undefined;
   const customLocation =
-    selected && !selected.state.locked
+    selected && (!selected.state.locked || selected.spot.id === storySpotId)
       ? renderLocation?.({
           spot: selected.spot,
           description,
@@ -245,22 +270,23 @@ export function SectMap({
     () => ({
       markers,
       selectedId,
-      opacity: imageOpacity,
       blocked: directoryOpen || selectedId !== null,
     }),
-    [directoryOpen, imageOpacity, markers, selectedId],
+    [directoryOpen, markers, selectedId],
   );
 
   return (
     <div className="bg-paper absolute inset-0 overflow-hidden">
       {canvasImage ? (
-        <SectMapCanvas
+        <LocalMapCanvas
           key={canvasImage}
           title={title}
           backAction={backAction}
           image={canvasImage}
           alt={alt}
           aspectRatio={aspectRatio}
+          entryMarkerId={storySpotId ?? 'gate'}
+          status={status}
           view={view}
           controller={controller}
           fallback={directory}
@@ -274,12 +300,14 @@ export function SectMap({
         />
       ) : (
         <>
-          <SectMapToolbar
+          <LocalMapToolbar
             title={title}
             backAction={backAction}
             mapMode={image ? 'text' : undefined}
           />
-          <SectMapText>{directory}</SectMapText>
+          <LocalMapText footer={!view.blocked ? status : null}>
+            {directory}
+          </LocalMapText>
         </>
       )}
       {selected

@@ -1,3 +1,7 @@
+import {
+  MYSTERY_BAG_IDS,
+  type MysteryBagId,
+} from '@daoyou/game-domain/inventory';
 import { z } from 'zod';
 
 export const WandererStateSchema = z
@@ -15,6 +19,7 @@ export const WandererStateSchema = z
     bookPrice: z.number().int().positive().nullable(),
     dewPrice: z.number().int().positive(),
     incensePrice: z.number().int().positive(),
+    purchasedMysteryBags: z.array(z.enum(MYSTERY_BAG_IDS)),
   })
   .strict();
 export type WandererState = z.infer<typeof WandererStateSchema>;
@@ -51,6 +56,16 @@ export const WandererPurchaseSchema = z
   })
   .strict();
 export type WandererPurchase = z.infer<typeof WandererPurchaseSchema>;
+
+export const WandererMysteryBagPurchaseSchema = WandererPurchaseSchema.extend({
+  definitionId: z.enum(MYSTERY_BAG_IDS),
+  windowId: WandererStateSchema.shape.id,
+});
+export type WandererMysteryBagPurchase = z.infer<
+  typeof WandererMysteryBagPurchaseSchema
+>;
+
+export type WandererMysteryBagPurchaseResult = { definitionId: MysteryBagId };
 
 export type WandererBeastSaleResult = {
   beastName: string;
