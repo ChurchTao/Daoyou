@@ -53,7 +53,11 @@ export default function AlchemyContestPage() {
           key={`${status.week}:${session.deadline}`}
           week={status.week}
           session={session}
-          rankHref={rankHref}
+          rankHref={
+            now >= Date.parse(status.closesAt)
+              ? `${rankHref}&period=previous`
+              : rankHref
+          }
           seconds={seconds}
           settled={status.phase === 'settled'}
           pending={pending}

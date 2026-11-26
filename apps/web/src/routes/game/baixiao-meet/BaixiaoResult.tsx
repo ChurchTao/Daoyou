@@ -5,11 +5,11 @@ import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
 import { cn } from '@app/lib/cn';
 import { SYSTEM_MAIL_HREF } from '@app/lib/social/mailNavigation';
-import { getResourceTypeInfo } from '@daoyou/game-content/presentation/concepts';
 import type {
   BaixiaoSessionView,
   BaixiaoStatus,
 } from '@daoyou/contracts/baixiao/meet';
+import { getResourceTypeInfo } from '@daoyou/game-content/presentation/concepts';
 import {
   BAIXIAO_MISS_LIMIT,
   BAIXIAO_QUESTION_COUNT,
@@ -22,11 +22,13 @@ export function BaixiaoResult({
   phase,
   mapHref,
   rankingHref,
+  onNewWeek,
 }: {
   session: BaixiaoSessionView;
   phase: BaixiaoStatus['phase'];
   mapHref: string;
   rankingHref: string;
+  onNewWeek?: () => void;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => heading.current?.focus({ preventScroll: true }), []);
@@ -47,7 +49,10 @@ export function BaixiaoResult({
 
   return (
     <div className="baixiao-result-scroll">
-      <section className="baixiao-result" aria-labelledby="baixiao-result-title">
+      <section
+        className="baixiao-result"
+        aria-labelledby="baixiao-result-title"
+      >
         <header className="border-ink/20 flex items-center gap-4 border-b border-dashed pb-4 sm:gap-6 sm:pb-5">
           {reward && (
             <div
@@ -94,7 +99,10 @@ export function BaixiaoResult({
           </div>
         </header>
 
-        <section className="space-y-2.5" aria-labelledby="baixiao-rewards-title">
+        <section
+          className="space-y-2.5"
+          aria-labelledby="baixiao-rewards-title"
+        >
           <h3 className="text-base font-semibold" id="baixiao-rewards-title">
             本场所得
           </h3>
@@ -139,7 +147,11 @@ export function BaixiaoResult({
           <summary className="text-ink-secondary w-fit text-sm">
             计时与失误明细
           </summary>
-          <BaixiaoScorecard score={score} showCorrect={false} showTotal={false} />
+          <BaixiaoScorecard
+            score={score}
+            showCorrect={false}
+            showTotal={false}
+          />
         </details>
 
         <footer className="space-y-1">
@@ -153,9 +165,16 @@ export function BaixiaoResult({
             <InkButton href={rankingHref} variant="secondary">
               查看才子榜
             </InkButton>
+            {onNewWeek && (
+              <InkButton onClick={onNewWeek} variant="secondary">
+                前往本周活动
+              </InkButton>
+            )}
           </div>
           {cleared && phase !== 'settled' && (
-            <p className="text-ink-secondary text-sm">本期名次将在封榜后公布。</p>
+            <p className="text-ink-secondary text-sm">
+              本场成绩已计入排行，声望在封榜后发放。
+            </p>
           )}
         </footer>
       </section>

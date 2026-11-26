@@ -67,19 +67,18 @@ const selected = [
 const doses = selected.map(({ id, dose }) => ({ materialId: id, dose }));
 
 describe('炼丹大会', () => {
-  it('以北京时间的星期三确定期次和个人完整开局时间', () => {
-    const round = contestWeek(Date.parse('2026-11-22T16:00:00Z'));
-    expect(round.week).toBe('2026-11-25');
-    expect(new Date(round.opensAt).toISOString()).toBe(
-      '2026-11-25T06:00:00.000Z',
-    );
-    expect(new Date(round.lastStartAt).toISOString()).toBe(
-      '2026-11-25T07:45:00.000Z',
-    );
-    expect(new Date(round.closesAt).toISOString()).toBe(
-      '2026-11-25T08:00:00.000Z',
-    );
-    expect(contestWeek(round.closesAt, 1).week).toBe('2026-12-02');
+  it('以北京时间周一 00:00 开启新一期', () => {
+    const boundary = Date.parse('2026-11-30T00:00:00+08:00');
+    expect(contestWeek(boundary - 1)).toMatchObject({
+      week: '2026-11-23',
+      closesAt: boundary,
+    });
+    expect(contestWeek(boundary)).toMatchObject({
+      week: '2026-11-30',
+      opensAt: boundary,
+      closesAt: Date.parse('2026-12-07T00:00:00+08:00'),
+    });
+    expect(contestWeek(boundary, -1).week).toBe('2026-11-23');
   });
 
   it('固定配方的波动只计入品相，并约束单炉和累计消耗', () => {

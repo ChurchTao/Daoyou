@@ -1,14 +1,8 @@
 import {
   CONTEST_DURATION_MS,
   CONTEST_NODE_ID,
-  ContestPaperSchema,
-  type ContestStanding,
 } from '@daoyou/game-domain/alchemy/contest';
-import {
-  compareContestStandings,
-  contestStanding,
-  contestWeek,
-} from '@daoyou/game-rules/alchemy/contest';
+import { contestWeek } from '@daoyou/game-rules/alchemy/contest';
 import {
   MAX_WEEKLY_REPUTATION_RANK,
   weeklyReputationForRank,
@@ -29,6 +23,7 @@ import {
   and,
   asc,
   eq,
+  gt,
   isNotNull,
   isNull,
   lte,
@@ -38,6 +33,7 @@ import {
 } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 import { grantContestCompletion } from './AlchemyContestRewards.js';
+import { contestRankedEntries } from './contest-ranking.js';
 
 @Injectable()
 export class AlchemyContestSettlement {
@@ -45,9 +41,6 @@ export class AlchemyContestSettlement {
 
   async run() {
     const now = Date.now();
-    const clock = contestWeek(now);
-    if (now >= clock.opensAt && now <= clock.lastStartAt)
-      await this.announce(clock.week, clock.opensAt);
     const closing = await this.db
       .select({ week: rounds.week })
       .from(rounds)
@@ -120,6 +113,8 @@ export class AlchemyContestSettlement {
         );
       }
     }
+    const clock = contestWeek(Date.now());
+    await this.announce(clock.week);
     return {
       rounds: closing.length,
       completions: completed.length,
@@ -127,7 +122,7 @@ export class AlchemyContestSettlement {
     };
   }
 
-  private async announce(week: string, opensAt: number) {
+  private async announce(week: string) {
     const [round] = await this.db
       .select({ announcedAt: rounds.announcedAt })
       .from(rounds)
@@ -138,10 +133,10 @@ export class AlchemyContestSettlement {
       .digest('hex');
     const id = `${digest.slice(0, 8)}-${digest.slice(8, 12)}-4${digest.slice(13, 16)}-8${digest.slice(17, 20)}-${digest.slice(20, 32)}`;
     const text =
-      '乱星海丹塔今日开炉，炼丹大会已开赛。北京时间 15:45 截止入场。';
+      '乱星海丹塔开炉，炼丹大会已开赛。本期可随时入场，入场后限时炼制。';
     await createAndPublishWorldChatMessage({
       id,
-      createdAt: new Date(opensAt).toISOString(),
+      createdAt: new Date().toISOString(),
       channel: 'system',
       senderUserId: 'system',
       senderCultivatorId: null,
@@ -167,31 +162,32 @@ export class AlchemyContestSettlement {
         .for('update');
       const now = new Date();
       if (!round || round.settledAt || now < round.closesAt) return;
-      const { materials } = ContestPaperSchema.parse(round.paper);
-      const players = await tx
-        .select()
+      const [ongoing] = await tx
+        .select({ userId: entries.userId })
         .from(entries)
-        .where(eq(entries.week, week));
-      const scored = players
-        .flatMap((entry) => {
-          const standing = contestStanding(materials, entry.attempts);
-          return standing ? [{ entry, standing }] : [];
-        })
-        .sort((a, b) => compareContestStandings(a.standing, b.standing));
-      let rank = 0;
-      let previous: ContestStanding | undefined;
-      for (const [index, { entry, standing }] of scored.entries()) {
-        if (!previous || compareContestStandings(previous, standing) !== 0)
-          rank = index + 1;
-        previous = standing;
+        .where(
+          and(
+            eq(entries.week, week),
+            isNull(entries.finishedAt),
+            gt(
+              entries.startedAt,
+              new Date(now.getTime() - CONTEST_DURATION_MS),
+            ),
+          ),
+        )
+        .limit(1);
+      if (ongoing) return;
+
+      const ranked = contestRankedEntries(tx, week);
+      const scores = await tx
+        .with(ranked)
+        .select({ userId: ranked.userId, rank: ranked.rank })
+        .from(ranked);
+      for (const { userId, rank } of scores) {
         await tx
           .update(entries)
-          .set({
-            standing,
-            rank,
-            reward: { reputation: weeklyReputationForRank(rank) },
-          })
-          .where(and(eq(entries.week, week), eq(entries.userId, entry.userId)));
+          .set({ rank, reward: { reputation: weeklyReputationForRank(rank) } })
+          .where(and(eq(entries.week, week), eq(entries.userId, userId)));
       }
       await tx
         .update(entries)

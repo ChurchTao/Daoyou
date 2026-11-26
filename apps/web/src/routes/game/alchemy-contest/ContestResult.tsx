@@ -118,7 +118,7 @@ export function ContestResult({
           </div>
           {standing && !settled && (
             <p className="text-ink-secondary mt-1 text-sm">
-              封榜后可查看本期名次。
+              有效成绩会更新炼丹榜，声望在封榜后发放。
             </p>
           )}
         </div>

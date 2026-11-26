@@ -4,9 +4,10 @@ import type {
   ContestMaterial,
   ContestPaper,
   ContestQuestion,
-  ContestStanding,
+  ContestStandingDetail,
 } from '@daoyou/game-domain/alchemy/contest';
 import { z } from 'zod';
+import type { WeeklyRankingPeriod } from './weekly-activity.js';
 
 export const ContestStartSchema = z.object({ week: z.iso.date() }).strict();
 export const ContestBrewSchema = ContestStartSchema.extend({
@@ -35,23 +36,16 @@ export type ContestBrewCommand = z.infer<typeof ContestBrewSchema>;
 export type ContestStatus = {
   week: string;
   opensAt: string;
-  lastStartAt: string;
   closesAt: string;
   serverTime: string;
-  phase: 'waiting' | 'open' | 'closing' | 'closed' | 'settled' | 'unavailable';
+  phase: 'waiting' | 'open' | 'closed' | 'settled' | 'unavailable';
   session: {
     deadline: string;
     finished: boolean;
     remaining: Record<string, number>;
     qi: number;
     attempts: ContestAttempt[];
-    standing:
-      | (ContestStanding & {
-          materialPoints: number;
-          qiPoints: number;
-          bestAttempt: number;
-        })
-      | null;
+    standing: ContestStandingDetail | null;
     completionReward: ContestCompletionReward | null;
     question: ContestQuestion;
     materials: ContestMaterialView[];
@@ -67,27 +61,15 @@ export type ContestRankingEntry = {
   gender: string | null;
   rank: number;
   score: number;
-  reputation: number;
+  reputation: number | null;
 };
 
 export type ContestRanking = {
-  week: string;
-  phase: ContestStatus['phase'];
-  opensAt: string;
-  closesAt: string;
-  own: {
-    score: number | null;
-    finished: boolean;
-    otherCharacter: boolean;
-  } | null;
-  published: {
-    week: string;
-    opensAt: string;
-    title: string;
-    pillName: string;
-    entries: ContestRankingEntry[];
-    own: { id: string; rank: number | null } | null;
-  } | null;
+  period: WeeklyRankingPeriod;
+  title: string | null;
+  pillName: string | null;
+  entries: ContestRankingEntry[];
+  own: { id: string; rank: number; score: number } | null;
 };
 
 export type ContestPreparationResult =

@@ -2,6 +2,7 @@ import { activityState } from '@app/components/feature/weekly-activity/schedule'
 import { WeeklyActivityLobby } from '@app/components/feature/weekly-activity/WeeklyActivity';
 import { InkButton } from '@app/components/ui/InkButton';
 import type { ContestStatus } from '@daoyou/contracts/alchemy/contest';
+import { CONTEST_DURATION_MS } from '@daoyou/game-domain/alchemy/contest';
 import { CONTEST_REWARD_GRADES } from '@daoyou/game-rules/alchemy/contest';
 
 export function ContestRewards() {
@@ -28,7 +29,10 @@ export function ContestRewards() {
           ))}
         </tbody>
       </table>
-      <p>封榜后，前 100 名还可领取排名声望。</p>
+      <p>
+        换期前开局可用完本场时间，成绩计入开局当周。封榜后，前 100
+        名可领取排名声望。
+      </p>
     </section>
   );
 }
@@ -49,16 +53,11 @@ export function ContestLobby({
   start: () => void;
 }) {
   const phase =
-    status.phase === 'open' && now > Date.parse(status.lastStartAt)
-      ? 'closing'
+    status.phase === 'open' && now >= Date.parse(status.closesAt)
+      ? 'closed'
       : status.phase;
   const canStart = phase === 'open' && unlocked && !status.otherCharacter;
-  const state = activityState(
-    phase,
-    status.opensAt,
-    status.lastStartAt,
-    status.closesAt,
-  );
+  const state = activityState(phase, status.opensAt, status.closesAt);
   const note = status.otherCharacter
     ? '本账号已用另一位角色参赛。'
     : phase === 'open' && !unlocked
@@ -72,8 +71,12 @@ export function ContestLobby({
       place="乱星海 · 丹塔"
       title={state.title}
       note={note}
-      schedule="每周三 14:00–16:00 · 北京时间"
-      facts={['个人赛时 15 分钟', '最多 3 炉', '材料与炉气免费']}
+      schedule="北京时间每周一 00:00 换期"
+      facts={[
+        `个人赛时 ${CONTEST_DURATION_MS / 60_000} 分钟`,
+        '最多 3 炉',
+        '材料与炉气免费',
+      ]}
       admission={canStart && '入场即开始计时，并锁定本期参赛角色。'}
       action={
         canStart && (

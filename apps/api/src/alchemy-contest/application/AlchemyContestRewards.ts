@@ -1,15 +1,11 @@
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import {
   CONTEST_DURATION_MS,
-  ContestPaperSchema,
   type ContestCompletionReward,
 } from '@daoyou/game-domain/alchemy/contest';
 import type { CultivationProgress } from '@daoyou/game-domain/character';
 import { MaterialFactsSchema } from '@daoyou/game-domain/inventory';
-import {
-  contestStanding,
-  planContestCompletionReward,
-} from '@daoyou/game-rules/alchemy/contest';
+import { planContestCompletionReward } from '@daoyou/game-rules/alchemy/contest';
 import { getOrInitCultivationProgress } from '@daoyou/game-rules/cultivation';
 import {
   highGradeMaterialQuality,
@@ -54,7 +50,7 @@ export async function grantContestCompletion(
     command: async (tx) => {
       const skip = { result: null, resourceChanges: [] };
       const [round] = await tx
-        .select({ paper: rounds.paper, pool: rounds.rewardPool })
+        .select({ pool: rounds.rewardPool })
         .from(rounds)
         .where(eq(rounds.week, week))
         .for('share');
@@ -73,10 +69,7 @@ export async function grantContestCompletion(
         };
       const deadline = entry.startedAt.getTime() + CONTEST_DURATION_MS;
       if (!entry.finishedAt && Date.now() < deadline) return skip;
-      const standing = contestStanding(
-        ContestPaperSchema.parse(round.paper).materials,
-        entry.attempts,
-      );
+      const { standing } = entry;
       if (!standing) return skip;
 
       const [character] = await tx

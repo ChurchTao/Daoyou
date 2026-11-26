@@ -1,21 +1,21 @@
-import { activityDate } from '@app/components/feature/weekly-activity/schedule';
+import {
+  activityDate,
+  weeklyBoardStatus,
+} from '@app/components/feature/weekly-activity/schedule';
+import { useWeeklyRanking } from '@app/components/feature/weekly-activity/useWeeklyRanking';
 import {
   WeeklyBoardEmpty,
   WeeklyBoardHeader,
   WeeklyBoardPending,
+  WeeklyBoardPeriod,
 } from '@app/components/feature/weekly-activity/WeeklyLeaderboard';
 import { InkDetailDrawer, InkSelect } from '@app/components/ui';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
 import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
-import type {
-  InvasionStatus,
-  InvasionRanking as Ranking,
-} from '@daoyou/contracts/invasion';
+import type { InvasionRanking as Ranking } from '@daoyou/contracts/invasion';
 import { INVASION_PATH } from '@daoyou/game-domain/invasion';
-import { invasionWeek } from '@daoyou/game-rules/invasion';
-import { useEffect, useState } from 'react';
-import { requestInvasion } from '../invasion/request';
+import { useState } from 'react';
 import './invasion-ranking.css';
 
 type TeamScore = Ranking['rows'][number];
@@ -107,38 +107,42 @@ function TeamSeat({
 
 export function InvasionRanking() {
   const active = useCultivatorIdentity().data?.cultivator;
-  const [ranking, setRanking] = useState<Ranking>();
-  const [loadedAt] = useState(Date.now);
-  const [status, setStatus] = useState<InvasionStatus>();
-  const [error, setError] = useState('');
-  const [reload, setReload] = useState(0);
+  const {
+    data: ranking,
+    previous,
+    error,
+    retry,
+    changePeriod,
+  } = useWeeklyRanking<Ranking>(
+    '/api/ancient-demon-invasion/ranking',
+    '除魔榜',
+  );
   const [filter, setFilter] = useState<RealmType>();
-  const [detail, setDetail] = useState<TeamScore>();
-  useEffect(() => {
-    const abort = new AbortController();
-    void requestInvasion<Ranking>('/ranking', undefined, abort.signal)
-      .then(setRanking)
-      .catch(() => {
-        if (!abort.signal.aborted) setError('除魔榜暂时无法读取。');
-      });
-    void requestInvasion<InvasionStatus>('', undefined, abort.signal)
-      .then(setStatus)
-      .catch(() => {});
-    return () => abort.abort();
-  }, [reload]);
+  const [selection, setSelection] = useState<{
+    week: string;
+    row: TeamScore;
+  }>();
+  const switcher = (
+    <WeeklyBoardPeriod
+      previous={previous}
+      onChange={(value) => {
+        setSelection(undefined);
+        changePeriod(value);
+      }}
+    />
+  );
 
   if (!ranking || error)
     return (
-      <WeeklyBoardPending
-        name="除魔榜"
-        error={error}
-        onRetry={() => {
-          setError('');
-          setReload((value) => value + 1);
-        }}
-      />
+      <>
+        {switcher}
+        <WeeklyBoardPending name="除魔榜" error={error} onRetry={retry} />
+      </>
     );
 
+  const { period } = ranking;
+  const detail = selection?.week === period.week ? selection?.row : undefined;
+  const state = weeklyBoardStatus(period.state, period.closesAt);
   const myTeam = ranking.rows.find(({ members }) =>
     members.some((m) => m.cultivatorId === active?.id),
   );
@@ -154,20 +158,18 @@ export function InvasionRanking() {
     ranking.rows[0]?.realm ??
     REALM_VALUES[0];
   const rows = ranking.rows.filter((row) => row.realm === realm);
-  const week = invasionWeek(status?.serverNow ?? loadedAt);
   const counts = new Map<number, number>();
   for (const { rank } of rows) counts.set(rank, (counts.get(rank) ?? 0) + 1);
 
   return (
     <>
+      {switcher}
       <section className="weekly-rank-board" aria-label="除魔榜">
         <WeeklyBoardHeader
           name="除魔榜"
-          date={activityDate(ranking.week ?? week.opensAt)}
+          date={activityDate(period.week)}
           place="坠魔谷外围"
-          period={
-            ranking.week && ranking.week !== week.week ? '已封榜' : '本期'
-          }
+          period={state.label}
           href={INVASION_PATH}
           action="前往镇魔营地"
         />
@@ -183,12 +185,8 @@ export function InvasionRanking() {
             ))}
           </InkSelect>
           <div>
-            <p>
-              {status?.open
-                ? '收阵后公布新榜。'
-                : '按有效通关波次排名，同波并列。'}
-            </p>
-            {ranking.week && (
+            <p>{state.note}</p>
+            {period.state !== 'unavailable' && (
               <p className="invasion-score-mine">
                 我的战绩 ·{' '}
                 {myTeam?.realm === realm ? (
@@ -211,20 +209,20 @@ export function InvasionRanking() {
                 team={row}
                 own={myTeam?.id === row.id}
                 tied={(counts.get(row.rank) ?? 0) > 1}
-                onSelect={() => setDetail(row)}
+                onSelect={() => setSelection({ week: period.week, row })}
               />
             ))}
           </ol>
         ) : (
           <WeeklyBoardEmpty
-            title={ranking.week ? '此境尚无队伍留名' : '首期成绩尚未公布'}
+            title="此境尚无队伍留名"
             emblem="icon:invasion-guard"
           />
         )}
       </section>
       <InkDetailDrawer
         isOpen={!!detail}
-        onClose={() => setDetail(undefined)}
+        onClose={() => setSelection(undefined)}
         title="队伍战绩"
         size="sm"
       >

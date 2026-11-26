@@ -69,9 +69,9 @@ export class AlchemyContestController {
   @Header('Cache-Control', 'no-store')
   ranking(
     @CurrentCultivator() actor: ActiveCultivatorRef,
-    @FirstQuery('week') week: string | undefined,
+    @FirstQuery('period') period: string | undefined,
   ) {
-    return this.contest.ranking(actor, week);
+    return this.contest.ranking(actor, period === 'previous');
   }
 
   @Get('ranking/:cultivatorId')

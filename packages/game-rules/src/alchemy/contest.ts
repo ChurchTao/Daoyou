@@ -6,7 +6,6 @@ import {
   QUALITY_STABILITY_BONUS,
 } from '@daoyou/game-content/alchemy';
 import {
-  CONTEST_DURATION_MS,
   CONTEST_HEAT,
   CONTEST_MATERIAL_STOCK,
   CONTEST_QI,
@@ -18,6 +17,7 @@ import {
   type ContestQuestion,
   type ContestRecipe,
   type ContestStanding,
+  type ContestStandingDetail,
 } from '@daoyou/game-domain/alchemy/contest';
 import type { ExorcismGrade } from '@daoyou/game-domain/dungeon/exorcism';
 import { planExorcismGradeReward } from '../dungeon/exorcism/rewards.js';
@@ -30,8 +30,8 @@ import {
   rollAlchemyYieldProfile,
 } from './alchemyYield.js';
 
-const HOUR = 3_600_000;
-const DAY = 24 * HOUR;
+import { naturalActivityWeek } from '../weekly-activity/calendar.js';
+
 const heatRules = {
   gentle: {
     stability: 8,
@@ -53,18 +53,7 @@ const heatRules = {
   },
 } as const;
 
-export function contestWeek(now: number, offset = 0) {
-  const localDay = Math.floor((now + 8 * HOUR) / DAY) * DAY;
-  const wednesday =
-    localDay + (3 - (new Date(localDay).getUTCDay() || 7) + 7 * offset) * DAY;
-  const opensAt = wednesday + 6 * HOUR;
-  return {
-    week: new Date(wednesday).toISOString().slice(0, 10),
-    opensAt,
-    closesAt: opensAt + 2 * HOUR,
-    lastStartAt: opensAt + 2 * HOUR - CONTEST_DURATION_MS,
-  };
-}
+export const contestWeek = naturalActivityWeek;
 
 export function contestBudget(
   materials: ContestMaterial[],
@@ -316,7 +305,7 @@ export function compareContestStandings(
 export function contestStanding(
   materials: ContestMaterial[],
   attempts: ContestAttempt[],
-) {
+): ContestStandingDetail | null {
   const best = attempts
     .filter((attempt) => attempt.qualified)
     .sort((a, b) => b.score - a.score || b.points.effect - a.points.effect)[0];

@@ -15,8 +15,11 @@ import {
 import { compileExorcismEncounter } from '../dungeon/exorcism/encounter.js';
 import { planExorcismGradeReward } from '../dungeon/exorcism/rewards.js';
 
-const HOUR = 3_600_000;
-const DAY = 24 * HOUR;
+import {
+  ACTIVITY_WEEK_MS,
+  naturalActivityWeek,
+} from '../weekly-activity/calendar.js';
+
 export const INVASION_REST_MS = 30_000;
 export const INVASION_WAVES_PER_REWARD = 5;
 export const invasionNextWave = (completedWave: number) => completedWave + 1;
@@ -40,20 +43,7 @@ export function invasionBossRewardGrade(wave: number) {
 export const invasionWaveMultiplier = (wave: number) =>
   1.05 ** (wave - 1) * (invasionBossWave(wave) ? 1.2 : 1);
 
-export function invasionWeek(now: number) {
-  const localDay = Math.floor((now + 8 * HOUR) / DAY) * DAY;
-  const daysSinceTuesday = (new Date(localDay).getUTCDay() + 5) % 7;
-  const tuesday = localDay - daysSinceTuesday * DAY;
-  const opensAt = tuesday + 6 * HOUR;
-  const closesAt = opensAt + 2 * HOUR;
-  return {
-    week: new Date(tuesday).toISOString().slice(0, 10),
-    opensAt,
-    closesAt,
-    open: now >= opensAt && now < closesAt,
-    nextOpensAt: now < opensAt ? opensAt : opensAt + 7 * DAY,
-  };
-}
+export const invasionWeek = naturalActivityWeek;
 
 export function invasionCardDrop(roll: number, cardRoll: number, wave: number) {
   if (!invasionBossWave(wave) && roll >= 0.5) return undefined;
@@ -102,7 +92,7 @@ export function invasionLastWaveResources(
 }
 
 export function invasionFormation(week: string, wave: number) {
-  const weekNumber = Math.floor(Date.parse(week) / (7 * DAY));
+  const weekNumber = Math.floor(Date.parse(week) / ACTIVITY_WEEK_MS);
   return (
     (((weekNumber + (invasionBossWave(wave) ? wave / 5 - 1 : wave - 1)) % 3) +
       3) %

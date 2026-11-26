@@ -14,6 +14,7 @@ import {
 import { Access, CurrentCultivator } from '@server/auth/access.js';
 import { ArenaV6Error } from '@server/combat/application/CombatV6ArenaService.js';
 import { apiErrorFilter } from '@server/http/error-filter.js';
+import { FirstQuery } from '@server/http/first-query.js';
 import { JsonBody } from '@server/http/json-body.js';
 import { ZodPipe } from '@server/http/zod.pipe.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
@@ -54,8 +55,8 @@ export class InvasionController {
 
   @Get('ranking')
   @Header('Cache-Control', 'no-store')
-  ranking() {
-    return readInvasionRanking();
+  ranking(@FirstQuery('period') period: string | undefined) {
+    return readInvasionRanking(period === 'previous');
   }
 
   @Post()
@@ -63,9 +64,10 @@ export class InvasionController {
   @Header('Cache-Control', 'no-store')
   command(
     @CurrentCultivator() actor: ActiveCultivatorRef,
+    @FirstQuery('week') week: string | undefined,
     @JsonBody({ fallback: undefined }, new ZodPipe(InvasionCommandSchema))
     input: InvasionCommand,
   ) {
-    return this.invasion.command(actor, input);
+    return this.invasion.command(actor, input, week);
   }
 }

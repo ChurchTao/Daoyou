@@ -3,7 +3,7 @@ import {
   WeeklyActivityHeader,
   WeeklyActivityLobby,
 } from '@app/components/feature/weekly-activity/WeeklyActivity';
-import { activityState } from '@app/components/feature/weekly-activity/schedule';
+import { activityDate } from '@app/components/feature/weekly-activity/schedule';
 import { GameLoadingState } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/useInkUI';
 import { InkButton, InkDetailDrawer, InkNotice } from '@app/components/ui';
@@ -20,7 +20,7 @@ import { InvasionParty } from './InvasionParty';
 import { InvasionRest } from './InvasionRest';
 import type { mountInvasionScene } from './InvasionScene';
 import './invasion.css';
-import { invasionClock, requestInvasion } from './request';
+import { requestInvasion } from './request';
 
 const art = '/assets/weekly/invasion-rift-camp.webp';
 const mapHref = `/game/map-v2?nodeId=${INVASION_NODE_ID}`;
@@ -94,36 +94,26 @@ function Receipt({ status }: { status: InvasionStatus }) {
 function Entry({
   status,
   open,
-  now,
   error,
 }: {
   status: InvasionStatus;
   open: boolean;
-  now: number;
   error: string;
 }) {
   const { openParty, value } = useParty();
-  const state = activityState(
-    open ? 'open' : 'waiting',
-    open ? status.opensAt : status.nextOpensAt,
-    status.closesAt,
-    status.closesAt,
-  );
   return (
     <WeeklyActivityLobby
       art={<Landscape phase={open ? 'assembling' : 'finished'} />}
       place="坠魔谷外围"
-      title={
-        open ? '镇魔营地' : status.completedWave ? '本期已收阵' : state.title
-      }
+      title={open ? '镇魔营地' : '正在换期'}
       note={
         status.otherCharacter
           ? '请切回本账号本期参战的角色。'
           : open
-            ? `距收阵 ${invasionClock(status.closesAt - now, true)}`
-            : state.note
+            ? `${activityDate(status.closesAt)} 00:00 收阵`
+            : '正在读取新一期进度。'
       }
-      schedule="每周二 14:00–16:00 · 北京时间"
+      schedule="北京时间每周一 00:00 换期"
       facts={['2–4 人结队', '每 5 波遭遇首领']}
       rankHref={rankHref}
       rankName="除魔榜"
@@ -166,7 +156,13 @@ function Camp({ playerId }: { playerId?: string }) {
   const latest = useRef(0);
   const sending = useRef(false);
   const cadence =
-    !status || status.open || status.rewardsPending ? 1200 : 12000;
+    !status ||
+    status.rewardsPending ||
+    (status.team && status.team.phase !== 'assembling')
+      ? 1200
+      : status.team
+        ? 3500
+        : 12000;
 
   function update(value: InvasionStatus) {
     clockOffset.current = value.serverNow - Date.now();
@@ -221,13 +217,16 @@ function Camp({ playerId }: { playerId?: string }) {
   }, []);
 
   async function send(command: InvasionCommand) {
-    if (sending.current) return false;
+    if (sending.current || !status) return false;
     sending.current = true;
     setBusy(true);
     setError('');
     try {
       ++latest.current;
-      const next = await requestInvasion<InvasionStatus>('', command);
+      const next = await requestInvasion<InvasionStatus>(
+        `?week=${status.week}`,
+        command,
+      );
       ++latest.current;
       update(next);
       return true;
@@ -252,7 +251,7 @@ function Camp({ playerId }: { playerId?: string }) {
     return (
       <Navigate replace to={`/game/combat-v6/invasion/${team.battleId}`} />
     );
-  const open = !!status?.open && now < status.closesAt;
+  const open = !!status && now < status.closesAt;
   const staging = team?.phase === 'assembling';
 
   return (
@@ -273,7 +272,7 @@ function Camp({ playerId }: { playerId?: string }) {
           )}
         </main>
       ) : !team || team.phase === 'finished' || (staging && !open) ? (
-        <Entry status={status} open={open} now={now} error={error} />
+        <Entry status={status} open={open} error={error} />
       ) : (
         <main
           className="invasion-camp"
@@ -354,7 +353,7 @@ function Camp({ playerId }: { playerId?: string }) {
           <section>
             <h3>出战</h3>
             <p>
-              每周二北京时间 14:00–16:00。2–4
+              周内随时可出战，北京时间周一 00:00 收阵。2–4
               人结队，从队长的下一波开打，难度取参战成员的最高境界。
             </p>
           </section>

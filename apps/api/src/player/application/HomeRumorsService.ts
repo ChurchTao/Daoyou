@@ -29,26 +29,10 @@ import { isRedisConfigured, redis } from '@server/lib/redis/index.js';
 import { parseRedisJson } from '@server/lib/redis/json.js';
 import { eq } from 'drizzle-orm';
 
-const CACHE_KEY = 'player-home-rumors:v1';
+const CACHE_KEY = 'player-home-rumors:v2';
 const READINESS_REFRESH_MS = 60_000;
-const HOUR_MS = 3_600_000;
-const DAY_MS = 24 * HOUR_MS;
-const WEEK_MS = 7 * DAY_MS;
-const BEIJING_OFFSET_MS = 8 * HOUR_MS;
-
-function beijingDayStart(time: number) {
-  return (
-    Math.floor((time + BEIJING_OFFSET_MS) / DAY_MS) * DAY_MS - BEIJING_OFFSET_MS
-  );
-}
-
 type ActivityKind = HomeActivityRumor['kind'];
-type ActivityWindow = {
-  week: string;
-  opensAt: number;
-  deadline: number;
-  nextOpensAt: number;
-};
+type ActivityWindow = { week: string; closesAt: number };
 type ActivityView = { nextRefreshAt: number; entry?: HomeActivityRumor };
 
 @Injectable()
@@ -125,29 +109,9 @@ export class HomeRumorsService {
     const baixiao = baixiaoWeek(now);
 
     const activities = await Promise.all([
-      this.activity(
-        'invasion',
-        { ...invasion, deadline: invasion.closesAt },
-        now,
-      ),
-      this.activity(
-        'alchemy-contest',
-        {
-          ...contest,
-          deadline: contest.lastStartAt + 1,
-          nextOpensAt: contest.opensAt + WEEK_MS,
-        },
-        now,
-      ),
-      this.activity(
-        'baixiao',
-        {
-          ...baixiao,
-          deadline: baixiao.lastStartAt + 1,
-          nextOpensAt: baixiao.opensAt + WEEK_MS,
-        },
-        now,
-      ),
+      this.activity('invasion', invasion, now),
+      this.activity('alchemy-contest', contest, now),
+      this.activity('baixiao', baixiao, now),
     ]);
 
     return {
@@ -172,33 +136,24 @@ export class HomeRumorsService {
     window: ActivityWindow,
     now: number,
   ): Promise<ActivityView> {
-    const { week, opensAt, deadline, nextOpensAt } = window;
-    if (now >= deadline) return { nextRefreshAt: beijingDayStart(nextOpensAt) };
-    const dayStart = beijingDayStart(opensAt);
-    if (now < dayStart) return { nextRefreshAt: dayStart };
-    if (now < opensAt) {
-      return {
-        nextRefreshAt: opensAt,
-        entry: { kind, phase: 'waiting', time: opensAt },
-      };
-    }
+    const { week, closesAt } = window;
     if (kind === 'invasion') {
       return {
-        nextRefreshAt: deadline,
-        entry: { kind, phase: 'open', time: deadline },
+        nextRefreshAt: closesAt,
+        entry: { kind, phase: 'open', time: closesAt },
       };
     }
 
     const phase = await this.readAdmission(kind, week);
-    if (phase === 'settled') return { nextRefreshAt: deadline };
+    if (phase === 'settled') return { nextRefreshAt: closesAt };
     // The question bank may change during admission. A round still being
     // prepared also needs a short retry so the next request can show it opening.
     const nextRefreshAt =
       kind === 'baixiao' || phase !== 'open'
-        ? Math.min(deadline, now + READINESS_REFRESH_MS)
-        : deadline;
+        ? Math.min(closesAt, now + READINESS_REFRESH_MS)
+        : closesAt;
     const entry: HomeActivityRumor =
-      phase === 'open' ? { kind, phase, time: deadline - 1 } : { kind, phase };
+      phase === 'open' ? { kind, phase, time: closesAt } : { kind, phase };
     return { nextRefreshAt, entry };
   }
 

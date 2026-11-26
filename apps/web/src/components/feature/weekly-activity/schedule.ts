@@ -1,5 +1,5 @@
 export type ActivityPhase =
-  'waiting' | 'open' | 'closing' | 'closed' | 'settled' | 'unavailable';
+  'waiting' | 'open' | 'closed' | 'settled' | 'unavailable';
 
 const dateLabel = new Intl.DateTimeFormat('zh-CN', {
   timeZone: 'Asia/Shanghai',
@@ -21,7 +21,6 @@ export function activityDate(date: string | number) {
 export function activityState(
   phase: ActivityPhase,
   opensAt: string | number,
-  lastStartAt: string | number,
   closesAt: string | number,
 ) {
   const time = (date: string | number) => clockLabel.format(new Date(date));
@@ -34,18 +33,35 @@ export function activityState(
     case 'open':
       return {
         title: '开放入场',
-        note: `北京时间 ${time(lastStartAt)} 截止入场`,
-      };
-    case 'closing':
-      return {
-        title: '入场已截止',
-        note: `本期北京时间 ${time(closesAt)} 结束`,
+        note: `${activityDate(closesAt)} ${time(closesAt)} 截止入场`,
       };
     case 'closed':
-      return { title: '正在封榜', note: '本期名次将在封榜后公布。' };
+      return { title: '正在封榜', note: '上期收尾中，新一期换期后可入场。' };
     case 'settled':
       return { title: '本期已封榜', note: '可以查看本期榜单。' };
     case 'unavailable':
       return { title: '本期仍在筹备', note: '准备完成后即可入场。' };
+  }
+}
+
+export function weeklyBoardStatus(
+  state: 'live' | 'closing' | 'settled' | 'unavailable',
+  closesAt: number,
+) {
+  switch (state) {
+    case 'live':
+      return {
+        label: '实时排名',
+        note: `${activityDate(closesAt)} 00:00 换期，声望在封榜后发放。`,
+      } as const;
+    case 'closing':
+      return {
+        label: '结算中',
+        note: '正在处理本期剩余场次，名次仍可能变化。',
+      } as const;
+    case 'settled':
+      return { label: '已封榜', note: '排名声望可通过传音领取。' } as const;
+    case 'unavailable':
+      return { label: '暂无赛况', note: '本期暂无可查看的成绩。' } as const;
   }
 }

@@ -1,19 +1,31 @@
-import { invasionWeek } from '@daoyou/game-rules/invasion';
 import { ConflictException } from '@nestjs/common';
 import {
   db,
   type DbExecutor,
   type DbTransaction,
 } from '@server/lib/drizzle/db.js';
-import { invasionProgress, invasionRuns } from '@server/lib/drizzle/schema.js';
+import {
+  invasionProgress,
+  invasionRuns,
+  invasionWeeks,
+} from '@server/lib/drizzle/schema.js';
 import { readParty } from '@server/parties/party.service.js';
 import { and, asc, eq } from 'drizzle-orm';
 
 export type InvasionRun = typeof invasionRuns.$inferSelect;
 export type InvasionProgress = typeof invasionProgress.$inferSelect;
 
-export const invasionClosesAt = (week: string) =>
-  invasionWeek(Date.parse(week)).closesAt;
+export async function invasionClosesAt(
+  week: string,
+  executor: DbExecutor = db,
+) {
+  const [period] = await executor
+    .select({ closesAt: invasionWeeks.closesAt })
+    .from(invasionWeeks)
+    .where(eq(invasionWeeks.week, week));
+  if (!period) throw new Error(`Missing invasion period ${week}`);
+  return period.closesAt.getTime();
+}
 
 export const progressKey = (week: string, userId: string) =>
   and(eq(invasionProgress.week, week), eq(invasionProgress.userId, userId));

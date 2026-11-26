@@ -199,10 +199,10 @@ export class BaixiaoQuestionBank {
       .from(rounds)
       .where(eq(rounds.week, clock.week));
     if (round) return round;
-    if (Date.now() > clock.lastStartAt || !(await this.isReady()))
+    if (Date.now() >= clock.closesAt || !(await this.isReady()))
       return undefined;
     const groups = await this.materials();
-    if (groups.some((group) => !group.length) || Date.now() > clock.lastStartAt)
+    if (groups.some((group) => !group.length) || Date.now() >= clock.closesAt)
       return undefined;
     const [prepared] = await this.db
       .insert(rounds)

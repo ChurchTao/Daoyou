@@ -5,7 +5,7 @@ import type {
   BaixiaoAnswer, BaixiaoFinish, BaixiaoPaperSlot, BaixiaoQuestionData, BaixiaoResources, BaixiaoReward, BaixiaoScore,
 } from '@daoyou/game-domain/baixiao/meet';
 import type { BaixiaoQuestionStatus } from '@daoyou/contracts/baixiao/meet';
-import type { ContestAttempt, ContestCompletionReward, ContestPaper, ContestStanding } from '@daoyou/game-domain/alchemy/contest';
+import type { ContestAttempt, ContestCompletionReward, ContestPaper, ContestStandingDetail } from '@daoyou/game-domain/alchemy/contest';
 import type { PlayerJournalEvent } from '@daoyou/contracts/player/journal';
 import type { AiUsageCredentialSource, AiUsagePricingSnapshot } from '@daoyou/contracts/admin/ai-usage';
 import type { CultivatorManualStateV1 } from '@daoyou/game-domain/manuals';
@@ -2885,7 +2885,7 @@ export const alchemyContestEntries = pgTable('wanjiedaoyou_alchemy_contest_entri
   startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
   finishedAt: timestamp('finished_at', { withTimezone: true }),
   attempts: jsonb('attempts').$type<(ContestAttempt & { requestId: string })[]>().notNull().default([]),
-  standing: jsonb('standing').$type<ContestStanding>(),
+  standing: jsonb('standing').$type<ContestStandingDetail>(),
   rank: integer('rank'),
   reward: jsonb('reward').$type<{ reputation: number }>(),
   completionReward: jsonb('completion_reward').$type<ContestCompletionReward>(),

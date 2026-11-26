@@ -79,15 +79,8 @@ function Lobby({
   start: () => void;
 }) {
   const phase =
-    status.phase === 'open' && now > status.lastStartAt
-      ? 'closing'
-      : status.phase;
-  const state = activityState(
-    phase,
-    status.opensAt,
-    status.lastStartAt,
-    status.closesAt,
-  );
+    status.phase === 'open' && now >= status.closesAt ? 'closed' : status.phase;
+  const state = activityState(phase, status.opensAt, status.closesAt);
   const canStart = phase === 'open' && !status.otherCharacter;
   return (
     <WeeklyActivityLobby
@@ -95,7 +88,7 @@ function Lobby({
       place="大晋 · 晋京"
       title={state.title}
       note={status.otherCharacter ? '本账号已用另一位角色参赛。' : state.note}
-      schedule="每周四 14:00–17:00 · 北京时间"
+      schedule="北京时间每周一 00:00 换期"
       facts={[
         `个人赛时 ${sessionMinutes} 分钟`,
         '共 25 关',
@@ -138,7 +131,10 @@ function Rules({ open, close }: { open: boolean; close: () => void }) {
             作答时每次失焦计入 {focusPenaltySeconds}{' '}
             秒罚时。返回后仍可作答原题， 本题和全场倒计时照常进行。
           </p>
-          <p>每卷 25 题，按题类和难度随机抽取。</p>
+          <p>
+            每卷 25
+            题，按题类和难度随机抽取。换期前开局可用完本场时间，成绩计入开局当周。
+          </p>
           <p>
             答错或超时后可以查看答案和解析。回顾时本题停表，本场继续计时，回顾耗时不计入成绩。
           </p>
@@ -160,7 +156,8 @@ function Rules({ open, close }: { open: boolean; close: () => void }) {
         <section>
           <h3>通关与排名</h3>
           <p>
-            限时内完成 25 题且失误少于 10 次即可通关。榜单按作答计时与罚时之和排名，比较至十分之一秒。同用时答对多者在前，仍相同则并列。
+            限时内完成 25 题且失误少于 10
+            次即可通关。榜单按作答计时与罚时之和排名，比较至十分之一秒。同用时答对多者在前，仍相同则并列。
           </p>
         </section>
       </div>
@@ -397,7 +394,14 @@ function BaixiaoScreen({ meet }: { meet: ReturnType<typeof useBaixiao> }) {
             session={session}
             phase={meet.status.phase}
             mapHref={mapHref}
-            rankingHref={rankingHref}
+            rankingHref={
+              meet.now >= meet.status.closesAt
+                ? `${rankingHref}&period=previous`
+                : rankingHref
+            }
+            onNewWeek={
+              meet.now >= meet.status.closesAt ? meet.recover : undefined
+            }
           />
         ) : (
           <Lobby

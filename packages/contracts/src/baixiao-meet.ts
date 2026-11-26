@@ -15,6 +15,7 @@ import {
   BaixiaoQuestionSchema,
 } from '@daoyou/game-domain/baixiao/question';
 import { z } from 'zod';
+import type { WeeklyRankingPeriod } from './weekly-activity.js';
 
 export const BaixiaoWeekCommandSchema = z
   .object({
@@ -84,7 +85,7 @@ export type BaixiaoAdminListQuery = z.infer<typeof BaixiaoAdminListQuerySchema>;
 
 export type BaixiaoResolveCommand = z.infer<typeof BaixiaoResolveCommandSchema>;
 export type BaixiaoPhase =
-  'waiting' | 'open' | 'closing' | 'closed' | 'settled' | 'unavailable';
+  'waiting' | 'open' | 'closed' | 'settled' | 'unavailable';
 
 interface BaixiaoQuestionHeading {
   position: number;
@@ -123,7 +124,6 @@ export interface BaixiaoSessionView {
 export interface BaixiaoStatus {
   week: string;
   opensAt: number;
-  lastStartAt: number;
   closesAt: number;
   serverTime: number;
   serverWorkMs?: number;
@@ -143,9 +143,7 @@ export interface BaixiaoRankingRow {
 }
 
 export interface BaixiaoRanking {
-  week: string;
-  publishedWeek: string | null;
-  phase: BaixiaoPhase;
+  period: WeeklyRankingPeriod;
   rows: BaixiaoRankingRow[];
   mine: { rank: number; score: BaixiaoScore } | null;
 }

@@ -18,18 +18,18 @@ import {
 } from './index.js';
 
 describe('古魔入侵', () => {
-  it('只在北京时间周二 14:00–16:00 开放', () => {
-    const start = Date.parse('2026-12-01T14:00:00+08:00');
-    expect(invasionWeek(start - 1).open).toBe(false);
-    expect(invasionWeek(start)).toMatchObject({
-      week: '2026-12-01',
-      open: true,
+  it('以北京时间周一 00:00 开启新一期', () => {
+    const boundary = Date.parse('2026-11-30T00:00:00+08:00');
+    expect(invasionWeek(boundary - 1)).toMatchObject({
+      week: '2026-11-23',
+      closesAt: boundary,
     });
-    expect(invasionWeek(start + 7_199_999).open).toBe(true);
-    expect(invasionWeek(start + 7_200_000).open).toBe(false);
-    expect(invasionWeek(start + 7_200_000).nextOpensAt).toBe(
-      start + 7 * 86_400_000,
-    );
+    expect(invasionWeek(boundary)).toMatchObject({
+      week: '2026-11-30',
+      opensAt: boundary,
+      closesAt: Date.parse('2026-12-07T00:00:00+08:00'),
+    });
+    expect(invasionWeek(boundary, -1).week).toBe('2026-11-23');
   });
 
   it('只对五的倍数波叠加首领强度，气血保持角色次序', () => {

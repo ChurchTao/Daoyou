@@ -3,7 +3,7 @@ import {
   INVASION_NODE_ID,
   type InvasionMember,
 } from '@daoyou/game-domain/invasion';
-import type { invasionWeek } from '@daoyou/game-rules/invasion';
+import { invasionWeek } from '@daoyou/game-rules/invasion';
 import {
   MAX_WEEKLY_REPUTATION_RANK,
   weeklyReputationForRank,
@@ -19,16 +19,7 @@ import {
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
 import { MailService } from '@server/mail/application/MailService.js';
 import { createAndPublishWorldChatMessage } from '@server/social/application/chatDelivery.js';
-import {
-  and,
-  desc,
-  eq,
-  inArray,
-  isNotNull,
-  isNull,
-  lte,
-  sql,
-} from 'drizzle-orm';
+import { and, eq, inArray, isNull, lte, sql } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 
 export function invasionIdentity(member: InvasionMember) {
@@ -71,10 +62,10 @@ export async function announceInvasion(clock: ReturnType<typeof invasionWeek>) {
     .digest('hex');
   const id = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-4${hash.slice(13, 16)}-8${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
   const text =
-    '天南镇魔营地传来警讯，古魔正在冲击界隙。各境道友可结伴驰援，今日 16:00 收阵。';
+    '天南镇魔营地传来警讯，古魔正在冲击界隙。各境道友可在本期结伴驰援。';
   await createAndPublishWorldChatMessage({
     id,
-    createdAt: new Date(clock.opensAt).toISOString(),
+    createdAt: new Date().toISOString(),
     channel: 'system',
     senderUserId: 'system',
     senderCultivatorId: null,
@@ -102,6 +93,7 @@ export async function publishInvasionWeeks(now: number) {
         lte(invasionWeeks.closesAt, new Date(now)),
       ),
     )
+    .orderBy(invasionWeeks.closesAt)
     .limit(10);
   for (const { week } of weeks) {
     const mails = await db.transaction(async (tx) => {
@@ -211,16 +203,30 @@ function invasionRankingRows(executor: DbExecutor, week: string) {
     .orderBy(ranked.rank, ranked.runId, invasionProgress.userId);
 }
 
-export async function readInvasionRanking(): Promise<InvasionRanking> {
-  const [latest] = await db
-    .select({ week: invasionWeeks.week })
+export async function readInvasionRanking(
+  previous = false,
+): Promise<InvasionRanking> {
+  const now = Date.now();
+  const clock = invasionWeek(now, previous ? -1 : 0);
+  const [round] = await db
+    .select()
     .from(invasionWeeks)
-    .where(isNotNull(invasionWeeks.publishedAt))
-    .orderBy(desc(invasionWeeks.week))
-    .limit(1);
-  if (!latest) return { week: null, rows: [] };
+    .where(eq(invasionWeeks.week, clock.week));
+  const closesAt = round?.closesAt.getTime() ?? clock.closesAt;
+  const period: InvasionRanking['period'] = {
+    week: clock.week,
+    closesAt,
+    state: round?.publishedAt
+      ? 'settled'
+      : !previous
+        ? 'live'
+        : round
+          ? 'closing'
+          : 'unavailable',
+  };
+  if (!round) return { period, rows: [] };
 
-  const rows = await invasionRankingRows(db, latest.week);
+  const rows = await invasionRankingRows(db, round.week);
   const groups = new Map<string, InvasionRanking['rows'][number]>();
   for (const row of rows) {
     const id = `${row.runId}:${row.wave}`;
@@ -238,5 +244,5 @@ export async function readInvasionRanking(): Promise<InvasionRanking> {
     if (member) group.members.push(member);
     groups.set(id, group);
   }
-  return { week: latest.week, rows: [...groups.values()] };
+  return { period, rows: [...groups.values()] };
 }

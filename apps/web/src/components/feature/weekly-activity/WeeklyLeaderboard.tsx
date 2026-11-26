@@ -1,5 +1,5 @@
 import { GameLoadingState } from '@app/components/game-shell';
-import { InkButton, InkNotice } from '@app/components/ui';
+import { InkButton, InkNotice, InkSelect } from '@app/components/ui';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import type { ReactNode } from 'react';
 import './weekly-leaderboard.css';
@@ -38,11 +38,32 @@ export function WeeklyBoardPending({
   );
 }
 
+export function WeeklyBoardPeriod({
+  previous,
+  onChange,
+}: {
+  previous: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="mb-3 flex justify-end">
+      <InkSelect
+        label="榜单期次"
+        value={previous ? 'previous' : 'current'}
+        onChange={onChange}
+      >
+        <option value="current">本周</option>
+        <option value="previous">上周</option>
+      </InkSelect>
+    </div>
+  );
+}
+
 type WeeklyBoardHeaderProps = {
   name: string;
   date: string;
   place: string;
-  period: '本期' | '已封榜';
+  period: '实时排名' | '结算中' | '已封榜' | '暂无赛况';
   subject?: string;
   href: string;
   action: string;

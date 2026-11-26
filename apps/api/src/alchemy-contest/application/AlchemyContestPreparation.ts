@@ -60,7 +60,7 @@ const LibraryFactsSchema = ItemLibraryMaterialPayloadSchema.omit({
 });
 type LibraryFacts = z.infer<typeof LibraryFactsSchema>;
 type MaterialRow = typeof itemLibrary.$inferSelect;
-const fallbackLeadMs = 4 * 3_600_000;
+const fallbackLeadMs = 24 * 3_600_000;
 const contestTypes = ['herb', 'tcdb', 'aux', 'monster', 'ore'];
 const profilesInput = z.object({
   id: z.string(),
@@ -360,6 +360,8 @@ export class AlchemyContestPreparation {
         const record = records.find(({ week }) => week === clock.week);
         const canUseReserve =
           !record && backups.some(({ week }) => week < clock.week);
+        const preparationClosed =
+          now >= clock.closesAt || (Boolean(record) && now >= clock.opensAt);
         return {
           week: clock.week,
           opensAt: new Date(clock.opensAt).toISOString(),
@@ -370,9 +372,9 @@ export class AlchemyContestPreparation {
           reserve: record?.reserve
             ? ContestPaperSchema.parse(record.reserve)
             : null,
-          preparationClosed: now >= clock.opensAt,
+          preparationClosed,
           canPrepare:
-            now < clock.opensAt &&
+            !preparationClosed &&
             !record?.reserve &&
             (generationEnabled || canUseReserve),
           canUseReserve,
@@ -387,13 +389,16 @@ export class AlchemyContestPreparation {
     const now = Date.now();
     const current = contestWeek(now);
     const next = contestWeek(now, 1);
+    const [currentPaper] = await this.db
+      .select({ week: rounds.week })
+      .from(rounds)
+      .where(eq(rounds.week, current.week));
     const clock = manualWeek
       ? [current, next].find(({ week }) => week === manualWeek)
-      : now < current.opensAt
-        ? current
-        : next;
+      : currentPaper
+        ? next
+        : current;
     if (!clock) throw new BadRequestException('只能补跑本期或下期的赛前准备。');
-    if (now >= clock.opensAt) return { status: 'registration-opened' };
     return withRedisLock(
       {
         key: `alchemy-contest:prepare:${clock.week}`,
@@ -402,12 +407,15 @@ export class AlchemyContestPreparation {
         retries: 0,
       },
       async (lease) => {
-        if (Date.now() >= clock.opensAt)
-          return { status: 'registration-opened' };
         const [prepared] = await this.db
           .select()
           .from(rounds)
           .where(eq(rounds.week, clock.week));
+        if (
+          Date.now() >= clock.closesAt ||
+          (prepared && Date.now() >= clock.opensAt)
+        )
+          return { status: 'registration-opened' };
         if (prepared?.reserve) return { status: 'already-prepared' };
         let candidate: ContestPaper | null = null;
         const enabled = isBackgroundLlmEnabled();
@@ -439,7 +447,10 @@ export class AlchemyContestPreparation {
           }
         }
         lease.assertHeld();
-        if (Date.now() >= clock.opensAt)
+        if (
+          Date.now() >= clock.closesAt ||
+          (prepared && Date.now() >= clock.opensAt)
+        )
           return { status: 'registration-opened' };
         if (prepared) {
           if (!candidate) return { status: noCandidate };
@@ -497,8 +508,8 @@ export class AlchemyContestPreparation {
               .where(eq(rounds.week, fallback.week));
           }
           lease.assertHeld();
-          if (Date.now() >= clock.opensAt)
-            throw new Error('本期已开赛，无法更新赛前配置');
+          if (Date.now() >= clock.closesAt)
+            throw new Error('本期已结束，无法准备题卷');
           await tx.insert(rounds).values({
             week: clock.week,
             closesAt: new Date(clock.closesAt),

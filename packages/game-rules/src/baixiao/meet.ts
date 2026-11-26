@@ -8,7 +8,6 @@ import {
   BAIXIAO_PENALTY_MS,
   BAIXIAO_QUESTION_COUNT,
   BAIXIAO_QUESTION_MS,
-  BAIXIAO_SESSION_MS,
   type BaixiaoAnswer,
   type BaixiaoBankQuestion,
   type BaixiaoCard,
@@ -25,24 +24,9 @@ import {
   type ExorcismRewardContext,
 } from '../dungeon/exorcism/rewards.js';
 
-const HOUR = 3_600_000;
-const DAY = 24 * HOUR;
-const CHINA_OFFSET = 8 * HOUR;
+import { naturalActivityWeek } from '../weekly-activity/calendar.js';
 
-export function baixiaoWeek(now: number) {
-  const china = new Date(now + CHINA_OFFSET);
-  const monday =
-    Date.UTC(china.getUTCFullYear(), china.getUTCMonth(), china.getUTCDate()) -
-    ((china.getUTCDay() + 6) % 7) * DAY;
-  const opensAt = monday + 3 * DAY + 14 * HOUR - CHINA_OFFSET;
-  const closesAt = opensAt + 3 * HOUR;
-  return {
-    week: new Date(monday).toISOString().slice(0, 10),
-    opensAt,
-    closesAt,
-    lastStartAt: closesAt - BAIXIAO_SESSION_MS,
-  };
-}
+export const baixiaoWeek = naturalActivityWeek;
 
 type Quota = {
   category: BaixiaoBankQuestion['category'];
