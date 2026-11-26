@@ -91,15 +91,28 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
     message.channel === 'system' && huntEventId
       ? huntEventById(huntEventId)
       : undefined;
+  const payload = message.payload;
   const recruit =
-    message.messageType === 'hunt_recruit' &&
-    'version' in message.payload &&
-    message.payload.version === 1 &&
-    'teamId' in message.payload &&
-    typeof message.payload.teamId === 'string' &&
-    'text' in message.payload &&
-    typeof message.payload.text === 'string'
-      ? { teamId: message.payload.teamId, text: message.payload.text }
+    'version' in payload && payload.version === 1 &&
+    'text' in payload && typeof payload.text === 'string'
+      ? message.messageType === 'party_recruit' &&
+        'partyId' in payload && 'recruitmentId' in payload
+        ? {
+            text: payload.text,
+            href: partyInviteHref(payload.partyId, {
+              kind: 'public',
+              recruitmentId: payload.recruitmentId,
+            }),
+          }
+        : message.messageType === 'hunt_recruit' && 'teamId' in payload
+          ? {
+              text: payload.text,
+              href: isOwn ? '/game/hunt-team' : partyInviteHref(payload.teamId, {
+                kind: 'hunt',
+                eventId: payload.eventId ?? null,
+              }),
+            }
+          : null
       : null;
   const beastShowcase =
     message.messageType === 'beast_showcase' &&
@@ -268,8 +281,8 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
             {recruit.text}{' '}
             {!readOnly && (
               <Link className="text-teal font-semibold underline"
-                to={isOwn ? '/game/hunt-team' : partyInviteHref(recruit.teamId, { kind: 'hunt', eventId: huntEventId ?? null })}>
-                {isOwn ? '查看讨伐' : '申请入队'}
+                to={recruit.href}>
+                {isOwn ? '查看招募' : '申请入队'}
               </Link>
             )}
           </span>

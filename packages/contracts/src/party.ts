@@ -1,9 +1,9 @@
 import { HuntEventIdSchema } from '@daoyou/game-domain/hunts';
 import { z } from 'zod';
-import type { CultivatorInspectionData } from './player.js';
 
 export const PartyRecruitmentSourceSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('invite') }),
+  z.strictObject({ kind: z.literal('public'), recruitmentId: z.uuid() }),
   z.strictObject({
     kind: z.literal('hunt'),
     eventId: HuntEventIdSchema.nullable(),
@@ -17,9 +17,36 @@ export type PartyRecruitmentSource = z.infer<
 export const PARTY_CAPACITY = 4;
 export const PARTY_APPLICATION_LIMIT = 3;
 export const PARTY_APPLICATION_TTL_MS = 10 * 60 * 1000;
+export const PARTY_RECRUITMENT_MINUTES = 30;
+export const PARTY_RECRUITMENT_LABELS = {
+  any: '自由结伴',
+  hunt: '结伴讨伐',
+  invasion: '古魔入侵',
+  arena: '擂台切磋',
+} as const;
+export const PartyRecruitmentIntentSchema = z.enum([
+  'any',
+  'hunt',
+  'invasion',
+  'arena',
+]);
+export type PartyRecruitmentIntent = z.infer<
+  typeof PartyRecruitmentIntentSchema
+>;
+export type PartyRecruitmentNotice = {
+  id: string;
+  intent: PartyRecruitmentIntent;
+  expiresAt: number;
+};
 
 export const PartyCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('create') }),
+  z.strictObject({
+    type: z.literal('recruit'),
+    partyId: z.uuid(),
+    intent: PartyRecruitmentIntentSchema,
+  }),
+  z.strictObject({ type: z.literal('stop-recruiting'), partyId: z.uuid() }),
   z.strictObject({
     type: z.literal('apply'),
     partyId: z.uuid(),
@@ -79,13 +106,10 @@ export type PartyApplication = {
 export type IncomingPartyApplication = PartyApplication & {
   applicant: PartyPublicMember;
 };
-export type PartyApplicantBuild = Pick<
-  CultivatorInspectionData,
-  'attributes' | 'combatPanel' | 'build'
->;
 export type CurrentParty = {
   party: PartyView | null;
   roleMismatch: boolean;
+  recruitment: PartyRecruitmentNotice | null;
   incoming: IncomingPartyApplication[];
   outgoing: PartyApplication[];
 };

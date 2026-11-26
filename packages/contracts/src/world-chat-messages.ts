@@ -15,6 +15,7 @@ export const WORLD_CHAT_MESSAGE_TYPES = [
   'beast_showcase',
   'combat_v6_replay',
   'hunt_recruit',
+  'party_recruit',
   'red_packet',
 ] as const;
 export type WorldChatMessageType = (typeof WORLD_CHAT_MESSAGE_TYPES)[number];
@@ -114,6 +115,12 @@ export interface WorldChatPayloadMap {
   beast_showcase: WorldChatBeastShowcasePayload;
   combat_v6_replay: WorldChatCombatV6ReplayPayload;
   hunt_recruit: WorldChatHuntRecruitPayload;
+  party_recruit: {
+    version: 1;
+    partyId: string;
+    recruitmentId: string;
+    text: string;
+  };
   red_packet: { version: 1; packet: RedPacketSummary };
 }
 

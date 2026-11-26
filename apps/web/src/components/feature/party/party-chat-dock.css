@@ -53,3 +53,15 @@
 .party-chat-dock[data-edge='left'] .party-dock-indicators {
   inset-inline: auto -0.45rem;
 }
+
+.party-drawer:has([data-party-tab='chat']) {
+  min-height: 0;
+  height: calc(var(--overlay-viewport-height, 100dvh) * 0.76);
+}
+
+@media (min-width: 48rem) {
+  .party-drawer:has([data-party-tab='chat']) {
+    width: min(25rem, 92vw);
+    height: 100%;
+  }
+}

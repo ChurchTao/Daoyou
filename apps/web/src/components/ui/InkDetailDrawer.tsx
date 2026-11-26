@@ -17,6 +17,7 @@ export interface InkDetailDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   title: ReactNode;
+  headerContent?: ReactNode;
   children: ReactNode;
   description?: ReactNode;
   footer?: ReactNode;
@@ -51,6 +52,7 @@ export function InkDetailDrawer({
   isOpen,
   onClose,
   title,
+  headerContent,
   children,
   description,
   footer,
@@ -82,7 +84,11 @@ export function InkDetailDrawer({
         : null;
     const focusTimer = window.setTimeout(() => panelRef.current?.focus(), 0);
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && closeOnEscape) onCloseRef.current();
+      if (event.key !== 'Escape' || !closeOnEscape) return;
+      const overlays = document.querySelectorAll('[data-ink-detail-overlay]');
+      if (overlays.item(overlays.length - 1) !== viewportRef.current) return;
+      event.stopImmediatePropagation();
+      onCloseRef.current();
     };
     document.addEventListener('keydown', onKeyDown);
 
@@ -127,7 +133,11 @@ export function InkDetailDrawer({
   if (!isOpen || typeof document === 'undefined') return null;
 
   return createPortal(
-    <div ref={viewportRef} className="fixed inset-0 z-50">
+    <div
+      ref={viewportRef}
+      className="fixed inset-0 z-50"
+      data-ink-detail-overlay
+    >
       <button
         type="button"
         tabIndex={-1}
@@ -154,9 +164,13 @@ export function InkDetailDrawer({
       >
         <header className="border-ink/15 shrink-0 border-b border-dashed pt-3 pr-[max(env(safe-area-inset-right),1rem)] pb-3 pl-[max(env(safe-area-inset-left),1rem)] md:pt-[max(var(--app-safe-top),1.25rem)] md:pr-[max(env(safe-area-inset-right),1.25rem)] md:pl-5">
           <div className="flex items-center justify-between gap-3">
-            <h2 id={titleId} className="text-lg font-semibold">
+            <h2
+              id={titleId}
+              className={headerContent ? 'sr-only' : 'text-lg font-semibold'}
+            >
               {title}
             </h2>
+            {headerContent}
             <InkButton onClick={onClose} variant="secondary">
               {closeLabel}
             </InkButton>

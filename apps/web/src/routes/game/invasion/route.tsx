@@ -1,3 +1,4 @@
+import { useParty } from '@app/components/feature/party/useParty';
 import {
   WeeklyActivityHeader,
   WeeklyActivityLobby,
@@ -104,6 +105,7 @@ function Entry({
   now: number;
   error: string;
 }) {
+  const { openParty, value } = useParty();
   const state = activityState(
     open ? 'open' : 'waiting',
     open ? status.opensAt : status.nextOpensAt,
@@ -131,9 +133,19 @@ function Entry({
     >
       {error && <InkNotice tone="danger">{error}</InkNotice>}
       {open && !status.otherCharacter && (
-        <p className="text-ink-secondary text-sm">
-          回到主界面，从展开菜单的「组队」中集结，入队后可回营地准备。
-        </p>
+        <div className="space-y-2">
+          <p className="text-ink-secondary text-sm">
+            {value?.roleMismatch
+              ? '请切回在队角色，再到营地准备。'
+              : '在队伍面板集结道友，入队后回营地准备出战。'}
+          </p>
+          <InkButton
+            variant="primary"
+            onClick={() => openParty({ kind: 'invasion' })}
+          >
+            {value?.roleMismatch ? '查看队伍' : '组队迎战'}
+          </InkButton>
+        </div>
       )}
       <Receipt status={status} />
     </WeeklyActivityLobby>

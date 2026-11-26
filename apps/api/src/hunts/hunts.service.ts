@@ -34,7 +34,10 @@ export class HuntsService {
   }
 
   async mine(actor: ActiveCultivatorRef) {
-    return { success: true, data: { team: await readMyHuntTeam(actor) } };
+    return {
+      success: true,
+      data: { team: await readMyHuntTeam(actor), serverNow: Date.now() },
+    };
   }
 
   async lobby(

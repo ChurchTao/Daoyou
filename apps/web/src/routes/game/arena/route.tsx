@@ -4,6 +4,7 @@ import {
   type RoomActorView,
 } from '@app/components/feature/room';
 import { GameSceneFrame } from '@app/components/game-shell';
+import { InkButton } from '@app/components/ui/InkButton';
 import { apiFetch } from '@app/lib/api/fetch';
 import { realtimeClient } from '@app/lib/realtime/realtimeClient';
 import { usePlayerSession } from '@app/lib/resources/player';
@@ -53,6 +54,7 @@ export default function ArenaPage() {
   const [room, setRoom] = useState<ArenaRoomV1 | null>(null);
   const [loading, setLoading] = useState(true);
   const currentCultivatorId = session.data?.activeCultivator?.id;
+  const selectedActor = selectedId ?? (room ? 'ring' : undefined);
 
   const applyRoom = useCallback((next: ArenaRoomV1 | null) => {
     setRoom((current) => {
@@ -159,14 +161,14 @@ export default function ArenaPage() {
             ? { ...actor, status: { label: '已有候场房间', tone: 'active' } }
             : actor,
         )}
-        selectedId={selectedId}
+        selectedId={selectedActor}
         onSelect={setSelectedId}
         prompt="点击擂台入场；若想了解细则，可问王虎"
         promptDetail="这里是无消耗的自由切磋，双方到齐并准备后即可开始。"
         detail={
-          selectedId === 'wang-hu' ? (
+          selectedActor === 'wang-hu' ? (
             <WangHuConversation onExit={() => setSelectedId(undefined)} />
-          ) : selectedId === 'ring' ? (
+          ) : selectedActor === 'ring' ? (
             <ArenaFacility
               room={room}
               loading={loading}
@@ -234,8 +236,8 @@ function ArenaFacility({
 }) {
   const [inviteCode, setInviteCode] = useState('');
   const [joining, setJoining] = useState(false);
-  const [withParty, setWithParty] = useState(false);
-  const current = useParty().value;
+  const [withParty, setWithParty] = useState(true);
+  const { value: current, openParty } = useParty();
   const party = current?.party;
   const partySize = !current?.roleMismatch && party?.members.some((member) => member.userId === party.leaderId && member.cultivatorId === currentCultivatorId)
     ? party.members.length
@@ -301,7 +303,7 @@ function ArenaFacility({
         />
       ) : (
         <div className="mt-4 space-y-2">
-          {partySize > 1 && (
+          {partySize > 1 ? (
             <label className="text-ink-secondary flex min-h-11 items-start gap-2 px-5 py-3 text-sm">
               <input
                 type="checkbox"
@@ -312,6 +314,21 @@ function ArenaFacility({
                 带当前队伍入场 · <b className="font-mono">{partySize}</b> 人
               </span>
             </label>
+          ) : (
+            <div className="text-ink-secondary px-5 text-sm">
+              {current?.roleMismatch
+                ? '切回在队角色即可随队入场。'
+                : party && !partySize
+                  ? '由队长带队入场，也可自行入场。'
+                  : '可单人入场，也可先召集道友同行。'}
+              <InkButton
+                variant="secondary"
+                className="min-h-11"
+                onClick={() => openParty()}
+              >
+                {party ? '查看队伍' : '先去组队'}
+              </InkButton>
+            </div>
           )}
           <button
             type="button"

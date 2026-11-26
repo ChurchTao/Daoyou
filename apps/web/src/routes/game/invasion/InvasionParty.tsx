@@ -1,3 +1,4 @@
+import { useParty } from '@app/components/feature/party/useParty';
 import { InkButton } from '@app/components/ui';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import type {
@@ -39,6 +40,7 @@ export function InvasionParty({
   remaining: number;
   send: (input: InvasionCommand) => Promise<boolean>;
 }) {
+  const { openParty } = useParty();
   const total = team.members.length;
   const ready = team.ready.length;
   const readySelf = !!playerId && team.ready.includes(playerId);
@@ -47,7 +49,7 @@ export function InvasionParty({
   const note = team.busyMembers
     ? '有道友尚在另一轮挑战中，或需要切回本期出战的角色。'
     : total < 2
-      ? '至少两人才能出战。'
+      ? '至少两人才能出战，可在队伍面板发布招募。'
       : ready < total
         ? '全员准备后，由队长开战。'
         : undefined;
@@ -98,7 +100,7 @@ export function InvasionParty({
           >
             开启第 {team.wave} 波
           </InkButton>
-        ) : (
+        ) : total >= 2 ? (
           <InkButton
             variant={readySelf ? 'secondary' : 'primary'}
             disabled={busy || !open}
@@ -106,7 +108,7 @@ export function InvasionParty({
           >
             {readySelf ? '取消准备' : '准备出战'}
           </InkButton>
-        )}
+        ) : null}
         {canStart && (
           <InkButton
             variant="secondary"
@@ -116,17 +118,12 @@ export function InvasionParty({
             取消准备
           </InkButton>
         )}
-        {team.leader && (team.recruiting || total < 4) && (
-          <InkButton
-            variant="secondary"
-            disabled={busy || !open}
-            onClick={() =>
-              void send({ type: 'recruit', advertised: !team.recruiting })
-            }
-          >
-            {team.recruiting ? '停止招募' : '营地招募'}
-          </InkButton>
-        )}
+        <InkButton
+          variant={total < 2 ? 'primary' : 'secondary'}
+          onClick={() => openParty({ kind: 'invasion' })}
+        >
+          查看队伍
+        </InkButton>
       </div>
     </section>
   );

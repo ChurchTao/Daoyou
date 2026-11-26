@@ -1,13 +1,18 @@
 import { lazyRoute } from '@app/lib/router/lazyRoute';
-import { Route } from 'react-router';
+import { redirect, Route, type LoaderFunctionArgs } from 'react-router';
 import { scene } from '../handles';
 
+function redirectPartyLink({ request }: LoaderFunctionArgs) {
+  const params = new URL(request.url).searchParams;
+  const id = params.get('join');
+  if (!id) return redirect('/game');
+  params.delete('join');
+  params.set('partyJoin', id);
+  return redirect(`/game?${params}`);
+}
+
 export const servicesRoutes = [
-  <Route
-    path="party"
-    lazy={lazyRoute(() => import('@app/routes/game/party/route'))}
-    handle={scene({ id: 'party', presentation: 'service' }, '组队')}
-  />,
+  <Route path="party" loader={redirectPartyLink} />,
   <Route
     path="market/recycle"
     lazy={lazyRoute(() => import('@app/routes/game/market/recycle/route'))}

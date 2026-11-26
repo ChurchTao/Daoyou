@@ -19,13 +19,16 @@ export function partyInviteHref(
   partyId: string,
   source: PartyRecruitmentSource = { kind: 'invite' },
 ) {
-  const query = new URLSearchParams({ join: partyId });
+  const query = new URLSearchParams({ partyJoin: partyId });
   if (source.kind === 'hunt') {
     query.set('kind', source.kind);
     if (source.eventId) query.set('eventId', source.eventId);
   } else if (source.kind === 'invasion') {
     query.set('kind', source.kind);
     query.set('week', source.week);
+  } else if (source.kind === 'public') {
+    query.set('kind', source.kind);
+    query.set('recruitmentId', source.recruitmentId);
   }
-  return `/game/party?${query}`;
+  return `/game?${query}`;
 }

@@ -1,14 +1,15 @@
 import {
   PartyChatSendSchema,
   PartyCommandSchema,
+  PartyRecruitmentIntentSchema,
   PartyRecruitmentSourceSchema,
   type CurrentParty,
   type PartyChatSend,
   type PartyCommand,
+  type PartyRecruitmentIntent,
 } from '@daoyou/contracts/party';
 import {
   Controller,
-  ForbiddenException,
   Get,
   Header,
   HttpCode,
@@ -32,11 +33,15 @@ import {
   currentParty,
   expireApplicationsAfterPartyCreation,
   inspectPartyApplicant,
-  partyApplicant,
+  inspectPartyMember,
   previewPartyApplication,
   reviewPartyApplication,
 } from './party-applications.js';
 import { listPartyChat, sendPartyChat } from './party-chat.js';
+import {
+  publishPartyRecruitment,
+  stopPartyRecruitment,
+} from './party-recruitments.js';
 import { changeParty, createParty, partyForUser } from './party.service.js';
 
 @Controller('api/parties')
@@ -89,13 +94,10 @@ class PartiesController {
   @Get('recruitments')
   @Header('Cache-Control', 'private, no-store')
   async recruitments(
-    @CurrentCultivator() actor: ActiveCultivatorRef,
-    @FirstQuery('kind', new ZodPipe(z.enum(['hunt', 'invasion'])))
-    kind: 'hunt' | 'invasion',
+    @FirstQuery('kind', new ZodPipe(PartyRecruitmentIntentSchema.optional()))
+    intent?: PartyRecruitmentIntent,
   ) {
-    const applicant = await partyApplicant(actor);
-    if (!applicant) throw new ForbiddenException('当前角色无法组队');
-    return { items: await listPartyRecruitments(kind, applicant) };
+    return { items: await listPartyRecruitments(intent) };
   }
 
   @Get(':partyId/preview')
@@ -106,13 +108,16 @@ class PartiesController {
     @FirstQuery('kind') kind?: string,
     @FirstQuery('eventId') eventId?: string,
     @FirstQuery('week') week?: string,
+    @FirstQuery('recruitmentId') recruitmentId?: string,
   ) {
     const source = PartyRecruitmentSourceSchema.parse(
       kind === 'hunt'
         ? { kind, eventId: eventId || null }
         : kind === 'invasion'
           ? { kind, week }
-          : { kind: kind ?? 'invite' },
+          : kind === 'public'
+            ? { kind, recruitmentId }
+            : { kind: kind ?? 'invite' },
     );
     return previewPartyApplication(actor, partyId, source);
   }
@@ -124,6 +129,15 @@ class PartiesController {
     @Param('id', new ZodPipe(z.uuid())) id: string,
   ) {
     return inspectPartyApplicant(actor, id);
+  }
+
+  @Get('members/:id/cultivator')
+  @Header('Cache-Control', 'private, no-store')
+  inspectMember(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @Param('id', new ZodPipe(z.uuid())) id: string,
+  ) {
+    return inspectPartyMember(actor, id);
   }
 
   @Post()
@@ -154,6 +168,10 @@ class PartiesController {
       await createParty(actor);
       await expireApplicationsAfterPartyCreation(actor);
       publishPartyChanges([actor.userId]);
+    } else if (input.type === 'recruit') {
+      await publishPartyRecruitment(actor, input.partyId, input.intent);
+    } else if (input.type === 'stop-recruiting') {
+      await stopPartyRecruitment(actor, input.partyId);
     } else {
       const previous = await partyForUser(actor.userId);
       const next = await changeParty(actor, input.partyId, input);

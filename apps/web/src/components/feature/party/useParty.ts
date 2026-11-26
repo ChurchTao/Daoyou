@@ -2,6 +2,7 @@ import type {
   CurrentParty,
   PartyApplicationStatus,
   PartyCommand,
+  PartyRecruitmentIntent,
 } from '@daoyou/contracts/party';
 import type { WorldChatMessageDTO } from '@daoyou/contracts/world-chat';
 import { createContext, useContext } from 'react';
@@ -12,6 +13,8 @@ export type PartyDraft = {
   reply: WorldChatMessageDTO | null;
 };
 export type PartyResult = CurrentParty & { outcome?: PartyApplicationStatus };
+export type PartyRecruitmentFocus = { kind: PartyRecruitmentIntent };
+
 export const PartyContext = createContext<{
   actorId: string;
   value?: CurrentParty;
@@ -23,6 +26,9 @@ export const PartyContext = createContext<{
   send: (command: PartyCommand) => Promise<PartyResult | undefined>;
   setDraft: (update: (draft: PartyDraft) => PartyDraft) => void;
   setChatVisible: (visible: boolean) => void;
+  drawer?: { routeKey: string; focus?: PartyRecruitmentFocus };
+  openParty: (focus?: PartyRecruitmentFocus) => void;
+  closeParty: () => void;
 } | null>(null);
 
 export function useParty() {

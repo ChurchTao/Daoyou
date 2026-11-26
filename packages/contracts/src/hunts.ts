@@ -65,6 +65,7 @@ export type HuntLobby = {
 
 export type HuntMine = {
   team: HuntTeam | null;
+  serverNow: number;
 };
 
 export type HuntBattleReward = {

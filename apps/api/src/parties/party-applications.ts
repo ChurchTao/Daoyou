@@ -3,7 +3,6 @@ import {
   PARTY_APPLICATION_TTL_MS,
   PARTY_CAPACITY,
   type CurrentParty,
-  type PartyApplicantBuild,
   type PartyApplication,
   type PartyApplicationStatus,
   type PartyRecruitmentSource,
@@ -38,6 +37,7 @@ import {
   writePartyApplications,
   type StoredPartyApplication,
 } from './party-application-store.js';
+import { readPartyRecruitment } from './party-recruitments.js';
 import {
   addPartyMember,
   lockPartyApplicant,
@@ -115,11 +115,14 @@ function applicationView(
 export async function currentParty(actor: Identity): Promise<CurrentParty> {
   const party = await partyForUser(actor.userId);
   const roleMismatch = Boolean(party && !partyOwns(party, actor));
-  const [inbox, history] = await Promise.all([
+  const [inbox, history, recruitment] = await Promise.all([
     party && !roleMismatch && party.leaderId === actor.userId
       ? incomingPartyApplications(party.id).catch(() => [])
       : [],
     recentPartyApplications(actor.userId).catch(() => []),
+    party && !roleMismatch
+      ? readPartyRecruitment(party.id).catch(() => null)
+      : null,
   ]);
   const sent = history.filter((row) => row.cultivatorId === actor.cultivatorId);
   const now = Date.now();
@@ -150,6 +153,7 @@ export async function currentParty(actor: Identity): Promise<CurrentParty> {
   return {
     party,
     roleMismatch,
+    recruitment,
     incoming: inbox.flatMap((row) => {
       const person = people.get(row.cultivatorId);
       if (person?.userId !== row.userId || !isPendingApplication(row))
@@ -187,7 +191,11 @@ export async function previewPartyApplication(
   if (!applicant) throw new ForbiddenException('当前角色无法组队');
   const details = await validatePartyRecruitment(party, source, applicant);
   if (!details)
-    throw new ConflictException('招募已结束，或当前角色不符合招募条件');
+    throw new ConflictException(
+      source.kind === 'public'
+        ? '这条招募已结束'
+        : '招募已结束，或当前角色不符合招募条件',
+    );
   return describePartyRecruitment(party, source, details);
 }
 
@@ -226,7 +234,11 @@ export async function applyToParty(
         tx,
       );
       if (!details)
-        throw new ConflictException('招募已结束，或当前角色不符合招募条件');
+        throw new ConflictException(
+          source.kind === 'public'
+            ? '这条招募已结束'
+            : '招募已结束，或当前角色不符合招募条件',
+        );
       const createdAt = Date.now();
       const expiresAt = Math.min(
         createdAt + PARTY_APPLICATION_TTL_MS,
@@ -323,12 +335,13 @@ export async function reviewPartyApplication(
           const applicant = await partyApplicant(row, tx);
           if (
             !applicant ||
-            !(await validatePartyRecruitment(
-              party,
-              row.source,
-              applicant,
-              tx,
-            )) ||
+            (row.source.kind !== 'public' &&
+              !(await validatePartyRecruitment(
+                party,
+                row.source,
+                applicant,
+                tx,
+              ))) ||
             !isPendingApplication(row)
           ) {
             status = 'expired';
@@ -380,10 +393,7 @@ export async function reviewPartyApplication(
   return result.status;
 }
 
-export async function inspectPartyApplicant(
-  actor: Identity,
-  id: string,
-): Promise<PartyApplicantBuild> {
+export async function inspectPartyApplicant(actor: Identity, id: string) {
   const row = await getPartyApplication(id);
   if (!row || !isPendingApplication(row))
     throw new NotFoundException('这条申请已失效');
@@ -394,9 +404,16 @@ export async function inspectPartyApplicant(
     throw new NotFoundException('这条申请已失效');
   const profile = await loadCultivatorInspectionData(row.cultivatorId);
   if (!profile) throw new NotFoundException('申请角色已不可用');
-  return {
-    attributes: profile.attributes,
-    combatPanel: profile.combatPanel,
-    build: profile.build,
-  };
+  return profile;
+}
+
+export async function inspectPartyMember(actor: Identity, id: string) {
+  const party = await partyForUser(actor.userId);
+  if (!party || !partyOwns(party, actor))
+    throw new ForbiddenException('仅队内道友可互相查探');
+  if (!party.members.some((member) => member.cultivatorId === id))
+    throw new NotFoundException('这位道友已不在队中');
+  const profile = await loadCultivatorInspectionData(id);
+  if (!profile) throw new NotFoundException('队员角色已不可用');
+  return profile;
 }

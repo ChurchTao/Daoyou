@@ -9,8 +9,14 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useLocation } from 'react-router';
 import { requestParty } from './partyWorkspaceApi';
-import { PartyContext, type PartyDraft, type PartyResult } from './useParty';
+import {
+  PartyContext,
+  type PartyDraft,
+  type PartyRecruitmentFocus,
+  type PartyResult,
+} from './useParty';
 
 export function PartyProvider({
   actorId,
@@ -24,6 +30,19 @@ export function PartyProvider({
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState<PartyDraft>();
+  const [drawer, setDrawer] = useState<{
+    routeKey: string;
+    focus?: PartyRecruitmentFocus;
+  }>();
+  const { key: routeKey } = useLocation();
+  const openParty = useCallback(
+    (focus?: PartyRecruitmentFocus) => setDrawer({ routeKey, focus }),
+    [routeKey],
+  );
+  const closeParty = useCallback(() => setDrawer(undefined), []);
+  useEffect(() => {
+    if (drawer && drawer.routeKey !== routeKey) closeParty();
+  }, [closeParty, drawer, routeKey]);
   const [unread, setUnread] = useState<{ partyId: string; count: number }>();
   const prior = useRef<CurrentParty>(undefined);
   const request = useRef<AbortController>(null);
@@ -179,6 +198,9 @@ export function PartyProvider({
             );
         },
         setChatVisible,
+        drawer,
+        openParty,
+        closeParty,
       }}
     >
       {children}

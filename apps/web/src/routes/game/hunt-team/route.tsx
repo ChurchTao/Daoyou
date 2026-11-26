@@ -1,9 +1,9 @@
-import {
-  huntTargetLabel,
-  huntTeamStatusLabel,
-  notifyHuntTeamChanged,
-} from '@app/components/feature/hunts/huntTeamView';
-import { huntRequest, useHunts } from '@app/components/feature/hunts/useHunts';
+import { HuntBattleActions } from '@app/components/feature/hunts/HuntBattleActions';
+import { huntTargetLabel } from '@app/components/feature/hunts/huntTeamView';
+import { useHuntActions } from '@app/components/feature/hunts/useHuntActions';
+import { useHuntBattleNavigation } from '@app/components/feature/hunts/useHuntBattleNavigation';
+import { useHunts } from '@app/components/feature/hunts/useHunts';
+import { useParty } from '@app/components/feature/party/useParty';
 import {
   GameSceneFrame,
   GameSceneLoading,
@@ -16,7 +16,6 @@ import type { HuntMine } from '@daoyou/contracts/hunts';
 import { HUNT_BOSSES } from '@daoyou/game-content/hunts';
 import type { HuntEvent, HuntTeam } from '@daoyou/game-domain/hunts';
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
 
 function HuntTargetField({
   team,
@@ -99,7 +98,7 @@ function HuntRecruitmentForm({
           (minRealm === team.minRealm && maxRealm === team.maxRealm)
         }
       >
-        保存招募范围
+        保存境界范围
       </InkButton>
     </form>
   );
@@ -110,77 +109,36 @@ export default function HuntTeamPage() {
     '/api/hunts/me',
     5000,
   );
-  const navigate = useNavigate();
-  const [pending, setPending] = useState(false);
-  const [actionError, setActionError] = useState('');
-  const [note, setNote] = useState('');
-  const team = data?.team ?? null;
-  const self = team?.members.find((member) => member.cultivatorId === actorId);
+  const { value, openParty } = useParty();
+  const { act, pending, actionError } = useHuntActions(actorId, refresh);
+  const team = data?.team;
   const leader = team?.leaderId === actorId;
-  const reload = () => {
-    notifyHuntTeamChanged();
-    refresh();
-  };
-  const act = async (url: string, body: unknown, enter = false) => {
-    if (pending || !actorId) return false;
-    setPending(true);
-    setActionError('');
-    setNote('');
-    try {
-      const next = await huntRequest<HuntTeam | null>(url, actorId, body);
-      reload();
-      if (enter && next?.battleId)
-        navigate(`/game/combat-v6/hunt/${next.battleId}`);
-      return true;
-    } catch (cause) {
-      setActionError(
-        cause instanceof Error ? cause.message : '暂时未能办妥，请稍后再试',
-      );
-      reload();
-      return false;
-    } finally {
-      setPending(false);
-    }
-  };
-  const command = (type: 'ready' | 'start') =>
-    team &&
-    void act(
-      `/api/hunts/teams/${team.id}`,
-      {
-        type,
-        revision: team.revision,
-        ...(type === 'ready' ? { ready: !self?.ready } : {}),
-      },
-      type === 'start',
-    );
+  const openBoard = () => openParty({ kind: 'hunt' });
+  useHuntBattleNavigation(team, actorId, refresh);
 
   if (!data && !error) return <GameSceneLoading message="正在确认队伍……" />;
 
   return (
     <GameSceneFrame variant="workflow">
-      {actionError || (error && !team) ? (
+      {(actionError || error) && (
         <GameSceneNote tone="danger">{actionError || error}</GameSceneNote>
-      ) : null}
-      {note ? <p className="text-ink-secondary text-sm">{note}</p> : null}
+      )}
       {!team ? (
-        <p className="text-ink-secondary">
-          在展开菜单的「组队」中集结，再来选定讨伐目标。
-        </p>
+        <div className="space-y-3">
+          <p className="text-ink-secondary">
+            {value?.roleMismatch
+              ? '请切回在队角色参加讨伐。'
+              : '创建队伍或加入正在招募的队伍，再随队讨伐。'}
+          </p>
+          <InkButton variant="primary" onClick={openBoard}>
+            {value?.roleMismatch ? '查看队伍' : '组队讨伐'}
+          </InkButton>
+          <InkButton variant="secondary" href="/game/map-v2">
+            寻找讨伐目标
+          </InkButton>
+        </div>
       ) : (
         <div className="space-y-4 text-sm">
-          <div className="flex items-center justify-between gap-3">
-            <span>
-              {huntTeamStatusLabel(team.status)}{' '}
-              <span className="font-mono">
-                {team.members.filter((member) => member.ready).length}/
-                {team.members.length}
-              </span>{' '}
-              已准备
-            </span>
-            <span className="text-ink-secondary">
-              {team.minRealm}至{team.maxRealm}
-            </span>
-          </div>
           {leader && team.status === 'assembling' ? (
             <>
               <HuntTargetField
@@ -195,7 +153,9 @@ export default function HuntTeamPage() {
                 }
               />
               <details>
-                <summary className="mb-2 cursor-pointer">调整招募境界</summary>
+                <summary className="text-ink-secondary mb-2 cursor-pointer">
+                  调整出战境界 · {team.minRealm}至{team.maxRealm}
+                </summary>
                 <HuntRecruitmentForm
                   key={`${team.id}:${team.minRealm}:${team.maxRealm}`}
                   team={team}
@@ -212,58 +172,43 @@ export default function HuntTeamPage() {
             </>
           ) : (
             <p>
-              目标：
               {team.event
                 ? `${huntTargetLabel(team.event)} · ${team.event.locationName}`
-                : '尚未选定'}
+                : '等待队长选定讨伐目标。'}
             </p>
           )}
-          {team.status === 'in_battle' && team.battleId ? (
-            <InkButton
-              onClick={() => navigate(`/game/combat-v6/hunt/${team.battleId}`)}
-            >
-              进入战斗
-            </InkButton>
+          {team.event ? (
+            <HuntBattleActions
+              team={team}
+              actorId={actorId}
+              now={data.serverNow}
+              busy={pending}
+              onParty={openBoard}
+              onReady={(ready) =>
+                void act(`/api/hunts/teams/${team.id}`, {
+                  type: 'ready',
+                  ready,
+                  revision: team.revision,
+                })
+              }
+              onStart={() =>
+                void act(`/api/hunts/teams/${team.id}`, {
+                  type: 'start',
+                  revision: team.revision,
+                })
+              }
+            />
           ) : (
-            <div className="flex flex-wrap gap-x-3 gap-y-1">
-              <InkButton
-                disabled={pending || team.status !== 'assembling'}
-                onClick={() => command('ready')}
-              >
-                {self?.ready ? '取消准备' : '准备'}
+            <>
+              {leader && (
+                <p className="text-ink-secondary">
+                  选定目标后，全员确认准备即可出战。
+                </p>
+              )}
+              <InkButton variant="secondary" onClick={openBoard}>
+                查看队伍
               </InkButton>
-              {leader ? (
-                <>
-                  <InkButton
-                    disabled={
-                      pending ||
-                      !team.event ||
-                      team.members.length < 2 ||
-                      team.members.some((member) => !member.ready)
-                    }
-                    onClick={() => command('start')}
-                  >
-                    {team.status === 'starting' ? '继续出战' : '开始讨伐'}
-                  </InkButton>
-                  <InkButton
-                    disabled={
-                      pending ||
-                      team.status !== 'assembling' ||
-                      team.members.length >= 4
-                    }
-                    onClick={() =>
-                      void act(`/api/hunts/teams/${team.id}`, {
-                        type: 'recruit',
-                      }).then((ok) => {
-                        if (ok) setNote('已发到世界频道');
-                      })
-                    }
-                  >
-                    召集道友
-                  </InkButton>
-                </>
-              ) : null}
-            </div>
+            </>
           )}
         </div>
       )}
