@@ -7,12 +7,12 @@ import { InkNotice } from '@app/components/ui/InkNotice';
 import { apiFetch } from '@app/lib/api/fetch';
 import { realtimeClient } from '@app/lib/realtime/realtimeClient';
 import { REALM_VALUES } from '@daoyou/constants/realms';
+import type { PartyView } from '@daoyou/contracts/party';
 import {
-  HUNT_TEAM_CHAT_MAX_CHARS,
-  type HuntTeamChatMessage,
-} from '@daoyou/contracts/hunts';
+  PARTY_CHAT_MAX_CHARS,
+  type PartyChatMessage,
+} from '@daoyou/contracts/party';
 import type { WorldChatMessageDTO } from '@daoyou/contracts/world-chat';
-import type { HuntTeam } from '@daoyou/game-domain/hunts';
 import {
   Fragment,
   useEffect,
@@ -20,6 +20,8 @@ import {
   useMemo,
   useRef,
   useState,
+  type Dispatch,
+  type SetStateAction,
 } from 'react';
 
 async function readChat<T>(url: string, init?: RequestInit): Promise<T> {
@@ -37,7 +39,7 @@ async function readChat<T>(url: string, init?: RequestInit): Promise<T> {
   return json.data;
 }
 
-function normalize(message: HuntTeamChatMessage): HuntTeamChatMessage {
+function normalize(message: PartyChatMessage): PartyChatMessage {
   return {
     ...message,
     senderRealm: message.senderRealm ?? '',
@@ -47,8 +49,8 @@ function normalize(message: HuntTeamChatMessage): HuntTeamChatMessage {
 }
 
 function mergeMessages(
-  current: HuntTeamChatMessage[],
-  incoming: HuntTeamChatMessage[],
+  current: PartyChatMessage[],
+  incoming: PartyChatMessage[],
 ) {
   const byId = new Map(current.map((message) => [message.id, message]));
   for (const message of incoming) byId.set(message.id, normalize(message));
@@ -76,17 +78,16 @@ function dateLabel(createdAt: string) {
 }
 
 function toWorldMessage(
-  message: HuntTeamChatMessage,
-  team: HuntTeam,
+  message: PartyChatMessage,
+  team: PartyView,
 ): WorldChatMessageDTO {
   const member = team.members.find(
     (item) => item.cultivatorId === message.senderCultivatorId,
   );
-  const realm = (REALM_VALUES as readonly string[]).includes(
-    message.senderRealm,
-  )
-    ? message.senderRealm
-    : (member?.realm ?? '炼气');
+  const realm =
+    REALM_VALUES.find((value) => value === message.senderRealm) ??
+    REALM_VALUES.find((value) => value === member?.realm) ??
+    '炼气';
   return {
     id: message.id,
     sequence: 0,
@@ -116,17 +117,23 @@ function toWorldMessage(
   };
 }
 
-export function HuntTeamChat({
+export function PartyChat({
   team,
   actorId,
+  draft,
+  setDraft,
+  reply,
+  setReply,
 }: {
-  team: HuntTeam;
+  team: PartyView;
   actorId: string;
+  draft: string;
+  setDraft: Dispatch<SetStateAction<string>>;
+  reply: WorldChatMessageDTO | null;
+  setReply: Dispatch<SetStateAction<WorldChatMessageDTO | null>>;
 }) {
   const { pushToast } = useInkUI();
-  const [messages, setMessages] = useState<HuntTeamChatMessage[]>([]);
-  const [text, setText] = useState('');
-  const [reply, setReply] = useState<WorldChatMessageDTO | null>(null);
+  const [messages, setMessages] = useState<PartyChatMessage[]>([]);
   const [loadError, setLoadError] = useState('');
   const [sendError, setSendError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
@@ -159,7 +166,7 @@ export function HuntTeamChat({
     () => messages.map((message) => toWorldMessage(message, team)),
     [messages, team],
   );
-  const rememberLatest = (list: HuntTeamChatMessage[]) => {
+  const rememberLatest = (list: PartyChatMessage[]) => {
     const id = list.at(-1)?.id;
     if (id) setSeenId(id);
   };
@@ -172,7 +179,7 @@ export function HuntTeamChat({
     if (!input) return;
     input.style.height = 'auto';
     input.style.height = `${Math.min(128, Math.max(44, input.scrollHeight))}px`;
-  }, [text]);
+  }, [draft]);
   useEffect(() => {
     if (cooldownUntil <= Date.now()) return;
     const timer = window.setInterval(() => setNow(Date.now()), 250);
@@ -206,8 +213,8 @@ export function HuntTeamChat({
     const abort = new AbortController();
     const load = async () => {
       try {
-        const data = await readChat<{ messages: HuntTeamChatMessage[] }>(
-          `/api/hunts/teams/${teamId}/chat`,
+        const data = await readChat<{ messages: PartyChatMessage[] }>(
+          `/api/parties/${teamId}/chat`,
           { signal: abort.signal },
         );
         if (!disposed) {
@@ -245,10 +252,10 @@ export function HuntTeamChat({
   );
 
   const send = async () => {
-    const body = text.trim();
+    const body = draft.trim();
     if (pending || cooldownRemaining > 0 || !body || !actorId) return;
     const quoted = reply;
-    setText('');
+    setDraft('');
     setReply(null);
     setPending(true);
     setPendingText(body);
@@ -256,8 +263,8 @@ export function HuntTeamChat({
     setFollowing(true);
     followingRef.current = true;
     try {
-      const message = await readChat<HuntTeamChatMessage>(
-        `/api/hunts/teams/${teamId}/chat`,
+      const message = await readChat<PartyChatMessage>(
+        `/api/parties/${teamId}/chat`,
         {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
@@ -278,7 +285,7 @@ export function HuntTeamChat({
         setCooldownUntil(Date.now() + Number(wait[1]) * 1000);
         setNow(Date.now());
       }
-      setText((current) => current || body);
+      setDraft((current) => current || body);
       setReply((current) => current ?? quoted);
       setSendError(message);
     } finally {
@@ -302,28 +309,28 @@ export function HuntTeamChat({
   };
   const composer = (
     <WorldChatTextComposer
-      inputId="hunt-team-chat-input"
+      inputId="party-chat-input"
       inputRef={inputRef}
-      draft={text}
-      maxChars={HUNT_TEAM_CHAT_MAX_CHARS}
+      draft={draft}
+      maxChars={PARTY_CHAT_MAX_CHARS}
       placeholder="与道友说点什么……"
       label="传音内容"
       posting={pending}
       cooldownRemaining={cooldownRemaining}
       reply={reply}
-      onDraftChange={setText}
+      onDraftChange={setDraft}
       onClearReply={() => setReply(null)}
       onSend={() => void send()}
     />
   );
 
   return (
-    <section aria-label="队伍传音" className="flex h-80 flex-col">
+    <section aria-label="队伍传音" className="flex min-h-0 flex-1 flex-col">
       <div
         ref={logRef}
-        className="battle-scroll min-h-0 flex-1 overflow-y-auto"
+        className="battle-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain"
       >
-        <div className="flex min-h-full flex-col justify-end">
+        <div>
           {loadError ? (
             <InkNotice tone="warning">
               {loadError}{' '}

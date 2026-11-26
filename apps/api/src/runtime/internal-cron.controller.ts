@@ -21,6 +21,14 @@ export class InternalCronController {
   chatMaintenance() {
     return this.jobs.chatMaintenance();
   }
+  @Get('alchemy-contest-settle')
+  alchemyContestSettle() {
+    return this.jobs.alchemyContestSettle();
+  }
+  @Get('baixiao-meet')
+  baixiaoMeet() {
+    return this.jobs.baixiaoMeet();
+  }
   @Get('auction-expire')
   auctionExpire() {
     return this.jobs.auctionExpire();

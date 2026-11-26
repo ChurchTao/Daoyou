@@ -251,6 +251,9 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '秘境探查',
         href: '/game/inquiry',
       },
+      { id: 'alchemy-contest', sceneLabel: '炼丹大会' },
+      { id: 'baixiao-meet', sceneLabel: '百晓盛会' },
+      { id: 'ancient-demon-invasion', sceneLabel: '古魔入侵' },
       { id: 'wild', sceneLabel: '野外寻觅', href: '/game/map-v2' },
       { id: 'story-battle', sceneLabel: '交手' },
       {
@@ -259,7 +262,7 @@ export const gameDockGroups: GameNavGroup[] = [
       },
       {
         id: 'hunt-team',
-        sceneLabel: '组队讨伐',
+        sceneLabel: '结伴讨伐',
         href: '/game/hunt-team',
       },
       {

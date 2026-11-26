@@ -1,6 +1,9 @@
+import { InvasionModule } from '@server/invasion/invasion.module.js';
 import { LlmModule } from '@server/llm/llm.module.js';
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
+import { BaixiaoModule } from '../baixiao/baixiao.module.js';
+import { AlchemyContestModule } from '../alchemy-contest/alchemy-contest.module.js';
 import { AuctionModule } from '../auction/auction.module.js';
 import { CombatModule } from '../combat/combat.module.js';
 import { DatabaseModule } from '../database/database.module.js';
@@ -15,6 +18,9 @@ import { RuntimeService } from './runtime.service.js';
     DatabaseModule,
     CombatModule,
     AuctionModule,
+    AlchemyContestModule,
+    BaixiaoModule,
+    InvasionModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [InternalCronController],

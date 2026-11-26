@@ -17,6 +17,9 @@ const SPONSORSHIP_CLEANUP_SCHEDULE = '30 19 * * *';
 const SPONSORSHIP_ADMIN_DIGEST_SCHEDULE = '0 1 * * *';
 
 export const BACKGROUND_SCHEDULES = [
+  { type: 'alchemy-contest.prepare', expression: '0 2 * * *' },
+  { type: 'alchemy-contest.settle', expression: '*/5 * * * *' },
+  { type: 'baixiao-meet.period', expression: '*/5 * * * *' },
   { type: 'chat.maintenance', expression: '* * * * *' },
   { type: 'auction.expire', expression: AUCTION_EXPIRE_SCHEDULE },
   { type: 'ranking.rewards.distribute', expression: RANK_REWARDS_SCHEDULE },

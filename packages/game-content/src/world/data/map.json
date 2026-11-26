@@ -312,6 +312,33 @@
   ],
   "satellite_nodes": [
     {
+      "id": "SAT_TN_INVASION",
+      "name": "镇魔营地",
+      "parent_id": "TN_ZMG_01",
+      "type": "landmark",
+      "realm_requirement": "炼气",
+      "tags": ["古魔入侵", "除魔榜"],
+      "description": "坠魔谷外围、空间断层带旁的守阵营地。每周二北京时间 14:00–16:00，各境道友可来此结队迎击古魔。"
+    },
+    {
+      "id": "SAT_DJ_BAIXIAO",
+      "name": "百晓盛会",
+      "parent_id": "DJ_CENTRAL_01",
+      "type": "landmark",
+      "tags": ["百晓盛会", "才子榜"],
+      "description": "晋京城外设席开卷。每周四北京时间 14:00–16:00，邀各境道友闯二十五关。",
+      "realm_requirement": "炼气"
+    },
+    {
+      "id": "SAT_LX_ALCHEMY",
+      "name": "丹塔",
+      "parent_id": "LX_INNER_01",
+      "type": "landmark",
+      "tags": ["丹塔", "炼丹大会"],
+      "description": "天星城外，海雾绕塔。丹塔每周三北京时间 14:00 开炉，邀各路修士切磋丹术。",
+      "realm_requirement": "炼气"
+    },
+    {
       "id": "SAT_TN_01",
       "name": "太岳山·无名古修士洞府",
       "parent_id": "TN_YUE_01",

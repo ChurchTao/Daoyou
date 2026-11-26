@@ -1,7 +1,9 @@
 import { realtimeClient } from '@app/lib/realtime/realtimeClient';
 import { GuideOverlay } from '@app/components/feature/guide/GuideOverlay';
 import { SceneGate } from '@app/components/feature/story/SceneGate';
-import { HuntTeamBar } from '@app/components/feature/hunts/HuntTeamBar';
+import { PartyChatDock } from '@app/components/feature/party/PartyChatDock';
+import { PartyProvider } from '@app/components/feature/party/PartyProvider';
+import { HuntBattleBridge } from '@app/components/feature/hunts/HuntBattleBridge';
 import { WorldChatPreviewBar } from '@app/components/feature/world-chat/WorldChatPreviewBar';
 import { WorldChatFeedProvider } from '@app/components/feature/world-chat/useWorldChatFeedModel';
 import { GameBottomDock } from '@app/components/game-shell/GameBottomDock';
@@ -50,7 +52,8 @@ function LoadingScreen({ message }: { message: string }) {
 function PlayerShell() {
   const session = usePlayerSession();
   const note = session.data?.note;
-  const hasActiveCultivator = Boolean(session.data?.activeCultivator);
+  const actorId = session.data?.activeCultivator?.id;
+  const hasActiveCultivator = Boolean(actorId);
   const isLoading = session.status === 'idle' || session.status === 'loading';
 
   if (isLoading && !hasActiveCultivator) {
@@ -90,7 +93,14 @@ function PlayerShell() {
     );
   }
 
-  return <Outlet />;
+  return (
+    <AuthProvider>
+      <PartyProvider key={actorId} actorId={actorId!}>
+        <Outlet />
+        <PartyChatDock />
+      </PartyProvider>
+    </AuthProvider>
+  );
 }
 
 export function GameViewportLayout() {
@@ -152,12 +162,11 @@ function GameViewportBody({ scene }: { scene: GameSceneHandle | null }) {
 
   return (
     <PaperSurface data-game-viewport className="min-h-dvh" style={viewportStyle}>
-      <AuthProvider>
+      <HuntBattleBridge />
       <WorldChatFeedProvider>
         <div className="flex min-h-dvh flex-col">
           <PaperSurface className="sticky top-0 z-30">
             <GameTopHud snapshot={hud} />
-            <HuntTeamBar />
           </PaperSurface>
           <main
             className="min-h-0 flex-1"
@@ -196,7 +205,6 @@ function GameViewportBody({ scene }: { scene: GameSceneHandle | null }) {
           </PaperSurface>
         </div>
       </WorldChatFeedProvider>
-      </AuthProvider>
     </PaperSurface>
   );
 }

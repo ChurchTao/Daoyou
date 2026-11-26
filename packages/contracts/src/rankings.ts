@@ -17,30 +17,6 @@ export interface BattleRankingItem {
   bodyCultivation?: BodyCultivationRankingInfo;
 }
 
-export type RankingItemType = 'elixir';
-
-export interface ItemRankingEntry {
-  id: string; // itemId
-  rank: number;
-  name: string;
-  itemType: RankingItemType;
-  type?: string;
-  quality?: string;
-  ownerName: string;
-  score: number;
-  description?: string;
-  element?: string;
-  slot?: string;
-  cost?: number;
-  cooldown?: number;
-  quantity?: number;
-  spec?: unknown;
-  productModel?: unknown;
-
-  // Optional properties for UI compatibility
-  title?: string;
-}
-
 export interface WealthRankingEntry {
   id: string;
   rank: number;
@@ -54,5 +30,4 @@ export interface WealthRankingEntry {
   spiritStones: number;
 }
 
-export type RankingsDisplayItem =
-  BattleRankingItem | ItemRankingEntry | WealthRankingEntry;
+export type RankingsDisplayItem = BattleRankingItem | WealthRankingEntry;

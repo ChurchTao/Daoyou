@@ -85,7 +85,7 @@ export function HuntResult({
           <button onClick={() => setShowRewards(true)}>查看所得</button>
         ) : null}
         {error ? <button onClick={refresh}>重试</button> : null}
-        <button onClick={onClose}>返回讨伐队伍</button>
+        <button onClick={onClose}>返回讨伐</button>
       </div>
     </div>
   );

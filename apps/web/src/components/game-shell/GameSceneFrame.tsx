@@ -172,9 +172,11 @@ function SceneStrip({
             {contextLabel}
           </div>
         ) : null}
-        <div className="text-ink-secondary mt-2 min-w-0 text-sm leading-6">
-          {summary ?? '此处事务已收束，按眼前所需行事即可。'}
-        </div>
+        {summary !== '' ? (
+          <div className="text-ink-secondary mt-2 min-w-0 text-sm leading-6">
+            {summary ?? '此处事务已收束，按眼前所需行事即可。'}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -219,7 +221,7 @@ export function GameSceneFrame({
               group={sceneGroup}
               label={header.label}
               contextLabel={header.contextLabel}
-              summary={header.summary}
+              summary={identityOverride?.summary === '' ? '' : header.summary}
             />
 
             {headerMeta ? <div className="mt-4">{headerMeta}</div> : null}

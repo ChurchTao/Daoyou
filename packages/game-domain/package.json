@@ -4,8 +4,15 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./invasion": {
+      "types": "./dist/invasion/index.d.ts",
+      "default": "./dist/invasion/index.js"
+    },
     "./achievements": "./dist/public/achievements.js",
+    "./alchemy/contest": "./dist/alchemy/contest.js",
     "./auction": "./dist/public/auction.js",
+    "./baixiao/meet": "./dist/baixiao/meet.js",
+    "./baixiao/question": "./dist/baixiao/question.js",
     "./beasts": "./dist/public/beasts.js",
     "./beasts/authoring": "./dist/beasts/pack.js",
     "./black-market": "./dist/blackMarket.js",

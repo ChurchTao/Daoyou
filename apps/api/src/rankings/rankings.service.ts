@@ -1,28 +1,23 @@
-import type { RankingChallengeRequest } from '@daoyou/contracts/combat/ranking';
-import { ConsumableFactsSchema } from '@daoyou/game-domain/inventory';
-import { QUALITY_VALUES } from '@daoyou/constants/qualities';
 import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
-import type {
-  ItemRankingEntry,
-  WealthRankingEntry,
-} from '@daoyou/contracts/rankings';
+import type { RankingChallengeRequest } from '@daoyou/contracts/combat/ranking';
+import type { WealthRankingEntry } from '@daoyou/contracts/rankings';
 import { HttpException, Inject, Injectable } from '@nestjs/common';
-import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
-import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
-import type { DbClient } from '@server/lib/drizzle/db.js';
-import { cultivators, inventoryItems } from '@server/lib/drizzle/schema.js';
-import {
-  getCultivatorRank,
-  getRankingList,
-  getRemainingChallenges,
-} from '@server/lib/redis/rankings.js';
 import {
   pendingRanking,
   runRankingChallenge,
 } from '@server/combat/application/CombatV6RankingService.js';
 import { loadCultivatorInspectionData } from '@server/cultivator/application/readers/CultivatorCombatProjectionReader.js';
 import { readCultivatorRealm } from '@server/cultivator/facts.js';
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
+import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
+import type { DbClient } from '@server/lib/drizzle/db.js';
+import { cultivators } from '@server/lib/drizzle/schema.js';
+import {
+  getCultivatorRank,
+  getRankingList,
+  getRemainingChallenges,
+} from '@server/lib/redis/rankings.js';
+import { desc, eq } from 'drizzle-orm';
 
 function parseRealm(raw: string | undefined): RealmType | null {
   return REALM_VALUES.includes(raw as RealmType) ? (raw as RealmType) : null;
@@ -35,61 +30,6 @@ export class RankingsService {
   async list(rawRealm: string | undefined) {
     const realm = parseRealm(rawRealm) ?? '炼气';
     return { success: true, data: await getRankingList(realm), realm };
-  }
-  async items(type: string | undefined) {
-    if (type !== 'elixir')
-      throw new HttpException({ success: false, error: '无效的榜单类型' }, 400);
-    const score = sql<number>`(${inventoryItems.instanceData}->>'score')::double precision`;
-    const groupId = sql<string>`concat('pill:', ${inventoryItems.cultivatorId}, ':', md5(${inventoryItems.instanceData}::text))`;
-    const rows = await this.database
-      .select({
-        id: groupId,
-        ownerName: cultivators.name,
-        facts: inventoryItems.instanceData,
-        quantity: sql<number>`sum(${inventoryItems.quantity})::integer`,
-      })
-      .from(inventoryItems)
-      .innerJoin(cultivators, eq(inventoryItems.cultivatorId, cultivators.id))
-      .where(
-        and(
-          eq(inventoryItems.definitionId, 'consumable.v1'),
-          inArray(inventoryItems.location, ['bag', 'storage']),
-          sql`${inventoryItems.instanceData}->>'type' = '丹药'`,
-          sql`${inventoryItems.instanceData}->'spec'->>'kind' = 'pill'`,
-          inArray(
-            sql`${inventoryItems.instanceData}->>'quality'`,
-            QUALITY_VALUES.slice(2),
-          ),
-        ),
-      )
-      .groupBy(
-        inventoryItems.cultivatorId,
-        cultivators.name,
-        inventoryItems.instanceData,
-      )
-      .orderBy(desc(score), groupId)
-      .limit(100);
-    const items: ItemRankingEntry[] = rows.map((row, index) => {
-      const facts = ConsumableFactsSchema.parse(row.facts);
-      return {
-        id: row.id,
-        rank: index + 1,
-        name: facts.name,
-        itemType: 'elixir',
-        type: facts.type,
-        quality: facts.quality,
-        ownerName: row.ownerName,
-        score: facts.score,
-        description: facts.description,
-        quantity: row.quantity,
-        spec: facts.spec,
-      };
-    });
-
-    return {
-      success: true,
-      data: items,
-    };
   }
   async wealth() {
     const limit = 100;

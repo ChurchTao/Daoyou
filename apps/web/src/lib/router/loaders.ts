@@ -118,8 +118,6 @@ export async function requireAdminLoader({
     credentials: 'include',
     signal: request.signal,
   });
-  const payload = (await response.json()) as AdminSessionResponse;
-
   if (response.status === 401) {
     return replace('/login');
   }
@@ -127,10 +125,10 @@ export async function requireAdminLoader({
   if (response.status === 403) {
     throw new Response('当前账号没有管理员权限，请确认管理员账号配置。', {
       status: 403,
-      statusText: '无管理员权限',
     });
   }
 
+  const payload = (await response.json()) as AdminSessionResponse;
   if (!response.ok || !payload.userId || !payload.email) {
     throw new Error(payload.error ?? '加载管理员会话失败');
   }

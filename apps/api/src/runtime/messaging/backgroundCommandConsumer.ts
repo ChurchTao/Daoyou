@@ -35,6 +35,9 @@ export function createBackgroundCommandHandlers(
   jobs: InternalCronService,
 ): BackgroundCommandHandlers {
   return {
+    'alchemy-contest.prepare': () => jobs.alchemyContestPrepare(),
+    'alchemy-contest.settle': () => jobs.alchemyContestSettle(),
+    'baixiao-meet.period': () => jobs.baixiaoMeet(),
     'chat.maintenance': () => jobs.chatMaintenance(),
     'auction.expire': () => jobs.auctionExpire(),
     'ranking.rewards.distribute': (command) =>

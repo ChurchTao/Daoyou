@@ -1,4 +1,8 @@
 import {
+  RankingChallengeSchema,
+  type RankingChallengeRequest,
+} from '@daoyou/contracts/combat/ranking';
+import {
   Controller,
   Get,
   Header,
@@ -8,23 +12,18 @@ import {
   UseFilters,
 } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
-import {
-  RankingChallengeSchema,
-  type RankingChallengeRequest,
-} from '@daoyou/contracts/combat/ranking';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { FirstQuery } from '../http/first-query.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 import {
-  ItemRankingErrors,
   RankingChallengeErrors,
   RankingListErrors,
   RankingProbeErrors,
   WealthRankingErrors,
 } from './rankings-errors.js';
 import { RankingsService } from './rankings.service.js';
-import { StoryGate } from '../story/story-gate.guard.js';
 
 // Hono's named query reads return the first value for repeated parameters.
 function first(value: string | string[] | undefined) {
@@ -44,13 +43,6 @@ export class RankingsController {
   @UseFilters(RankingListErrors)
   list(@FirstQuery('realm') realm: string | string[] | undefined) {
     return this.rankings.list(first(realm));
-  }
-
-  @Get('items')
-  @Access('public')
-  @UseFilters(ItemRankingErrors)
-  items(@FirstQuery('type') type: string | string[] | undefined) {
-    return this.rankings.items(first(type));
   }
 
   @Get('wealth')
@@ -74,7 +66,6 @@ export class RankingsController {
   probe(@JsonBody() input: { targetId?: unknown }) {
     return this.rankings.probe(input);
   }
-
 
   @Get('challenge/current')
   @Header('Cache-Control', 'no-store')

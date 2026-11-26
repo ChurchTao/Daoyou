@@ -76,6 +76,7 @@ export const TIANNAN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
   TN_ZMG_01: [0.845, 0.17],
   TN_MINE_VALLEY: [0.255, 0.46],
   TN_BORDER_01: [0.155, 0.385],
+  SAT_TN_INVASION: [0.745, 0.315],
   SAT_TN_01: [0.345, 0.525],
   SAT_TN_02: [0.325, 0.145],
   SAT_ZMG_01: [0.795, 0.265],
@@ -97,6 +98,7 @@ export const TIANNAN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
 
 export const LUANXINGHAI_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
   LX_INNER_01: [0.68, 0.397],
+  SAT_LX_ALCHEMY: [0.74, 0.48],
   LX_INNER_02: [0.852, 0.703],
   LX_OUTER_01: [0.13, 0.68],
   LX_VOID_01: [0.165, 0.108],
@@ -118,6 +120,7 @@ export const MULAN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
 
 export const DAJIN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
   DJ_CENTRAL_01: [0.65, 0.485],
+  SAT_DJ_BAIXIAO: [0.77, 0.535],
   DJ_KW_01: [0.13, 0.145],
   DJ_RIFT_01: [0.268, 0.37],
   DJ_VOID_01: [0.12, 0.775],

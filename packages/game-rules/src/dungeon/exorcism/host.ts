@@ -4,6 +4,7 @@ import { BEAST_SKILLS, BEAST_STATUS_DEFS } from '@daoyou/game-content/beasts';
 import {
   COMBAT_V6_CHARACTER_BUILD_VERSIONS,
   type CombatV6TrainingPlayerInput,
+  type CombatV6UnitAppearance,
   type PveRestoredState,
 } from '@daoyou/game-domain/combat';
 import { AUTO_POLICY_VERSION } from '@daoyou/game-domain/combat/auto';
@@ -134,6 +135,7 @@ export function createExorcismHost(
   encounter: { realm: RealmType; tier: DungeonDifficultyTier },
   run: Pick<ExorcismRunState, 'wins' | 'bossId' | 'lineageId' | 'resources'>,
   seed: number,
+  leadIdentity?: { name: string; appearance: CombatV6UnitAppearance },
 ) {
   const projected = projectCharacterToCombatV6({
     ...structuredClone(player),
@@ -178,6 +180,11 @@ export function createExorcismHost(
     bossId: run.bossId,
     lineageId: run.lineageId,
   });
+  if (leadIdentity) {
+    const lead = compiled.units[0];
+    lead.name = leadIdentity.name;
+    compiled.appearances[lead.id!] = leadIdentity.appearance;
+  }
   return new ExorcismHost({
     version: 'exorcism-v6-v1',
     playerId: unit.id!,

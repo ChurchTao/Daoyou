@@ -1,4 +1,7 @@
+import { INVASION_NODE_ID, INVASION_PATH } from '@daoyou/game-domain/invasion';
 import type { InkButton } from '@app/components/ui/InkButton';
+import { BAIXIAO_NODE_ID } from '@daoyou/game-domain/baixiao/meet';
+import { CONTEST_NODE_ID } from '@daoyou/game-domain/alchemy/contest';
 import type { WorldMapLocation } from '@daoyou/game-domain/world/map';
 import type { ComponentProps } from 'react';
 
@@ -28,6 +31,28 @@ export function buildMapLocationActions(
 
   const nodeId = encodeURIComponent(location.id);
   const actions: MapNodeAction[] = [];
+  if (location.id === INVASION_NODE_ID) {
+    actions.push({
+      key: 'enter-ancient-demon-invasion', label: '进入镇魔营地',
+      variant: 'primary', onClick: () => navigate(INVASION_PATH),
+    });
+  }
+  if (location.id === CONTEST_NODE_ID) {
+    actions.push({
+      key: 'enter-alchemy-contest',
+      label: '查看炼丹大会',
+      variant: 'primary',
+      onClick: () => navigate('/game/alchemy-contest'),
+    });
+  }
+  if (location.id === BAIXIAO_NODE_ID) {
+    actions.push({
+      key: 'enter-baixiao-meet',
+      label: '查看百晓盛会',
+      variant: 'primary',
+      onClick: () => navigate('/game/baixiao-meet'),
+    });
+  }
   if (location.wild_encounter_id)
     actions.push({
       key: 'wild-explore',
