@@ -5,6 +5,8 @@ import mineBaishui from './data/mine-baishui.json' with { type: 'json' };
 import mineBaishuiLamp from './data/mine-baishui-lamp.json' with { type: 'json' };
 import mineBaishuiNight from './data/mine-baishui-night.json' with { type: 'json' };
 import mineBaishuiMedicine from './data/mine-baishui-medicine.json' with { type: 'json' };
+import mineBaishuiRecovery from './data/mine-baishui-recovery.json' with { type: 'json' };
+import mineFoundationPill from './data/mine-foundation-pill.json' with { type: 'json' };
 import mineCrossing from './data/mine-crossing.json' with { type: 'json' };
 import mineDeparture from './data/mine-departure.json' with { type: 'json' };
 import mineErrand from './data/mine-errand.json' with { type: 'json' };
@@ -150,6 +152,8 @@ const chapters = new Map<string, StoryChapter>([
   [mineBaishuiLamp.id, parseChapter(mineBaishuiLamp)],
   [mineBaishuiNight.id, parseChapter(mineBaishuiNight)],
   [mineBaishuiMedicine.id, parseChapter(mineBaishuiMedicine)],
+  [mineBaishuiRecovery.id, parseChapter(mineBaishuiRecovery)],
+  [mineFoundationPill.id, parseChapter(mineFoundationPill)],
   [mineLodging.id, parseChapter(mineLodging)],
 ]);
 

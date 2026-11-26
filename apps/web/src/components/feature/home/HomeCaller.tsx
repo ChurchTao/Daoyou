@@ -29,6 +29,8 @@ export function HomeCaller({
     : undefined;
   const act = story.actionLabel ?? story.prompt.replace(/[。！]$/, '');
   const place = storyMapPlaceName(story.location, sectId);
+  const restingHere = story.kind === 'life' &&
+    story.location?.kind === 'cave' && story.href === '/game';
 
   return (
     <section data-guide="home.story">
@@ -50,18 +52,20 @@ export function HomeCaller({
           </div>
         </div>
       ) : null}
-      {place ? (
+      {place || restingHere ? (
         <p className="text-ink-secondary text-sm leading-7">{story.prompt}</p>
       ) : null}
-      <HomeAct
-        href={
-          story.resumeHref ??
-          (story.location?.kind === 'cave' ? story.playHref : undefined) ??
-          story.href
-        }
-        lead={story.resumeHref ? act : (place ?? act)}
-        guide="home.story-action"
-      />
+      {!restingHere ? (
+        <HomeAct
+          href={
+            story.resumeHref ??
+            (story.location?.kind === 'cave' ? story.playHref : undefined) ??
+            story.href
+          }
+          lead={story.resumeHref ? act : (place ?? act)}
+          guide="home.story-action"
+        />
+      ) : null}
       {story.goals.length > 0 ? (
         <ul className="pl-7">
           {story.goals.map((goal) => (

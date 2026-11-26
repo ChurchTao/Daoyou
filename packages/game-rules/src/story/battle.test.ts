@@ -1,6 +1,7 @@
 import { getPerformanceScript } from '@daoyou/game-content/performance/catalog';
 import {
   getStoryBattle,
+  MINE_BAISHUI_ROGUE_BATTLE,
   MINE_SPARRING_BATTLE,
   MINE_SPARRING_MOVES,
   mineSparringFlag,
@@ -13,7 +14,7 @@ import { storyGateOpen, storySceneOpen } from '@daoyou/game-domain/story/gates';
 import { describe, expect, it } from 'vitest';
 
 import { createEmptySectCombatProgressV6, createFreshCombatV6MethodLevels } from '../sects/build-state.js';
-import { createStoryBattleHost, storyBattleOutcome } from './battle-host.js';
+import { createStoryBattleHost, storyBattleOutcome, storyBattleResourceLoss } from './battle-host.js';
 import { mineSparringEffects } from './mine-sparring.js';
 import { openingStoryProgress } from './progress.js';
 import {
@@ -283,6 +284,49 @@ describe('木人试手', () => {
       }
     }
   });
+});
+
+it('白水渡散修会打伤初入门的弟子，战损只认战斗中减少的气血和法力', () => {
+  const sect = COMBAT_V6_SECT_DEFINITIONS.wuxiang;
+  const host = createStoryBattleHost({
+    cultivator: {
+      id: 'student', name: '新弟子', realm: '炼气', realm_stage: '初期',
+      attributes: { vitality: 10, strength: 10, spirit: 10, endurance: 10, speed: 10, willpower: 10 },
+      condition: {
+        version: 1,
+        resources: { hp: { current: 380 }, mp: { current: 220 } },
+        gauges: { pillToxicity: 0 },
+        tracks: {
+          tempering: {
+            vitality: { level: 0, progress: 0 },
+            spirit: { level: 0, progress: 0 },
+            wisdom: { level: 0, progress: 0 },
+            speed: { level: 0, progress: 0 },
+            willpower: { level: 0, progress: 0 },
+          },
+          marrowWash: { level: 0, progress: 0 },
+        },
+        counters: {
+          longTermPillUsesByRealm: {}, cultivationPillUsesByRealm: {}, longevityPillUsesByRealm: {},
+        },
+        statuses: [],
+        timestamps: {},
+      },
+    },
+    sect: createEmptySectCombatProgressV6(sect.id, sect.paths[0].id, createFreshCombatV6MethodLevels(sect.id)),
+    equipment: {},
+    manuals: { version: 1, revision: 0, learned: [], build: { slots: [] } },
+  }, getStoryBattle(MINE_BAISHUI_ROGUE_BATTLE), 9);
+  expect(host.state.units.find((unit) => unit.id === host.playerId)?.attrs).toMatchObject({ hp: 380, mp: 220 });
+  expect(storyBattleResourceLoss(host.runtimeSnapshot())).toEqual({ hp: 0, mp: 0 });
+
+  const target = host.state.units.find((unit) => unit.side === 1)!.id;
+  host.submit(host.playerId, { type: 'skill', skillId: MINE_SPARRING_MOVES.pierce, targets: [target] });
+  host.resolveRound();
+
+  const loss = storyBattleResourceLoss(host.runtimeSnapshot());
+  expect(loss.hp).toBeGreaterThan(0);
+  expect(loss.mp).toBeGreaterThan(0);
 });
 
 describe('入口总表', () => {

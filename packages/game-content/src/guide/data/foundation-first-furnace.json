@@ -1,0 +1,24 @@
+{
+  "id": "foundation-first-furnace",
+  "title": "炼一炉筑基丹",
+  "steps": [
+    {
+      "type": "look",
+      "anchor": "alchemy.hearth",
+      "text": "把长老给的白节根和灰背蓼放进丹炉，各用两份。"
+    },
+    {
+      "type": "look",
+      "anchor": "alchemy.intent",
+      "text": "打开「更多」，选「冲关蓄势」作丹意。"
+    },
+    {
+      "type": "look",
+      "anchor": "alchemy.fire",
+      "text": "核对药量和开炉的花费。成丹后，点开成品查看「破境凝神」。"
+    },
+    {
+      "type": "end"
+    }
+  ]
+}

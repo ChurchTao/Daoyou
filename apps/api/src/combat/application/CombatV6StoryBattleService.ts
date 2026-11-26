@@ -5,6 +5,7 @@ import type {
 } from '@daoyou/contracts/combat/story-battle';
 import {
   getStoryBattle,
+  MINE_BAISHUI_ROGUE_BATTLE,
   MINE_SPARRING_BATTLE,
 } from '@daoyou/game-content/story/battles';
 import { publicUnitAppearances } from '@daoyou/game-rules/combat/appearance';
@@ -21,10 +22,14 @@ import {
   mineSparringEffects,
   StoryBattleHost,
   storyBattleOutcome,
+  storyBattleResourceLoss,
 } from '@daoyou/game-rules/story';
+import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
+import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 import { dungeonPlayer } from '@server/dungeon/combat-player.js';
 import { assertInventoryIdle } from '@server/inventory/operations.js';
 import { db } from '@server/lib/drizzle/db.js';
+import { cultivators } from '@server/lib/drizzle/schema.js';
 import { redis } from '@server/lib/redis/index.js';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock.js';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
@@ -32,10 +37,11 @@ import { ResourceEventCommitter } from '@server/player/application/state/Resourc
 import { publishResourceEvents } from '@server/realtime/infrastructure/playerStateBroadcaster.js';
 import { StoryService } from '@server/story/application/StoryService.js';
 import { randomInt, randomUUID } from 'node:crypto';
+import { eq } from 'drizzle-orm';
 
 /**
  * 剧情战：对手和胜负规则由主线指定。
- * 不动玩家的气血、法力、寿元和灵兽，打完只把结果记进主线。
+ * 白水渡胜后保留主角的气血与法力损耗，其余剧情战只记战果。
  * 每个角色同一时间只有一场，存在 Redis 里。
  */
 type Actor = { userId: string; cultivatorId: string };
@@ -176,20 +182,47 @@ async function settle(actor: Actor, runtime: StoryBattleRuntime) {
   // 输了又必须赢的一场不往主线里记，等玩家再打。
   if (!(runtime.result === 'lost' && battle.defeat === 'retry')) {
     const state = await db.transaction(async (tx) => {
+      await lockCultivatorForStateMutation(tx, actor.cultivatorId);
+      const effects = runtime.battleId === MINE_SPARRING_BATTLE
+        ? [...mineSparringEffects(runtime.snapshot)]
+        : [];
+      const conditionChanges: ResourceChangeDescriptor[] = [];
+      if (runtime.battleId === MINE_BAISHUI_ROGUE_BATTLE && runtime.result === 'won') {
+        const story = await StoryService.read(actor.cultivatorId, tx);
+        // The completed beat is the durable receipt if Redis still says pending.
+        if (story.battleId !== runtime.battleId)
+          return { changes: [] };
+        const loss = storyBattleResourceLoss(runtime.snapshot);
+        if (loss.hp || loss.mp) {
+          const { player, caps } = await dungeonPlayer(actor.cultivatorId, tx);
+          const current = player.cultivator.condition!;
+          const next = ConditionService.applyCombatV6Resources(current, {
+            ...caps,
+            hp: Math.max(1, current.resources.hp.current - loss.hp),
+            mp: Math.max(0, current.resources.mp.current - loss.mp),
+          });
+          await tx.update(cultivators).set({ condition: next })
+            .where(eq(cultivators.id, actor.cultivatorId));
+          if (loss.hp > 0) effects.push('baishui.battle-hurt');
+          conditionChanges.push({
+            resourceTopic: 'player.condition',
+            operation: 'invalidate',
+            eventType: 'combat_v6.condition.settled',
+          });
+        }
+      }
       const story = await StoryService.completeBattle(
         actor.cultivatorId,
         runtime.battleId,
         runtime.result!,
         tx,
-        runtime.battleId === MINE_SPARRING_BATTLE
-          ? mineSparringEffects(runtime.snapshot)
-          : [],
+        effects,
       );
       return new ResourceEventCommitter().commit(tx, {
         actor,
         source: 'story-battle',
         scopeDefaults: { cultivatorId: actor.cultivatorId },
-        changes: story.changes,
+        changes: [...story.changes, ...conditionChanges],
       });
     });
     publishResourceEvents(state.changes);

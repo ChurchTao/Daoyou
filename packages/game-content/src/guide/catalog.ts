@@ -1,4 +1,6 @@
 import alchemyFirstFurnace from './data/alchemy-first-furnace.json' with { type: 'json' };
+import baishuiSpring from './data/baishui-spring.json' with { type: 'json' };
+import foundationFirstFurnace from './data/foundation-first-furnace.json' with { type: 'json' };
 import battleBasics from './data/battle-basics.json' with { type: 'json' };
 import storyBattleBasics from './data/story-battle-basics.json' with { type: 'json' };
 import beastPouch from './data/beast-pouch.json' with { type: 'json' };
@@ -18,6 +20,8 @@ import {
 
 const lessons = new Map<string, GuideLesson>([
   ['alchemy-first-furnace', parseGuideLesson(alchemyFirstFurnace)],
+  ['baishui-spring', parseGuideLesson(baishuiSpring)],
+  ['foundation-first-furnace', parseGuideLesson(foundationFirstFurnace)],
   ['map-qingxi', parseGuideLesson(mapQingxi)],
   ['battle-basics', parseGuideLesson(battleBasics)],
   ['story-battle-basics', parseGuideLesson(storyBattleBasics)],

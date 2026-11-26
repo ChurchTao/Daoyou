@@ -3,6 +3,7 @@ export {
   StoryBattleHost,
   createStoryBattleHost,
   storyBattleOutcome,
+  storyBattleResourceLoss,
 } from '../story/battle-host.js';
 export { storyReward } from '../story/grants.js';
 export type { PlannedStoryReward } from '../story/grants.js';

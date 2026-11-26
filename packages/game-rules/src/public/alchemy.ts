@@ -67,3 +67,4 @@ export {
   getPillAppearanceLabel,
 } from '../alchemy/pillAppearance.js';
 export { alchemyShowcaseSnapshot } from '../alchemy/showcase.js';
+export { foundationLessonPlan } from '../alchemy/foundation-lesson.js';

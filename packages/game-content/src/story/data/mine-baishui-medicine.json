@@ -20,7 +20,10 @@
         "areaId": "TN_YUE_01",
         "placeId": "baishui-ferry"
       },
-      "entry": { "kind": "facility", "id": "ferry-berth" }
+      "entry": {
+        "kind": "facility",
+        "id": "ferry-berth"
+      }
     },
     {
       "id": "cross",
@@ -34,7 +37,9 @@
         "areaId": "TN_YUE_01",
         "placeId": "baishui-ferry"
       },
-      "passage": { "id": "baishui-ferry-to-town" }
+      "passage": {
+        "id": "baishui-ferry-to-town"
+      }
     },
     {
       "id": "deliver",
@@ -45,27 +50,39 @@
       "scene": "map",
       "prompt": "已经到了白水镇。沿巷子去药铺，把药匣交给掌柜。",
       "actionLabel": "把药匣交给掌柜",
-      "finishLabel": "走出药铺",
+      "finishLabel": "去镇渡",
       "href": "/game/story",
       "location": {
         "kind": "area",
         "areaId": "TN_YUE_01",
         "placeId": "baishui-town"
       },
-      "entry": { "kind": "npc", "id": "pharmacy-keeper" }
+      "entry": {
+        "kind": "npc",
+        "id": "pharmacy-keeper"
+      }
     },
     {
       "id": "delivered",
-      "kind": "life",
+      "kind": "performance",
+      "arrival": "location",
+      "script": "mine-baishui-morning",
+      "outcome": "done",
       "scene": "map",
-      "prompt": "白水镇药铺收下了药。你和同门走出药铺，沿巷子往镇渡走。",
-      "actionLabel": "看看白水镇",
-      "href": "/game",
+      "prompt": "天亮了。去镇渡搭头一趟船回宗。",
+      "actionLabel": "去镇渡",
+      "finishLabel": "搭早船回白水渡",
+      "href": "/game/story",
       "location": {
         "kind": "area",
         "areaId": "TN_YUE_01",
         "placeId": "baishui-town"
+      },
+      "entry": {
+        "kind": "facility",
+        "id": "town-ferry"
       }
     }
-  ]
+  ],
+  "next": "mine-baishui-recovery"
 }

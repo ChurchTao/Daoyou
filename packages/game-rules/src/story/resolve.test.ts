@@ -261,9 +261,54 @@ describe('地点剧情与通路', () => {
     const delivered = acknowledgePerformance(next, arrived, facts, 'mine-baishui-deliver', 'done').progress;
     expect(presentStory(next, delivered, facts)).toMatchObject({
       beatId: 'delivered',
-      kind: 'life',
+      kind: 'performance',
+      scriptId: 'mine-baishui-morning',
       location: { placeId: 'baishui-town' },
     });
+    expect(acknowledgePerformance(next, delivered, facts, 'mine-baishui-morning', 'done').finished).toBe(true);
+  });
+
+  it('从白水镇依次返程，气息未恢复时看完指引仍停在泉边', () => {
+    const chapter = getStoryChapter('mine-baishui-recovery');
+    const facts = emptyStoryFacts();
+    facts.sect_joined = true;
+    let state = openingStoryProgress(chapter.id);
+    const travels = [
+      ['return-cross', 'baishui-town-to-ferry'],
+      ['return-upstream', 'baishui-to-foothill'],
+      ['return-sect', 'foothill-to-own-sect'],
+    ] as const;
+    for (const [beatId, passageId] of travels) {
+      const input = { chapterId: chapter.id, beatId, passageId };
+      if (beatId === 'return-sect') {
+        expect(() => acknowledgeStoryPassage(chapter, state, { ...facts, sect_joined: false }, input))
+          .toThrow('当前没有这段行程');
+      }
+      state = acknowledgeStoryPassage(chapter, state, facts, input).progress;
+    }
+    expect(state.beatId).toBe('home');
+    const atSpring = acknowledgePerformance(chapter, state, facts, 'mine-baishui-home', 'done').progress;
+    expect(storyArrivalHref(presentStory(chapter, atSpring, facts))).toContain('/game/inn');
+    expect(acknowledgeGuide(chapter, atSpring, facts, 'baishui-spring').progress.beatId).toBe('recover');
+    expect(noteStoryFact(chapter, atSpring, facts, 'spring_recovered').progress.beatId).toBe('reflect');
+    expect(resolveStory(chapter, atSpring, { ...facts, condition_restored: true }).progress.beatId).toBe('reflect');
+  });
+
+  it('备料只领一次，普通成丹和看教学都不能跳到筑基丹出炉', () => {
+    const chapter = getStoryChapter('mine-foundation-pill');
+    const facts = emptyStoryFacts();
+    const asked = acknowledgePerformance(chapter, openingStoryProgress(chapter.id), facts, 'mine-foundation-ask', 'done');
+    expect(asked.grants).toEqual(['foundation-furnace-lesson']);
+    expect(resolveStory(chapter, asked.progress, facts).grants).toEqual([]);
+    const watched = acknowledgeGuide(chapter, asked.progress, facts, 'foundation-first-furnace').progress;
+    const ordinary = noteStoryFact(chapter, watched, facts, 'alchemy_crafted');
+    expect(ordinary.progress.beatId).toBe('furnace');
+    expect(() => acknowledgePerformance(chapter, ordinary.progress, facts, 'mine-foundation-ready', 'done'))
+      .toThrow('当前没有这场演出');
+    const made = noteStoryFact(chapter, ordinary.progress, facts, 'foundation_pill_crafted');
+    expect(made.progress.beatId).toBe('pill-ready');
+    expect(acknowledgePerformance(chapter, made.progress, facts, 'mine-foundation-ready', 'done').progress.beatId)
+      .toBe('prepared');
   });
 });
 
@@ -1321,6 +1366,8 @@ describe('volume one', () => {
       'mine-baishui',
       'mine-baishui-lamp',
       'mine-baishui-night',
+      'mine-baishui-medicine',
+      'mine-baishui-recovery',
     ]);
     expect(seen.slice(0, 4).every((id) => getStoryChapter(id).gated)).toBe(
       true,
@@ -1331,7 +1378,7 @@ describe('volume one', () => {
       script: 'mine-gate-landing',
     });
     expect(current.gated).toBeUndefined();
-    expect(current.id).toBe('mine-baishui-medicine');
+    expect(current.id).toBe('mine-foundation-pill');
     expect(current.beats.at(-1)?.kind).toBe('life');
   });
 

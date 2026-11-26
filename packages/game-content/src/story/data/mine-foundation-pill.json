@@ -1,0 +1,86 @@
+{
+  "id": "mine-foundation-pill",
+  "track": "main",
+  "title": "筑基丹",
+  "deferredUnlocks": ["alchemy", "refine", "sect-alchemy", "sect-refinery"],
+  "beats": [
+    {
+      "id": "ask-pill",
+      "kind": "performance",
+      "arrival": "location",
+      "script": "mine-foundation-ask",
+      "outcome": "done",
+      "scene": "sect",
+      "prompt": "到丹房找值事，请他引见管炉的长老。",
+      "actionLabel": "请长老教炼筑基丹",
+      "finishLabel": "去丹炉备料",
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "alchemy"
+      },
+      "entry": {
+        "kind": "npc",
+        "id": "dispensary-steward"
+      }
+    },
+    {
+      "id": "furnace",
+      "kind": "practice",
+      "arrival": "activity",
+      "accept": [
+        {
+          "type": "fact",
+          "fact": "foundation_pill_crafted"
+        }
+      ],
+      "lesson": "foundation-first-furnace",
+      "grant": "foundation-furnace-lesson",
+      "scene": "sect-alchemy",
+      "prompt": "用长老给的灵材炼一炉丹，查看成品有没有「破境凝神」。",
+      "actionLabel": "去宗门丹炉",
+      "href": "/game/sect/alchemy?workspace=craft&guide=foundation-first-furnace",
+      "location": {
+        "kind": "sect",
+        "spotId": "alchemy"
+      },
+      "entry": {
+        "kind": "facility",
+        "id": "furnace"
+      },
+      "unlocks": ["alchemy", "sect-alchemy"]
+    },
+    {
+      "id": "pill-ready",
+      "kind": "performance",
+      "arrival": "location",
+      "script": "mine-foundation-ready",
+      "outcome": "done",
+      "scene": "sect",
+      "prompt": "带上炼好的丹，请丹房长老看看。",
+      "actionLabel": "请长老看丹",
+      "finishLabel": "收下筑基丹",
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "alchemy"
+      },
+      "entry": {
+        "kind": "npc",
+        "id": "dispensary-steward"
+      },
+      "indicatorFrom": ["/game/sect/alchemy?workspace=craft"]
+    },
+    {
+      "id": "prepared",
+      "kind": "life",
+      "scene": "cave",
+      "prompt": "筑基丹已经炼成。等炼气圆满，再准备冲关。",
+      "actionLabel": "回洞府",
+      "href": "/game",
+      "location": {
+        "kind": "cave"
+      }
+    }
+  ]
+}

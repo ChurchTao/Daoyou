@@ -50,6 +50,7 @@ pnpm run db:migrate
 - `daoyou-data-layer`: Drizzle schema/migrations, repositories, transactions, Better Auth schema, durable models.
 - `daoyou-game-ui-principles`: 所有玩家端玩法 UI 的设计、实现、重构与评审必须先遵守 [.agents/skills/daoyou-game-ui-principles/SKILL.md](.agents/skills/daoyou-game-ui-principles/SKILL.md) 的信息分级、视觉层次和按需披露原则，覆盖常规场景、战斗、地图、创角与弹层。
 - `daoyou-game-ui`: `GameViewportLayout` main-flow scene UI structure and review rules.
+- `daoyou-story-narrative`：设计、续写、修改或评审本项目的细纲、剧情正文、游戏演出和剧情内教程时，先读[万界道友叙事规范](.agents/skills/daoyou-story-narrative/SKILL.md)。核对关键行动前的可见依据、视角与揭露顺序，以及真实玩法结果的续接。
 - `daoyou-item-preview`: 新增道具或调整物品预览字段、文案、层级、交互与适配器时，遵循 [.agents/skills/daoyou-item-preview/SKILL.md](.agents/skills/daoyou-item-preview/SKILL.md) 的固定展示规范和分类基线，避免恢复已删除的冗余信息。
 - `daoyou-ink-portraits`: 玩家、NPC、BOSS 与灵兽写意墨像立绘的固定笔墨基准、物种设计方法、彩墨与视觉验收；见 `.agents/skills/daoyou-ink-portraits/SKILL.md`。
 - `daoyou-skill-totems`: 技能图标的水墨图腾构形、机制辨识、固定验收参考与小尺寸防漂移；见 [.agents/skills/daoyou-skill-totems/SKILL.md](.agents/skills/daoyou-skill-totems/SKILL.md)。

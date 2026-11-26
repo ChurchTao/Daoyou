@@ -208,7 +208,7 @@
       },
       {
         "type": "narration",
-        "text": "等他撑船出去，夜渡也该进弯了。你才伸手，他便丢下箱子来拦。河上响起一声长号，紧接着是石阶那边的三下钟声。"
+        "text": "等他撑船出去，夜渡也该进弯了。你才伸手，他便丢下箱子，抽刀逼过来。你扶着断桩往后让，水一下灌进鞋里。你忙把脚抽回来，听见河上响起一声号，紧接着是石阶那边的三下钟声。"
       },
       { "type": "end", "outcome": "done" }
     ]
@@ -313,7 +313,18 @@
       { "type": "choice", "options": [{ "label": "（举灯引船）" }] },
       {
         "type": "narration",
-        "text": "几盏灯并在一处，照亮了底下的石阶。河上有人应声，桨声一点点近了。你举着灯等了好一会儿，才从雾里看见夜渡的船头。等船舷贴稳石阶，船工才把跳板搭过来。"
+        "text": "几盏灯并在一处，照亮了底下的石阶。河上有人应声，桨声一点点近了。"
+      },
+      {
+        "type": "narration",
+        "text": "提梁压得掌心疼，你换了只手接着举。",
+        "when": {
+          "flag": "baishui.battle-hurt"
+        }
+      },
+      {
+        "type": "narration",
+        "text": "雾里露出船头。等船舷贴稳石阶，船工才把跳板搭过来。"
       },
       {
         "type": "line",
@@ -372,22 +383,43 @@
       },
       {
         "type": "narration",
-        "text": "掌柜从匣里挑出一包药，给船夫敷上，把手包好。船夫这才把手搁到案边。掌柜把剩下的药收进柜里。"
+        "text": "掌柜从匣里挑了一包药给船夫敷上，包好伤口。船夫把手搁上案沿，掌柜转身把余药收进柜里。"
       },
-      { "type": "line", "speaker": "keeper", "text": "药收到了。" },
-      { "type": "scene", "alt": "白水镇 · 药铺外" },
+      {
+        "type": "scene",
+        "alt": "白水镇 · 镇渡"
+      },
       {
         "type": "narration",
-        "text": "你叫上咪咪，和同门沿巷子往镇渡走。白水渡石阶上的几盏灯隔河还能看见。刚才想叫镇上的船晚点开，就这么一段水，话都递不过来。"
+        "text": "你叫上咪咪，和同门往镇渡走。白水渡石阶上的几盏灯隔河还能看见。"
       },
-      { "type": "line", "speaker": "player", "text": "回山我想去问问教习。" },
-      { "type": "line", "speaker": "peer", "text": "问什么？" },
       {
         "type": "line",
-        "speaker": "player",
-        "text": "御风。就这条河，我还得练多久，才能飞过来报个信？"
+        "speaker": "peer",
+        "text": "刚才举灯，怎么换了只手？",
+        "when": {
+          "flag": "baishui.battle-hurt"
+        }
       },
-      { "type": "line", "speaker": "peer", "text": "你去问的时候叫上我。" },
+      {
+        "type": "narration",
+        "text": "你摊开手，破皮的地方还粘着点白木屑。你把木屑拂掉，同门便从包袱里找了条布给你裹手。",
+        "when": {
+          "flag": "baishui.battle-hurt"
+        }
+      },
+      {
+        "type": "narration",
+        "text": "码头船工正在收跳板，回去只能等明早。"
+      },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "那就搭头一趟。回去先用洞府那眼泉养一养。",
+        "when": {
+          "flag": "baishui.battle-hurt"
+        }
+      },
       { "type": "end", "outcome": "done" }
     ]
   }

@@ -7,6 +7,7 @@ type SectStoryEntry = {
 
 const entries: Readonly<Record<string, readonly SectStoryEntry[]>> = {
   gate: [
+    { kind: 'facility', id: 'cave-path', name: '回洞府的路' },
     {
       kind: 'npc',
       id: 'register-keeper',
@@ -20,7 +21,10 @@ const entries: Readonly<Record<string, readonly SectStoryEntry[]>> = {
     { kind: 'facility', id: 'sparring-yard', name: '木人试手场' },
   ],
   archive: [{ kind: 'npc', id: 'keeper', name: '守阁长老' }],
-  alchemy: [{ kind: 'npc', id: 'dispensary-steward', name: '丹房值事' }],
+  alchemy: [
+    { kind: 'npc', id: 'dispensary-steward', name: '丹房值事' },
+    { kind: 'facility', id: 'furnace', name: '宗门丹炉' },
+  ],
   cave: [
     { kind: 'facility', id: 'home-door', name: '自己的洞府' },
     { kind: 'npc', id: 'neighbor', name: '隔壁同门' },

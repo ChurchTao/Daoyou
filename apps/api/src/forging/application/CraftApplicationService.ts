@@ -2,19 +2,21 @@ import { QUALITY_ORDER, type Quality } from '@daoyou/constants/qualities';
 import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import type { Consumable } from '@daoyou/game-domain/character';
 import type { AlchemyMode } from '@daoyou/game-domain/consumables';
+import { hasBreakthroughFocusEffect } from '@daoyou/game-rules/consumables/breakthrough';
 import type { ResourceOperationSettlement } from '@daoyou/game-domain/resources';
 import type { AiService } from '@nestjs/ai';
 import { prepareFormulaCraft } from '@server/alchemy/application/AlchemyFormulaService.js';
 import { createAlchemyService } from '@server/alchemy/application/alchemyServiceV2.js';
 import { assertAlchemyMaterialVersions } from '@server/alchemy/application/inventory/AlchemyInventory.js';
 import {
-  qiCurrencyChange,
+  qiCurrencyPatch,
   type QiSettlementBaseline,
 } from '@server/cultivator/application/QiResourceChanges.js';
 import { QiService } from '@server/cultivator/application/QiService.js';
 import { readCultivatorName } from '@server/cultivator/facts.js';
 import { assertInventoryIdle } from '@server/inventory/operations.js';
 import type { DbTransaction } from '@server/lib/drizzle/db.js';
+import { cultivators } from '@server/lib/drizzle/schema.js';
 import { createDomainEvent } from '@server/lib/mq/domainEventWriter.js';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
 import { findPlayerMutationRequest } from '@server/lib/repositories/playerStateRepository.js';
@@ -23,6 +25,8 @@ import {
   type CommittedCommand,
 } from '@server/player/application/state/CommandExecutors.js';
 import { normalizeFreeformLlmInput } from '@server/utils/llmPayload.js';
+import { StoryService } from '@server/story/application/StoryService.js';
+import { eq } from 'drizzle-orm';
 
 export type CraftCommandInput = {
   requestId: string;
@@ -133,6 +137,22 @@ export async function executeCraftCommand(
         });
         const preparedCommit = await prepared.commit(tx);
         afterCommit = preparedCommit.afterCommit;
+        const potionResult = preparedCommit.result as {
+          craftedConsumables?: Consumable[];
+          consumables?: Consumable[];
+          consumable?: Consumable;
+        };
+        const consumables = potionResult.craftedConsumables ??
+          potionResult.consumables ??
+          (potionResult.consumable ? [potionResult.consumable] : []);
+        const foundationCrafted = consumables.some(({ spec }) =>
+          spec.kind === 'pill' &&
+          spec.alchemyMeta.breakthroughTargetRealm === '筑基' &&
+          hasBreakthroughFocusEffect(spec.operations)
+        );
+        const story = foundationCrafted
+          ? await StoryService.noteFact(args.cultivatorId, 'foundation_pill_crafted', tx)
+          : null;
         await QiService.commitReservation({
           actionInstanceId,
           metadata: { committedAt: new Date().toISOString() },
@@ -162,34 +182,23 @@ export async function executeCraftCommand(
             cultivatorId: args.cultivatorId,
             cultivatorName,
             actionInstanceId,
-            consumables:
-              (
-                preparedCommit.result as {
-                  craftedConsumables?: Consumable[];
-                  consumables?: Consumable[];
-                  consumable?: Consumable;
-                }
-              ).craftedConsumables ??
-              (
-                preparedCommit.result as {
-                  consumables?: Consumable[];
-                  consumable?: Consumable;
-                }
-              ).consumables ??
-              [
-                (preparedCommit.result as { consumable?: Consumable })
-                  .consumable,
-              ].filter((item): item is Consumable => Boolean(item)),
+            consumables,
           },
           tx,
         );
         if (rumorEventId) domainEventIds.push(rumorEventId);
+        const [balance] = await tx
+          .select({ spiritStones: cultivators.spirit_stones })
+          .from(cultivators)
+          .where(eq(cultivators.id, args.cultivatorId));
+        if (!balance) throw new Error('修真者不存在');
         return {
           result: preparedCommit.result,
           resourceChanges: settleAlchemyCraft({
             qi: qiReservation,
+            spiritStones: balance.spiritStones,
             inventoryChanges: preparedCommit.inventoryChanges,
-          }),
+          }).concat(story?.changes ?? []),
         };
       },
     });
@@ -212,10 +221,16 @@ export class CraftCommandError extends Error {
 
 export function settleAlchemyCraft(args: {
   qi: QiSettlementBaseline;
+  spiritStones: number;
   inventoryChanges: ResourceOperationSettlement['inventoryChanges'];
 }): ResourceChangeDescriptor[] {
   const changes: ResourceChangeDescriptor[] = [
-    qiCurrencyChange('currency.changed', args.qi),
+    {
+      resourceTopic: 'player.currency',
+      eventType: 'currency.changed',
+      operation: 'merge',
+      payload: { ...qiCurrencyPatch(args.qi), spiritStones: args.spiritStones },
+    },
     {
       resourceTopic: 'inventory.bag',
       eventType: 'inventory.alchemy.changed',

@@ -20,6 +20,8 @@ import {
 import { readSectMethodLevels } from '@server/lib/repositories/sectCombatRepository.js';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
 import { updateCultivationExp } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
+import { InnRecoveryService } from '@server/cultivator/application/InnRecoveryService.js';
+import { loadPlayerInnRecoveryFacts } from '@server/cultivator/application/readers/CultivatorConditionFactsReader.js';
 import { getGuideLesson } from '@daoyou/game-content/guide/catalog';
 import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
 import {
@@ -148,6 +150,7 @@ function storyChanges(
 async function readStoryFacts(
   cultivatorId: string,
   tx: DbTransaction,
+  chapterId: string,
 ): Promise<StoryFacts> {
   const facts = emptyStoryFacts();
   const [beasts, memberships, rows, weapons, dailies, retreats] = await runDbTasks(tx, [
@@ -178,7 +181,7 @@ async function readStoryFacts(
         .limit(1),
     () =>
       tx
-        .select({ realm: cultivators.realm, stage: cultivators.realm_stage })
+        .select({ userId: cultivators.userId, realm: cultivators.realm, stage: cultivators.realm_stage })
         .from(cultivators)
         .where(eq(cultivators.id, cultivatorId))
         .limit(1),
@@ -247,6 +250,10 @@ async function readStoryFacts(
       realm: rows[0].realm as RealmType,
       stage: rows[0].stage as RealmStage,
     };
+    if (chapterId === 'mine-baishui-recovery') {
+      const recovery = await loadPlayerInnRecoveryFacts(rows[0].userId, cultivatorId, tx);
+      facts.condition_restored = recovery !== null && !InnRecoveryService.needsRecovery(recovery);
+    }
   }
   return facts;
 }
@@ -365,7 +372,7 @@ async function settle(
     tx,
   );
   let chapter = getStoryChapter(base.storyId);
-  const facts = await readStoryFacts(cultivatorId, tx);
+  const facts = await readStoryFacts(cultivatorId, tx, chapter.id);
   const progress = rewindToUnwatchedPerformance(chapter, base, facts);
   let resolved = mutate(chapter, progress, facts);
   const rewardIds = [...resolved.grants];
@@ -433,7 +440,7 @@ export const StoryService = {
   async read(cultivatorId: string, tx: DbTransaction): Promise<StoryView> {
     const { base, carried, opened } = await currentStory(cultivatorId, tx);
     const chapter = getStoryChapter(base.storyId);
-    const facts = await readStoryFacts(cultivatorId, tx);
+    const facts = await readStoryFacts(cultivatorId, tx, chapter.id);
     const progress = rewindToUnwatchedPerformance(chapter, base, facts);
     return presentStory(chapter, progress, facts, carried, opened);
   },
@@ -533,6 +540,12 @@ export const StoryService = {
     // 研习须重新核对当前宗门的真实心法等级，旧的研习标记不足以判断。
     if (fact !== 'sect_trained') {
       const { stored } = await currentStory(cultivatorId, tx);
+      if (fact === 'spring_recovered' &&
+        (stored?.storyId !== 'mine-baishui-recovery' || stored.beatId !== 'recover'))
+        return null;
+      if (fact === 'foundation_pill_crafted' &&
+        (stored?.storyId !== 'mine-foundation-pill' || stored.beatId !== 'furnace'))
+        return null;
       if (stored?.marks.includes(fact)) return null;
     }
     const settled = await settle(cultivatorId, tx, (chapter, progress, facts) =>

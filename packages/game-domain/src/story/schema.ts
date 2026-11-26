@@ -12,6 +12,9 @@ export const MINE_LESSON_METHOD_LEVEL = 10;
 export const STORY_FACT_IDS = [
   'starter_beast',
   'alchemy_crafted',
+  'foundation_pill_crafted',
+  'spring_recovered',
+  'condition_restored',
   'dungeon_settled',
   'qingxi_sought',
   'qingxi_met',
@@ -31,6 +34,8 @@ export type StoryFactId = (typeof STORY_FACT_IDS)[number];
 
 export const STORY_MARK_FACT_IDS = [
   'alchemy_crafted',
+  'foundation_pill_crafted',
+  'spring_recovered',
   'dungeon_settled',
   'qingxi_sought',
   'qingxi_met',
@@ -676,6 +681,9 @@ export function emptyStoryFacts(): StoryFacts {
   return {
     starter_beast: false,
     alchemy_crafted: false,
+    foundation_pill_crafted: false,
+    spring_recovered: false,
+    condition_restored: false,
     dungeon_settled: false,
     qingxi_sought: false,
     qingxi_met: false,

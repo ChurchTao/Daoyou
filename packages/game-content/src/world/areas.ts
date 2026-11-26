@@ -216,6 +216,14 @@ const areaContent: Readonly<Record<string, MapAreaContent>> = {
               reply: '要问什么药？进来说吧。',
             },
           ],
+          facilities: [
+            {
+              id: 'town-ferry',
+              name: '镇渡',
+              purpose: '前往白水渡',
+              details: '从高挂泊船灯的石阶下去，天亮就有船。',
+            },
+          ],
         },
       },
     ],
@@ -257,6 +265,27 @@ const passages: readonly MapPassage[] = [
     to: { kind: 'area', areaId: 'TN_YUE_01', placeId: 'baishui-town' },
     label: '搭夜渡去白水镇',
     entrance: { name: '白水镇夜渡', description: '从石阶登船，横渡到白水镇。' },
+  },
+  {
+    id: 'baishui-town-to-ferry',
+    from: { kind: 'area', areaId: 'TN_YUE_01', placeId: 'baishui-town' },
+    to: { kind: 'area', areaId: 'TN_YUE_01', placeId: 'baishui-ferry' },
+    label: '搭早船回白水渡',
+    entrance: { name: '白水镇早渡', description: '从镇渡横渡，回对岸的石阶。' },
+  },
+  {
+    id: 'baishui-to-foothill',
+    from: { kind: 'area', areaId: 'TN_YUE_01', placeId: 'baishui-ferry' },
+    to: { kind: 'area', areaId: 'TN_YUE_01', placeId: 'foothill-pavilion' },
+    label: '搭船回山脚接引亭',
+    entrance: { name: '沿岸船', description: '沿这侧河岸逆流回接引亭。' },
+  },
+  {
+    id: 'foothill-to-own-sect',
+    from: { kind: 'area', areaId: 'TN_YUE_01', placeId: 'foothill-pavilion' },
+    to: { kind: 'sect', spotId: 'gate' },
+    label: '乘接引阵回本宗',
+    entrance: { name: '接引传送阵', description: '从山脚接引亭回本宗山门。' },
   },
 ];
 

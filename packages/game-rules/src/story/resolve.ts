@@ -380,7 +380,8 @@ export function acknowledgeStoryPassage(
     beat.id !== input.beatId ||
     beat.kind !== 'passage' ||
     beat.passage.id !== input.passageId ||
-    (beat.location.kind === 'sect' && !facts.sect_joined)
+    (!facts.sect_joined &&
+      (beat.location.kind === 'sect' || getMapPassage(input.passageId)?.to.kind === 'sect'))
   )
     throw new Error('当前没有这段行程');
   const key = storyPassageMark(beat.id, beat.passage.id);
@@ -653,3 +654,4 @@ function pendingGuide(beat: StoryBeat, progress: StoryProgress): string | null {
   if (!lesson || progress.marks.includes(guideMark(lesson))) return null;
   return lesson;
 }
+import { getMapPassage } from '@daoyou/game-content/world/map';

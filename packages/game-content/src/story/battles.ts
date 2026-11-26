@@ -19,6 +19,7 @@ export function getStoryBattle(id: string): StoryBattle {
 }
 
 export const MINE_SPARRING_BATTLE = 'mine-sparring';
+export const MINE_BAISHUI_ROGUE_BATTLE = 'mine-baishui-rogue';
 
 export const MINE_SPARRING_MOVES = {
   triple: 'lingxiao.skill.triple',

@@ -144,3 +144,14 @@ export function storyBattleOutcome(
   if (battle.rescueAfter && state.round > battle.rescueAfter) return 'rescued';
   return null;
 }
+
+/** Compare the same character at entry and at the end of the encounter. */
+export function storyBattleResourceLoss(snapshot: StoryBattleSnapshot) {
+  const entry = snapshot.input.units.find(({ id }) => id === snapshot.playerId);
+  const final = snapshot.state.units.find(({ id }) => id === snapshot.playerId);
+  if (!entry || !final) throw new Error('剧情战缺少角色战果');
+  return {
+    hp: Math.max(0, Math.floor(entry.attrs.hp - final.attrs.hp)),
+    mp: Math.max(0, Math.floor((entry.attrs.mp ?? entry.attrs.maxMp ?? 0) - final.attrs.mp)),
+  };
+}

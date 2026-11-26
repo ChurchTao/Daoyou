@@ -1,4 +1,3 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import { useCultivatorDisplayProjection } from '@app/components/feature/cultivator/useCultivatorDisplayProjection';
 import {
   GameSceneFrame,
@@ -8,21 +7,26 @@ import {
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkCard, InkNotice } from '@app/components/ui';
 import { SpiritStones } from '@app/components/ui/SpiritStones';
+import { apiFetch } from '@app/lib/api/fetch';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import {
   useCultivatorCurrency,
   useCultivatorProgress,
 } from '@app/lib/resources/player';
+import { useStory } from '@app/lib/story/useStory';
+import type { StoryView } from '@daoyou/game-domain/story';
+import {
+  evaluateFateContext,
+  getInnSpiritStoneMultiplier,
+} from '@daoyou/game-rules/character/fates';
 import {
   calculateInnRecoveryLossRange,
   calculateInnRecoverySpiritStoneCost,
   isConditionStatusActive,
 } from '@daoyou/game-rules/condition';
-import {
-  evaluateFateContext,
-  getInnSpiritStoneMultiplier,
-} from '@daoyou/game-rules/character/fates';
+import { storyArrivalHref } from '@daoyou/game-rules/story';
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 
 type InnRecoveryResponse = {
   success: boolean;
@@ -52,6 +56,8 @@ export default function InnRecoveryPage() {
   const { mutate } = useResourceMutation();
   const { openDialog, pushToast } = useInkUI();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { story } = useStory();
+  const navigate = useNavigate();
 
   const state = cultivator
     ? (() => {
@@ -114,6 +120,32 @@ export default function InnRecoveryPage() {
     cultivator.spirit_stones >= state.spiritStoneCost;
   const canConfirmRecovery =
     needsRecovery && hasEnoughSpiritStones && !isSubmitting;
+  const onRecoveryBeat =
+    story?.chapterId === 'mine-baishui-recovery' && story.beatId === 'recover';
+  const reflection =
+    story?.chapterId === 'mine-baishui-recovery' && story.beatId === 'reflect'
+      ? story
+      : null;
+
+  const continueRecoveredStory = async () => {
+    setIsSubmitting(true);
+    try {
+      const view = await mutate<StoryView>(
+        apiFetch('/api/story/guides/baishui-spring/complete', {
+          method: 'POST',
+        }),
+      );
+      if (view.beatId !== 'recover') navigate(storyArrivalHref(view));
+      else pushToast({ message: '气息还没有完全恢复。', tone: 'danger' });
+    } catch (error) {
+      pushToast({
+        message: error instanceof Error ? error.message : '没能续接主线',
+        tone: 'danger',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleRecovery = async () => {
     setIsSubmitting(true);
@@ -159,7 +191,10 @@ export default function InnRecoveryPage() {
       title: '要引泉疗伤吗？',
       content: (
         <div className="space-y-2 text-sm leading-7">
-          <p>洞府法阵会消耗 <SpiritStones amount={state.spiritStoneCost} />，引灵眼泉息入体。</p>
+          <p>
+            洞府法阵会消耗 <SpiritStones amount={state.spiritStoneCost} />
+            ，引灵眼泉息入体。
+          </p>
           <p>
             泉息周转之后，你的气血与法力都会恢复，身上所有状态也会一并散去。
           </p>
@@ -167,7 +202,12 @@ export default function InnRecoveryPage() {
           <p>丹毒不会被灵泉化开，若有余毒，仍需另寻办法。</p>
         </div>
       ),
-      confirmLabel: <>付 <SpiritStones amount={state.spiritStoneCost} />引泉</>,
+      confirmLabel: (
+        <>
+          付 <SpiritStones amount={state.spiritStoneCost} />
+          引泉
+        </>
+      ),
       cancelLabel: '再想想',
       onConfirm: handleRecovery,
     });
@@ -202,19 +242,41 @@ export default function InnRecoveryPage() {
             </InkNotice>
           ) : null}
 
-          <div className="flex flex-wrap items-center gap-3">
-            <InkButton
-              variant="primary"
-              onClick={openRecoveryConfirm}
-              disabled={!canConfirmRecovery}
-              pending={isSubmitting}
-              pendingLabel="调息中……"
-            >
-              引泉疗伤
-            </InkButton>
-            <span className="text-ink-secondary text-sm">
-              若要静养伤势，向阵槽投入灵石即可。
-            </span>
+          <div
+            className="flex flex-wrap items-center gap-3"
+            data-guide="spring.recovery"
+          >
+            {reflection ? (
+              <InkButton
+                variant="primary"
+                onClick={() => navigate(storyArrivalHref(reflection))}
+              >
+                在泉边歇一会儿
+              </InkButton>
+            ) : onRecoveryBeat && !needsRecovery ? (
+              <InkButton
+                variant="primary"
+                onClick={continueRecoveredStory}
+                pending={isSubmitting}
+              >
+                继续主线
+              </InkButton>
+            ) : (
+              <>
+                <InkButton
+                  variant="primary"
+                  onClick={openRecoveryConfirm}
+                  disabled={!canConfirmRecovery}
+                  pending={isSubmitting}
+                  pendingLabel="调息中……"
+                >
+                  引泉疗伤
+                </InkButton>
+                <span className="text-ink-secondary text-sm">
+                  若要静养伤势，向阵槽投入灵石即可。
+                </span>
+              </>
+            )}
           </div>
         </InkCard>
       </GameSceneSection>
