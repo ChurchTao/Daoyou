@@ -21,6 +21,6 @@ import { BaixiaoController } from './baixiao.controller.js';
     BaixiaoStandings,
     BaixiaoDuelService,
   ],
-  exports: [BaixiaoStandings],
+  exports: [BaixiaoStandings, BaixiaoQuestionBank],
 })
 export class BaixiaoModule {}

@@ -1,4 +1,4 @@
-import { HomeAct, HomeLabel } from '@app/components/feature/home/HomeAct';
+import { HomeAct } from '@app/components/feature/home/HomeAct';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { cn } from '@app/lib/cn';
 import { getSectPresentation } from '@app/lib/sect/sectPresentation';
@@ -11,10 +11,6 @@ function fill(text: string, context: PerformanceContext) {
   return text.replace(/\{(\w+)\}/g, (_, key: string) => context[key] ?? '');
 }
 
-/**
- * 主线眼下的事。有人等着，就是那个人带着一句话找上门来；
- * 没有人，就只写眼下该做什么。
- */
 export function HomeCaller({
   story,
   context,
@@ -42,8 +38,7 @@ export function HomeCaller({
         : undefined;
 
   return (
-    <section data-guide="home.story">
-      <HomeLabel>{hail ? '来人' : '眼下'}</HomeLabel>
+    <div className="mb-3" data-guide="home.story">
       {hail ? (
         <div className="mb-2 flex items-start gap-4">
           {face ? (
@@ -96,6 +91,6 @@ export function HomeCaller({
       <p className="text-wood mt-1 pl-7 text-sm tracking-[0.12em]">
         主线 · {story.chapterTitle}
       </p>
-    </section>
+    </div>
   );
 }

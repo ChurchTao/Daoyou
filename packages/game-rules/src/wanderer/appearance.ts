@@ -78,26 +78,33 @@ export function wandererSuperiorBookIds(): readonly string[] {
     .map((skillId) => `book.${skillId}`);
 }
 
-export function wandererAppearance(now: number): WandererAppearance {
+export function wandererLocationAt(now: number) {
   const window = wandererWindow(now);
   const region = REGIONS[wandererHash(`${window.id}:region`) % REGIONS.length]!;
-  const place = wandererPlace(window.id, region.id);
+  const { x, y } = wandererPlace(window.id, region.id);
+  return {
+    ...window,
+    regionId: region.id,
+    regionName: region.name,
+    x,
+    y,
+  };
+}
+
+export function wandererAppearance(now: number): WandererAppearance {
+  const place = wandererLocationAt(now);
   const wanted =
-    BEAST_SPECIES[wandererHash(`${window.id}:wanted`) % BEAST_SPECIES.length]!;
+    BEAST_SPECIES[wandererHash(`${place.id}:wanted`) % BEAST_SPECIES.length]!;
   const offers = BEAST_SPECIES.map((species) => ({
     speciesId: species.id,
     speciesName: species.name,
     bottles:
       species.id === wanted.id
         ? WANDERER_WANTED_BOTTLES
-        : 2 + (wandererHash(`${window.id}:price:${species.id}`) % 5),
+        : 2 + (wandererHash(`${place.id}:price:${species.id}`) % 5),
   }));
   return {
-    ...window,
-    regionId: region.id,
-    regionName: region.name,
-    x: place.x,
-    y: place.y,
+    ...place,
     bearing: wandererBearing(place.x, place.y),
     wantedSpeciesId: wanted.id,
     wantedSpeciesName: wanted.name,
@@ -106,11 +113,17 @@ export function wandererAppearance(now: number): WandererAppearance {
 }
 
 export function wandererRumor(appearance: WandererAppearance): string {
-  const place =
-    appearance.bearing === '中部'
-      ? `${appearance.regionName}中部`
-      : `${appearance.regionName}偏${appearance.bearing}`;
+  const place = wandererLocationLabel(appearance);
   return `传闻${place}来了游商，今日点名要「${appearance.wantedSpeciesName}」，专收变异灵兽。`;
+}
+
+export function wandererLocationLabel({
+  regionName,
+  x,
+  y,
+}: Pick<WandererAppearance, 'regionName' | 'x' | 'y'>): string {
+  const bearing = wandererBearing(x, y);
+  return bearing === '中部' ? `${regionName}中部` : `${regionName}偏${bearing}`;
 }
 
 function wandererPlace(

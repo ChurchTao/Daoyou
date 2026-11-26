@@ -4,6 +4,7 @@ export {
   huntEventsAt,
   huntIsOpen,
   huntMapHref,
+  huntTargetLabel,
 } from '../hunts/config.js';
 export { huntEnemies, huntEnemyIcon, huntNpcCommand } from '../hunts/content.js';
 export {
