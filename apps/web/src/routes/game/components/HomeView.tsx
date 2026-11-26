@@ -242,7 +242,7 @@ export function HomeView() {
               )}
               {showYield && (
                 <YieldCard
-                  key={cultivator.id}
+                  key={`yield:${cultivator.id}`}
                   cultivator={cultivator}
                   trigger={({ hours, retry, claiming, claim }) => (
                     <HomeAct
@@ -272,7 +272,9 @@ export function HomeView() {
                   )}
                 />
               )}
-              {showDivination && <HomeDivination key={cultivator.id} />}
+              {showDivination && (
+                <HomeDivination key={`divination:${cultivator.id}`} />
+              )}
               {showAttributes && (
                 <HomeAct
                   href="/game/cultivator"
