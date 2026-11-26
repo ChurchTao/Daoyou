@@ -163,7 +163,6 @@ export function auctionBlockReason(
   if (item.equipped) return '已装备道装不可寄售，请先卸下';
   const definition = findItemDefinition(item.definitionId);
   if (!definition) return '该物品不支持寄售';
-  if (definition.kind === 'mystery_bag') return '神秘储物袋不可寄售';
   if (
     definition.kind === 'consumable' &&
     !['pill', 'spirit_fruit'].includes(
