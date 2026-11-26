@@ -7,7 +7,6 @@ import {
   type BaixiaoPracticeQuestion,
   type BaixiaoQuestionStatus,
 } from '@daoyou/contracts/baixiao/meet';
-import { DUNGEON_REWARD_PACK } from '@daoyou/game-content/rewards/dungeon';
 import { type BaixiaoQuestionData } from '@daoyou/game-domain/baixiao/meet';
 import {
   BaixiaoCategorySchema,
@@ -17,6 +16,7 @@ import {
 import { materialFactsOf } from '@daoyou/game-domain/inventory';
 import { ItemLibraryMaterialPayloadSchema } from '@daoyou/game-domain/items/catalog';
 import {
+  BAIXIAO_MANUAL_QUALITIES,
   baixiaoQuotaStatus,
   baixiaoSampleLimits,
   baixiaoWeek,
@@ -162,28 +162,35 @@ export class BaixiaoQuestionBank {
   }
 
   private async materials() {
-    const found = await this.db
-      .select({ payload: itemLibrary.payload })
-      .from(itemLibrary)
-      .where(
-        and(
-          eq(itemLibrary.type, 'material'),
-          eq(itemLibrary.status, 'published'),
-          eq(itemLibrary.category, 'gongfa_manual'),
-        ),
-      )
-      .orderBy(sql`random()`)
-      .limit(100);
-    return found
-      .flatMap(({ payload }) => {
-        const parsed = ItemLibraryMaterialPayloadSchema.safeParse(payload);
-        if (!parsed.success) return [];
-        const instanceData = materialFactsOf(parsed.data);
-        return instanceData.type === 'gongfa_manual'
-          ? [{ definitionId: 'material.v1', quantity: 1, instanceData }]
-          : [];
-      })
-      .slice(0, 32);
+    const groups = await Promise.all(
+      BAIXIAO_MANUAL_QUALITIES.map(async (quality) => {
+        const found = await this.db
+          .select({ payload: itemLibrary.payload })
+          .from(itemLibrary)
+          .where(
+            and(
+              eq(itemLibrary.type, 'material'),
+              eq(itemLibrary.status, 'published'),
+              eq(itemLibrary.category, 'gongfa_manual'),
+              eq(itemLibrary.quality, quality),
+            ),
+          )
+          .orderBy(sql`random()`)
+          .limit(32);
+        return found
+          .flatMap(({ payload }) => {
+            const parsed = ItemLibraryMaterialPayloadSchema.safeParse(payload);
+            if (!parsed.success) return [];
+            const instanceData = materialFactsOf(parsed.data);
+            return instanceData.type === 'gongfa_manual' &&
+              instanceData.rank === quality
+              ? [{ definitionId: 'material.v1', quantity: 1, instanceData }]
+              : [];
+          })
+          .slice(0, 8);
+      }),
+    );
+    return groups;
   }
 
   async prepare(clock: ReturnType<typeof baixiaoWeek>) {
@@ -194,20 +201,15 @@ export class BaixiaoQuestionBank {
     if (round) return round;
     if (Date.now() > clock.lastStartAt || !(await this.isReady()))
       return undefined;
-    const materials = await this.materials();
-    if (!materials.length || Date.now() > clock.lastStartAt) return undefined;
-    const superior = DUNGEON_REWARD_PACK.superiorBooks;
-    const ordinary = DUNGEON_REWARD_PACK.books
-      .map(({ rewardId }) => rewardId)
-      .filter((id) => !superior.includes(id));
-    if (!ordinary.length || !superior.length) return undefined;
+    const groups = await this.materials();
+    if (groups.some((group) => !group.length) || Date.now() > clock.lastStartAt)
+      return undefined;
     const [prepared] = await this.db
       .insert(rounds)
       .values({
         week: clock.week,
         closesAt: new Date(clock.closesAt),
-        materials,
-        books: { ordinary, superior },
+        materials: groups.flat(),
       })
       .onConflictDoNothing()
       .returning(roundColumns);
@@ -276,7 +278,7 @@ export class BaixiaoQuestionBank {
       retired: totals
         .filter((row) => row.status === 'retired')
         .reduce((total, group) => total + group.count, 0),
-      materials: round?.materials.length ?? (await this.materials()).length,
+      materials: round?.materials.length ?? (await this.materials()).flat().length,
       distribution,
       quotas,
     };

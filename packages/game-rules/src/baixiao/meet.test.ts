@@ -1,3 +1,4 @@
+import { REALM_VALUES } from '@daoyou/constants/realms';
 import type {
   BaixiaoAnswer,
   BaixiaoBankQuestion,
@@ -5,8 +6,15 @@ import type {
 import { BaixiaoQuestionSchema } from '@daoyou/game-domain/baixiao/question';
 import { describe, expect, it } from 'vitest';
 import {
+  planExorcismSettlement,
+  planExorcismWinReward,
+} from '../dungeon/exorcism/rewards.js';
+import { getRealmStageLevel } from '@daoyou/game-domain/progression';
+import {
   awardBaixiaoCard,
+  BAIXIAO_MANUAL_QUALITIES,
   baixiaoCardState,
+  baixiaoManualQuality,
   baixiaoQuotaStatus,
   baixiaoRewardBudget,
   baixiaoRewardsEarned,
@@ -17,6 +25,7 @@ import {
   decideBaixiaoCard,
   decideBaixiaoChallenge,
   finishBaixiao,
+  planBaixiaoClearRewards,
   scoreBaixiao,
 } from './meet.js';
 
@@ -282,17 +291,73 @@ describe('百晓盛会', () => {
     expect(baixiaoCardState([...trail, badFortune]).streak).toBe(0);
   });
 
-  it('奖励是两份平均历练收益，累计后保留整份预算', () => {
-    const budget = baixiaoRewardBudget('炼气', '初期');
-    expect(budget.cultivationExp).toBeGreaterThan(0);
-    expect(budget.spiritStones).toBeGreaterThan(0);
-    expect(budget.insight).toBe(72);
-    expect(baixiaoRewardsEarned(budget, 0)).toEqual({
-      spiritStones: 0,
-      insight: 0,
-      cultivationExp: 0,
-    });
+  it('全对修为等于两局同境普通难度除祟 S，逐题发完完整预算', () => {
+    const context = {
+      mapRealm: '金丹',
+      playerRealm: '金丹',
+      difficultyTier: 'normal',
+    } as const;
+    const level = getRealmStageLevel('金丹', '初期');
+    const wins = [1, 2, 3, 4].map((wave) =>
+      planExorcismWinReward(1, wave, level, context),
+    );
+    const settlement = planExorcismSettlement(1, 'S', 'cleared', level, context);
+    const expected = 2 * [...wins, settlement].reduce(
+      (total, reward) => total + reward.experience,
+      0,
+    );
+    const budget = baixiaoRewardBudget('金丹');
+    expect(budget).toEqual({ cultivationExp: expected, spiritStones: 0, insight: 0 });
+    expect(baixiaoRewardsEarned(budget, 20).cultivationExp).toBe(Math.floor(expected * 0.8));
     expect(baixiaoRewardsEarned(budget, 25)).toEqual(budget);
-    expect(baixiaoRewardsEarned(budget, 20).insight).toBe(57);
+  });
+
+  it('通关评级沿用对应除祟战次和评级掉落', () => {
+    const seed = 19;
+    const level = getRealmStageLevel('金丹', '初期');
+    const context = {
+      mapRealm: '金丹',
+      playerRealm: '金丹',
+      difficultyTier: 'normal',
+    } as const;
+    const cases = [
+      [16, 'D', 1, 'retreated'], [17, 'C', 2, 'retreated'],
+      [18, 'B', 3, 'retreated'], [19, 'A', 4, 'cleared'],
+      [20, 'S', 4, 'cleared'], [25, 'S', 4, 'cleared'],
+    ] as const;
+    expect(() => planBaixiaoClearRewards('金丹', 15, seed)).toThrow();
+    for (const [correct, grade, waves, ending] of cases) {
+      const result = planBaixiaoClearRewards('金丹', correct, seed);
+      const wins = Array.from({ length: waves }, (_, i) =>
+        planExorcismWinReward(seed, i + 1, level, context),
+      );
+      const settlement = planExorcismSettlement(seed, grade, ending, level, context);
+      const rewards = [...wins, settlement];
+      expect(result).toEqual({
+        grade,
+        difficultyTier: 'normal',
+        insight: settlement.insight,
+        spiritStones: rewards.reduce((total, reward) => total + reward.spiritStones, 0),
+        plans: rewards.map((reward) => reward.plan),
+      });
+    }
+  });
+
+  it('典籍始终落在四个品阶，高境界的高品累计概率递增', () => {
+    const draws = REALM_VALUES.map((realm) =>
+      Array.from({ length: 100 }, (_, roll) => baixiaoManualQuality(realm, roll)),
+    );
+    for (let index = 0; index < draws.length; index++) {
+      const current = draws[index];
+      expect(current.every((quality) => BAIXIAO_MANUAL_QUALITIES.includes(quality))).toBe(true);
+      const next = draws[index + 1];
+      if (!next) continue;
+      for (const threshold of [1, 2, 3]) {
+        const high = (quality: (typeof BAIXIAO_MANUAL_QUALITIES)[number]) =>
+          BAIXIAO_MANUAL_QUALITIES.indexOf(quality) >= threshold;
+        expect(next.filter(high).length).toBeGreaterThanOrEqual(current.filter(high).length);
+      }
+    }
+    expect(draws.at(-1)?.filter((quality) => quality === '神品')).toHaveLength(25);
   });
 });

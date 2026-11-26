@@ -2,7 +2,7 @@ import type { ArenaRuntime } from '@daoyou/contracts/combat/arena';
 import type { InvasionCard, InvasionCards, InvasionMember, InvasionPhase, InvasionResources, InvasionReward } from '@daoyou/game-domain/invasion';
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import type {
-  BaixiaoAnswer, BaixiaoFinish, BaixiaoPaperSlot, BaixiaoQuestionData, BaixiaoResources, BaixiaoScore,
+  BaixiaoAnswer, BaixiaoFinish, BaixiaoPaperSlot, BaixiaoQuestionData, BaixiaoResources, BaixiaoReward, BaixiaoScore,
 } from '@daoyou/game-domain/baixiao/meet';
 import type { BaixiaoQuestionStatus } from '@daoyou/contracts/baixiao/meet';
 import type { ContestAttempt, ContestPaper, ContestStanding } from '@daoyou/game-domain/alchemy/contest';
@@ -2927,7 +2927,6 @@ export const baixiaoRounds = pgTable('wanjiedaoyou_baixiao_rounds', {
   week: date('week').primaryKey(),
   closesAt: timestamp('closes_at', { withTimezone: true }).notNull(),
   questionIds: uuid('question_ids').array().notNull().default(sql`'{}'::uuid[]`),
-  books: jsonb('books').$type<{ ordinary: string[]; superior: string[] }>().notNull(),
   materials: jsonb('materials').$type<ItemGrant[]>().notNull(),
   announcedAt: timestamp('announced_at', { withTimezone: true }),
   settledAt: timestamp('settled_at', { withTimezone: true }),
@@ -2942,7 +2941,7 @@ export const baixiaoEntries = pgTable('wanjiedaoyou_baixiao_entries', {
   name: text('name').notNull(),
   title: text('title'),
   gender: text('gender'),
-  realm: text('realm').notNull(),
+  realm: text('realm').$type<RealmType>().notNull(),
   endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
   issuedAt: timestamp('issued_at', { withTimezone: true }),
   challengeId: uuid('challenge_id'),
@@ -2954,7 +2953,7 @@ export const baixiaoEntries = pgTable('wanjiedaoyou_baixiao_entries', {
   earned: jsonb('earned').$type<BaixiaoResources>().notNull(),
   score: jsonb('score').$type<BaixiaoScore>(),
   rank: integer('rank'),
-  reward: jsonb('reward').$type<{item: ItemGrant; name: string}>(),
+  reward: jsonb('reward').$type<BaixiaoReward>(),
 }, (table) => [
   primaryKey({ columns: [table.week, table.userId] }),
   check('baixiao_entry_status_valid', sql`${table.status} in ('cleared', 'eliminated', 'expired')`),

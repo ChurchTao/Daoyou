@@ -6,6 +6,7 @@ import {
   type BaixiaoFinish,
   type BaixiaoHand,
   type BaixiaoResources,
+  type BaixiaoReward,
   type BaixiaoScore,
 } from '@daoyou/game-domain/baixiao/meet';
 import {
@@ -116,7 +117,7 @@ export interface BaixiaoSessionView {
   finished: BaixiaoFinish | null;
   score: BaixiaoScore;
   earned: BaixiaoResources;
-  itemName: string | null;
+  reward: BaixiaoReward | null;
 }
 
 export interface BaixiaoStatus {

@@ -1,3 +1,5 @@
+import type { ExorcismGrade } from '../dungeon/exorcism.js';
+import type { ItemGrant } from '../items/inventory.js';
 import type { BaixiaoQuestionData } from './question.js';
 
 export type { BaixiaoQuestionData } from './question.js';
@@ -32,6 +34,11 @@ export interface BaixiaoResources {
   cultivationExp: number;
   spiritStones: number;
   insight: number;
+}
+
+export interface BaixiaoReward {
+  grade: ExorcismGrade;
+  items: ItemGrant[];
 }
 
 export interface BaixiaoScore {

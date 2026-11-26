@@ -6,7 +6,6 @@ import {
 } from '@daoyou/constants/realms';
 import { DUNGEON_LIFESPAN_COST_MAX } from '@daoyou/game-content/dungeon/cost';
 import {
-  EXORCISM_REWARD_PACK,
   exorcismLineageForScene,
 } from '@daoyou/game-content/dungeon/exorcism';
 import { getMysteryFallbackCase } from '@daoyou/game-content/dungeon/scenarios';
@@ -981,17 +980,13 @@ export class DungeonFlowService {
       { type: 'spirit_stones', value: sum('spiritStones') },
     ];
     if (insight !== 'none') {
-      const value = RewardFactory.rollInsight(
-        mapRealm,
-        insight === 'full' ? 'S' : 'A',
-        state.dangerScore,
-        context.difficultyTier,
-      );
       gains.push({
         type: 'comprehension_insight',
-        value: Math.max(
-          1,
-          Math.floor(value * EXORCISM_REWARD_PACK.insightFactor),
+        value: RewardFactory.rollExorcismInsight(
+          mapRealm,
+          insight,
+          state.dangerScore,
+          context.difficultyTier,
         ),
       });
     }

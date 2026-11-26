@@ -1,5 +1,4 @@
-import { ItemSlot } from '@app/components/feature/items/ItemSlot';
-import type { DisplayItem } from '@app/components/feature/items/itemPresentation';
+import { RewardItemGrid } from '@app/components/feature/items/RewardItemGrid';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkTag } from '@app/components/ui/InkTag';
@@ -7,7 +6,6 @@ import { SpiritStones } from '@app/components/ui/SpiritStones';
 import type { ResourceOperation } from '@daoyou/game-domain/resources';
 import type { DungeonSettlement as DungeonSettlementType } from '@daoyou/game-domain/dungeon';
 import { getResourceTypeInfo } from '@daoyou/game-content/presentation/concepts';
-import { dungeonRewardItemName } from '@daoyou/game-rules/rewards/dungeon';
 import type { MysteryPlayerView } from '@daoyou/game-domain/dungeon/mystery';
 import { DungeonMysteryResult } from '@app/components/feature/dungeon/DungeonMysteryResult';
 import type { ExorcismRunState } from '@daoyou/game-domain/dungeon/exorcism';
@@ -64,19 +62,7 @@ export function DungeonSettlement({
     }))
     .filter((item) => item.value > 0);
 
-  const grouped = new Map<string, DisplayItem>();
-  for (const item of settlement?.inventoryRewards ?? []) {
-    const key = JSON.stringify([item.definitionId, item.instanceData]);
-    const existing = grouped.get(key);
-    if (existing) existing.quantity += item.quantity;
-    else
-      grouped.set(key, {
-        definitionId: item.definitionId,
-        instanceData: item.instanceData ?? null,
-        name: dungeonRewardItemName(item),
-        quantity: item.quantity,
-      });
-  }
+  const items = settlement?.inventoryRewards ?? [];
 
   return (
     <InkCard
@@ -143,17 +129,8 @@ export function DungeonSettlement({
 
       <div className="space-y-2">
         <div className="text-sm font-medium">所得物品</div>
-        {grouped.size > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {[...grouped].map(([key, item]) => (
-              <ItemSlot
-                key={key}
-                item={item}
-                className="w-20"
-                quantityLabel="奖励"
-              />
-            ))}
-          </div>
+        {items.length > 0 ? (
+          <RewardItemGrid grants={items} />
         ) : (
           <div className="text-ink-secondary bg-ink/5 border-ink/15 border border-dashed px-3 py-4 text-sm">
             本次没有获得物品

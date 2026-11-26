@@ -1,4 +1,3 @@
-import { BaixiaoScorecard } from '@app/components/feature/baixiao/BaixiaoScorecard';
 import {
   BaixiaoFeedbackToast,
   BaixiaoHandPanel,
@@ -33,6 +32,7 @@ import {
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router';
 import './baixiao.css';
+import { BaixiaoResult } from './BaixiaoResult';
 import type { mountBaixiaoScene } from './BaixiaoScene';
 import { QuestionMetadata, QuestionReview } from './QuestionReview';
 import { useBaixiao } from './useBaixiao';
@@ -125,7 +125,7 @@ function Lobby({
 
 function Rules({ open, close }: { open: boolean; close: () => void }) {
   return (
-    <InkDetailDrawer isOpen={open} title="规则与奖励" size="md" onClose={close}>
+    <InkDetailDrawer isOpen={open} title="游玩规则" size="md" onClose={close}>
       <div className="weekly-activity-rules">
         <section>
           <h3>入场与作答</h3>
@@ -158,88 +158,13 @@ function Rules({ open, close }: { open: boolean; close: () => void }) {
           </p>
         </section>
         <section>
-          <h3>成绩与奖励</h3>
+          <h3>通关与排名</h3>
           <p>
-            通关后按作答计时与罚时之和排名。总用时以十分之一秒比较，同用时答对多者在前，仍相同则并列。
-          </p>
-          <p>
-            答对即得修为、灵石和感悟。通关另抽一件奖品，功法典籍 90%、传承灵印
-            9%、上品传承灵印 1%。
+            限时内完成 25 题且失误少于 10 次即可通关。榜单按作答计时与罚时之和排名，比较至十分之一秒。同用时答对多者在前，仍相同则并列。
           </p>
         </section>
       </div>
     </InkDetailDrawer>
-  );
-}
-
-function Results({
-  session,
-  phase,
-}: {
-  session: BaixiaoSessionView;
-  phase: BaixiaoStatus['phase'];
-}) {
-  const resultHeading = useRef<HTMLHeadingElement>(null);
-  useEffect(() => resultHeading.current?.focus({ preventScroll: true }), []);
-  const title =
-    session.finished === 'cleared'
-      ? '二十五关已过'
-      : session.finished === 'eliminated'
-        ? '本场止步'
-        : '作答已结束';
-  return (
-    <div className="baixiao-result-scroll">
-      <section className="baixiao-result">
-        <h2 ref={resultHeading} tabIndex={-1}>
-          {title}
-        </h2>
-        <p>
-          总用时{' '}
-          <strong className="font-mono">
-            {baixiaoTime(session.score.totalMs)}
-          </strong>
-        </p>
-        {session.finished === 'eliminated' && (
-          <p>累计失误 10 次，已答对的收益照常到账。</p>
-        )}
-        {session.finished === 'cleared' && (
-          <p>
-            {phase === 'settled'
-              ? '本期名次已公布。'
-              : '本期名次将在封榜后公布。'}
-          </p>
-        )}
-        <dl className="baixiao-earned" aria-label="本场所得">
-          <div>
-            <dt>修为</dt>
-            <dd>{session.earned.cultivationExp.toLocaleString()}</dd>
-          </div>
-          <div>
-            <dt>灵石</dt>
-            <dd>{session.earned.spiritStones.toLocaleString()}</dd>
-          </div>
-          <div>
-            <dt>感悟</dt>
-            <dd>{session.earned.insight.toLocaleString()}</dd>
-          </div>
-        </dl>
-        {session.itemName && (
-          <p>通关所得 · {session.itemName}（已随传音送达）</p>
-        )}
-        <details className="baixiao-result-details">
-          <summary>成绩明细</summary>
-          <BaixiaoScorecard score={session.score} showTotal={false} />
-        </details>
-        <div className="weekly-activity-actions">
-          <InkButton href={rankingHref} variant="primary">
-            查看才子榜
-          </InkButton>
-          <InkButton href={mapHref} variant="secondary">
-            返回舆图
-          </InkButton>
-        </div>
-      </section>
-    </div>
   );
 }
 
@@ -460,6 +385,7 @@ function BaixiaoScreen({ meet }: { meet: ReturnType<typeof useBaixiao> }) {
         place="晋京"
         mapHref={mapHref}
         onRules={() => setRulesOpen(true)}
+        rulesLabel="游玩规则"
         disabled={meet.busy}
       />
       {!meet.status && !meet.error && (
@@ -467,7 +393,12 @@ function BaixiaoScreen({ meet }: { meet: ReturnType<typeof useBaixiao> }) {
       )}
       {meet.status &&
         (session ? (
-          <Results session={session} phase={meet.status.phase} />
+          <BaixiaoResult
+            session={session}
+            phase={meet.status.phase}
+            mapHref={mapHref}
+            rankingHref={rankingHref}
+          />
         ) : (
           <Lobby
             status={meet.status}
@@ -533,7 +464,7 @@ export default function BaixiaoMeetRoute() {
   return (
     <>
       <BaixiaoScreen meet={meet} />
-      {session && (
+      {session && !session.finished && (
         <FocusPenaltyToast
           key={session.endsAt}
           count={session.score.focusPenalties ?? 0}
@@ -541,7 +472,7 @@ export default function BaixiaoMeetRoute() {
           foreground={meet.foreground}
         />
       )}
-      {session?.latest?.verdict === 'correct' && (
+      {!session?.finished && session?.latest?.verdict === 'correct' && (
         <BaixiaoFeedbackToast
           key={`${session.endsAt}:${session.latest.position}`}
           answer={session.latest}

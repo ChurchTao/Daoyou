@@ -1,4 +1,4 @@
-import type { RealmStage, RealmType } from '@daoyou/constants/realms';
+import type { RealmType } from '@daoyou/constants/realms';
 import type { BaixiaoResolveCommand } from '@daoyou/contracts/baixiao/meet';
 import {
   BAIXIAO_QUESTION_MS,
@@ -44,7 +44,10 @@ import { randomInt } from 'node:crypto';
 import { baixiaoView, readBaixiaoQuestion } from './baixiao-view.js';
 import { BaixiaoDuelService } from './BaixiaoDuelService.js';
 import { BaixiaoQuestionBank } from './BaixiaoQuestionBank.js';
-import { drawBaixiaoReward, grantBaixiaoAnswer } from './BaixiaoRewards.js';
+import {
+  grantBaixiaoResources,
+  prepareBaixiaoClearReward,
+} from './BaixiaoRewards.js';
 
 type ResolveCommand =
   | BaixiaoResolveCommand
@@ -117,7 +120,6 @@ export class BaixiaoMeetService {
         title: cultivators.title,
         gender: cultivators.gender,
         realm: cultivators.realm,
-        stage: cultivators.realm_stage,
       })
       .from(cultivators)
       .where(
@@ -128,6 +130,7 @@ export class BaixiaoMeetService {
         ),
       );
     if (!character) throw new ForbiddenException('当前角色不可参赛。');
+    const realm = character.realm as RealmType;
     const paper = await this.bank.drawPaper();
     const startedAt = Date.now();
     if (startedAt > clock.lastStartAt)
@@ -141,13 +144,10 @@ export class BaixiaoMeetService {
         name: character.name,
         title: character.title,
         gender: character.gender,
-        realm: character.realm,
+        realm,
         endsAt: new Date(startedAt + BAIXIAO_SESSION_MS),
         paper,
-        budget: baixiaoRewardBudget(
-          character.realm as RealmType,
-          character.stage as RealmStage,
-        ),
+        budget: baixiaoRewardBudget(realm),
         earned: { cultivationExp: 0, spiritStones: 0, insight: 0 },
       })
       .onConflictDoNothing();
@@ -364,31 +364,43 @@ export class BaixiaoMeetService {
         const answers = [...entry.answers, answer];
         const score = scoreBaixiao(answers, entry.focusPenalties);
         const status = finishBaixiao(score);
-        const { earned, resourceChanges } =
-          answer.verdict === 'correct'
-            ? await grantBaixiaoAnswer(
-                tx,
-                actor,
-                entry.budget,
-                entry.earned,
-                score.correct,
-              )
-            : { earned: entry.earned, resourceChanges: [] };
-        let reward = null;
-        let mail = null;
+        let completion;
         if (status === 'cleared') {
           const [round] = await tx
             .select()
             .from(rounds)
             .where(eq(rounds.week, command.week));
-          reward = drawBaixiaoReward(round);
+          completion = await prepareBaixiaoClearReward(
+            tx,
+            round,
+            entry.realm,
+            score.correct,
+          );
+        }
+        const correct = answer.verdict === 'correct';
+        const { earned, resourceChanges } =
+          correct || completion
+            ? await grantBaixiaoResources(
+                tx,
+                actor,
+                entry,
+                score.correct - Number(correct),
+                score.correct,
+                completion,
+              )
+            : { earned: entry.earned, resourceChanges: [] };
+        let mail = null;
+        if (completion) {
           mail = await MailService.sendNewRewardMail(
             actor.cultivatorId,
             '百晓盛会通关奖励',
             '道友闯过百晓盛会二十五关，盛会将所获随信奉上。',
-            rewardAttachments([
-              { type: 'inventory_v1', inventory: reward.item },
-            ]),
+            rewardAttachments(
+              completion.reward.items.map((inventory) => ({
+                type: 'inventory_v1',
+                inventory,
+              })),
+            ),
             'reward',
             tx,
           );
@@ -402,7 +414,7 @@ export class BaixiaoMeetService {
             challengeId: null,
             status,
             earned,
-            reward,
+            reward: completion?.reward ?? null,
           })
           .where(entryFilter(command.week, actor))
           .returning();

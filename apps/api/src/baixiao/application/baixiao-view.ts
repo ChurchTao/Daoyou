@@ -137,7 +137,7 @@ export async function baixiaoView(
           finished,
           score,
           earned: player.earned,
-          itemName: player.reward?.name ?? null,
+          reward: player.reward,
         }
       : null,
   };

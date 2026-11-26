@@ -1,5 +1,6 @@
 import {
   BAIXIAO_FOCUS_PENALTY_MS,
+  BAIXIAO_QUESTION_COUNT,
   type BaixiaoScore,
 } from '@daoyou/game-domain/baixiao/meet';
 
@@ -8,15 +9,23 @@ import { baixiaoTime } from './time';
 export function BaixiaoScorecard({
   score,
   showTotal = true,
+  showCorrect = true,
 }: {
   score: BaixiaoScore;
   showTotal?: boolean;
+  showCorrect?: boolean;
 }) {
   const focusPenalties = score.focusPenalties ?? 0;
   return (
     <dl className="grid grid-cols-[1fr_auto] gap-x-5 gap-y-2 text-sm">
-      <dt>答对</dt>
-      <dd className="font-mono">{score.correct} / 25</dd>
+      {showCorrect && (
+        <>
+          <dt>答对</dt>
+          <dd className="font-mono">
+            {score.correct} / {BAIXIAO_QUESTION_COUNT}
+          </dd>
+        </>
+      )}
       <dt>作答计时</dt>
       <dd className="font-mono">{baixiaoTime(score.elapsedMs)}</dd>
       <dt>罚时</dt>
