@@ -1,4 +1,12 @@
-import { Controller, HttpCode, Inject, Post, UseFilters } from '@nestjs/common';
+import {
+  Controller,
+  HttpCode,
+  Inject,
+  Post,
+  UseFilters,
+  UseGuards,
+} from '@nestjs/common';
+import { minutes, Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { AuthUser } from '@server/lib/auth/types.js';
 import {
   FeedbackCreateRequestSchema,
@@ -30,6 +38,8 @@ export class FeedbackController {
   @Post()
   @HttpCode(200)
   @UseFilters(FeedbackErrors)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: minutes(10) } })
   create(
     @CurrentUser() user: AuthUser,
     @JsonBody({ fallback: undefined }, new ZodPipe(FeedbackCreateRequestSchema))

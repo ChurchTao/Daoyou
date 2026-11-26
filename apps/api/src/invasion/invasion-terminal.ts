@@ -45,7 +45,7 @@ export async function recordInvasionTerminal(runtime: ArenaRuntime) {
       !['launching', 'battle'].includes(run.phase)
     )
       return;
-    const closesAt = invasionClosesAt(run.week);
+    const closesAt = await invasionClosesAt(run.week, tx);
     const endedAt = runtime.terminalAt ?? runtime.deadlineAt;
     const won = runtime.state.result?.winner === 0 && endedAt < closesAt;
     await archiveCombatV6Replay(

@@ -9,8 +9,10 @@ import {
   Post,
   Res,
   UseFilters,
+  UseGuards,
   type PipeTransform,
 } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { CombatV6ReplayParamsSchema } from '@daoyou/contracts/combat';
 import { CombatV6HistoryQuerySchema } from '@daoyou/contracts/combat/replays';
@@ -82,6 +84,7 @@ export class SharedReplaysController {
   ) {}
 
   @Get(':shareCode')
+  @UseGuards(ThrottlerGuard)
   async read(
     @Param('shareCode', new ShareCodePipe()) shareCode: string,
     @Res({ passthrough: true }) response: Response,

@@ -1,30 +1,35 @@
 import { describe, expect, it } from 'vitest';
+import { planBaixiaoClearRewards } from '../baixiao/meet.js';
 import { compileExorcismEncounter } from '../dungeon/exorcism/encounter.js';
+import { exorcismGradeExperience } from '../dungeon/exorcism/rewards.js';
 import {
+  invasionBossRewardGrade,
   invasionBossWave,
   invasionCardDrop,
   invasionDifficulty,
   invasionEnemies,
   invasionFirstClear,
+  invasionLastWaveResources,
   invasionNextWave,
-  invasionResourceBudget,
+  invasionResourceDelta,
   invasionWaveMultiplier,
   invasionWeek,
+  planInvasionReward,
 } from './index.js';
 
 describe('古魔入侵', () => {
-  it('只在北京时间周二 14:00–16:00 开放', () => {
-    const start = Date.parse('2026-12-01T14:00:00+08:00');
-    expect(invasionWeek(start - 1).open).toBe(false);
-    expect(invasionWeek(start)).toMatchObject({
-      week: '2026-12-01',
-      open: true,
+  it('以北京时间周一 00:00 开启新一期', () => {
+    const boundary = Date.parse('2026-11-30T00:00:00+08:00');
+    expect(invasionWeek(boundary - 1)).toMatchObject({
+      week: '2026-11-23',
+      closesAt: boundary,
     });
-    expect(invasionWeek(start + 7_199_999).open).toBe(true);
-    expect(invasionWeek(start + 7_200_000).open).toBe(false);
-    expect(invasionWeek(start + 7_200_000).nextOpensAt).toBe(
-      start + 7 * 86_400_000,
-    );
+    expect(invasionWeek(boundary)).toMatchObject({
+      week: '2026-11-30',
+      opensAt: boundary,
+      closesAt: Date.parse('2026-12-07T00:00:00+08:00'),
+    });
+    expect(invasionWeek(boundary, -1).week).toBe('2026-11-23');
   });
 
   it('只对五的倍数波叠加首领强度，气血保持角色次序', () => {
@@ -72,17 +77,79 @@ describe('古魔入侵', () => {
     }
   });
 
-  it('首领必掉卡，基础资源可一直随波数增长', () => {
+  it('普通波保持掉卡概率，首领必掉卡', () => {
     expect(invasionCardDrop(0.5, 0.02, 4)).toBeUndefined();
     expect(invasionCardDrop(0.9, 0.02, 5)).toBe('assault');
     expect(invasionCardDrop(0.4, 0.85, 4)).toBe('shield');
-    const twelveHours = invasionResourceBudget('筑基', '中期', 5);
-    expect(invasionResourceBudget('筑基', '中期', 50).insight).toBe(
-      10 * twelveHours.insight,
+  });
+
+  it('五波合计一局同境界普通 S 级除祟资源', () => {
+    const realm = '筑基';
+    const seed = 19;
+    const planned = planInvasionReward(realm, seed, 'S');
+    const { spiritStones, insight, plans } = planBaixiaoClearRewards(
+      realm,
+      20,
+      seed,
+    );
+    expect(planned).toMatchObject({ spiritStones, insight, plans });
+    expect(planned.cultivationExp).toBe(
+      exorcismGradeExperience('S', {
+        mapRealm: realm,
+        playerRealm: realm,
+        difficultyTier: 'normal',
+      }),
+    );
+
+    const budget = {
+      cultivationExp: planned.cultivationExp,
+      spiritStones,
+      insight: 7,
+    };
+    const paidBeforeBoss = invasionResourceDelta(budget, 0, 4);
+    expect(paidBeforeBoss.insight).toBe(5);
+    const paidOnBoss = invasionResourceDelta(budget, 4, 5);
+    expect({
+      cultivationExp: paidBeforeBoss.cultivationExp + paidOnBoss.cultivationExp,
+      spiritStones: paidBeforeBoss.spiritStones + paidOnBoss.spiritStones,
+      insight: paidBeforeBoss.insight + paidOnBoss.insight,
+    }).toEqual(budget);
+  });
+
+  it('首领道具按 B、A、A、S 分档，之后的首领沿用 S', () => {
+    const realm = '筑基';
+    const seed = 19;
+    const groups = [
+      [5, 'B', 18],
+      [10, 'A', 19],
+      [15, 'A', 19],
+      [20, 'S', 20],
+      [25, 'S', 20],
+      [30, 'S', 20],
+    ] as const;
+    for (const [wave, grade, correct] of groups) {
+      expect(invasionBossRewardGrade(wave)).toBe(grade);
+      expect(planInvasionReward(realm, seed, grade).plans).toEqual(
+        planBaixiaoClearRewards(realm, correct, seed).plans,
+      );
+    }
+    for (const wave of [0, 1, 4, 6, 19, 21]) {
+      expect(invasionBossRewardGrade(wave)).toBeNull();
+    }
+  });
+
+  it('补结多波时只展示最后一波实际入账，资源上限优先截去后面的波次', () => {
+    const budget = { cultivationExp: 503, spiritStones: 2502, insight: 7 };
+    const earlier = invasionResourceDelta(budget, 0, 4);
+    expect(invasionLastWaveResources(budget, earlier)).toEqual(
+      invasionResourceDelta(budget, 4, 5),
     );
     expect(
-      invasionResourceBudget('筑基', '中期', 6).spiritStones,
-    ).toBeGreaterThan(twelveHours.spiritStones);
+      invasionLastWaveResources(
+        { cultivationExp: 500, spiritStones: 2200, insight: 4 },
+        earlier,
+      ),
+    ).toEqual({ cultivationExp: 98, spiritStones: 199, insight: 0 });
   });
 
   it('从队长的下一波开打，按最高参战境界定难度，仅连续首通计入个人进度', () => {

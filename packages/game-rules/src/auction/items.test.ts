@@ -1,6 +1,7 @@
 import { AUCTION_CATALOG_UNIT_PRICE_CAP } from '@daoyou/game-content/auction/config';
 import { ITEM_DEFINITIONS } from '@daoyou/game-content/items';
 import { AUCTION_MAX_UNIT_PRICE } from '@daoyou/game-domain/auction';
+import { MYSTERY_BAG_IDS } from '@daoyou/game-domain/inventory';
 import { describe, expect, it } from 'vitest';
 import { buildSpiritFruitSpec } from '../spirit-field/spiritFruit.js';
 import {
@@ -86,6 +87,38 @@ describe('新版寄售规则', () => {
     expect(AUCTION_MAX_UNIT_PRICE).toBe(99_990_000);
     expect(AUCTION_CATALOG_UNIT_PRICE_CAP).toBe(9_999_999);
   });
+
+  it.each(MYSTERY_BAG_IDS)(
+    '神秘储物袋 %s 可寄售与按档位精确收购',
+    (definitionId) => {
+      const item = { definitionId, instanceData: null, location: 'bag' };
+      expect(auctionBlockReason(item)).toBeNull();
+      expect(auctionItemQuality(item)).toBeNull();
+      expect(auctionItemPriceCap(item)).toBe(AUCTION_CATALOG_UNIT_PRICE_CAP);
+      expect(auctionListingStackLimit(definitionId)).toBe(99);
+      expect(auctionBuyOrderTargetBlockReason(item)).toBeNull();
+      expect(
+        auctionBuyOrderTargetBlockReason({ ...item, instanceData: {} }),
+      ).toBe('固定物品不能附带个体属性');
+
+      const stackKey = auctionBuyOrderTargetStackKey(item)!;
+      for (const otherId of MYSTERY_BAG_IDS) {
+        expect(
+          auctionBuyOrderMatchesItem({ definitionId, stackKey }, {
+            ...item,
+            definitionId: otherId,
+          }),
+        ).toBe(otherId === definitionId);
+      }
+      expect(
+        AuctionSnapshotSchema.safeParse({
+          version: 'inventory_v1',
+          item: { definitionId, quantity: 99 },
+        }),
+      ).toHaveProperty('success', true);
+    },
+  );
+
   it('有品质材料仍执行玄品起售与品质价格上限', () => {
     const item = {
       definitionId: 'material.v1',

@@ -2,19 +2,19 @@
  * 副本结算奖励：灵石、修为和感悟。物品奖励由当前背包发放，不在这里生成。
  */
 
-import type { ResourceOperation } from '@daoyou/game-domain/resources';
-import { EXORCISM_REWARD_PACK } from '@daoyou/game-content/dungeon/exorcism';
-import { YieldCalculator } from '@daoyou/game-rules/yield';
-import { calculateDungeonExp } from '@daoyou/game-rules/cultivation';
-import { type DungeonDifficultyTier } from '@daoyou/game-domain/dungeon';
-import { getDungeonRewardBonus } from '@daoyou/game-rules/world/dungeon';
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
-import type { PlayerInfo } from '@server/dungeon/application/flow/types.js';
+import { EXORCISM_REWARD_PACK } from '@daoyou/game-content/dungeon/exorcism';
+import { type DungeonDifficultyTier } from '@daoyou/game-domain/dungeon';
+import type { ResourceOperation } from '@daoyou/game-domain/resources';
+import { calculateDungeonExp } from '@daoyou/game-rules/cultivation';
+import { getDungeonRewardBonus } from '@daoyou/game-rules/world/dungeon';
+import { YieldCalculator } from '@daoyou/game-rules/yield';
 import {
   REALM_REWARD_CONFIG,
   TIER_MULTIPLIER,
 } from '@server/dungeon/application/flow/reward/rewardConfig.js';
 import type { ValueRange } from '@server/dungeon/application/flow/reward/types.js';
+import type { PlayerInfo } from '@server/dungeon/application/flow/types.js';
 
 /**
  * 奖励工厂 - 将 AI 蓝图转化为实际物品
@@ -90,10 +90,7 @@ export class RewardFactory {
       );
       rewards.push({
         type: 'comprehension_insight',
-        value: Math.max(
-          1,
-          Math.floor(insightValue * rewardBonus),
-        ),
+        value: Math.max(1, Math.floor(insightValue * rewardBonus)),
       });
     }
 
@@ -106,6 +103,7 @@ export class RewardFactory {
     tier: 'S' | 'A',
     dangerScore: number,
     difficultyTier?: DungeonDifficultyTier,
+    rng = Math.random,
   ): number {
     const config = REALM_REWARD_CONFIG[mapRealm] || REALM_REWARD_CONFIG['筑基'];
     const multiplier = TIER_MULTIPLIER[tier] || TIER_MULTIPLIER['C'];
@@ -118,6 +116,7 @@ export class RewardFactory {
             ? { min: multiplier.min * 0.5, max: multiplier.max * 0.65 }
             : multiplier,
           this.getDangerBonus(dangerScore),
+          rng,
         ) * getDungeonRewardBonus(difficultyTier),
       ),
     );
@@ -128,6 +127,7 @@ export class RewardFactory {
     insight: 'full' | 'partial' | 'none',
     dangerScore: number,
     difficultyTier: DungeonDifficultyTier,
+    rng = Math.random,
   ): number {
     if (insight === 'none') return 0;
     const value = this.rollInsight(
@@ -135,6 +135,7 @@ export class RewardFactory {
       insight === 'full' ? 'S' : 'A',
       dangerScore,
       difficultyTier,
+      rng,
     );
     return Math.max(1, Math.floor(value * EXORCISM_REWARD_PACK.insightFactor));
   }
@@ -169,11 +170,12 @@ export class RewardFactory {
     range: ValueRange,
     multiplier: ValueRange,
     dangerBonus: number,
+    rng = Math.random,
   ): number {
     const span = range.max - range.min;
     const effectiveMin = range.min + span * multiplier.min;
     const effectiveMax = range.min + span * multiplier.max;
-    const base = effectiveMin + Math.random() * (effectiveMax - effectiveMin);
+    const base = effectiveMin + rng() * (effectiveMax - effectiveMin);
     return Math.floor(base * (1 + dangerBonus));
   }
 }

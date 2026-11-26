@@ -72,13 +72,6 @@ export type AuctionMutationOptions = {
 };
 type Listing = auctionRepository.AuctionListing;
 
-function auctionInventoryDefinition(id: string) {
-  const definition = itemDefinition(id);
-  const { kind } = definition;
-  if (kind === 'mystery_bag') throw new InventoryError('神秘储物袋不可寄售');
-  return { ...definition, kind };
-}
-
 function listingAttachment(listing: Listing, quantity: number): MailAttachment {
   const snapshot = AuctionSnapshotSchema.parse(listing.itemSnapshot);
   if (snapshot.version === 'beast_v1') {
@@ -126,7 +119,7 @@ export function publicAuctionListing(listing: Listing): AuctionListingView {
   const item = attachment.inventory!;
   return {
     ...common,
-    itemType: auctionInventoryDefinition(item.definitionId).kind,
+    itemType: itemDefinition(item.definitionId).kind,
     item: {
       name: listing.itemName,
       definitionId: item.definitionId,
@@ -289,7 +282,7 @@ export class AuctionOperations {
         ),
         tx,
       );
-      const definition = auctionInventoryDefinition(item.definitionId);
+      const definition = itemDefinition(item.definitionId);
       const name =
         (item.instanceData as { name?: string } | null)?.name ??
         definition.name;

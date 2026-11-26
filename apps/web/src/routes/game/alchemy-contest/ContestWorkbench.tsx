@@ -11,6 +11,7 @@ import { ContestFurnace } from './ContestFurnace';
 import { ContestFurnaceSlots, ContestMaterialRack } from './ContestMaterials';
 import { ContestModal } from './ContestModal';
 import { ContestReceipt } from './ContestReceipt';
+import { ContestResult } from './ContestResult';
 import { ContestTicket } from './ContestTicket';
 import {
   contestFurnacePositions,
@@ -47,8 +48,7 @@ export function ContestWorkbench({
   const [saved, setDraft] = useState(() => readDraft(storageKey, session));
   const [overlay, setOverlay] = useState<Overlay | null>(null);
   const retry = useRef<{ recipe: string; id: string } | null>(null);
-  const scroll = useRef<HTMLDivElement>(null);
-  const result = useRef<HTMLHeadingElement>(null);
+  const timeoutSubmitted = useRef(false);
   const furnaceHeading = useRef<HTMLHeadingElement>(null);
   const rackPane = useRef<HTMLElement>(null);
   const turn = session.attempts.length;
@@ -57,7 +57,7 @@ export function ContestWorkbench({
   const firing = pending === 'brew';
   const ended =
     !firing && (session.finished || seconds <= 0 || remainingTurns === 0);
-  const reviewingNew = !pending && saved.turn < turn;
+  const reviewingNew = !ended && !pending && saved.turn < turn;
   const receiptIndex = reviewingNew
     ? turn - 1
     : overlay?.kind === 'receipt'
@@ -84,8 +84,17 @@ export function ContestWorkbench({
   }, [saved, turn, storageKey, ended]);
 
   useEffect(() => {
-    if (ended) scroll.current?.scrollTo({ top: 0, behavior: 'instant' });
-  }, [ended]);
+    if (
+      seconds > 0 ||
+      pending ||
+      !session.standing ||
+      session.completionReward ||
+      timeoutSubmitted.current
+    )
+      return;
+    timeoutSubmitted.current = true;
+    void finish();
+  }, [finish, pending, seconds, session.completionReward, session.standing]);
 
   function maxDose(materialId: string) {
     const existing =
@@ -147,9 +156,7 @@ export function ContestWorkbench({
     if (pending === 'finish') return;
     if (reviewingNew && last) {
       setDraft(draftFor(session, last.heat, copy ? last.doses : []));
-      requestAnimationFrame(() => {
-        (ended ? result : furnaceHeading).current?.focus();
-      });
+      requestAnimationFrame(() => furnaceHeading.current?.focus());
     }
     setOverlay(null);
   }
@@ -165,100 +172,77 @@ export function ContestWorkbench({
   );
 
   return (
-    <div className="contest-workbench" data-view={ended ? 'final' : 'brew'}>
-      <ContestTicket
-        session={session}
-        seconds={seconds}
-        ended={ended}
-        busy={!!pending}
-        firing={firing}
-        showReceipt={(index) => setOverlay({ kind: 'receipt', index })}
-        confirmFinish={() => setOverlay({ kind: 'finish' })}
-      />
-
-      <div className="contest-scroll" ref={scroll}>
-        <div className="contest-stage">
-          <section className="contest-stage-art" aria-label="玄火丹炉">
-            {!ended && (
-              <header className="contest-hearth-header">
-                <h3 ref={furnaceHeading} tabIndex={-1}>
-                  玄火丹炉
-                </h3>
-                <InkButton
-                  variant="secondary"
-                  className="contest-rack-toggle"
-                  disabled={firing}
-                  onClick={openRack}
+    <div className="contest-workbench">
+      {ended ? (
+        <ContestResult
+          session={session}
+          rankHref={rankHref}
+          settled={settled}
+          showReceipt={(index) => setOverlay({ kind: 'receipt', index })}
+        />
+      ) : (
+        <>
+          <ContestTicket
+            session={session}
+            seconds={seconds}
+            busy={!!pending}
+            firing={firing}
+            showReceipt={(index) => setOverlay({ kind: 'receipt', index })}
+            confirmFinish={() => setOverlay({ kind: 'finish' })}
+          />
+          <div className="contest-scroll">
+            <div className="contest-stage">
+              <section className="contest-stage-art" aria-label="玄火丹炉">
+                <header className="contest-hearth-header">
+                  <h3 ref={furnaceHeading} tabIndex={-1}>
+                    玄火丹炉
+                  </h3>
+                  <InkButton
+                    variant="secondary"
+                    className="contest-rack-toggle"
+                    disabled={firing}
+                    onClick={openRack}
+                  >
+                    选材料
+                  </InkButton>
+                </header>
+                <ContestFurnace
+                  heat={draft.heat}
+                  occupied={draft.doses.length}
+                  firing={firing}
+                  count={turn}
                 >
-                  选材料
-                </InkButton>
-              </header>
-            )}
-            <ContestFurnace
-              heat={ended ? (last?.heat ?? draft.heat) : draft.heat}
-              occupied={draft.doses.length}
-              firing={firing}
-              count={turn}
-            >
-              {!ended && (
-                <ContestFurnaceSlots
-                  session={session}
-                  draft={draft}
-                  maxDose={maxDose}
-                  setDose={setDose}
-                  locked={!!pending}
-                  openRack={openRack}
-                  positions={contestFurnacePositions}
-                />
-              )}
-            </ContestFurnace>
-            {firing && (
-              <GameLoadingState
-                variant="inline"
-                immediate
-                message="正在凝丹…"
-                className="contest-firing-status"
-              />
-            )}
-          </section>
-          {ended ? (
-            <section className="contest-final">
-              <h3 ref={result} tabIndex={-1}>
-                本场成绩
-              </h3>
-              {session.standing ? (
-                <>
-                  <p className="contest-final-score">
-                    <b className="font-mono">{session.standing.score}</b> 分
-                  </p>
-                  <p>
-                    第{' '}
-                    <b className="font-mono">{session.standing.bestAttempt}</b>{' '}
-                    炉得分最高。总分已计入节材和节气加分。
-                  </p>
-                </>
-              ) : (
-                <p>本场没有丹药达标，不计入炼丹榜。</p>
-              )}
-              {session.standing && (
-                <p>{settled ? '本期名次已公布。' : '封榜后可查看名次。'}</p>
-              )}
-              <InkButton variant="primary" href={rankHref}>
-                查看炼丹榜
-              </InkButton>
-            </section>
-          ) : (
-            <aside
-              ref={rackPane}
-              className="contest-shelf"
-              aria-label="参赛材料"
-            >
-              <h3>参赛材料</h3>
-              {rack}
-            </aside>
-          )}
-        </div>
-      </div>
+                  <ContestFurnaceSlots
+                    session={session}
+                    draft={draft}
+                    maxDose={maxDose}
+                    setDose={setDose}
+                    locked={!!pending}
+                    openRack={openRack}
+                    positions={contestFurnacePositions}
+                  />
+                </ContestFurnace>
+                {firing && (
+                  <GameLoadingState
+                    variant="inline"
+                    immediate
+                    message="正在凝丹…"
+                    className="contest-firing-status"
+                  />
+                )}
+              </section>
+              <aside
+                ref={rackPane}
+                className="contest-shelf"
+                aria-label="参赛材料"
+              >
+                <h3>参赛材料</h3>
+                {rack}
+              </aside>
+            </div>
+          </div>
+        </>
+      )}
 
       {!ended && (
         <footer className="contest-dock">

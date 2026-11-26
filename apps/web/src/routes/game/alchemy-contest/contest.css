@@ -230,8 +230,7 @@ button.contest-round:disabled {
 }
 
 .contest-stage-art,
-.contest-shelf,
-.contest-final {
+.contest-shelf {
   min-width: 0;
 }
 
@@ -250,7 +249,7 @@ button.contest-round:disabled {
 }
 
 .contest-hearth-header h3:focus,
-.contest-final h3:focus,
+.contest-result h2:focus,
 .contest-modal h2:focus {
   outline: none;
 }
@@ -427,24 +426,27 @@ button.contest-round:disabled {
   flex: none;
 }
 
-.contest-final {
+.contest-result {
   display: grid;
-  justify-items: start;
-  gap: 0.5rem;
-  align-self: center;
-  padding-block: 1rem;
+  width: min(100%, 43rem);
+  gap: 1.25rem;
+  margin-inline: auto;
+  padding: clamp(1rem, 5vh, 2.75rem) max(1rem, env(safe-area-inset-right))
+    max(1.25rem, env(safe-area-inset-bottom))
+    max(1rem, env(safe-area-inset-left));
   animation: contest-view-in 230ms ease-out both;
 }
 
-.contest-final h3 {
+.contest-result h2 {
   font: 400 clamp(1.65rem, 1.2rem + 2vw, 2.5rem) / 1.2 var(--font-heading);
 }
 
-.contest-final p {
-  color: var(--color-ink-secondary);
+.contest-result-score b {
+  color: var(--color-teal);
+  font-size: clamp(2rem, 1.6rem + 2.5vw, 3.25rem);
+  line-height: 1;
 }
 
-.contest-final-score b,
 .contest-receipt-score b {
   color: var(--color-teal);
   font-size: clamp(1.65rem, 1.3rem + 2vw, 2.4rem);
@@ -651,14 +653,6 @@ button.contest-round:disabled {
 
   .contest-furnace {
     width: min(100%, 21rem);
-  }
-
-  .contest-workbench[data-view='final'] .contest-stage-art {
-    grid-row: 2;
-  }
-
-  .contest-workbench[data-view='final'] .contest-furnace {
-    width: min(100%, 13rem);
   }
 
   .contest-dock {

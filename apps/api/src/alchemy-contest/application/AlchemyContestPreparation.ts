@@ -3,7 +3,6 @@ import type {
   AdminAlchemyContest,
   ContestPreparationResult,
 } from '@daoyou/contracts/alchemy/contest';
-import { DUNGEON_REWARD_PACK } from '@daoyou/game-content/rewards/dungeon';
 import {
   ContestMaterialDraftSchema,
   ContestMaterialSchema,
@@ -13,16 +12,22 @@ import {
   type ContestMaterial,
   type ContestPaper,
 } from '@daoyou/game-domain/alchemy/contest';
-import { materialFactsOf } from '@daoyou/game-domain/inventory';
 import {
   ItemLibraryItemIdSchema,
   ItemLibraryMaterialPayloadSchema,
 } from '@daoyou/game-domain/items/catalog';
 import { contestWeek } from '@daoyou/game-rules/alchemy/contest';
 import { authorContestQuestion } from '@daoyou/game-rules/alchemy/contest/authoring';
+import {
+  HIGH_GRADE_MATERIAL_QUALITIES,
+  libraryMaterialGrant,
+} from '@daoyou/game-rules/rewards/materials';
 import { AiService } from '@nestjs/ai';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { ITEM_LIBRARY_SYSTEM_USER_ID } from '@server/admin/application/MaterialLibraryService.js';
+import {
+  ITEM_LIBRARY_SYSTEM_USER_ID,
+  sampleMaterialLibraryEntries,
+} from '@server/admin/application/MaterialLibraryService.js';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import { isBackgroundLlmEnabled } from '@server/lib/config/environment.js';
 import type { DbClient, DbTransaction } from '@server/lib/drizzle/db.js';
@@ -55,7 +60,7 @@ const LibraryFactsSchema = ItemLibraryMaterialPayloadSchema.omit({
 });
 type LibraryFacts = z.infer<typeof LibraryFactsSchema>;
 type MaterialRow = typeof itemLibrary.$inferSelect;
-const fallbackLeadMs = 4 * 3_600_000;
+const fallbackLeadMs = 24 * 3_600_000;
 const contestTypes = ['herb', 'tcdb', 'aux', 'monster', 'ore'];
 const profilesInput = z.object({
   id: z.string(),
@@ -309,28 +314,22 @@ export class AlchemyContestPreparation {
   }
 
   private async rewardPool() {
-    const found = await this.db
-      .select({ payload: itemLibrary.payload })
-      .from(itemLibrary)
-      .where(
-        and(
-          eq(itemLibrary.type, 'material'),
-          eq(itemLibrary.status, 'published'),
-          inArray(itemLibrary.category, ['herb', 'tcdb']),
-          inArray(itemLibrary.quality, QUALITY_VALUES.slice(3)),
-        ),
-      )
-      .orderBy(sql`random()`)
-      .limit(32);
-    if (!found.length) throw new Error('材料库暂无高品药材或天材地宝');
+    const found = await sampleMaterialLibraryEntries(
+      HIGH_GRADE_MATERIAL_QUALITIES.map((quality) => ({
+        materialType: 'herb',
+        quality,
+        count: 8,
+      })),
+      this.db,
+    );
+    const materials = HIGH_GRADE_MATERIAL_QUALITIES.flatMap((quality) => {
+      const entries = found.get(`herb:${quality}`);
+      if (!entries?.length) throw new Error(`材料库暂无${quality}草药`);
+      return entries.map(libraryMaterialGrant);
+    });
     return {
       version: 1 as const,
-      books: DUNGEON_REWARD_PACK.superiorBooks,
-      materials: found.map(({ payload }) => ({
-        definitionId: 'material.v1',
-        quantity: 1,
-        instanceData: materialFactsOf(LibraryFactsSchema.parse(payload)),
-      })),
+      materials,
     };
   }
 
@@ -361,6 +360,8 @@ export class AlchemyContestPreparation {
         const record = records.find(({ week }) => week === clock.week);
         const canUseReserve =
           !record && backups.some(({ week }) => week < clock.week);
+        const preparationClosed =
+          now >= clock.closesAt || (Boolean(record) && now >= clock.opensAt);
         return {
           week: clock.week,
           opensAt: new Date(clock.opensAt).toISOString(),
@@ -371,9 +372,9 @@ export class AlchemyContestPreparation {
           reserve: record?.reserve
             ? ContestPaperSchema.parse(record.reserve)
             : null,
-          preparationClosed: now >= clock.opensAt,
+          preparationClosed,
           canPrepare:
-            now < clock.opensAt &&
+            !preparationClosed &&
             !record?.reserve &&
             (generationEnabled || canUseReserve),
           canUseReserve,
@@ -388,13 +389,16 @@ export class AlchemyContestPreparation {
     const now = Date.now();
     const current = contestWeek(now);
     const next = contestWeek(now, 1);
+    const [currentPaper] = await this.db
+      .select({ week: rounds.week })
+      .from(rounds)
+      .where(eq(rounds.week, current.week));
     const clock = manualWeek
       ? [current, next].find(({ week }) => week === manualWeek)
-      : now < current.opensAt
-        ? current
-        : next;
+      : currentPaper
+        ? next
+        : current;
     if (!clock) throw new BadRequestException('只能补跑本期或下期的赛前准备。');
-    if (now >= clock.opensAt) return { status: 'registration-opened' };
     return withRedisLock(
       {
         key: `alchemy-contest:prepare:${clock.week}`,
@@ -403,12 +407,15 @@ export class AlchemyContestPreparation {
         retries: 0,
       },
       async (lease) => {
-        if (Date.now() >= clock.opensAt)
-          return { status: 'registration-opened' };
         const [prepared] = await this.db
           .select()
           .from(rounds)
           .where(eq(rounds.week, clock.week));
+        if (
+          Date.now() >= clock.closesAt ||
+          (prepared && Date.now() >= clock.opensAt)
+        )
+          return { status: 'registration-opened' };
         if (prepared?.reserve) return { status: 'already-prepared' };
         let candidate: ContestPaper | null = null;
         const enabled = isBackgroundLlmEnabled();
@@ -440,7 +447,10 @@ export class AlchemyContestPreparation {
           }
         }
         lease.assertHeld();
-        if (Date.now() >= clock.opensAt)
+        if (
+          Date.now() >= clock.closesAt ||
+          (prepared && Date.now() >= clock.opensAt)
+        )
           return { status: 'registration-opened' };
         if (prepared) {
           if (!candidate) return { status: noCandidate };
@@ -498,8 +508,8 @@ export class AlchemyContestPreparation {
               .where(eq(rounds.week, fallback.week));
           }
           lease.assertHeld();
-          if (Date.now() >= clock.opensAt)
-            throw new Error('本期已开赛，无法更新赛前配置');
+          if (Date.now() >= clock.closesAt)
+            throw new Error('本期已结束，无法准备题卷');
           await tx.insert(rounds).values({
             week: clock.week,
             closesAt: new Date(clock.closesAt),

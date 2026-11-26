@@ -7,7 +7,9 @@ import {
   Patch,
   Post,
   UseFilters,
+  UseGuards,
 } from '@nestjs/common';
+import { minutes, Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { SponsorshipApplicationError } from '@server/sponsorship/application/SponsorshipApplicationService.js';
 import {
@@ -86,6 +88,8 @@ export class SponsorshipController {
   @Post('checkout-intents')
   @HttpCode(201)
   @UseFilters(SponsorshipErrors)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: minutes(10) } })
   checkout(
     @CurrentCultivator() actor: ActiveCultivatorRef,
     @JsonBody(
@@ -106,6 +110,8 @@ export class SponsorshipController {
   @Post('claims')
   @HttpCode(200)
   @UseFilters(SponsorshipErrors)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 8, ttl: minutes(10) } })
   claim(
     @CurrentCultivator() actor: ActiveCultivatorRef,
     @JsonBody(

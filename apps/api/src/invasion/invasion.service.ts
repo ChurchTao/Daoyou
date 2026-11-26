@@ -1,6 +1,7 @@
 import { type RealmStage, type RealmType } from '@daoyou/constants/realms';
 import type {
   InvasionCommand,
+  InvasionPreviousWave,
   InvasionStatus,
 } from '@daoyou/contracts/invasion';
 import type { GenderType } from '@daoyou/game-domain/character';
@@ -130,6 +131,22 @@ const arena = new CombatV6ArenaStore();
 const readProgress = (week: string, userId: string) =>
   db.query.invasionProgress.findFirst({ where: progressKey(week, userId) });
 
+function previousWaveResult(
+  run: InvasionRun,
+  entry: InvasionProgress,
+): InvasionPreviousWave {
+  const wave = run.wave - 1;
+  if (entry.lastRunId !== run.id || entry.completedWave !== wave)
+    return { wave, status: 'assist' };
+  if (entry.rewardedWave < wave) return { wave, status: 'pending' };
+  const lastWave = entry.reward?.lastWave;
+  return {
+    wave,
+    status: 'settled',
+    reward: lastWave?.wave === wave ? lastWave.reward : null,
+  };
+}
+
 function partyProgress(
   week: string,
   party: Party,
@@ -224,10 +241,13 @@ export async function invasionRecruitmentFor(
   tx: DbTransaction | typeof db,
 ) {
   const clock = invasionWeek(Date.now());
-  if (!clock.open || clock.week !== week || !(await recruitment(party, week, tx)).advertised)
+  if (clock.week !== week || !(await recruitment(party, week, tx)).advertised)
     return null;
-  const own = await tx.query.invasionProgress.findFirst({ where: progressKey(week, actor.userId) });
-  if (own && (own.activeRunId || own.cultivatorId !== actor.cultivatorId)) return null;
+  const own = await tx.query.invasionProgress.findFirst({
+    where: progressKey(week, actor.userId),
+  });
+  if (own && (own.activeRunId || own.cultivatorId !== actor.cultivatorId))
+    return null;
   const entries = await partyProgress(week, party, tx);
   if (entries.some((entry) => entry.activeRunId)) return null;
   return { label: '古魔入侵', deadline: clock.closesAt };
@@ -238,6 +258,7 @@ export class InvasionService {
   private task?: Promise<void>;
   private timer?: ReturnType<typeof setInterval>;
   private announcedWeek?: string;
+  private nextPublicationCheck = 0;
 
   start() {
     const tick = () => {
@@ -262,18 +283,25 @@ export class InvasionService {
     const serverNow = Date.now();
     const clock = invasionWeek(serverNow);
     const entry = await readProgress(clock.week, actor.userId);
+    const reward = entry?.reward;
     const view: InvasionStatus = {
+      week: clock.week,
       opensAt: clock.opensAt,
       closesAt: clock.closesAt,
-      nextOpensAt: clock.nextOpensAt,
-      open: clock.open,
       serverNow,
       otherCharacter: Boolean(
         entry && entry.cultivatorId !== actor.cultivatorId,
       ),
       completedWave: entry?.completedWave ?? 0,
       lastBattleId: entry?.lastBattleId ?? null,
-      reward: entry?.reward ?? null,
+      reward: reward
+        ? {
+            cultivationExp: reward.cultivationExp,
+            spiritStones: reward.spiritStones,
+            insight: reward.insight,
+            drops: reward.drops,
+          }
+        : null,
       rewardsPending: !!entry && entry.rewardedWave < entry.completedWave,
       team: null,
     };
@@ -291,6 +319,8 @@ export class InvasionService {
       });
       if (run && run.phase !== 'finished') {
         const members = await runProgress(run.id);
+        const own =
+          members.find(({ userId }) => userId === actor.userId) ?? entry;
         const resources = memberResources(members);
         const regrouping =
           run.phase === 'rest' && !(await invasionRosterMatches(run));
@@ -316,6 +346,8 @@ export class InvasionService {
           restEndsAt: run.phase === 'rest' ? run.dueAt : null,
           battleId: run.battleId,
           firstClear: invasionFirstClear(view.completedWave, run.wave),
+          previousWave:
+            run.phase === 'rest' ? previousWaveResult(run, own) : undefined,
           resources,
           self: {
             cards: entry.cards,
@@ -326,7 +358,6 @@ export class InvasionService {
         return view;
       }
     }
-    if (!clock.open) return view;
     const party = await partyForUser(actor.userId);
     if (!party) return view;
     if (!partyOwns(party, actor)) return { ...view, otherCharacter: true };
@@ -370,9 +401,14 @@ export class InvasionService {
     return view;
   }
 
-  async command(actor: ActiveCultivatorRef, input: InvasionCommand) {
+  async command(
+    actor: ActiveCultivatorRef,
+    input: InvasionCommand,
+    week: string | undefined,
+  ) {
     const clock = invasionWeek(Date.now());
-    if (!clock.open) throw new ConflictException('古魔入侵尚未开放或已结束');
+    if (week !== clock.week)
+      throw new ConflictException('期次已更新，请返回营地刷新。');
     const entry = await readProgress(clock.week, actor.userId);
     if (entry && entry.cultivatorId !== actor.cultivatorId)
       throw new ForbiddenException('请使用本期出战的角色');
@@ -443,7 +479,7 @@ export class InvasionService {
       if (input.type === 'next') {
         if (run.leaderId !== actor.userId)
           throw new ForbiddenException('由队长开启下一波');
-        if (now >= invasionClosesAt(week))
+        if (now >= (await invasionClosesAt(week, tx)))
           throw new ConflictException('活动已截止');
         await this.queueWave(tx, run, now);
         return run.id;
@@ -598,7 +634,7 @@ export class InvasionService {
             where: eq(runs.id, id),
           });
           if (!run || run.phase !== 'launching') return;
-          const closesAt = invasionClosesAt(run.week);
+          const closesAt = await invasionClosesAt(run.week);
           let battleId = await arena.source(id, run.launchId);
           let rejected: ArenaV6Error | undefined;
           if (
@@ -631,7 +667,7 @@ export class InvasionService {
                 {
                   teamId: id,
                   wave: run.wave,
-                  endsAt: closesAt,
+                  endsAt: Math.min(closesAt, Date.now() + 2 * 3_600_000),
                   realm: run.realm,
                   week: run.week,
                   formation: invasionFormation(run.week, run.wave),
@@ -794,7 +830,7 @@ export class InvasionService {
   private async tick() {
     const now = Date.now();
     const clock = invasionWeek(now);
-    if (clock.open && this.announcedWeek !== clock.week) {
+    if (this.announcedWeek !== clock.week) {
       try {
         if (await announceInvasion(clock)) this.announcedWeek = clock.week;
       } catch (error) {
@@ -821,7 +857,7 @@ export class InvasionService {
             if (!current || current.phase !== 'rest' || current.dueAt! > now)
               return false;
             if (
-              now >= invasionClosesAt(current.week) ||
+              now >= (await invasionClosesAt(current.week, tx)) ||
               !(await invasionRosterMatches(current, tx))
             ) {
               await finishInvasionRun(tx, current.id);
@@ -862,7 +898,10 @@ export class InvasionService {
           );
       }
     }
+    if (now >= this.nextPublicationCheck) {
+      await publishInvasionWeeks(now);
+      this.nextPublicationCheck = now + 5_000;
+    }
     await grantPendingInvasionRewards();
-    if (!clock.open) await publishInvasionWeeks(now);
   }
 }

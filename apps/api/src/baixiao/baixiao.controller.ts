@@ -16,6 +16,7 @@ import {
 } from '@nestjs/common';
 import { Access, CurrentCultivator } from '@server/auth/access.js';
 import { apiErrorFilter } from '@server/http/error-filter.js';
+import { FirstQuery } from '@server/http/first-query.js';
 import { JsonBody } from '@server/http/json-body.js';
 import { ZodPipe } from '@server/http/zod.pipe.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
@@ -59,8 +60,11 @@ export class BaixiaoController {
 
   @Get('ranking')
   @Header('Cache-Control', 'no-store')
-  ranking(@CurrentCultivator() actor: ActiveCultivatorRef) {
-    return this.standings.ranking(actor);
+  ranking(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @FirstQuery('period') period: string | undefined,
+  ) {
+    return this.standings.ranking(actor, period === 'previous');
   }
 
   @Post('start')

@@ -7,7 +7,7 @@ const Timestamp = z.int().positive();
 const ActivityRumor = z.discriminatedUnion('phase', [
   z.strictObject({
     kind: ActivityKind,
-    phase: z.enum(['waiting', 'open']),
+    phase: z.literal('open'),
     time: Timestamp,
   }),
   z.strictObject({

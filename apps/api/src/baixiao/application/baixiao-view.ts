@@ -36,7 +36,6 @@ export function baixiaoPhase(
 ): BaixiaoPhase {
   if (now < clock.opensAt) return 'waiting';
   if (now >= clock.closesAt) return round?.settledAt ? 'settled' : 'closed';
-  if (now > clock.lastStartAt) return 'closing';
   return round && ready ? 'open' : 'unavailable';
 }
 

@@ -12,6 +12,7 @@ export const AUCTION_ITEM_TYPES = [
   'beast_refinement',
   'beast_rejuvenation',
   'beast_lure',
+  'mystery_bag',
   'beast',
 ] as const;
 
@@ -30,6 +31,7 @@ export const AUCTION_BUY_ORDER_ITEM_TYPES = [
   'beast_refinement',
   'beast_rejuvenation',
   'beast_lure',
+  'mystery_bag',
 ] as const;
 
 export type AuctionBuyOrderItemType =
@@ -57,5 +59,6 @@ export const AUCTION_TYPE_NAMES: Record<AuctionItemType, string> = {
   beast_refinement: '灵露',
   beast_rejuvenation: '灵果',
   beast_lure: '引妖香',
+  mystery_bag: '神秘储物袋',
   beast: '灵兽',
 };

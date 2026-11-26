@@ -8,7 +8,6 @@ import { categories, difficulties } from './presentation';
 const phases = {
   waiting: '待开场',
   open: '开放入场',
-  closing: '入场截止',
   closed: '待封榜',
   settled: '已封榜',
   unavailable: '准备不足',

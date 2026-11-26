@@ -42,6 +42,7 @@ const kinds = {
   beast_refinement: '归元灵露',
   beast_rejuvenation: '化生果',
   beast_lure: '引妖香',
+  mystery_bag: '神秘储物袋',
   manual_jade: '功法玉简',
   blueprint: '图纸',
   inscription: '阵纹',

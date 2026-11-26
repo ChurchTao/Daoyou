@@ -35,6 +35,9 @@ export type InvasionReward = {
   insight: number;
   drops: ItemGrant[];
 };
+export type InvasionRewardSummary = InvasionReward & {
+  lastWave?: { wave: number; reward: InvasionReward };
+};
 export type InvasionMember = {
   userId: string;
   cultivatorId: string;

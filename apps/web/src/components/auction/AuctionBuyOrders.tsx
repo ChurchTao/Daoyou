@@ -131,7 +131,12 @@ function OrderCard({
     : (summary?.icon ?? '❔');
   const detail = condition
     ? `品质 ${condition.quality} · 五行 ${elementLabel(condition.element)}`
-    : `品质 ${order.itemQuality} · ${AUCTION_TYPE_NAMES[order.itemType]}`;
+    : [
+        order.itemQuality && `品质 ${order.itemQuality}`,
+        AUCTION_TYPE_NAMES[order.itemType],
+      ]
+        .filter(Boolean)
+        .join(' · ');
   const expired = timeLeft(order.expiresAt, now) === '已过期';
 
   return (

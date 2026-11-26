@@ -39,7 +39,7 @@ import {
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
 import { MailService } from '@server/mail/application/MailService.js';
 import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull } from 'drizzle-orm';
 import { randomInt } from 'node:crypto';
 import { baixiaoView, readBaixiaoQuestion } from './baixiao-view.js';
 import { BaixiaoDuelService } from './BaixiaoDuelService.js';
@@ -62,10 +62,10 @@ function entryFilter(week: string, actor: ActiveCultivatorRef) {
   return and(eq(entries.week, week), eq(entries.userId, actor.userId));
 }
 
-function currentWeek(week: string, now = Date.now()) {
-  const clock = baixiaoWeek(now);
-  if (week !== clock.week)
-    throw new ConflictException('期次已更新，请返回查看赛程。');
+function roundClock(week: string, now = Date.now()) {
+  const clock = baixiaoWeek(Date.parse(`${week}T00:00:00+08:00`));
+  if (clock.week !== week || now < clock.opensAt)
+    throw new ConflictException('该期尚未开放。');
   return clock;
 }
 
@@ -77,8 +77,37 @@ export class BaixiaoMeetService {
     @Inject(BaixiaoDuelService) private readonly duels: BaixiaoDuelService,
   ) {}
 
+  private async previousSession(actor: ActiveCultivatorRef, now: number) {
+    const current = baixiaoWeek(now);
+    if (now >= current.opensAt + BAIXIAO_SESSION_MS) return undefined;
+    const clock = baixiaoWeek(now, -1);
+    const [entry] = await this.db
+      .select()
+      .from(entries)
+      .where(
+        and(
+          entryFilter(clock.week, actor),
+          eq(entries.cultivatorId, actor.cultivatorId),
+          isNull(entries.status),
+          gt(entries.endsAt, new Date(now)),
+        ),
+      );
+    return entry ? { clock, entry } : undefined;
+  }
+
   async status(actor: ActiveCultivatorRef) {
     const now = Date.now();
+    const ongoing = await this.previousSession(actor, now);
+    if (ongoing)
+      return baixiaoView(
+        this.db,
+        ongoing.clock,
+        now,
+        actor,
+        { settledAt: null },
+        ongoing.entry,
+      );
+
     const clock = baixiaoWeek(now);
     const [[entry], [round]] = await Promise.all([
       this.db.select().from(entries).where(entryFilter(clock.week, actor)),
@@ -88,7 +117,7 @@ export class BaixiaoMeetService {
         .where(eq(rounds.week, clock.week)),
     ]);
     const canStart =
-      !entry && round && now >= clock.opensAt && now <= clock.lastStartAt;
+      !entry && round && now >= clock.opensAt && now < clock.closesAt;
     const availableRound =
       canStart && !(await this.bank.isReady()) ? undefined : round;
     return baixiaoView(
@@ -103,9 +132,11 @@ export class BaixiaoMeetService {
 
   async start(week: string, actor: ActiveCultivatorRef) {
     const now = Date.now();
-    const clock = currentWeek(week, now);
-    if (now < clock.opensAt || now > clock.lastStartAt)
-      throw new ConflictException('当前时段不可入场。');
+    const clock = baixiaoWeek(now);
+    if (week !== clock.week)
+      throw new ConflictException('期次已更新，请刷新赛况。');
+    if (await this.previousSession(actor, now))
+      throw new ConflictException('请先完成上周已开局的挑战。');
     const [registered] = await this.db
       .select()
       .from(entries)
@@ -132,25 +163,32 @@ export class BaixiaoMeetService {
     if (!character) throw new ForbiddenException('当前角色不可参赛。');
     const realm = character.realm as RealmType;
     const paper = await this.bank.drawPaper();
-    const startedAt = Date.now();
-    if (startedAt > clock.lastStartAt)
-      throw new ConflictException('本期已截止入场。');
-    await this.db
-      .insert(entries)
-      .values({
-        week,
-        userId: actor.userId,
-        cultivatorId: actor.cultivatorId,
-        name: character.name,
-        title: character.title,
-        gender: character.gender,
-        realm,
-        endsAt: new Date(startedAt + BAIXIAO_SESSION_MS),
-        paper,
-        budget: baixiaoRewardBudget(realm),
-        earned: { cultivationExp: 0, spiritStones: 0, insight: 0 },
-      })
-      .onConflictDoNothing();
+    await this.db.transaction(async (tx) => {
+      const [period] = await tx
+        .select({ settledAt: rounds.settledAt, closesAt: rounds.closesAt })
+        .from(rounds)
+        .where(eq(rounds.week, week))
+        .for('share');
+      const startedAt = Date.now();
+      if (!period || period.settledAt || startedAt >= period.closesAt.getTime())
+        throw new ConflictException('本期已截止入场。');
+      await tx
+        .insert(entries)
+        .values({
+          week,
+          userId: actor.userId,
+          cultivatorId: actor.cultivatorId,
+          name: character.name,
+          title: character.title,
+          gender: character.gender,
+          realm,
+          endsAt: new Date(startedAt + BAIXIAO_SESSION_MS),
+          paper,
+          budget: baixiaoRewardBudget(realm),
+          earned: { cultivationExp: 0, spiritStones: 0, insight: 0 },
+        })
+        .onConflictDoNothing();
+    });
     return this.status(actor);
   }
 
@@ -171,7 +209,7 @@ export class BaixiaoMeetService {
   }
 
   next(week: string, position: number, actor: ActiveCultivatorRef) {
-    const clock = currentWeek(week);
+    const clock = roundClock(week);
     return this.db.transaction(async (tx) => {
       let entry = await this.lockEntry(tx, week, actor);
       const now = Date.now();
@@ -205,15 +243,25 @@ export class BaixiaoMeetService {
   }
 
   async recoverChallenge(actor: ActiveCultivatorRef, challengeId: string) {
-    const { week } = baixiaoWeek(Date.now());
+    const now = Date.now();
     const [entry] = await this.db
       .select({
+        week: entries.week,
         cultivatorId: entries.cultivatorId,
         challengeId: entries.challengeId,
         answers: entries.answers,
       })
       .from(entries)
-      .where(entryFilter(week, actor));
+      .where(
+        and(
+          eq(entries.userId, actor.userId),
+          eq(entries.challengeId, challengeId),
+          inArray(entries.week, [
+            baixiaoWeek(now).week,
+            baixiaoWeek(now, -1).week,
+          ]),
+        ),
+      );
     if (
       !entry ||
       entry.cultivatorId !== actor.cultivatorId ||
@@ -223,7 +271,7 @@ export class BaixiaoMeetService {
     const status = await this.resolve(
       {
         action: 'challenge-result',
-        week,
+        week: entry.week,
         position: entry.answers.length,
         challengeId,
       },
@@ -234,7 +282,7 @@ export class BaixiaoMeetService {
 
   async resolve(command: ResolveCommand, actor: ActiveCultivatorRef) {
     const receivedAt = Date.now();
-    const clock = currentWeek(command.week, receivedAt);
+    const clock = roundClock(command.week, receivedAt);
     const { result } = await playerCommandExecutor.execute({
       ...actor,
       source: 'baixiao.answer',

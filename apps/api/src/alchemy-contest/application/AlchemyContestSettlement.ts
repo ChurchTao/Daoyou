@@ -1,15 +1,12 @@
 import {
   CONTEST_DURATION_MS,
   CONTEST_NODE_ID,
-  ContestPaperSchema,
-  type ContestStanding,
 } from '@daoyou/game-domain/alchemy/contest';
+import { contestWeek } from '@daoyou/game-rules/alchemy/contest';
 import {
-  compareContestStandings,
-  contestRewardForRank,
-  contestStanding,
-  contestWeek,
-} from '@daoyou/game-rules/alchemy/contest';
+  MAX_WEEKLY_REPUTATION_RANK,
+  weeklyReputationForRank,
+} from '@daoyou/game-rules/rankings/ranking';
 import { rewardAttachments } from '@daoyou/game-rules/rewards/materials';
 import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
@@ -22,30 +19,21 @@ import {
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
 import { MailService } from '@server/mail/application/MailService.js';
 import { createAndPublishWorldChatMessage } from '@server/social/application/chatDelivery.js';
-import { and, asc, eq, isNotNull, isNull, lte, sql } from 'drizzle-orm';
-import { createHash, randomInt } from 'node:crypto';
-
-function rewardFor(
-  rank: number,
-  pool: (typeof rounds.$inferSelect)['rewardPool'],
-) {
-  const { reputation, odds } = contestRewardForRank(rank);
-  const roll = randomInt(10_000) / 10_000;
-  const book = pool.books.length
-    ? pool.books[randomInt(pool.books.length)]
-    : undefined;
-  const item =
-    roll < odds.book && book
-      ? { definitionId: book, quantity: 1 }
-      : roll >= odds.book && roll < odds.book + odds.dew
-        ? { definitionId: 'beast.refinement.superior-origin-dew', quantity: 1 }
-        : roll >= odds.book + odds.dew &&
-            roll < odds.book + odds.dew + odds.material &&
-            pool.materials.length
-          ? pool.materials[randomInt(pool.materials.length)]
-          : null;
-  return { version: pool.version, reputation, item };
-}
+import {
+  and,
+  asc,
+  eq,
+  gt,
+  isNotNull,
+  isNull,
+  lte,
+  notInArray,
+  or,
+  sql,
+} from 'drizzle-orm';
+import { createHash } from 'node:crypto';
+import { grantContestCompletion } from './AlchemyContestRewards.js';
+import { contestRankedEntries } from './contest-ranking.js';
 
 @Injectable()
 export class AlchemyContestSettlement {
@@ -53,9 +41,6 @@ export class AlchemyContestSettlement {
 
   async run() {
     const now = Date.now();
-    const clock = contestWeek(now);
-    if (now >= clock.opensAt && now <= clock.lastStartAt)
-      await this.announce(clock.week, clock.opensAt);
     const closing = await this.db
       .select({ week: rounds.week })
       .from(rounds)
@@ -63,15 +48,63 @@ export class AlchemyContestSettlement {
       .orderBy(asc(rounds.closesAt))
       .limit(10);
     for (const { week } of closing) await this.settle(week);
-    const pending = await this.db
-      .select({ week: entries.week, userId: entries.userId })
+    const completed = await this.db
+      .select({
+        week: entries.week,
+        userId: entries.userId,
+        cultivatorId: entries.cultivatorId,
+      })
       .from(entries)
-      .where(and(isNotNull(entries.reward), isNull(entries.mailedAt)))
+      .innerJoin(
+        cultivators,
+        and(
+          eq(cultivators.id, entries.cultivatorId),
+          eq(cultivators.userId, entries.userId),
+        ),
+      )
+      .where(
+        and(
+          isNull(entries.completionReward),
+          notInArray(cultivators.status, ['transfer_pending', 'transferred']),
+          or(
+            isNotNull(entries.finishedAt),
+            lte(entries.startedAt, new Date(now - CONTEST_DURATION_MS)),
+          ),
+          sql`${entries.attempts} @> '[{"qualified":true}]'::jsonb`,
+        ),
+      )
+      .orderBy(asc(entries.startedAt), asc(entries.userId))
+      .limit(100);
+    for (const entry of completed) {
+      try {
+        await grantContestCompletion(entry.week, entry);
+      } catch (error) {
+        console.error(
+          '[alchemy-contest] completion reward failed',
+          entry.week,
+          error,
+        );
+      }
+    }
+    const pending = await this.db
+      .select({
+        week: entries.week,
+        userId: entries.userId,
+        cultivatorId: entries.cultivatorId,
+      })
+      .from(entries)
+      .where(
+        and(
+          isNotNull(entries.reward),
+          isNull(entries.mailedAt),
+          lte(entries.rank, MAX_WEEKLY_REPUTATION_RANK),
+        ),
+      )
       .orderBy(asc(entries.week))
       .limit(100);
     for (const entry of pending) {
       try {
-        await this.deliver(entry.week, entry.userId);
+        await this.deliver(entry.week, entry.userId, entry.cultivatorId);
       } catch (error) {
         console.error(
           '[alchemy-contest] reward delivery failed',
@@ -80,10 +113,16 @@ export class AlchemyContestSettlement {
         );
       }
     }
-    return { rounds: closing.length, deliveries: pending.length };
+    const clock = contestWeek(Date.now());
+    await this.announce(clock.week);
+    return {
+      rounds: closing.length,
+      completions: completed.length,
+      deliveries: pending.length,
+    };
   }
 
-  private async announce(week: string, opensAt: number) {
+  private async announce(week: string) {
     const [round] = await this.db
       .select({ announcedAt: rounds.announcedAt })
       .from(rounds)
@@ -94,10 +133,10 @@ export class AlchemyContestSettlement {
       .digest('hex');
     const id = `${digest.slice(0, 8)}-${digest.slice(8, 12)}-4${digest.slice(13, 16)}-8${digest.slice(17, 20)}-${digest.slice(20, 32)}`;
     const text =
-      '乱星海丹塔今日开炉，炼丹大会已开赛。北京时间 15:45 截止入场。';
+      '乱星海丹塔开炉，炼丹大会已开赛。本期可随时入场，入场后限时炼制。';
     await createAndPublishWorldChatMessage({
       id,
-      createdAt: new Date(opensAt).toISOString(),
+      createdAt: new Date().toISOString(),
       channel: 'system',
       senderUserId: 'system',
       senderCultivatorId: null,
@@ -123,27 +162,32 @@ export class AlchemyContestSettlement {
         .for('update');
       const now = new Date();
       if (!round || round.settledAt || now < round.closesAt) return;
-      const { materials } = ContestPaperSchema.parse(round.paper);
-      const players = await tx
-        .select()
+      const [ongoing] = await tx
+        .select({ userId: entries.userId })
         .from(entries)
-        .where(eq(entries.week, week));
-      const scored = players
-        .flatMap((entry) => {
-          const standing = contestStanding(materials, entry.attempts);
-          return standing ? [{ entry, standing }] : [];
-        })
-        .sort((a, b) => compareContestStandings(a.standing, b.standing));
-      let rank = 0;
-      let previous: ContestStanding | undefined;
-      for (const [index, { entry, standing }] of scored.entries()) {
-        if (!previous || compareContestStandings(previous, standing) !== 0)
-          rank = index + 1;
-        previous = standing;
+        .where(
+          and(
+            eq(entries.week, week),
+            isNull(entries.finishedAt),
+            gt(
+              entries.startedAt,
+              new Date(now.getTime() - CONTEST_DURATION_MS),
+            ),
+          ),
+        )
+        .limit(1);
+      if (ongoing) return;
+
+      const ranked = contestRankedEntries(tx, week);
+      const scores = await tx
+        .with(ranked)
+        .select({ userId: ranked.userId, rank: ranked.rank })
+        .from(ranked);
+      for (const { userId, rank } of scores) {
         await tx
           .update(entries)
-          .set({ standing, rank, reward: rewardFor(rank, round.rewardPool) })
-          .where(and(eq(entries.week, week), eq(entries.userId, entry.userId)));
+          .set({ rank, reward: { reputation: weeklyReputationForRank(rank) } })
+          .where(and(eq(entries.week, week), eq(entries.userId, userId)));
       }
       await tx
         .update(entries)
@@ -158,8 +202,16 @@ export class AlchemyContestSettlement {
     });
   }
 
-  private async deliver(week: string, userId: string) {
+  private async deliver(week: string, userId: string, cultivatorId: string) {
     const mail = await this.db.transaction(async (tx) => {
+      // Lock the recipient before the entry, matching personal settlement.
+      const [recipient] = await tx
+        .select({ id: cultivators.id })
+        .from(cultivators)
+        .where(
+          and(eq(cultivators.id, cultivatorId), eq(cultivators.userId, userId)),
+        )
+        .for('key share');
       const filters = and(eq(entries.week, week), eq(entries.userId, userId));
       const [entry] = await tx
         .select()
@@ -167,35 +219,18 @@ export class AlchemyContestSettlement {
         .where(filters)
         .for('update');
       if (!entry?.reward || !entry.rank || entry.mailedAt) return null;
-      const [recipient] = await tx
-        .select({ id: cultivators.id })
-        .from(cultivators)
-        .where(
-          and(
-            eq(cultivators.id, entry.cultivatorId),
-            eq(cultivators.userId, userId),
-          ),
-        );
-      const delivery = recipient
-        ? await MailService.sendNewRewardMail(
-            recipient.id,
-            '炼丹大会奖励',
-            `道友在 ${week} 的炼丹大会中位列第 ${entry.rank} 名。丹塔将奖励随信送上。`,
-            rewardAttachments([
-              { type: 'reputation', quantity: entry.reward.reputation },
-              ...(entry.reward.item
-                ? [
-                    {
-                      type: 'inventory_v1' as const,
-                      inventory: entry.reward.item,
-                    },
-                  ]
-                : []),
-            ]),
-            'reward',
-            tx,
-          )
-        : null;
+      const { reputation } = entry.reward;
+      const delivery =
+        recipient && entry.cultivatorId === cultivatorId && reputation > 0
+          ? await MailService.sendNewRewardMail(
+              recipient.id,
+              '炼丹大会排名奖励',
+              `道友在 ${week} 的炼丹大会中位列第 ${entry.rank} 名，请收下声望 ${reputation}。`,
+              rewardAttachments([{ type: 'reputation', quantity: reputation }]),
+              'reward',
+              tx,
+            )
+          : null;
       await tx
         .update(entries)
         .set({

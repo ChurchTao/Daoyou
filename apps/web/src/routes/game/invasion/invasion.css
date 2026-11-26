@@ -167,6 +167,12 @@
 .invasion-receipt dd {
   font: 600 1rem var(--font-mono);
 }
+.invasion-wave-rewards {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.45rem 1.35rem;
+}
 .invasion-transition {
   display: grid;
   justify-items: start;

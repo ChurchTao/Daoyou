@@ -3,9 +3,7 @@ import { handleAuthRequest } from '@server/lib/auth/handler.js';
 import { runWithContext } from '@server/lib/http/context.js';
 import { apiCorsOptions } from '@server/lib/http/cors.js';
 import { isAllowedWriteOrigin } from '@server/lib/http/originPolicy.js';
-import { getRequestIp } from '@server/lib/http/requestIp.js';
-import { checkApiIpRateLimit } from '@server/lib/redis/apiIpRateLimiter.js';
-import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
+import { toNodeHandler } from 'better-auth/node';
 import cors from 'cors';
 import type { NextFunction, Response } from 'express';
 import { readRequestBody } from './json-body.js';
@@ -76,39 +74,6 @@ export function configureHttp(app: NestExpressApplication): void {
     }
     next();
   });
-  app.use(
-    async (request: GameRequest, response: Response, next: NextFunction) => {
-      if (
-        !request.path.startsWith('/api/') ||
-        request.path === '/api/health-check'
-      )
-        return next();
-      const ip = getRequestIp(fromNodeHeaders(request.headers));
-      if (!ip) return next();
-      try {
-        const result = await checkApiIpRateLimit(ip);
-        response.setHeader('X-RateLimit-Limit', result.limit);
-        response.setHeader('X-RateLimit-Remaining', result.remaining);
-        response.setHeader(
-          'X-RateLimit-Reset',
-          Math.ceil(result.resetAt.getTime() / 1000),
-        );
-        if (!result.allowed) {
-          response.setHeader('Retry-After', result.retryAfterSeconds);
-          response
-            .status(429)
-            .json({ success: false, error: '请求过于频繁，请稍后再试' });
-          return;
-        }
-      } catch (error) {
-        console.warn(
-          '[api-rate-limit] redis check failed; allowing request',
-          error,
-        );
-      }
-      next();
-    },
-  );
   const authHandler = toNodeHandler(handleAuthRequest);
   app.use((request: GameRequest, response: Response, next: NextFunction) => {
     if (request.path.startsWith('/api/auth/')) {

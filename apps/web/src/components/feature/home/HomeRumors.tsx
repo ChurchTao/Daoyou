@@ -1,3 +1,4 @@
+import { activityDate } from '@app/components/feature/weekly-activity/schedule';
 import { fetchJsonCached } from '@app/lib/client/requestCache';
 import type { RealmType } from '@daoyou/constants/realms';
 import type {
@@ -26,10 +27,8 @@ const activityInfo = {
 
 function activityNote(activity: HomeActivityRumor) {
   switch (activity.phase) {
-    case 'waiting':
-      return `今日 ${beijingClock.format(activity.time)} 开场`;
     case 'open':
-      return `${beijingClock.format(activity.time)} ${activity.kind === 'invasion' ? '结束' : '截止入场'}`;
+      return `${activityDate(activity.time)} ${beijingClock.format(activity.time)} ${activity.kind === 'invasion' ? '结束' : '截止入场'}`;
     case 'unavailable':
       return '仍在准备';
     case 'unknown':

@@ -3,27 +3,23 @@ import {
   INVASION_NODE_ID,
   type InvasionMember,
 } from '@daoyou/game-domain/invasion';
-import { materialFactsOf } from '@daoyou/game-domain/inventory';
-import { ItemLibraryMaterialPayloadSchema } from '@daoyou/game-domain/items/catalog';
-import type { invasionWeek } from '@daoyou/game-rules/invasion';
-import { db } from '@server/lib/drizzle/db.js';
+import { invasionWeek } from '@daoyou/game-rules/invasion';
 import {
+  MAX_WEEKLY_REPUTATION_RANK,
+  weeklyReputationForRank,
+} from '@daoyou/game-rules/rankings/ranking';
+import { rewardAttachments } from '@daoyou/game-rules/rewards/materials';
+import { db, type DbExecutor } from '@server/lib/drizzle/db.js';
+import {
+  cultivators,
   invasionProgress,
   invasionRuns,
   invasionWeeks,
-  itemLibrary,
 } from '@server/lib/drizzle/schema.js';
+import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
+import { MailService } from '@server/mail/application/MailService.js';
 import { createAndPublishWorldChatMessage } from '@server/social/application/chatDelivery.js';
-import {
-  and,
-  desc,
-  eq,
-  inArray,
-  isNotNull,
-  isNull,
-  lte,
-  sql,
-} from 'drizzle-orm';
+import { and, eq, inArray, isNull, lte, sql } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 
 export function invasionIdentity(member: InvasionMember) {
@@ -34,38 +30,24 @@ export function invasionIdentity(member: InvasionMember) {
 export async function prepareInvasionWeek(
   clock: ReturnType<typeof invasionWeek>,
 ) {
+  const columns = { announcedAt: invasionWeeks.announcedAt };
   const [existing] = await db
-    .select()
+    .select(columns)
     .from(invasionWeeks)
     .where(eq(invasionWeeks.week, clock.week));
   if (existing) return existing;
-  const found = await db
-    .select({ payload: itemLibrary.payload })
-    .from(itemLibrary)
-    .where(
-      and(
-        eq(itemLibrary.type, 'material'),
-        eq(itemLibrary.status, 'published'),
-        eq(itemLibrary.category, 'monster'),
-      ),
-    )
-    .orderBy(sql`random()`)
-    .limit(100);
-  const materials = found.flatMap(({ payload }) => {
-    const parsed = ItemLibraryMaterialPayloadSchema.safeParse(payload);
-    if (!parsed.success) return [];
-    const instanceData = materialFactsOf(parsed.data);
-    return instanceData.type === 'monster'
-      ? [{ definitionId: 'material.v1', quantity: 1, instanceData }]
-      : [];
-  });
-  if (!materials.length) return;
-  await db
+  const [prepared] = await db
     .insert(invasionWeeks)
-    .values({ week: clock.week, closesAt: new Date(clock.closesAt), materials })
-    .onConflictDoNothing();
+    .values({
+      week: clock.week,
+      closesAt: new Date(clock.closesAt),
+      materials: [],
+    })
+    .onConflictDoNothing()
+    .returning(columns);
+  if (prepared) return prepared;
   const [week] = await db
-    .select()
+    .select(columns)
     .from(invasionWeeks)
     .where(eq(invasionWeeks.week, clock.week));
   return week;
@@ -80,10 +62,10 @@ export async function announceInvasion(clock: ReturnType<typeof invasionWeek>) {
     .digest('hex');
   const id = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-4${hash.slice(13, 16)}-8${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
   const text =
-    '天南镇魔营地传来警讯，古魔正在冲击界隙。各境道友可结伴驰援，今日 16:00 收阵。';
+    '天南镇魔营地传来警讯，古魔正在冲击界隙。各境道友可在本期结伴驰援。';
   await createAndPublishWorldChatMessage({
     id,
-    createdAt: new Date(clock.opensAt).toISOString(),
+    createdAt: new Date().toISOString(),
     channel: 'system',
     senderUserId: 'system',
     senderCultivatorId: null,
@@ -111,15 +93,16 @@ export async function publishInvasionWeeks(now: number) {
         lte(invasionWeeks.closesAt, new Date(now)),
       ),
     )
+    .orderBy(invasionWeeks.closesAt)
     .limit(10);
   for (const { week } of weeks) {
-    await db.transaction(async (tx) => {
+    const mails = await db.transaction(async (tx) => {
       const [round] = await tx
         .select()
         .from(invasionWeeks)
         .where(eq(invasionWeeks.week, week))
         .for('update');
-      if (round.publishedAt) return;
+      if (!round || round.publishedAt) return [];
       const [running] = await tx
         .select({ id: invasionRuns.id })
         .from(invasionRuns)
@@ -130,26 +113,42 @@ export async function publishInvasionWeeks(now: number) {
           ),
         )
         .limit(1);
-      if (!running)
-        await tx
-          .update(invasionWeeks)
-          .set({ publishedAt: new Date() })
-          .where(eq(invasionWeeks.week, week));
+      if (running) return [];
+
+      const rows = await invasionRankingRows(tx, week);
+      const sent = [];
+      for (const { rank, realm, recipientId } of rows) {
+        if (!recipientId) continue;
+        const quantity = weeklyReputationForRank(rank);
+        sent.push(
+          await MailService.sendNewRewardMail(
+            recipientId,
+            '古魔入侵排名奖励',
+            `本期古魔入侵已封榜。道友在${realm}除魔榜位列第 ${rank} 名，请收下声望 ${quantity}。`,
+            rewardAttachments([{ type: 'reputation', quantity }]),
+            'reward',
+            tx,
+          ),
+        );
+      }
+      await tx
+        .update(invasionWeeks)
+        .set({ publishedAt: new Date() })
+        .where(eq(invasionWeeks.week, week));
+      return sent;
     });
+    for (const mail of mails) {
+      publishTransactionalMessageBestEffort(mail.domainEventId, {
+        source: 'invasion-ranking-reward',
+        mailId: mail.id,
+      });
+    }
   }
 }
 
-export async function readInvasionRanking(): Promise<InvasionRanking> {
-  const [latest] = await db
-    .select({ week: invasionWeeks.week })
-    .from(invasionWeeks)
-    .where(isNotNull(invasionWeeks.publishedAt))
-    .orderBy(desc(invasionWeeks.week))
-    .limit(1);
-  if (!latest) return { week: null, rows: [] };
-
-  const scores = db.$with('invasion_scores').as(
-    db
+function invasionRankingRows(executor: DbExecutor, week: string) {
+  const scores = executor.$with('invasion_scores').as(
+    executor
       .select({
         runId: invasionRuns.id,
         realm: invasionRuns.realm,
@@ -157,11 +156,11 @@ export async function readInvasionRanking(): Promise<InvasionRanking> {
       })
       .from(invasionProgress)
       .innerJoin(invasionRuns, eq(invasionRuns.id, invasionProgress.lastRunId))
-      .where(eq(invasionProgress.week, latest.week))
+      .where(eq(invasionProgress.week, week))
       .groupBy(invasionRuns.id, invasionProgress.completedWave),
   );
-  const ranked = db.$with('invasion_ranked').as(
-    db
+  const ranked = executor.$with('invasion_ranked').as(
+    executor
       .select({
         runId: scores.runId,
         realm: scores.realm,
@@ -172,7 +171,7 @@ export async function readInvasionRanking(): Promise<InvasionRanking> {
       })
       .from(scores),
   );
-  const rows = await db
+  return executor
     .with(scores, ranked)
     .select({
       runId: ranked.runId,
@@ -181,20 +180,53 @@ export async function readInvasionRanking(): Promise<InvasionRanking> {
       rank: ranked.rank,
       memberId: invasionProgress.cultivatorId,
       participants: invasionRuns.members,
+      recipientId: cultivators.id,
     })
     .from(ranked)
     .innerJoin(invasionRuns, eq(invasionRuns.id, ranked.runId))
     .innerJoin(
       invasionProgress,
       and(
-        eq(invasionProgress.week, latest.week),
+        eq(invasionProgress.week, week),
         eq(invasionProgress.lastRunId, ranked.runId),
         eq(invasionProgress.completedWave, ranked.wave),
       ),
     )
-    .where(lte(ranked.rank, 100))
+    .leftJoin(
+      cultivators,
+      and(
+        eq(cultivators.id, invasionProgress.cultivatorId),
+        eq(cultivators.userId, invasionProgress.userId),
+      ),
+    )
+    .where(lte(ranked.rank, MAX_WEEKLY_REPUTATION_RANK))
     .orderBy(ranked.rank, ranked.runId, invasionProgress.userId);
+}
 
+export async function readInvasionRanking(
+  previous = false,
+): Promise<InvasionRanking> {
+  const now = Date.now();
+  const clock = invasionWeek(now, previous ? -1 : 0);
+  const [round] = await db
+    .select()
+    .from(invasionWeeks)
+    .where(eq(invasionWeeks.week, clock.week));
+  const closesAt = round?.closesAt.getTime() ?? clock.closesAt;
+  const period: InvasionRanking['period'] = {
+    week: clock.week,
+    closesAt,
+    state: round?.publishedAt
+      ? 'settled'
+      : !previous
+        ? 'live'
+        : round
+          ? 'closing'
+          : 'unavailable',
+  };
+  if (!round) return { period, rows: [] };
+
+  const rows = await invasionRankingRows(db, round.week);
   const groups = new Map<string, InvasionRanking['rows'][number]>();
   for (const row of rows) {
     const id = `${row.runId}:${row.wave}`;
@@ -212,5 +244,5 @@ export async function readInvasionRanking(): Promise<InvasionRanking> {
     if (member) group.members.push(member);
     groups.set(id, group);
   }
-  return { week: latest.week, rows: [...groups.values()] };
+  return { period, rows: [...groups.values()] };
 }

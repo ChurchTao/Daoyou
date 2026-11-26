@@ -4,13 +4,15 @@ import {
   type ContestMaterial,
 } from '@daoyou/game-domain/alchemy/contest';
 import { describe, expect, it } from 'vitest';
+import { planBaixiaoClearRewards } from '../baixiao/meet.js';
+import { exorcismGradeExperience } from '../dungeon/exorcism/rewards.js';
 import {
   brewContestFurnace,
   compareContestStandings,
   contestBudget,
-  contestRewardForRank,
   contestStanding,
   contestWeek,
+  planContestCompletionReward,
   scoreContestFurnace,
   validContestRecipe,
 } from './contest.js';
@@ -65,19 +67,18 @@ const selected = [
 const doses = selected.map(({ id, dose }) => ({ materialId: id, dose }));
 
 describe('炼丹大会', () => {
-  it('以北京时间的星期三确定期次和个人完整开局时间', () => {
-    const round = contestWeek(Date.parse('2026-11-22T16:00:00Z'));
-    expect(round.week).toBe('2026-11-25');
-    expect(new Date(round.opensAt).toISOString()).toBe(
-      '2026-11-25T06:00:00.000Z',
-    );
-    expect(new Date(round.lastStartAt).toISOString()).toBe(
-      '2026-11-25T07:45:00.000Z',
-    );
-    expect(new Date(round.closesAt).toISOString()).toBe(
-      '2026-11-25T08:00:00.000Z',
-    );
-    expect(contestWeek(round.closesAt, 1).week).toBe('2026-12-02');
+  it('以北京时间周一 00:00 开启新一期', () => {
+    const boundary = Date.parse('2026-11-30T00:00:00+08:00');
+    expect(contestWeek(boundary - 1)).toMatchObject({
+      week: '2026-11-23',
+      closesAt: boundary,
+    });
+    expect(contestWeek(boundary)).toMatchObject({
+      week: '2026-11-30',
+      opensAt: boundary,
+      closesAt: Date.parse('2026-12-07T00:00:00+08:00'),
+    });
+    expect(contestWeek(boundary, -1).week).toBe('2026-11-23');
   });
 
   it('固定配方的波动只计入品相，并约束单炉和累计消耗', () => {
@@ -145,7 +146,7 @@ describe('炼丹大会', () => {
     ).toBe(false);
   });
 
-  it('同分比较药效和耗材，并保持各名次奖励边界', () => {
+  it('同分比较药效和耗材', () => {
     const base = { score: 60, effectScore: 40, usedMaterials: 5 };
     expect(compareContestStandings(base, { ...base })).toBe(0);
     expect(
@@ -158,10 +159,34 @@ describe('炼丹大会', () => {
     expect(
       compareContestStandings(base, { ...base, usedMaterials: 6 }),
     ).toBeLessThan(0);
-    expect(
-      [1, 2, 3, 10, 11, 50, 51, 101].map(
-        (rank) => contestRewardForRank(rank).reputation,
-      ),
-    ).toEqual([300, 250, 200, 150, 100, 100, 50, 50]);
+  });
+
+  it('按成绩档结算对应除祟资源和掉落，使用已达标的最低档', () => {
+    const realm = '金丹';
+    const seed = 19;
+    const context = {
+      mapRealm: realm,
+      playerRealm: realm,
+      difficultyTier: 'normal',
+    } as const;
+    for (const [score, correct, grade] of [
+      [0, 16, 'D'],
+      [59.99, 16, 'D'],
+      [60, 17, 'C'],
+      [69.99, 17, 'C'],
+      [70, 18, 'B'],
+      [79.99, 18, 'B'],
+      [80, 19, 'A'],
+      [89.99, 19, 'A'],
+      [90, 20, 'S'],
+      [100, 20, 'S'],
+    ] as const) {
+      const planned = planContestCompletionReward(realm, score, seed);
+      expect(planned).toEqual({
+        ...planBaixiaoClearRewards(realm, correct, seed),
+        grade,
+        cultivationExp: exorcismGradeExperience(grade, context),
+      });
+    }
   });
 });

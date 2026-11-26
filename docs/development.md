@@ -88,14 +88,28 @@ pnpm run dev
 | 变量 | 说明 |
 | --- | --- |
 | `REDIS_URL` | Redis 连接串；缺失时相关功能会在运行时失败 |
-| `API_IP_RATE_LIMIT_WINDOW_SECONDS` | `/api/*` 全局 IP 令牌桶补充周期秒数；默认 `60` |
-| `API_IP_RATE_LIMIT_MAX_REQUESTS` | `/api/*` 同 IP 令牌桶容量和每周期补充 token 数；默认 `300` |
 | `PUBLIC_WEB_ORIGINS` | 允许访问 API 的前端 origin，逗号分隔，如 `https://app.example.com,http://localhost:5173` |
 | `BETTER_AUTH_ALLOWED_HOSTS` | 可选；多 API 域名时填逗号分隔的 host（不含协议），Better Auth 按请求 Host 生成 baseURL |
 | `BETTER_AUTH_COOKIE_DOMAIN` | 可选；同站子域部署时可填 `.example.com`；跨站模式必须取消设置 |
 | `BETTER_AUTH_CROSS_SITE_COOKIES` | 默认关闭；设为 `true` 启用 `SameSite=None; Secure; HttpOnly`，要求 `BETTER_AUTH_URL` 为 HTTPS |
 | `ADMIN_EMAILS` | 管理员邮箱白名单，逗号分隔 |
 | `ADMIN_USER_IDS` | Better Auth 管理员用户 ID 白名单，逗号分隔；账号管理工具必须配置 |
+
+### HTTP 路由限流
+
+Nest `ThrottlerGuard` 只在显式挂载它的路由上检查频率。蓝绿实例使用共享 Redis 按路由和身份计数，固定窗口从第一次请求开始。超额请求返回 `429` 和 `Retry-After`，不会延长窗口。Redis 查询失败时记录警告并放行。匿名入口使用现有代理 IP 解析顺序，部署代理需确保转发头由受信任的上游提供。
+
+| 路由 | 计数身份 | 上限 |
+| --- | --- | --- |
+| `GET /api/captcha/challenge` | IP | 60 次 / 分钟 |
+| `GET /api/combat-v6-shares/:shareCode` | IP | 60 次 / 分钟 |
+| `POST /api/feedback` | 已验证账号 | 5 次 / 10 分钟 |
+| `POST /api/cultivator/redeem-code/claim` | 已验证账号 | 8 次 / 10 分钟 |
+| `POST /api/sponsorship/checkout-intents` | 已验证账号 | 5 次 / 10 分钟 |
+| `POST /api/sponsorship/claims` | 已验证账号 | 8 次 / 10 分钟 |
+| `POST /api/rankings/probe` | 已验证账号 | 30 次 / 分钟 |
+
+`/api/auth/*` 走 Better Auth 自己的限流，实时连接配额在 WebSocket 握手服务中检查。
 
 ### 生产 cron 必需
 

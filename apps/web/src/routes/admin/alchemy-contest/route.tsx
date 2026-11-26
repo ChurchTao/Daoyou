@@ -25,7 +25,7 @@ const outcomes: Record<ContestPreparationResult, string> = {
   'reserve-prepared': '备用题已准备完成。',
   'reserve-used': '已启用往期备用题作为本期正选。',
   'already-prepared': '正选与备用题均已就绪。',
-  'registration-opened': '本期已到开赛时间，赛前配置已锁定。',
+  'registration-opened': '本期题卷已锁定或赛期已结束。',
   'generation-disabled': '当前环境已停用模型生成，也没有可用的备用题。',
   'generation-failed': '本次生成未得到通过配伍验证的题目。可稍后手动补跑。',
 };

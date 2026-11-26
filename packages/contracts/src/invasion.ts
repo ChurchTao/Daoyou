@@ -9,6 +9,7 @@ import {
   type InvasionReward,
 } from '@daoyou/game-domain/invasion';
 import { z } from 'zod';
+import type { WeeklyRankingPeriod } from './weekly-activity.js';
 
 export const InvasionCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('recruit'), advertised: z.boolean() }),
@@ -36,12 +37,15 @@ export type InvasionIdentity = Pick<
   'cultivatorId' | 'name' | 'title' | 'gender' | 'realm' | 'realmStage'
 >;
 export type InvasionPublicTeam = { id: string; members: InvasionIdentity[] };
+export type InvasionPreviousWave = { wave: number } & (
+  | { status: 'assist' | 'pending' }
+  | { status: 'settled'; reward: InvasionReward | null }
+);
 export type InvasionStatus = {
+  week: string;
   opensAt: number;
   closesAt: number;
-  nextOpensAt: number;
   serverNow: number;
-  open: boolean;
   otherCharacter: boolean;
   completedWave: number;
   lastBattleId: string | null;
@@ -61,6 +65,7 @@ export type InvasionStatus = {
         restEndsAt: number | null;
         battleId: string | null;
         firstClear: boolean;
+        previousWave?: InvasionPreviousWave;
         resources: Record<string, InvasionResources>;
         self: { cards: InvasionCards; selected?: InvasionCard };
         recovery: { id: string; name: string; quantity: number }[];
@@ -68,7 +73,7 @@ export type InvasionStatus = {
     | null;
 };
 export type InvasionRanking = {
-  week: string | null;
+  period: WeeklyRankingPeriod;
   rows: (InvasionPublicTeam & {
     realm: RealmType;
     rank: number;

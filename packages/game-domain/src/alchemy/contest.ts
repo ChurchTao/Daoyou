@@ -2,12 +2,14 @@ import { ELEMENT_VALUES } from '@daoyou/constants/elements';
 import { QUALITY_VALUES, type Quality } from '@daoyou/constants/qualities';
 import { z } from 'zod';
 import { ALCHEMY_PROPERTY_KEY_VALUES } from '../consumable.js';
+import type { ExorcismGrade } from '../dungeon/exorcism.js';
+import type { ItemGrant } from '../items/inventory.js';
 import { INVENTORY_MATERIAL_TYPES } from '../items/material-facts.js';
 
 export const CONTEST_ATTEMPTS = 3;
 export const CONTEST_QI = 7;
 export const CONTEST_MATERIAL_STOCK = 3;
-export const CONTEST_DURATION_MS = 15 * 60_000;
+export const CONTEST_DURATION_MS = 30 * 60_000;
 export const CONTEST_NODE_ID = 'SAT_LX_ALCHEMY';
 export const CONTEST_HEAT = { gentle: 1, steady: 2, fierce: 3 } as const;
 export type ContestHeat = keyof typeof CONTEST_HEAT;
@@ -106,4 +108,16 @@ export type ContestStanding = {
   score: number;
   effectScore: number;
   usedMaterials: number;
+};
+export type ContestStandingDetail = ContestStanding & {
+  materialPoints: number;
+  qiPoints: number;
+  bestAttempt: number;
+};
+export type ContestCompletionReward = {
+  grade: ExorcismGrade;
+  cultivationExp: number;
+  spiritStones: number;
+  insight: number;
+  items: ItemGrant[];
 };

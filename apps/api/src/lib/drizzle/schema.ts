@@ -1,11 +1,11 @@
 import type { ArenaRuntime } from '@daoyou/contracts/combat/arena';
-import type { InvasionCard, InvasionCards, InvasionMember, InvasionPhase, InvasionResources, InvasionReward } from '@daoyou/game-domain/invasion';
+import type { InvasionCard, InvasionCards, InvasionMember, InvasionPhase, InvasionResources, InvasionRewardSummary } from '@daoyou/game-domain/invasion';
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import type {
   BaixiaoAnswer, BaixiaoFinish, BaixiaoPaperSlot, BaixiaoQuestionData, BaixiaoResources, BaixiaoReward, BaixiaoScore,
 } from '@daoyou/game-domain/baixiao/meet';
 import type { BaixiaoQuestionStatus } from '@daoyou/contracts/baixiao/meet';
-import type { ContestAttempt, ContestPaper, ContestStanding } from '@daoyou/game-domain/alchemy/contest';
+import type { ContestAttempt, ContestCompletionReward, ContestPaper, ContestStandingDetail } from '@daoyou/game-domain/alchemy/contest';
 import type { PlayerJournalEvent } from '@daoyou/contracts/player/journal';
 import type { AiUsageCredentialSource, AiUsagePricingSnapshot } from '@daoyou/contracts/admin/ai-usage';
 import type { CultivatorManualStateV1 } from '@daoyou/game-domain/manuals';
@@ -2870,7 +2870,7 @@ export const alchemyContestRounds = pgTable('wanjiedaoyou_alchemy_contest_rounds
   closesAt: timestamp('closes_at', { withTimezone: true }).notNull(),
   paper: jsonb('paper').$type<ContestPaper>().notNull(),
   reserve: jsonb('reserve').$type<ContestPaper>(),
-  rewardPool: jsonb('reward_pool').$type<{ version: 1; books: string[]; materials: ItemGrant[] }>().notNull(),
+  rewardPool: jsonb('reward_pool').$type<{ version: 1; materials: ItemGrant[] }>().notNull(),
   announcedAt: timestamp('announced_at', { withTimezone: true }),
   settledAt: timestamp('settled_at', { withTimezone: true }),
 }, (table) => [
@@ -2885,9 +2885,10 @@ export const alchemyContestEntries = pgTable('wanjiedaoyou_alchemy_contest_entri
   startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
   finishedAt: timestamp('finished_at', { withTimezone: true }),
   attempts: jsonb('attempts').$type<(ContestAttempt & { requestId: string })[]>().notNull().default([]),
-  standing: jsonb('standing').$type<ContestStanding>(),
+  standing: jsonb('standing').$type<ContestStandingDetail>(),
   rank: integer('rank'),
-  reward: jsonb('reward').$type<{ version: 1; reputation: number; item: ItemGrant | null }>(),
+  reward: jsonb('reward').$type<{ reputation: number }>(),
+  completionReward: jsonb('completion_reward').$type<ContestCompletionReward>(),
   mailedAt: timestamp('mailed_at', { withTimezone: true }),
 }, (table) => [
   primaryKey({ columns: [table.week, table.userId] }),
@@ -3006,7 +3007,7 @@ export const invasionProgress = pgTable('wanjiedaoyou_invasion_progress', {
   resources: jsonb('resources').$type<Record<string, InvasionResources>>().notNull().default({}),
   cards: jsonb('cards').$type<InvasionCards>().notNull().default({}),
   rewardedWave: integer('rewarded_wave').notNull().default(0),
-  reward: jsonb('reward').$type<InvasionReward>(),
+  reward: jsonb('reward').$type<InvasionRewardSummary>(),
 }, (table) => [
   primaryKey({ columns: [table.week, table.userId] }),
   index('invasion_progress_active_idx').on(table.activeRunId).where(sql`${table.activeRunId} is not null`),

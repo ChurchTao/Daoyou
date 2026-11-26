@@ -46,8 +46,6 @@ const environmentSchema = z
     TRANSFER_SIGNING_PRIVATE_KEY_B64: z.string().optional(),
     TRANSFER_ENCRYPTION_PRIVATE_KEY_B64: z.string().optional(),
     SMTP_PORT: positiveInteger('465', 65535),
-    API_IP_RATE_LIMIT_WINDOW_SECONDS: positiveInteger('60'),
-    API_IP_RATE_LIMIT_MAX_REQUESTS: positiveInteger('300'),
   })
   .catchall(z.string().optional())
   .superRefine((env, ctx) => {
