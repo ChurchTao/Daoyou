@@ -12,7 +12,7 @@ export const TIANYAN_DEFINITION: SectDefinition = {
     {
       id: 'tianyan-canon',
       slot: 1,
-      name: '《天衍五行真经》',
+      name: '《五气朝元》',
       isPrimary: true,
       description:
         '以太初为纸，以五行为字。经中不求写尽天数，只教门人辨明一法之后仍有多少去处。',
@@ -20,35 +20,35 @@ export const TIANYAN_DEFINITION: SectDefinition = {
     {
       id: 'wood-vitality',
       slot: 2,
-      name: '《青华生元录》',
+      name: '《草木知春》',
       description:
         '草木荣枯并非两事；生机藏在未尽之处，也藏在愿意重新开始的一息里。',
     },
     {
       id: 'fire-illumination',
       slot: 3,
-      name: '《离明流火章》',
+      name: '《星火燎原》',
       description:
         '火能照见，也能焚去。持火者先辨所燃为何，方知余烬应当归向何处。',
     },
     {
       id: 'earth-bearing',
       slot: 4,
-      name: '《坤舆载物篇》',
+      name: '《移山》',
       description:
         '地不与万物争先，却承受每一次落下的重量；能载其重，才能改其势。',
     },
     {
       id: 'metal-severing',
       slot: 5,
-      name: '《太白裁虚诀》',
+      name: '《金石可开》',
       description:
         '金气不只断形，也裁去遮蔽与虚妄。锋芒所至，应先知道何物不必留下。',
     },
     {
       id: 'water-flowing',
       slot: 6,
-      name: '《玄冥行川法》',
+      name: '《百川归海》',
       description: '水无常形，不与一岸相争。去路既改，仍能在曲折中守住归处。',
     },
   ],

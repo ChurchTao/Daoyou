@@ -596,7 +596,7 @@ export const FATE_TEXT_PRESETS: FateTextPresetRegistry = {
     玄品: { name: '冷却中', descriptionTemplate: '恢复像技能冷却，明明会好，却总要多等一会儿。' },
     真品: { name: '冰封王体', descriptionTemplate: '冰封之力镇住气血，也镇住生机，伤势恢复往往比旁人迟缓。' },
     地品: { name: '寂灭寒身', descriptionTemplate: '寂灭气息压住复苏之机，越是伤重，越难立刻唤醒生机。' },
-    天品: { name: '冥王冻体', descriptionTemplate: '此体近死而不死，却也常在冥寂中久留，恢复起来并不轻快。' },
+    天品: { name: '冥王冻体', descriptionTemplate: '此体近死而不死，却也常在冥寂中久留，恢复活来并不轻快。' },
     仙品: { name: '轮回迟滞', descriptionTemplate: '盛衰转换被轮回之力拖慢，伤后明明能复原，却总要多绕一圈。' },
     神品: { name: '永恒冻土', descriptionTemplate: '永恒之意化作冻土封住肉身，生机尚在，却很难迅速破土而出。' },
   },

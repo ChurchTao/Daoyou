@@ -408,10 +408,10 @@ describe('九劫触发边界回归',()=>{
     round(b,{t:{type:'skill',skillId:bad.id,targets:['s']}});expect(random).toHaveBeenCalledWith(0.25);
     vi.restoreAllMocks();restProc();round(b,{s:cmd('strike_2')});expect(st(b,'s','rest_minor')).toBeDefined();
   });
-  it('震魂能挂在倒地者身上，原期限内复起依然有效',()=>{
+  it('震魂能挂在倒地者身上，原期限内复活依然有效',()=>{
     restProc();const {b}=setup('law',['5.3']);b.unit('t').attrs.hp=1;
     round(b,{s:cmd('strike_3')});expect(b.unit('t').flags.downed).toBe(true);expect(st(b,'t','confuse')).toBeDefined();
-    const revive:SkillDef={id:'test.revive',name:'复起',tags:['support'],targeting:{side:'ally',includeDowned:true},effects:[{type:'revive',hpRatio:0.5}]};
+    const revive:SkillDef={id:'test.revive',name:'复活',tags:['support'],targeting:{side:'ally',includeDowned:true},effects:[{type:'revive',hpRatio:0.5}]};
     b.unit('t1').skills.push(revive.id);b.unit('t1').skillOverrides[revive.id]=revive;b.unit('t1').attrs.speed=5000;
     round(b,{t1:{type:'skill',skillId:revive.id,targets:['t']}});expect(b.unit('t').flags.downed).toBe(false);
     expect(b.log().some(e=>e.type==='statusRemoved'&&e.statusId===T('confuse')&&e.reason==='expired')).toBe(true);

@@ -26,6 +26,7 @@ import { apiErrorFilter } from '../http/error-filter.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
 import { HuntsService } from './hunts.service.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 
 const HuntsErrors = apiErrorFilter((error) => {
   let status = 500;
@@ -50,9 +51,9 @@ const HuntsErrors = apiErrorFilter((error) => {
     },
   );
 });
-const JoinSchema = z.object({ teamId: z.uuid().optional() }).strict();
 
 @Controller('api/hunts')
+@StoryGate('hunt-team')
 @Access('active')
 @UseFilters(HuntsErrors)
 export class HuntsController {
@@ -98,29 +99,6 @@ export class HuntsController {
     input: z.infer<typeof HuntCreateTeamSchema>,
   ) {
     return this.hunts.create(actor, input);
-  }
-
-  @Post(':eventId/join')
-  @HttpCode(200)
-  @Header('Cache-Control', 'private, no-store')
-  join(
-    @CurrentCultivator() actor: ActiveCultivatorRef,
-    @Param('eventId', new ZodPipe(HuntEventIdSchema))
-    eventId: z.infer<typeof HuntEventIdSchema>,
-    @JsonBody({ fallback: undefined }, new ZodPipe(JoinSchema))
-    input: z.infer<typeof JoinSchema>,
-  ) {
-    return this.hunts.join(actor, eventId, input.teamId);
-  }
-
-  @Post('teams/:teamId/join')
-  @HttpCode(200)
-  @Header('Cache-Control', 'private, no-store')
-  joinTeam(
-    @CurrentCultivator() actor: ActiveCultivatorRef,
-    @Param('teamId', new ZodPipe(z.uuid())) teamId: string,
-  ) {
-    return this.hunts.joinTeam(actor, teamId);
   }
 
   @Get('teams/:teamId/chat')

@@ -79,7 +79,7 @@ export function HudTag({
   );
   const content = (
     <>
-      {label && <span className="shrink-0 text-stone-500">{label}</span>}
+      {label && <span className="text-ink-secondary shrink-0">{label}</span>}
       <span className="text-ink min-w-0 truncate font-mono">{value}</span>
     </>
   );

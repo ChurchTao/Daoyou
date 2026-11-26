@@ -1,6 +1,6 @@
 # combat-v6 宗门心法、技能与经脉系统设计
 
-> 状态：宗门战斗领域方向基线（Canonical）建立日期：2026-09-02上位设计：[`combat-v6 梦幻式战斗体系设计稿与迁移路线图`](./combat-v6-mhxy-redesign-roadmap.md) 首个完整纵切：[`combat-v6 红尘剑宗纵切设计`](./combat-v6-lingxiao-datang-sect-design.md) 第二个完整纵切：[`combat-v6 幽都经典双流派纵切`](./combat-v6-youdu-classic-sect-design.md) 第三个完整纵切：[`combat-v6 无相禅宗双流派纵切`](./combat-v6-wuxiang-sect-design.md) 第四个完整纵切：[`combat-v6 天衍圣地河洛九宫纵切`](./combat-v6-tianyan-sect-design.md) 第五个完整纵切：[`combat-v6 九劫天宫经典双流派纵切`](./combat-v6-jiujie-sect-design.md) 适用范围：combat-v6 人物宗门心法、宗门技能、特色机制、双流派与经脉编译
+宗门战斗领域设计基线，涵盖心法、技能、双流派与经脉编译。实现与内容接入见[宗门内容接入指南](sect-authoring-guide.md)。
 
 本文定义 combat-v6 的宗门战斗体系。现有宗门社会身份和玩家已经投入形成的心法等级、经脉深度平滑进入新版；旧宗门技能、`AbilityConfig`、通用成长倍率、四技能装配和 v5 运行时产物全部退出。
 
@@ -580,7 +580,7 @@ newMeridianDepth
 
 Phase 9G 只继承共用深度，不翻译旧节点，也不自动代选节点。已有新版流派与节点保留；尚未启用的构筑由玩家选定初始流派，两流派从空方案开始。允许空位进入战斗，并提示方案不完整。
 
-养成费用、等级门槛、免费切换与转宗规则以 [Phase 9G 实施方案](combat-v6-phase-9g-sect-plan.md) 为准。文末 Phase 7B 限制保留为历史阶段记录，深度从零与禁止切换的临时限制已由 9G 替代。
+养成费用、等级门槛、切换与转宗规则见[宗门养成配置](../packages/game-content/src/sects/progression/README.md)与[宗门组织规则](../packages/game-rules/src/sect-organization/README.md)。文末 Phase 7B 的临时限制属于早期阶段记录。
 
 ### 9.5 四技能栏
 

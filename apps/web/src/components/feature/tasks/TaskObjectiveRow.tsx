@@ -13,7 +13,7 @@ export function TaskObjectiveRow({
         className={cn(
           'mt-1.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] leading-none',
           objective.completed
-            ? 'bg-emerald-600/10 text-emerald-700'
+            ? 'bg-emerald-600/10 text-emerald-700 dark:text-teal'
             : 'border border-ink/25',
         )}
       >

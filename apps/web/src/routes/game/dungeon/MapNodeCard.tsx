@@ -5,17 +5,18 @@ import {
 import { cn } from '@app/lib/cn';
 import type { RealmType } from '@daoyou/constants/realms';
 import { MYSTERY_CASE_KINDS } from '@daoyou/game-content/dungeon/case-kinds';
+import {
+  EXORCISM_LINEAGES,
+  exorcismLineageForScene,
+} from '@daoyou/game-content/dungeon/exorcism';
 import { type MapNodeInfo } from '@daoyou/game-domain/world/map';
 import {
   canChallengeDungeonRealm,
   resolveDungeonMapConfig,
 } from '@daoyou/game-rules/world/dungeon';
-import { mysterySceneUrl } from './components/mysteryArt';
 import { ExorcismTrack } from './components/ExorcismRunStrip';
-import {
-  EXORCISM_LINEAGES,
-  exorcismLineageForScene,
-} from '@daoyou/game-content/dungeon/exorcism';
+import { mysterySceneUrl } from './components/mysteryArt';
+import { MysterySceneArt } from './components/MysterySceneArt';
 
 /**
  * 选定秘境的介绍：场景底图、此地总述、推荐境界与难度，以及此地可能遇到的案型。
@@ -48,13 +49,12 @@ export function MapNodeCard({
       </h2>
       {sceneUrl ? (
         // 与解谜正文同一取景：贴底、上缘渐隐；宽屏取 3:1，让开始按钮留在首屏。
-        <div
-          aria-hidden
+        <MysterySceneArt
+          src={sceneUrl}
           className={cn(
-            'aspect-[2/1] [mask-image:linear-gradient(to_bottom,transparent,black_18%)] bg-cover bg-bottom',
+            'aspect-[2/1]',
             mode === 'exorcism' ? 'lg:aspect-[4/1]' : 'lg:aspect-[3/1]',
           )}
-          style={{ backgroundImage: `url(${sceneUrl})` }}
         />
       ) : null}
 

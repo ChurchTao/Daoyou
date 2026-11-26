@@ -4,6 +4,9 @@ export const BACKGROUND_COMMAND_STREAM = 'DAOYOU_BACKGROUND_COMMANDS';
 export const BACKGROUND_COMMAND_SUBJECT_PREFIX = 'daoyou.command.cron';
 
 export const BACKGROUND_COMMAND_TYPES = [
+  'alchemy-contest.prepare',
+  'alchemy-contest.settle',
+  'baixiao-meet.period',
   'auction.expire',
   'ranking.rewards.distribute',
   'market.refresh',
@@ -21,6 +24,21 @@ export const BACKGROUND_COMMAND_TYPES = [
 export type BackgroundCommandType = (typeof BACKGROUND_COMMAND_TYPES)[number];
 
 export const BACKGROUND_COMMAND_DEFINITIONS = {
+  'alchemy-contest.prepare': {
+    version: 1,
+    subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.alchemy-contest-prepare.v1`,
+    scheduleBucketMs: 24 * 60 * 60_000,
+  },
+  'alchemy-contest.settle': {
+    version: 1,
+    subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.alchemy-contest-settle.v1`,
+    scheduleBucketMs: 5 * 60_000,
+  },
+  'baixiao-meet.period': {
+    version: 1,
+    subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.baixiao-meet-period.v1`,
+    scheduleBucketMs: 5 * 60_000,
+  },
   'chat.maintenance': {
     version: 1,
     subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.chat-maintenance.v1`,

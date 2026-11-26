@@ -23,6 +23,7 @@ import { apiErrorFilter } from '../http/error-filter.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
 import { EnlightenmentService } from './enlightenment.service.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 
 const EnlightenmentErrors = apiErrorFilter((error) => {
   const lock = redisLockErrorResponse(error);
@@ -50,6 +51,7 @@ const EnlightenmentErrors = apiErrorFilter((error) => {
 });
 
 @Controller('api/combat-v6/enlightenment')
+@StoryGate('enlightenment')
 @Access('active')
 @UseFilters(EnlightenmentErrors)
 export class EnlightenmentController {

@@ -4,18 +4,18 @@
   "steps": [
     {
       "type": "look",
-      "anchor": "cave.inside",
-      "text": "洞府是你的落脚处。各处房间从这里进入，页面的固定导航也能前往道身、储物袋等常用去处。"
+      "anchor": "home.story",
+      "text": "回到洞府，在「当下要事」里可以继续主线。"
     },
     {
       "type": "look",
       "anchor": "cave.spring",
-      "text": "灵眼之泉用于休养。气血或法力不足时再来，不必为了熟悉洞府先耗费资源。"
+      "text": "灵眼之泉用于休养。气血或法力不够的时候再来。"
     },
     {
       "type": "look",
-      "anchor": "cave.out",
-      "text": "从这里前往洞府外的去处。先认清自己的状态、行囊和地图，再去选择山门。"
+      "anchor": "cave.inside",
+      "text": "推进主线可以解锁更多洞府设施。"
     },
     {
       "type": "end"

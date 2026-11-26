@@ -1,6 +1,6 @@
 # 无相禅宗设计归档
 
-> 本文件记录无相禅宗的创作来源、宗门背景与内容设计原则。精确数值、技能形态和当前结算行为仍以同目录 TypeScript 定义及专项测试为准。
+> 本文件记录无相禅宗的创作来源、宗门背景与早期 battle-v5 设计。当前佛魔双相见 [V6 重做文档](../../../../../docs/combat-v6-wuxiang-tianji-redesign.md)及同目录 TypeScript 定义。
 
 ## 1. 创作来源
 
@@ -177,4 +177,3 @@
 - 明镜照业：`paths/mirror`
 - 魔心渡厄：`paths/demon`
 - 行为矩阵与转相契约：`tests/abilityBehaviorMatrix.test.ts`、`tests/formCycle.test.ts`
-- 详细架构演进：仓库根目录 `docs/wuxiang-layered-forms-redesign.md`

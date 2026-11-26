@@ -22,6 +22,7 @@ import { useCultivatorIdentity } from '@app/lib/resources/player';
 import type {
   InventoryAction,
   InventoryView,
+  OpenMysteryBagResult,
 } from '@daoyou/contracts/inventory';
 import type {
   DaoEquipmentInstanceV1,
@@ -37,6 +38,7 @@ import {
   itemDefinition,
   sortInventoryItems,
 } from '@daoyou/game-rules/inventory';
+import { formatFullGameNumber } from '@daoyou/game-rules/presentation/numbers';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router';
 import { EquipmentComparisonPreview } from './EquipmentComparisonPreview';
@@ -72,6 +74,7 @@ export default function InventoryV6() {
     : undefined;
   const [params, setParams] = useSearchParams();
   const route = useLocation();
+  const focusedItemId = params.get('item');
   const location =
     params.get('location') === 'bag'
       ? 'bag'
@@ -148,7 +151,19 @@ export default function InventoryV6() {
     setPending(true);
     reader.current?.abort();
     try {
-      if (action.action === 'use') {
+      let message = inventoryActionMessage(action);
+      if (action.action === 'open_mystery_bag') {
+        const reward = await consumeResourceMutation<OpenMysteryBagResult>(
+          await apiFetch(endpoint, mutationBody(action)),
+        );
+        const destination =
+          reward.destination === 'storage'
+            ? '，已放入洞府储藏室'
+            : reward.destination === 'bag_and_storage'
+              ? '，部分已放入洞府储藏室'
+              : '';
+        message = `获得 ${reward.name} × ${formatFullGameNumber(reward.quantity)}${destination}。`;
+      } else if (action.action === 'use') {
         await consumeInventoryItem(action, action.quantity);
       } else
         await consumeResourceMutation(
@@ -156,7 +171,7 @@ export default function InventoryV6() {
         );
       if (!mounted.current) return;
       pushToast({
-        message: inventoryActionMessage(action),
+        message,
         tone: 'success',
       });
       setSelectedIds(new Set());
@@ -201,6 +216,13 @@ export default function InventoryV6() {
   const selectedItems = visibleItems.filter((item) => selectedIds.has(item.id));
   function clearSelection() {
     setSelectedIds(new Set());
+  }
+  function showLocation(location: 'bag' | 'storage') {
+    const next = new URLSearchParams(params);
+    next.set('location', location);
+    setParams(next);
+    setPage(0);
+    setData(undefined);
   }
   function toggleSelection(id: string) {
     setSelectedIds((current) => {
@@ -285,8 +307,7 @@ export default function InventoryV6() {
           }
           onSlot={(slot) => {
             if (location !== 'bag') {
-              setParams({ location: 'bag' });
-              setData(undefined);
+              showLocation('bag');
             }
             setPage(0);
             setFilter({ kind: 'equipment' });
@@ -313,9 +334,7 @@ export default function InventoryV6() {
                     }
                     onClick={() => {
                       clearSelection();
-                      setParams({ location: value });
-                      setPage(0);
-                      setData(undefined);
+                      showLocation(value);
                       setSlotFilter(undefined);
                     }}
                   >
@@ -496,9 +515,11 @@ export default function InventoryV6() {
                 badge:
                   entry && selectedIds.has(entry.id)
                     ? '已选'
-                    : entry?.equipped
-                      ? '穿'
-                      : undefined,
+                    : entry && entry.id === focusedItemId
+                      ? '已定位'
+                      : entry?.equipped
+                        ? '穿'
+                        : undefined,
                 onQuickAction:
                   selecting && entry
                     ? () => toggleSelection(entry.id)
@@ -593,6 +614,21 @@ function ItemActions({
         pending={pending}
         onUse={(quantity) => void act({ action: 'use', ...ref, quantity })}
       />
+      {item.location === 'bag' && definition.kind === 'mystery_bag' ? (
+        <InkButton
+          variant="primary"
+          disabled={pending}
+          onClick={() =>
+            void act({
+              action: 'open_mystery_bag',
+              ...ref,
+              requestId: crypto.randomUUID(),
+            })
+          }
+        >
+          打开 1 个
+        </InkButton>
+      ) : null}
       {item.location === 'bag' && definition.kind === 'equipment' ? (
         <EquipmentAction
           item={item}

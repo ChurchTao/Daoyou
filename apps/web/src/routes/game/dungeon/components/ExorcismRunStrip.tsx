@@ -97,7 +97,7 @@ export function ExorcismTrack({
               aria-current={current ? 'step' : undefined}
               className={cn(
                 'font-heading flex size-10 items-center justify-center text-sm leading-none md:size-11 md:text-base',
-                done && 'bg-crimson text-paper -rotate-3',
+                done && 'bg-crimson text-on-crimson -rotate-3',
                 current && 'border-ink text-ink border-2',
                 !done && !current && 'border-ink/25 text-ink/45 border',
               )}

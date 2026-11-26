@@ -15,7 +15,7 @@ import {
 const id = '00000000-0000-4000-8000-000000000001';
 function beast(skills: string[]) {
   return {
-    ...generateStarterBeast(id, id, BEAST_SPECIES[0].id, 42),
+    ...generateStarterBeast(id, id, BEAST_SPECIES[0].id, 42, 10),
     skills,
     skillSlotCapacity: skills.length,
   };

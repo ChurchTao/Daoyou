@@ -136,6 +136,14 @@
   );
   transform: translateX(-50%);
 }
+
+:root[data-theme='dark'] .garden-soil {
+  background: radial-gradient(
+    ellipse,
+    color-mix(in srgb, var(--color-teal) 18%, transparent),
+    transparent 72%
+  );
+}
 .garden-plot--selected .garden-soil {
   box-shadow: 0 1px 0 color-mix(in srgb, var(--color-crimson) 30%, transparent);
 }
@@ -403,6 +411,15 @@
   inset: 0;
   display: block;
   overflow: hidden;
+}
+
+/* 暗处以淡纸色托住植株的深色笔触，保留图谱的原色。 */
+:root[data-theme='dark'] .botanical-art__print {
+  background: radial-gradient(
+    ellipse 48% 46% at 50% 53%,
+    color-mix(in srgb, var(--color-ink) 14%, transparent),
+    transparent
+  );
 }
 .botanical-art--muted {
   filter: grayscale(1);

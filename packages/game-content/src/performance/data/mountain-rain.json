@@ -1,0 +1,83 @@
+{
+  "id": "mountain-rain",
+  "title": "灶后的雨",
+  "requires": [],
+  "cast": {
+    "painter": {
+      "name": "画山人",
+      "portrait": "icon:portrait-elder-m"
+    },
+    "granny": {
+      "name": "婆婆",
+      "portrait": "icon:portrait-elder-f"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "面棚 · 雨中"
+    },
+    {
+      "type": "title",
+      "kicker": "捎个口信",
+      "text": "灶后的雨"
+    },
+    {
+      "type": "narration",
+      "text": "回到面棚，你的位置还空着。婆婆把一只倒扣的大碗揭开，面有点坨，葱油藏在底下，一挑就香。你刚坐下，棚角一滴雨正中碗心。"
+    },
+    {
+      "type": "narration",
+      "text": "邻桌有人递来一只空碟，大小刚好能盖住碗。"
+    },
+    {
+      "type": "line",
+      "speaker": "painter",
+      "text": "怪了，这棚子的雨，从前都往灶后头落。"
+    },
+    {
+      "type": "narration",
+      "text": "婆婆把笊篱挂回墙上。"
+    },
+    {
+      "type": "line",
+      "speaker": "granny",
+      "text": "灶往里挪了三回。你上回来，可有人收你的钱？"
+    },
+    {
+      "type": "line",
+      "speaker": "painter",
+      "text": "收了。一个小个子，端碗烫着手，一路换了七八回手，硬说自己端得住。"
+    },
+    {
+      "type": "narration",
+      "text": "婆婆擦干手，从案下抽出一块搁面粉袋的木板，翻给客人看。旧门板上横着好几道刻痕。"
+    },
+    {
+      "type": "narration",
+      "text": "客人的手径直落在最浅的那一道。"
+    },
+    {
+      "type": "line",
+      "speaker": "painter",
+      "text": "水涨到这儿，他就要上船。船上挤不下他养的黄狗，为这事坐在门槛上大哭。手是后来熬姜汤才烫的。"
+    },
+    {
+      "type": "narration",
+      "text": "婆婆伸手往板背后一摸，抠掉一块干面疙瘩。那道刻痕底下，露出歪歪斜斜一个“黄”字。"
+    },
+    {
+      "type": "narration",
+      "text": "她看了半晌，把板子放回去，又捞了一碗面，推到客人跟前。"
+    },
+    {
+      "type": "line",
+      "speaker": "granny",
+      "text": "我祖父。他跟我们讲那场水，总从自己上船以后讲起。狗的事，您慢慢说。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

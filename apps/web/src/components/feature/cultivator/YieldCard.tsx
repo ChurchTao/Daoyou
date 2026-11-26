@@ -1,33 +1,39 @@
-import { postEvents } from '@app/lib/api/postEvents';
-import { hasPendingCommandRequest, pendingCommandRequest } from '@app/lib/pendingCommandRequest';
-import { usePlayerSession } from '@app/lib/resources/player';
-import { HomeUrgentRow } from '@app/components/feature/home/HomeUrgentRow';
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
 import { SpiritStones } from '@app/components/ui/SpiritStones';
+import { postEvents } from '@app/lib/api/postEvents';
+import {
+  hasPendingCommandRequest,
+  pendingCommandRequest,
+} from '@app/lib/pendingCommandRequest';
 import { consumeResourceChanges } from '@app/lib/resources/mutations';
-import { GeneratedMaterial } from '@daoyou/game-domain/materials/generation';
+import { usePlayerSession } from '@app/lib/resources/player';
 import { getGameConceptInfo } from '@daoyou/game-content/presentation/concepts';
-import { useEffect, useState } from 'react';
+import { GeneratedMaterial } from '@daoyou/game-domain/materials/generation';
+import { useEffect, useState, type ReactNode } from 'react';
 
 interface YieldCardProps {
   cultivator: { last_yield_at?: string };
   onOk?: () => void;
-  onInteractionActiveChange?: (active: boolean) => void;
-  variant?: 'card' | 'compact';
+  /** 换一种写法来触发领取。给了就不画卡片。 */
+  trigger?: (state: {
+    hours: number;
+    retry: boolean;
+    claiming: boolean;
+    claim: () => void;
+  }) => ReactNode;
 }
 
-export function YieldCard({
-  cultivator,
-  onOk,
-  onInteractionActiveChange,
-  variant = 'card',
-}: YieldCardProps) {
+export function YieldCard({ cultivator, onOk, trigger }: YieldCardProps) {
   const { pushToast } = useInkUI();
   const owner = usePlayerSession().data?.activeCultivator?.id;
-  const [timeSinceYield, setTimeSinceYield] = useState(0);
+  const [now, setNow] = useState(Date.now);
+  const lastYield = Date.parse(cultivator.last_yield_at ?? '');
+  const timeSinceYield = Number.isFinite(lastYield)
+    ? Math.min(24, Math.max(0, Math.floor((now - lastYield) / 3_600_000)))
+    : 0;
   const [yieldResult, setYieldResult] = useState<{
     amount: number;
     hours: number;
@@ -45,7 +51,6 @@ export function YieldCard({
     if (!cultivator || !owner) return;
     const pending = pendingCommandRequest(owner, 'yield');
     setClaiming(true);
-    onInteractionActiveChange?.(true);
 
     try {
       let currentStory = '';
@@ -91,7 +96,6 @@ export function YieldCard({
         tone: 'danger',
       });
       setYieldResult(null); // Close modal on error
-      onInteractionActiveChange?.(false);
     } finally {
       setClaiming(false);
     }
@@ -99,20 +103,13 @@ export function YieldCard({
 
   const handleCloseYieldModal = () => {
     setYieldResult(null);
-    onInteractionActiveChange?.(false);
     onOk?.();
   };
 
   useEffect(() => {
-    if (cultivator?.last_yield_at) {
-      const update = () => {
-        const diff = Date.now() - new Date(cultivator.last_yield_at!).getTime();
-        setTimeSinceYield(Math.floor(diff / (1000 * 60 * 60)));
-      };
-      update();
-      // Optional: interval if we want auto-update, but not strictly requested
-    }
-  }, [cultivator?.last_yield_at]);
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const pendingYield = owner ? hasPendingCommandRequest(owner, 'yield') : false;
   const actionButton = (
@@ -122,7 +119,7 @@ export function YieldCard({
       pending={claiming}
       pendingLabel="结算中……"
       onClick={handleClaimYield}
-      className={variant === 'card' ? 'min-w-20' : undefined}
+      className="min-w-20"
     >
       {pendingYield ? '重试领取' : timeSinceYield < 1 ? '历练中' : '领取'}
     </InkButton>
@@ -133,23 +130,15 @@ export function YieldCard({
 
   return (
     <>
-      {variant === 'compact' ? (
-        <HomeUrgentRow
-          title={
-            <>
-              <span>🗺️ 外出历练</span>
-              {timeSinceYield >= 24 ? (
-                <InkBadge tone="danger" compact>
-                  已满
-                </InkBadge>
-              ) : null}
-            </>
-          }
-          summary={`已历练 ${timeSinceYield}/24小时`}
-          action={actionButton}
-        />
+      {trigger ? (
+        trigger({
+          hours: timeSinceYield,
+          retry: pendingYield,
+          claiming,
+          claim: () => void handleClaimYield(),
+        })
       ) : (
-        <div className="border-ink/20 relative mb-6 overflow-hidden border bg-white/70 p-4">
+        <div className="border-ink/20 dark:bg-paper-2 relative mb-6 overflow-hidden border bg-white/70 p-4">
           <div className="relative z-10 flex items-center justify-between">
             <div>
               <div className="text-ink-primary flex items-center gap-1 text-lg font-bold">
@@ -175,20 +164,29 @@ export function YieldCard({
       <InkModal
         isOpen={!!yieldResult}
         onClose={handleCloseYieldModal}
-        title="历练归来"
+        title="外出历练收益"
         footer={
           <InkButton
             variant="primary"
             className="w-full"
             onClick={handleCloseYieldModal}
           >
-            收入囊中
+            完成
           </InkButton>
         }
       >
-        <div className="text-ink bg-ink/5 border-ink/10 mb-6 max-w-none border border-dashed p-4 text-sm leading-relaxed whitespace-pre-line">
-          {yieldResult?.story}
-        </div>
+        {yieldResult && (
+          <p className="text-ink-secondary mb-4 text-center text-sm">
+            本次结算{' '}
+            <b className="font-mono">{Number(yieldResult.hours.toFixed(1))}</b>{' '}
+            小时
+          </p>
+        )}
+        {yieldResult?.story && (
+          <div className="text-ink bg-ink/5 border-ink/10 mb-6 max-w-none border border-dashed p-4 text-sm leading-relaxed whitespace-pre-line">
+            {yieldResult.story}
+          </div>
+        )}
 
         <div className="mb-4 flex items-center justify-center gap-2">
           <span className="text-ink-secondary">

@@ -1,7 +1,7 @@
-import { redisLockErrorResponse } from '@server/lib/http/errors.js';
-import { InventoryError } from '@server/inventory/operations.js';
 import { CombatV6BuildError } from '@server/combat/application/CombatV6BuildService.js';
 import { RankingV6Error } from '@server/combat/application/CombatV6RankingService.js';
+import { InventoryError } from '@server/inventory/operations.js';
+import { redisLockErrorResponse } from '@server/lib/http/errors.js';
 import { z } from 'zod';
 import { apiErrorFilter } from '../http/error-filter.js';
 
@@ -14,13 +14,6 @@ export const RankingListErrors = apiErrorFilter((error, config) => {
           ? error.message
           : '获取排行榜失败，请稍后重试',
     },
-    { status: 500 },
-  );
-});
-export const ItemRankingErrors = apiErrorFilter((error) => {
-  console.error('获取排行榜失败:', error);
-  return Response.json(
-    { success: false, error: '获取排行榜失败' },
     { status: 500 },
   );
 });

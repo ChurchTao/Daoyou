@@ -14,10 +14,11 @@ const CREATE = `
 local existing = redis.call('GET', KEYS[2])
 if existing then return existing end
 local runtime = cjson.decode(ARGV[1])
-if runtime.hunt then
+if runtime.hunt or runtime.invasion then
  local time = redis.call('TIME')
  local now = tonumber(time[1])*1000 + math.floor(tonumber(time[2])/1000)
- if now >= runtime.hunt.expiresAt or now < runtime.hunt.startsAt then return 'EXPIRED' end
+ if runtime.hunt and (now >= runtime.hunt.expiresAt or now < runtime.hunt.startsAt) then return 'EXPIRED' end
+ if runtime.invasion and now >= runtime.invasion.endsAt then return 'EXPIRED' end
 end
 for i=4,#KEYS,3 do
  if redis.call('EXISTS', KEYS[i], KEYS[i+1], KEYS[i+2]) > 0 then return 'BUSY' end

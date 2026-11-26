@@ -1,10 +1,11 @@
+import { INVASION_PATH } from '@daoyou/game-domain/invasion';
 import { CombatV6Battle } from '@app/components/feature/combat-v6/CombatV6Battle';
 import { CombatV6Page } from '@app/components/feature/combat-v6/CombatV6Page';
 import { useArenaV6Session } from '@app/components/feature/combat-v6/useArenaV6Session';
 import { HuntResult } from '@app/components/feature/hunts/HuntResult';
 import { apiFetch } from '@app/lib/api/fetch';
 import { HUNT_BOSSES } from '@daoyou/game-content/hunts';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 const HUNT_TEAM_HREF = '/game/hunt-team';
 
@@ -49,7 +50,7 @@ function ArenaBattle({
         if (!response.ok && response.status !== 404)
           throw new Error('退出观战失败，请重试');
       }
-      navigate(state.session?.hunt ? HUNT_TEAM_HREF : '/game/arena');
+      navigate(state.session?.invasion ? INVASION_PATH : state.session?.hunt ? HUNT_TEAM_HREF : '/game/arena');
     } catch (cause) {
       setLeaveError(cause instanceof Error ? cause.message : '退出观战失败');
     } finally {
@@ -58,13 +59,19 @@ function ArenaBattle({
   };
   const session = state.session;
   const playing = state.queue.length > 0;
-  const title = session?.hunt
+  const invasion = session?.invasion;
+  useEffect(() => {
+    if (!invasion || session.stage !== 'finished' || playing) return;
+    const timer = window.setTimeout(() => navigate(`${INVASION_PATH}?from=${battleId}`, { replace: true }), 600);
+    return () => window.clearTimeout(timer);
+  }, [invasion, session?.stage, playing, navigate, battleId]);
+  const title = invasion ? `古魔入侵 · 第 ${invasion.wave} 波` : session?.hunt
     ? `结伴讨伐 · ${HUNT_BOSSES[session.hunt.bossId].name}`
     : spectator
       ? '擂台观战'
       : '擂台切磋';
-  const back = session?.hunt ? HUNT_TEAM_HREF : '/game/arena';
-  const backLabel = session?.hunt ? '返回讨伐队伍' : '返回擂台';
+  const back = invasion ? INVASION_PATH : session?.hunt ? HUNT_TEAM_HREF : '/game/arena';
+  const backLabel = invasion ? '返回镇魔营地' : session?.hunt ? '返回讨伐' : '返回擂台';
   return (
     <CombatV6Page
       title={title}
@@ -77,6 +84,7 @@ function ArenaBattle({
     >
       {session ? (
         <>
+          {invasion ? <InvasionBattleClock endsAt={invasion.endsAt} offset={controller.clockOffset} /> : null}
           <CombatV6Battle
             title={title}
             session={session}
@@ -106,4 +114,14 @@ function ArenaBattle({
       ) : null}
     </CombatV6Page>
   );
+}
+
+function InvasionBattleClock({ endsAt, offset }: { endsAt: number; offset: number }) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(timer);
+  }, []);
+  const seconds = Math.max(0, Math.ceil((endsAt - now - offset) / 1000));
+  return <p className="text-ink-secondary px-4 pt-2 text-right text-sm">距收阵 <span className="font-mono">{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}</span></p>;
 }

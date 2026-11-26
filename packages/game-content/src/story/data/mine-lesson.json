@@ -1,0 +1,102 @@
+{
+  "id": "mine-lesson",
+  "track": "main",
+  "title": "先学哪一路",
+  "deferredUnlocks": ["alchemy", "refine", "sect-alchemy", "sect-refinery"],
+  "next": "mine-sparring",
+  "beats": [
+    {
+      "id": "morning",
+      "kind": "performance",
+      "script": "mine-lesson-morning",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "带咪咪去上早课，看看本宗的两路练法。",
+      "actionLabel": "去上早课",
+      "finishLabel": "选一路先练",
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "arena"
+      },
+      "entry": {
+        "kind": "npc",
+        "id": "instructor"
+      }
+    },
+    {
+      "id": "path",
+      "kind": "practice",
+      "arrival": "activity",
+      "scene": "sect-onboarding",
+      "prompt": "选一路先练。",
+      "actionLabel": "选择流派",
+      "href": "/game/sect/onboarding?entry=path&from=story",
+      "accept": [
+        {
+          "type": "fact",
+          "fact": "sect_ready"
+        }
+      ],
+      "location": {
+        "kind": "sect",
+        "spotId": "arena"
+      },
+      "entry": {
+        "kind": "npc",
+        "id": "instructor"
+      }
+    },
+    {
+      "id": "study-brief",
+      "kind": "performance",
+      "arrival": "activity",
+      "script": "mine-lesson-study-brief",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "问教习该从哪一卷心法学起。",
+      "actionLabel": "请教研习心法",
+      "href": "/game/story",
+      "location": { "kind": "sect", "spotId": "arena" },
+      "entry": { "kind": "npc", "id": "instructor" },
+      "finishLabel": "去传承处研习"
+    },
+    {
+      "id": "study",
+      "kind": "practice",
+      "scene": "sect-archive",
+      "prompt": "把本宗所有心法研习到十级。",
+      "actionLabel": "研习本宗心法",
+      "href": "/game/sect/archive?npc=keeper",
+      "indicatorFrom": ["/game/sect/archive"],
+      "accept": [
+        {
+          "type": "fact",
+          "fact": "sect_methods_at_lesson_level",
+          "progressLabel": "已达十级"
+        }
+      ],
+      "location": { "kind": "sect", "spotId": "archive" },
+      "entry": { "kind": "npc", "id": "keeper" }
+    },
+    {
+      "id": "form",
+      "kind": "performance",
+      "script": "mine-lesson-form",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "回演武处，请教习指点起手。",
+      "actionLabel": "请教习指点起手",
+      "href": "/game/story",
+      "indicatorFrom": ["/game/sect/archive"],
+      "location": {
+        "kind": "sect",
+        "spotId": "arena"
+      },
+      "entry": {
+        "kind": "npc",
+        "id": "instructor"
+      }
+    }
+  ]
+}

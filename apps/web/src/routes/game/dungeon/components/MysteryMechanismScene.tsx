@@ -1,3 +1,4 @@
+import { MysteryLogLine } from '@app/components/feature/dungeon/MysteryLogLine';
 import { InkButton } from '@app/components/ui/InkButton';
 import { cn } from '@app/lib/cn';
 import { useBodyScrollLock } from '@app/lib/hooks/useBodyScrollLock';
@@ -8,7 +9,6 @@ import type {
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './mystery-scenes.css';
-import { MysteryLogLine } from '@app/components/feature/dungeon/MysteryLogLine';
 
 type Mechanism = NonNullable<MysteryPlayerView['objects'][number]['mechanism']>;
 
@@ -199,7 +199,7 @@ export function MysteryMechanismScene({
                 >
                   {part.label}
                   {order >= 0 ? (
-                    <span className="bg-crimson text-paper absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full font-mono text-xs">
+                    <span className="bg-crimson text-on-crimson absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full font-mono text-xs">
                       {order + 1}
                     </span>
                   ) : null}

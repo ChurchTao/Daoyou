@@ -91,6 +91,16 @@ export const adminRoutes = (
       handle={title('蜃楼敌人')}
     />
     <Route
+      path="alchemy-contest"
+      lazy={lazyRoute(() => import('@app/routes/admin/alchemy-contest/route'))}
+      handle={title('炼丹大会管理')}
+    />
+    <Route
+      path="baixiao-meet"
+      lazy={lazyRoute(() => import('@app/routes/admin/baixiao-meet/route'))}
+      handle={title('百晓盛会题库')}
+    />
+    <Route
       path="dungeon-scenarios"
       lazy={lazyRoute(
         () => import('@app/routes/admin/dungeon-scenarios/route'),

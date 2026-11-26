@@ -90,7 +90,7 @@ export function AuctionListingActions({
         </div>
       )}
       {!isOwner && (
-        <p className="text-amber-800">
+        <p className="text-amber-800 dark:text-wood">
           合计{' '}
           {total === null ? '—' : <SpiritStones amount={total} />}
         </p>

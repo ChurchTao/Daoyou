@@ -1,0 +1,190 @@
+[
+  {
+    "id": "mine-crossing-shoal",
+    "title": "桥墩下",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "guide": {
+        "name": "下山弟子",
+        "portrait": "icon:portrait-wanderer-m"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "断桥下 · 石滩"
+      },
+      {
+        "type": "title",
+        "kicker": "过河",
+        "text": "桥墩下"
+      },
+      {
+        "type": "narration",
+        "text": "山豕倒在石滩边。你等它彻底没了动静，才低头去看。咪咪从石缝里伸出一只爪子。",
+        "when": {
+          "flag": "battle.mine-ambush.won"
+        }
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "先待里头，外面全是水。",
+        "when": {
+          "flag": "battle.mine-ambush.won"
+        }
+      },
+      {
+        "type": "narration",
+        "text": "你走到石滩尽头，断梁在头顶，水又急得蹚不过去。矿岸那边有人喊，你仰头应了一声。那年轻人走到断口，跳了下来。",
+        "when": {
+          "flag": "battle.mine-ambush.won"
+        }
+      },
+      {
+        "type": "narration",
+        "text": "山豕又把你逼退一步。脚后跟已经碰上石缝边的石头，再退就要踩到咪咪了。",
+        "when": {
+          "flag": "battle.mine-ambush.rescued"
+        }
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "靠墩站！",
+        "when": {
+          "flag": "battle.mine-ambush.rescued"
+        }
+      },
+      {
+        "type": "narration",
+        "text": "有人从断梁上跳下来，落在你身侧，用剑鞘一拨，把拱过来的獠牙带偏了。山豕收不住脚，一头冲进水里，露出来的半截脊背很快就给冲过了桥墩。",
+        "when": {
+          "flag": "battle.mine-ambush.rescued"
+        }
+      },
+      {
+        "type": "narration",
+        "text": "山豕把你掀到桥墩边。膝盖方才磕过，你撑了一把，还是跪了回去。听见它调头，你只来得及朝石缝喊一声咪咪。",
+        "when": {
+          "flag": "battle.mine-ambush.lost"
+        }
+      },
+      {
+        "type": "narration",
+        "text": "有人从断梁上跳下来，一把将你拖开。他挡在你前头，把山豕逼进急水。等那头山豕给水卷走，你才敢把伤腿落地，扶着桥墩慢慢站起来。",
+        "when": {
+          "flag": "battle.mine-ambush.lost"
+        }
+      },
+      {
+        "type": "narration",
+        "text": "你把手伸到石缝口，咪咪才踩着你的手腕爬出来。一抱起来，你就摸到它肚子底下湿透了。"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "晒网那头是你们村？"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "是。你能帮我叫条船么？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "抱稳它，腾只胳膊给我。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-crossing-flight",
+    "title": "双脚离地",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "guide": {
+        "name": "下山弟子",
+        "portrait": "icon:portrait-wanderer-m"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "故乡 · 河上"
+      },
+      {
+        "type": "title",
+        "kicker": "过河",
+        "text": "双脚离地"
+      },
+      {
+        "type": "narration",
+        "text": "你把咪咪换到左手。那人托住你的右肘。"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "走。"
+      },
+      {
+        "type": "narration",
+        "text": "鞋底一下离了石头。你慌忙缩腿，低头再找那片石滩，它已经落在后头。"
+      },
+      {
+        "type": "narration",
+        "text": "断桥板在你脚下翻了个面，两颗弯钉都看得清。你再一抬眼，收网的人还没把竹竿抬起来，你们已经从他身边飞了过去。"
+      },
+      {
+        "type": "scene",
+        "alt": "故乡 · 村岸"
+      },
+      {
+        "type": "narration",
+        "text": "你正要回头看，右脚已经踩进岸上的软泥。那人松了手，咪咪还勾着你的袖子。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "你刚才飞过来的本事，我也能学么？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "能。那叫御风，我也是进了山门才学的。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "那我上哪儿找山门？"
+      },
+      {
+        "type": "line",
+        "speaker": "guide",
+        "text": "下游有几家山门正收徒。我也是路过，你问问你们村撑船的，他比我熟。"
+      },
+      {
+        "type": "narration",
+        "text": "下回再碰上这种事，你就能自己抱着咪咪飞过来。"
+      },
+      {
+        "type": "narration",
+        "text": "咪咪这才松了爪子。你想起它也摔下了桥，伸手去摸它的后腿，它却往怀里缩。你抱着它去了药婆家。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  }
+]

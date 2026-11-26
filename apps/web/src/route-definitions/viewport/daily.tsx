@@ -120,14 +120,5 @@ export const dailyRoutes = [
   <Route
     path="tasks"
     lazy={lazyRoute(() => import('@app/routes/game/tasks/route'))}
-    handle={scene(
-      {
-        id: 'tasks',
-        presentation: 'archive',
-        summary:
-          '境界圆满后，破境卷宗会自动送达。依次备妥、渡关，再回静室冲关。',
-      },
-      '任务中心',
-    )}
   />,
 ];

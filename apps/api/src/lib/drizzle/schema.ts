@@ -1,3 +1,11 @@
+import type { ArenaRuntime } from '@daoyou/contracts/combat/arena';
+import type { InvasionCard, InvasionCards, InvasionMember, InvasionPhase, InvasionResources, InvasionReward } from '@daoyou/game-domain/invasion';
+import type { RealmStage, RealmType } from '@daoyou/constants/realms';
+import type {
+  BaixiaoAnswer, BaixiaoFinish, BaixiaoPaperSlot, BaixiaoQuestionData, BaixiaoResources, BaixiaoScore,
+} from '@daoyou/game-domain/baixiao/meet';
+import type { BaixiaoQuestionStatus } from '@daoyou/contracts/baixiao/meet';
+import type { ContestAttempt, ContestPaper, ContestStanding } from '@daoyou/game-domain/alchemy/contest';
 import type { PlayerJournalEvent } from '@daoyou/contracts/player/journal';
 import type { AiUsageCredentialSource, AiUsagePricingSnapshot } from '@daoyou/contracts/admin/ai-usage';
 import type { CultivatorManualStateV1 } from '@daoyou/game-domain/manuals';
@@ -39,7 +47,7 @@ import type {
   AlchemyFormulaPattern,
   PillFamily,
 } from '@daoyou/game-domain/consumables';
-import { sql } from 'drizzle-orm';
+import { sql, type SQLWrapper } from 'drizzle-orm';
 import {
   bigint,
   boolean,
@@ -2855,3 +2863,182 @@ export const achievementMetrics = pgTable(
     check('achievement_metrics_value_valid', sql`${t.value} >= 0`),
   ],
 );
+
+
+export const alchemyContestRounds = pgTable('wanjiedaoyou_alchemy_contest_rounds', {
+  week: date('week').primaryKey(),
+  closesAt: timestamp('closes_at', { withTimezone: true }).notNull(),
+  paper: jsonb('paper').$type<ContestPaper>().notNull(),
+  reserve: jsonb('reserve').$type<ContestPaper>(),
+  rewardPool: jsonb('reward_pool').$type<{ version: 1; books: string[]; materials: ItemGrant[] }>().notNull(),
+  announcedAt: timestamp('announced_at', { withTimezone: true }),
+  settledAt: timestamp('settled_at', { withTimezone: true }),
+}, (table) => [
+  index('alchemy_contest_round_settlement_idx').on(table.closesAt).where(sql`${table.settledAt} is null`),
+]);
+
+export const alchemyContestEntries = pgTable('wanjiedaoyou_alchemy_contest_entries', {
+  week: date('week').notNull().references(() => alchemyContestRounds.week),
+  userId: uuid('user_id').notNull(),
+  cultivatorId: uuid('cultivator_id').notNull(),
+  name: text('name').notNull(),
+  startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+  finishedAt: timestamp('finished_at', { withTimezone: true }),
+  attempts: jsonb('attempts').$type<(ContestAttempt & { requestId: string })[]>().notNull().default([]),
+  standing: jsonb('standing').$type<ContestStanding>(),
+  rank: integer('rank'),
+  reward: jsonb('reward').$type<{ version: 1; reputation: number; item: ItemGrant | null }>(),
+  mailedAt: timestamp('mailed_at', { withTimezone: true }),
+}, (table) => [
+  primaryKey({ columns: [table.week, table.userId] }),
+  index('alchemy_contest_rank_idx').on(table.week, table.rank),
+  index('alchemy_contest_mail_idx').on(table.week).where(sql`${table.reward} is not null and ${table.mailedAt} is null`),
+]);
+
+
+export function baixiaoSearchPrompt(question: SQLWrapper) {
+  return sql`regexp_replace(lower(normalize(${question}->>'prompt', NFKC)), '[[:punct:][:space:]]', '', 'g')`;
+}
+
+export const baixiaoQuestions = pgTable('wanjiedaoyou_baixiao_questions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  knowledgeKey: text('knowledge_key').notNull(),
+  question: jsonb('question').$type<BaixiaoQuestionData>().notNull(),
+  sampleKey: doublePrecision('sample_key').notNull().default(sql`random()`),
+  status: text('status').$type<BaixiaoQuestionStatus>().notNull().default('published'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  check('baixiao_question_status_valid', sql`${table.status} in ('published', 'retired')`),
+  uniqueIndex('baixiao_published_knowledge_idx').on(table.knowledgeKey).where(sql`${table.status} = 'published'`),
+  index('baixiao_published_sample_idx').on(
+    sql`(${table.question}->>'category')`,
+    sql`(${table.question}->>'difficulty')`,
+    sql`(${table.question}->>'kind')`,
+    table.sampleKey,
+    table.id,
+  ).where(sql`${table.status} = 'published'`),
+  index('baixiao_question_prompt_search_idx').using(
+    'gin',
+    sql`(${baixiaoSearchPrompt(table.question)}) gin_trgm_ops`,
+  ),
+]);
+
+export const baixiaoRounds = pgTable('wanjiedaoyou_baixiao_rounds', {
+  week: date('week').primaryKey(),
+  closesAt: timestamp('closes_at', { withTimezone: true }).notNull(),
+  questionIds: uuid('question_ids').array().notNull().default(sql`'{}'::uuid[]`),
+  books: jsonb('books').$type<{ ordinary: string[]; superior: string[] }>().notNull(),
+  materials: jsonb('materials').$type<ItemGrant[]>().notNull(),
+  announcedAt: timestamp('announced_at', { withTimezone: true }),
+  settledAt: timestamp('settled_at', { withTimezone: true }),
+}, (table) => [
+  index('baixiao_round_settlement_idx').on(table.closesAt).where(sql`${table.settledAt} is null`),
+]);
+
+export const baixiaoEntries = pgTable('wanjiedaoyou_baixiao_entries', {
+  week: date('week').notNull().references(() => baixiaoRounds.week),
+  userId: uuid('user_id').notNull(),
+  cultivatorId: uuid('cultivator_id').notNull(),
+  name: text('name').notNull(),
+  title: text('title'),
+  gender: text('gender'),
+  realm: text('realm').notNull(),
+  endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
+  issuedAt: timestamp('issued_at', { withTimezone: true }),
+  challengeId: uuid('challenge_id'),
+  paper: jsonb('paper').$type<BaixiaoPaperSlot[]>().notNull(),
+  answers: jsonb('answers').$type<BaixiaoAnswer[]>().notNull().default([]),
+  focusPenalties: integer('focus_penalties').notNull().default(0),
+  status: text('status').$type<BaixiaoFinish>(),
+  budget: jsonb('budget').$type<BaixiaoResources>().notNull(),
+  earned: jsonb('earned').$type<BaixiaoResources>().notNull(),
+  score: jsonb('score').$type<BaixiaoScore>(),
+  rank: integer('rank'),
+  reward: jsonb('reward').$type<{item: ItemGrant; name: string}>(),
+}, (table) => [
+  primaryKey({ columns: [table.week, table.userId] }),
+  check('baixiao_entry_status_valid', sql`${table.status} in ('cleared', 'eliminated', 'expired')`),
+  index('baixiao_entry_rank_idx').on(table.week, table.rank),
+]);
+
+
+export const invasionWeeks = pgTable('wanjiedaoyou_invasion_weeks', {
+  week: date('week').primaryKey(),
+  closesAt: timestamp('closes_at', { withTimezone: true }).notNull(),
+  materials: jsonb('materials').$type<ItemGrant[]>().notNull(),
+  announcedAt: timestamp('announced_at', { withTimezone: true }),
+  publishedAt: timestamp('published_at', { withTimezone: true }),
+});
+
+export const invasionRuns = pgTable('wanjiedaoyou_invasion_runs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  week: date('week').notNull().references(() => invasionWeeks.week),
+  partyId: uuid('party_id').notNull(),
+  partyRevision: integer('party_revision').notNull(),
+  leaderId: uuid('leader_id').notNull(),
+  realm: text('realm').$type<RealmType>().notNull(),
+  members: jsonb('members').$type<InvasionMember[]>().notNull(),
+  phase: text('phase').$type<Exclude<InvasionPhase, 'assembling'>>().notNull(),
+  wave: integer('wave').notNull(),
+  startedAt: bigint('started_at', { mode: 'number' }).notNull(),
+  dueAt: bigint('due_at', { mode: 'number' }),
+  battleId: uuid('battle_id'),
+  launchId: uuid('launch_id').notNull(),
+  ready: uuid('ready').array().notNull().default(sql`'{}'::uuid[]`),
+  selectedCards: jsonb('selected_cards').$type<Record<string, InvasionCard>>().notNull().default({}),
+  build: jsonb('build').$type<Pick<ArenaRuntime, 'units' | 'skills' | 'statusDefs' | 'autoStrategies'> & { unitAppearances: ArenaRuntime['timeline']['unitAppearances'] }>(),
+}, (table) => [
+  index('invasion_runs_due_idx').on(table.dueAt).where(sql`${table.dueAt} is not null`),
+  index('invasion_runs_week_phase_idx').on(table.week, table.phase),
+  check('invasion_runs_phase_valid', sql`${table.phase} in ('launching', 'battle', 'rest', 'finished')`),
+  check('invasion_runs_wave_valid', sql`${table.wave} > 0`),
+]);
+
+export const invasionProgress = pgTable('wanjiedaoyou_invasion_progress', {
+  week: date('week').notNull().references(() => invasionWeeks.week),
+  userId: uuid('user_id').notNull(),
+  cultivatorId: uuid('cultivator_id').notNull(),
+  rewardRealm: text('reward_realm').$type<RealmType>().notNull(),
+  rewardStage: text('reward_stage').$type<RealmStage>().notNull(),
+  activeRunId: uuid('active_run_id').references(() => invasionRuns.id),
+  completedWave: integer('completed_wave').notNull().default(0),
+  lastRunId: uuid('last_run_id').references(() => invasionRuns.id),
+  lastBattleId: uuid('last_battle_id'),
+  resources: jsonb('resources').$type<Record<string, InvasionResources>>().notNull().default({}),
+  cards: jsonb('cards').$type<InvasionCards>().notNull().default({}),
+  rewardedWave: integer('rewarded_wave').notNull().default(0),
+  reward: jsonb('reward').$type<InvasionReward>(),
+}, (table) => [
+  primaryKey({ columns: [table.week, table.userId] }),
+  index('invasion_progress_active_idx').on(table.activeRunId).where(sql`${table.activeRunId} is not null`),
+  index('invasion_progress_cultivator_idx').on(table.cultivatorId).where(sql`${table.activeRunId} is not null`),
+  index('invasion_progress_pending_idx').on(table.week, table.userId).where(sql`${table.rewardedWave} < ${table.completedWave}`),
+  check('invasion_progress_waves_valid', sql`${table.rewardedWave} >= 0 and ${table.completedWave} >= ${table.rewardedWave}`),
+  check('invasion_progress_score_valid', sql`(${table.completedWave} = 0 and ${table.lastRunId} is null) or (${table.completedWave} > 0 and ${table.lastRunId} is not null)`),
+]);
+
+export const parties = pgTable('wanjiedaoyou_parties', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  leaderId: uuid('leader_id').notNull(),
+  revision: integer('revision').notNull().default(1),
+});
+
+export const partyMembers = pgTable('wanjiedaoyou_party_members', {
+  userId: uuid('user_id').primaryKey(),
+  cultivatorId: uuid('cultivator_id').notNull(),
+  partyId: uuid('party_id').notNull().references(() => parties.id, { onDelete: 'cascade' }),
+  joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('party_member_cultivator_idx').on(table.cultivatorId),
+  index('party_member_party_idx').on(table.partyId),
+]);
+
+export const invasionRecruitments = pgTable('wanjiedaoyou_invasion_recruitments', {
+  week: date('week').notNull().references(() => invasionWeeks.week),
+  partyId: uuid('party_id').notNull().references(() => parties.id, { onDelete: 'cascade' }),
+  partyRevision: integer('party_revision').notNull(),
+  ready: uuid('ready').array().notNull().default(sql`'{}'::uuid[]`),
+  advertised: boolean('advertised').notNull().default(false),
+}, (table) => [
+  primaryKey({ columns: [table.week, table.partyId] }),
+]);

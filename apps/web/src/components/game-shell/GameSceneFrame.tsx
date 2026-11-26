@@ -1,8 +1,6 @@
-import { InkButton } from '@app/components/ui';
-import { resolveGameScene } from '@app/lib/router/routeTitle';
 import { cn } from '@app/lib/cn';
+import { resolveGameScene } from '@app/lib/router/routeTitle';
 import type { ReactNode } from 'react';
-import { useStory } from '@app/lib/story/useStory';
 import { useMatches } from 'react-router';
 import { GameLoadingState } from './GameLoadingState';
 import { getGameSceneGroupTitle } from './gameNavigation';
@@ -38,7 +36,7 @@ function SceneSurface({
   return (
     <Tag
       className={cn(
-        'animate-fade-in bg-paper min-w-0 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.32),0_10px_30px_rgba(44,24,16,0.06)] md:px-5 md:py-5',
+        'animate-fade-in bg-paper shadow-paper-panel min-w-0 px-4 py-4 md:px-5 md:py-5',
         className,
       )}
     >
@@ -55,14 +53,7 @@ function SceneBody({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        'mt-2 min-w-0 [&>*+*]:mt-4',
-        className,
-      )}
-    >
-      {children}
-    </div>
+    <div className={cn('mt-2 min-w-0 [&>*+*]:mt-4', className)}>{children}</div>
   );
 }
 
@@ -87,7 +78,7 @@ export function GameSceneInset({
   return (
     <section
       className={cn(
-        'bg-ink/4 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]',
+        'bg-ink/4 shadow-paper-inset',
         className,
       )}
     >
@@ -181,9 +172,11 @@ function SceneStrip({
             {contextLabel}
           </div>
         ) : null}
-        <div className="text-ink-secondary mt-2 min-w-0 text-sm leading-6">
-          {summary ?? '此处事务已收束，按眼前所需行事即可。'}
-        </div>
+        {summary !== '' ? (
+          <div className="text-ink-secondary mt-2 min-w-0 text-sm leading-6">
+            {summary ?? '此处事务已收束，按眼前所需行事即可。'}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -201,9 +194,6 @@ export function GameSceneFrame({
 }: GameSceneFrameProps) {
   const matches = useMatches();
   const scene = resolveGameScene(matches);
-  const story = useStory();
-  const storyCue =
-    story.story?.prompt && scene?.id === story.story.scene ? story.story : null;
   const sceneGroup = scene?.group ? getGameSceneGroupTitle(scene.group) : null;
   const header = resolveGameSceneFrameHeader({
     sceneLabel: identityOverride?.label ?? scene?.label,
@@ -231,22 +221,12 @@ export function GameSceneFrame({
               group={sceneGroup}
               label={header.label}
               contextLabel={header.contextLabel}
-              summary={header.summary}
+              summary={identityOverride?.summary === '' ? '' : header.summary}
             />
 
             {headerMeta ? <div className="mt-4">{headerMeta}</div> : null}
 
-            <SceneBody
-              className={contentClassName}
-            >
-              {storyCue ? (
-                <p className="text-ink-secondary mb-4 flex flex-wrap items-center gap-x-3 text-sm leading-7">
-                  <span>{storyCue.prompt}</span>
-                  <InkButton href={storyCue.href} variant="primary">
-                    前往
-                  </InkButton>
-                </p>
-              ) : null}
+            <SceneBody className={contentClassName}>
               {children}
             </SceneBody>
           </SceneSurface>

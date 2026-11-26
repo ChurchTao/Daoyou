@@ -1,7 +1,9 @@
 import {
   WandererBeastSaleSchema,
+  WandererMysteryBagPurchaseSchema,
   WandererPurchaseSchema,
   type WandererBeastSale,
+  type WandererMysteryBagPurchase,
   type WandererPurchase,
 } from '@daoyou/contracts/wanderer';
 import {
@@ -70,8 +72,18 @@ export class WandererController {
 
   @Get()
   @Header('Cache-Control', 'private, no-store')
-  state() {
-    return this.wanderer.state();
+  state(@CurrentCultivator() actor: ActiveCultivatorRef) {
+    return this.wanderer.state(actor);
+  }
+
+  @Post('mystery-bag')
+  @HttpCode(200)
+  buyMysteryBag(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody(new ZodPipe(WandererMysteryBagPurchaseSchema))
+    input: WandererMysteryBagPurchase,
+  ) {
+    return this.wanderer.buyMysteryBag(actor, input);
   }
 
   @Get('beasts')

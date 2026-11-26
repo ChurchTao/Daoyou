@@ -19,6 +19,7 @@ export const combatV6HistorySources = {
   ranking: '天骄榜',
   hunt: '结伴讨伐',
   'arena-sparring': '擂台切磋',
+  'ancient-demon-invasion': '古魔入侵',
 };
 
 export function combatPortraitValue(

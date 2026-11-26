@@ -35,7 +35,6 @@ import { legacyMaterialUnavailableReason } from '@daoyou/game-rules/items/legacy
 import { assertCurrentRewardItem } from '@daoyou/game-rules/legacy/retired-draw';
 import { parseMailAttachments } from '@daoyou/game-rules/mail';
 import { isSpiritGardenSeed } from '@daoyou/game-rules/spirit-field';
-import { storyMarkForSignal } from '@daoyou/game-rules/story';
 import type { AiService } from '@nestjs/ai';
 import { QiService } from '@server/cultivator/application/QiService.js';
 import { readCultivatorName } from '@server/cultivator/facts.js';
@@ -349,12 +348,8 @@ export async function forgeEquipment(
             actionInstanceId: equipment.id,
             tx,
           });
-          const forged = storyMarkForSignal({
-            type: 'equipment.forged',
-            slot,
-          });
-          const story = forged
-            ? await StoryService.noteFact(owner, forged, tx)
+          const story = slot === 'weapon'
+            ? await StoryService.noteForgedWeapon(owner, equipment.id, tx)
             : null;
           rumorEventId = (
             await createDomainEvent(

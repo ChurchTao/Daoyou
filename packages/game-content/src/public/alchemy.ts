@@ -28,3 +28,8 @@ export {
 export { ALCHEMY_EFFECT_BASE_BY_QUALITY } from '../alchemy/alchemyEffectConfig.js';
 export type { AlchemyEffectQualityBase } from '../alchemy/alchemyEffectConfig.js';
 export { PILL_EXP_BUDGET } from '../alchemy/pillExpGain.js';
+export {
+  FOUNDATION_LESSON_DOSE,
+  FOUNDATION_LESSON_INTENT,
+  FOUNDATION_LESSON_MATERIALS,
+} from '../alchemy/foundation-lesson.js';

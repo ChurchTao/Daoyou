@@ -20,7 +20,7 @@ export function BreakthroughChanceDetails({
         </div>
         <div>
           <p className="text-ink-secondary text-xs leading-5">最终成功率</p>
-          <p className="font-mono font-semibold text-emerald-800">
+          <p className="font-mono font-semibold text-emerald-800 dark:text-teal">
             {formatRatioPercent(presentation.finalChance, 1)}
           </p>
         </div>
@@ -34,7 +34,7 @@ export function BreakthroughChanceDetails({
               className={cn(
                 'border-ink/15 bg-paper-2 inline-flex max-w-full items-center gap-1.5 border border-dashed px-2 py-1 text-xs leading-5',
                 factor.tone === 'positive' &&
-                  'border-emerald-700/25 text-emerald-800',
+                  'border-emerald-700/25 dark:border-teal/25 text-emerald-800 dark:text-teal',
                 factor.tone === 'warning' && 'border-wood/35 text-wood',
                 factor.tone === 'neutral' && 'text-ink-secondary',
               )}

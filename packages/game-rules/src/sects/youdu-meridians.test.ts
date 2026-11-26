@@ -87,7 +87,7 @@ describe('幽都经脉触发与边界', () => {
     const expiry = setup(['蚀骨']).b; expiry.applyStatus('t', T('poison'), 1, 's'); round(expiry);
     expect(damage(expiry)).toHaveLength(1);
   });
-  it('摄魂入微增强摄魂；拘魄允许倒地标记，复起、再倒地仍保留且不叠加', () => {
+  it('摄魂入微增强摄魂；拘魄允许倒地标记，复活、再倒地仍保留且不叠加', () => {
     const a = setup(['摄魂入微']).b; round(a, { s: skill('siphon') });
     expect(status(a, 't', 'siphon_strong')).toBeDefined();
     const { b } = setup(['拘魄']); b.unit('t').attrs.hp = 0; b.unit('t').flags.downed = true;

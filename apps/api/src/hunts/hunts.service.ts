@@ -8,15 +8,13 @@ import { huntEventsAt } from '@daoyou/game-rules/hunts';
 import { Injectable } from '@nestjs/common';
 import { huntBattleReward } from '@server/hunts/application/HuntRewardProjector.js';
 import {
-  listHuntTeamChat,
-  sendHuntTeamChat,
-} from '@server/hunts/application/HuntTeamChat.js';
+  listPartyChat,
+  sendPartyChat,
+} from '@server/parties/party-chat.js';
 import {
   commandHuntTeam,
   createHuntTeam,
   huntLobby,
-  joinHuntTeam,
-  joinHuntTeamById,
   readMyHuntTeam,
 } from '@server/hunts/application/HuntTeamService.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
@@ -36,7 +34,10 @@ export class HuntsService {
   }
 
   async mine(actor: ActiveCultivatorRef) {
-    return { success: true, data: { team: await readMyHuntTeam(actor) } };
+    return {
+      success: true,
+      data: { team: await readMyHuntTeam(actor), serverNow: Date.now() },
+    };
   }
 
   async lobby(
@@ -53,18 +54,6 @@ export class HuntsService {
     return { success: true, data: await createHuntTeam(actor, input) };
   }
 
-  async join(
-    actor: ActiveCultivatorRef,
-    eventId: z.infer<typeof HuntEventIdSchema>,
-    teamId?: string,
-  ) {
-    return { success: true, data: await joinHuntTeam(actor, eventId, teamId) };
-  }
-
-  async joinTeam(actor: ActiveCultivatorRef, teamId: string) {
-    return { success: true, data: await joinHuntTeamById(actor, teamId) };
-  }
-
   async command(
     actor: ActiveCultivatorRef,
     teamId: string,
@@ -76,7 +65,7 @@ export class HuntsService {
   async chat(actor: ActiveCultivatorRef, teamId: string) {
     return {
       success: true,
-      data: { messages: await listHuntTeamChat(actor, teamId) },
+      data: { messages: await listPartyChat(actor, teamId) },
     };
   }
 
@@ -87,7 +76,7 @@ export class HuntsService {
   ) {
     return {
       success: true,
-      data: await sendHuntTeamChat(actor, teamId, input),
+      data: await sendPartyChat(actor, teamId, input),
     };
   }
 }

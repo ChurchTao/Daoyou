@@ -1,0 +1,358 @@
+[
+  {
+    "id": "mountain-forge-ladle",
+    "title": "进器坊",
+    "requires": [],
+    "cast": {
+      "peer": {
+        "name": "同门",
+        "portrait": "icon:portrait-disciple-m"
+      },
+      "master": {
+        "name": "老师傅",
+        "portrait": "icon:portrait-elder-m"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "器坊 · 门前"
+      },
+      {
+        "type": "title",
+        "kicker": "借炉的人",
+        "text": "进器坊"
+      },
+      {
+        "type": "narration",
+        "text": "次日一早，昨晚分你锅巴的同门来找你，把你领到器坊。门边坐着个老人，正拿细锉修一只旧剑鞘。"
+      },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "昨儿我说的老师傅就是这位。你慢慢问，回头等你一道吃饭。"
+      },
+      {
+        "type": "narration",
+        "text": "老人吹掉膝上的木屑，把脚边的矮凳推给你。"
+      },
+      {
+        "type": "line",
+        "speaker": "master",
+        "text": "坐。你想问什么？"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mountain-forge-grip",
+    "title": "想做一件法兵",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "master": {
+        "name": "老师傅",
+        "portrait": "icon:portrait-elder-m"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "器坊 · 修器台"
+      },
+      {
+        "type": "title",
+        "kicker": "借炉的人",
+        "text": "想做一件法兵"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "上山那天，山豕扑过来，我连挡一下都手忙脚乱。以后出门，我想带件平日练熟的兵器。器坊能教我做一件么？"
+      },
+      {
+        "type": "narration",
+        "text": "老人瞧见你手上磨红的地方，问你昨天练了多久。你想了想，除了吃饭，几乎一直在练。"
+      },
+      {
+        "type": "line",
+        "speaker": "master",
+        "text": "等兵器做好了，回院里慢慢练一回。记得看看自己到该收招的时候，能不能站稳。"
+      },
+      {
+        "type": "narration",
+        "text": "他指给你看廊下那排炉子。最靠门的一口还空着，是留给新弟子的。"
+      },
+      {
+        "type": "line",
+        "speaker": "master",
+        "text": "那口炉可以借。管炉的在记账，你去问他。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mountain-forge-borrow",
+    "title": "借一口炉",
+    "requires": [
+      "forge_teacher",
+      "name"
+    ],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "keeper": {
+        "name": "{forge_teacher}"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "器坊 · 炉前"
+      },
+      {
+        "type": "title",
+        "kicker": "借炉的人",
+        "text": "借一口炉"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "老师傅说新弟子可以借炉。我想做件法兵。"
+      },
+      {
+        "type": "narration",
+        "text": "执事翻开借炉的账，提笔问你叫什么。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "{name}。"
+      },
+      {
+        "type": "narration",
+        "text": "他记下你的名字，把入门图纸、青石和灵石交给你。"
+      },
+      {
+        "type": "line",
+        "speaker": "keeper",
+        "text": "这份够开一炉。到炉前选个趁手的器形，核对用料和花费，再点火。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mountain-forge-cool",
+    "title": "这件是你的了",
+    "requires": [
+      "forge_teacher"
+    ],
+    "cast": {
+      "keeper": {
+        "name": "{forge_teacher}"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "器坊 · 炉前"
+      },
+      {
+        "type": "title",
+        "kicker": "借炉的人",
+        "text": "这件是你的了"
+      },
+      {
+        "type": "narration",
+        "text": "炉火渐低。执事招手让你近些，你认出炉里正是自己选的器形。"
+      },
+      {
+        "type": "line",
+        "speaker": "keeper",
+        "text": "好了。这件是你的，穿戴好再去试手。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mountain-forge-try",
+    "title": "回院里试手",
+    "requires": [],
+    "cast": {
+      "peer": {
+        "name": "同门",
+        "portrait": "icon:portrait-disciple-m"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "门内 · 练功院"
+      },
+      {
+        "type": "title",
+        "kicker": "借炉的人",
+        "text": "回院里试手"
+      },
+      {
+        "type": "narration",
+        "text": "你带着新法兵回到练功院。领你去器坊的同门刚好从廊下经过，见你回来，就凑过来看。"
+      },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "做成了？来，使一招给我看看。"
+      },
+      {
+        "type": "narration",
+        "text": "新法兵确实趁手。你想在他面前使得漂亮，起手快了些，收招时又往前冲了一步，差点撞上廊柱。"
+      },
+      {
+        "type": "narration",
+        "text": "你扶着柱子站定，才发觉这一招连收都收不稳。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mountain-forge-visit",
+    "title": "请您教我",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "master": {
+        "name": "老师傅",
+        "portrait": "icon:portrait-elder-m"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "器坊 · 老师傅屋外"
+      },
+      {
+        "type": "title",
+        "kicker": "借炉的人",
+        "text": "请您教我"
+      },
+      {
+        "type": "narration",
+        "text": "傍晚，你又去了器坊。老人还在，就着灯收拾一桌木屑。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "法兵很趁手。可一有人看，我就想使快些，最后连站都站不稳。您能教我怎么练么？"
+      },
+      {
+        "type": "line",
+        "speaker": "master",
+        "text": "还请那位同门来看。就练这一招，慢一点，收招时站稳了再练下一遍。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "练会了，我能再来请您看一眼吗？"
+      },
+      {
+        "type": "line",
+        "speaker": "master",
+        "text": "来。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mountain-forge-apprentice",
+    "title": "拜师",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "master": {
+        "name": "老师傅",
+        "portrait": "icon:portrait-elder-m"
+      },
+      "mentor": {
+        "name": "师父",
+        "portrait": "icon:portrait-elder-m"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "器坊 · 老师傅的屋前"
+      },
+      {
+        "type": "title",
+        "kicker": "借炉的人",
+        "text": "拜师"
+      },
+      {
+        "type": "narration",
+        "text": "过了几日，你又来到器坊。老人放下手里的活，看你从起手练到收招。这一回你稳稳站住了。"
+      },
+      {
+        "type": "line",
+        "speaker": "master",
+        "text": "同门在旁边，你也能站稳了？"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "能。昨天他叫好，我还站在原地，抬头看了他一眼。"
+      },
+      {
+        "type": "narration",
+        "text": "你早已想好了这趟来要说什么，便退开半步，抱拳躬身。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "这几日跟您学了怎么练一招，往后的也想跟您学。您愿意收我做徒弟吗？"
+      },
+      {
+        "type": "line",
+        "speaker": "master",
+        "text": "成。往后散了早课，就来这里找我。"
+      },
+      {
+        "type": "narration",
+        "text": "你叫了一声师父。门外传来几声木剑相碰的响动，老人侧头听了一下。"
+      },
+      {
+        "type": "line",
+        "speaker": "mentor",
+        "text": "演武场正有人对练。你去看一眼，他们出招前，是肩先动，还是脚先动？回来告诉我。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  }
+]

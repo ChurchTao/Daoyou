@@ -32,6 +32,13 @@ export interface InnRecoveryResult {
 }
 
 export const InnRecoveryService = {
+  needsRecovery(cultivator: InnRecoveryFacts): boolean {
+    const condition = ConditionService.tickNaturalRecovery(cultivator);
+    const { hp, mp } = condition.resources;
+    const { maxHp, maxMp } = ConditionService.getMaxResources(cultivator, condition);
+    return hp.current < maxHp || mp.current < maxMp || condition.statuses.length > 0;
+  },
+
   buildRecoveryResult(
     cultivator: InnRecoveryFacts,
     now: Date = new Date(),

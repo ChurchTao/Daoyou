@@ -9,7 +9,7 @@ const resourceStyles = {
   spiritStones: { label: '灵石', className: 'text-ink' },
   exp: { label: '修为', className: 'text-teal' },
   insight: { label: '感悟', className: 'text-resource-shield' },
-  reputation: { label: '声望', className: 'text-amber-700' },
+  reputation: { label: '声望', className: 'text-amber-700 dark:text-wood' },
   contribution: { label: '宗门贡献', className: 'text-teal' },
   qi: { label: '灵气', className: 'text-ink-secondary' },
 } as const;
@@ -38,10 +38,17 @@ function ResourceAmount({
 
 export function JournalEventContent({ event }: { event: PlayerJournalEvent }) {
   if (event.type === 'resources.settled') {
+    // Older records still carry redundant descriptions for these actions.
+    const detail =
+      event.activity === 'spirit_field_starter' ||
+      event.activity === 'spirit_field_sow' ||
+      event.activity === 'spirit_field_harvest'
+        ? undefined
+        : event.detail;
     return (
       <>
         {JOURNAL_ACTIVITIES[event.activity]}
-        {event.detail ? `（${event.detail}）` : ''}：
+        {detail ? `（${detail}）` : ''}：
         {event.changes.map((change, index) => (
           <Fragment key={index}>
             {index > 0 ? '，' : null}

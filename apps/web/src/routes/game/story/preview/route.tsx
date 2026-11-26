@@ -2,15 +2,18 @@ import { PerformancePlayer } from '@app/components/feature/performance/Performan
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { InkButton, InkInput } from '@app/components/ui';
 import { useCultivatorIdentity, usePlayerSession } from '@app/lib/resources/player';
-import { storyPerformanceContext } from '@app/lib/story/performanceContext';
+import {
+  fillStoryScript,
+  storyPerformanceContext,
+} from '@app/lib/story/performanceContext';
 import { listPerformanceScripts, getPerformanceScript } from '@daoyou/game-content/performance/catalog';
-import { fillPerformanceScript, type PerformanceContext } from '@daoyou/game-domain/performance';
+import type { PerformanceContext } from '@daoyou/game-domain/performance';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
-function readScript(scriptId: string) {
+function readScript(scriptId: string, sectId?: string | null) {
   try {
-    return getPerformanceScript(scriptId);
+    return getPerformanceScript(scriptId, sectId);
   } catch {
     return null;
   }
@@ -18,7 +21,7 @@ function readScript(scriptId: string) {
 
 function watchContext(
   requires: string[],
-  cultivator: { name: string; background?: string | null },
+  cultivator: Parameters<typeof storyPerformanceContext>[0],
   sectId?: string | null,
 ): PerformanceContext {
   const context = storyPerformanceContext(cultivator, sectId);
@@ -63,7 +66,7 @@ function PreviewShelf({
           <InkInput
             label="演出编号"
             value={draft}
-            placeholder="arrival-fall"
+            placeholder="mountain-two-peaks"
             onChange={setDraft}
           />
         </div>
@@ -98,7 +101,9 @@ export default function StoryPreviewRoute() {
   const profile = useCultivatorIdentity();
   const player = usePlayerSession();
   const [replay, setReplay] = useState(0);
-  const script = scriptId ? readScript(scriptId) : null;
+  const script = scriptId
+    ? readScript(scriptId, player.data?.activeCultivator?.sectId)
+    : null;
 
   if (!scriptId || !script) {
     return (
@@ -120,11 +125,15 @@ export default function StoryPreviewRoute() {
     );
   }
 
-  let filled: ReturnType<typeof fillPerformanceScript>;
+  let filled: ReturnType<typeof fillStoryScript>;
   let context: PerformanceContext;
   try {
     context = watchContext(script.requires, cultivator, player.data?.activeCultivator?.sectId);
-    filled = fillPerformanceScript(script, context);
+    filled = fillStoryScript(
+      script,
+      context,
+      player.data?.activeCultivator?.sectId,
+    );
   } catch (reason) {
     return (
       <PreviewShelf
@@ -139,6 +148,11 @@ export default function StoryPreviewRoute() {
       key={`${filled.id}:${replay}`}
       script={filled}
       context={context}
+      playerPortrait={
+        cultivator.gender === '女'
+          ? 'icon:cultivator-female-avatar'
+          : 'icon:cultivator-male-avatar'
+      }
       finalLabel="再看一遍"
       exitLabel="返回"
       onExit={() => navigate('/game/story/preview')}

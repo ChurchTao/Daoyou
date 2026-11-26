@@ -4,9 +4,16 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./invasion": {
+      "types": "./dist/invasion/index.d.ts",
+      "default": "./dist/invasion/index.js"
+    },
     "./achievements": "./dist/public/achievements.js",
     "./alchemy": "./dist/public/alchemy.js",
+    "./alchemy/contest": "./dist/alchemy/contest.js",
+    "./alchemy/contest/authoring": "./dist/alchemy/contestAuthoring.js",
     "./auction": "./dist/public/auction.js",
+    "./baixiao/meet": "./dist/baixiao/meet.js",
     "./beasts/fusion": "./dist/beasts/fusion.js",
     "./beasts/generation": "./dist/beasts/generator.js",
     "./beasts/growth": "./dist/public/beasts/growth.js",
@@ -62,6 +69,7 @@
     "./inventory/recycle": "./dist/public/inventory/recycle.js",
     "./inventory/stacking": "./dist/inventory/stack-key.js",
     "./items/legacy-material": "./dist/items/legacy-material.js",
+    "./items/mystery-bags": "./dist/items/mystery-bags.js",
     "./journal/changes": "./dist/journal/changes.js",
     "./legacy/artifacts": "./dist/artifact-migration/rules.js",
     "./legacy/manuals": "./dist/manual-migration/rules.js",

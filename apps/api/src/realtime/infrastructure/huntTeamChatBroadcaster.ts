@@ -1,4 +1,4 @@
-import type { HuntTeamChatMessage } from '@daoyou/contracts/hunts';
+import type { PartyChatMessage } from '@daoyou/contracts/party';
 import {
   encodeNatsSubjectToken,
   publishNatsCoreMessage,
@@ -10,7 +10,7 @@ import {
 } from '@server/realtime/infrastructure/pubSubEnvelope.js';
 
 const SUBJECT_PREFIX = 'daoyou.realtime.hunt-team-chat.user';
-type Listener = (message: HuntTeamChatMessage) => void;
+type Listener = (message: PartyChatMessage) => void;
 const listeners = new Map<string, Set<Listener>>();
 const subscriptions = new Map<string, () => void>();
 
@@ -18,9 +18,9 @@ function subjectForUser(userId: string) {
   return `${SUBJECT_PREFIX}.${encodeNatsSubjectToken(userId)}`;
 }
 
-function isHuntTeamChatMessage(value: unknown): value is HuntTeamChatMessage {
+function isPartyChatMessage(value: unknown): value is PartyChatMessage {
   if (!value || typeof value !== 'object') return false;
-  const message = value as Partial<HuntTeamChatMessage>;
+  const message = value as Partial<PartyChatMessage>;
   return (
     typeof message.id === 'string' &&
     typeof message.teamId === 'string' &&
@@ -42,7 +42,7 @@ export function subscribeHuntTeamChat(
     subscriptions.set(
       userId,
       subscribeNatsCoreSubject(subjectForUser(userId), (raw) => {
-        const message = parsePubSubEnvelope(raw, isHuntTeamChatMessage);
+        const message = parsePubSubEnvelope(raw, isPartyChatMessage);
         if (!message) return;
         for (const current of listeners.get(userId) ?? []) current(message);
       }),
@@ -59,7 +59,7 @@ export function subscribeHuntTeamChat(
 
 export function publishHuntTeamChat(
   userIds: readonly string[],
-  message: HuntTeamChatMessage,
+  message: PartyChatMessage,
 ) {
   for (const userId of new Set(userIds)) {
     for (const listener of listeners.get(userId) ?? []) listener(message);

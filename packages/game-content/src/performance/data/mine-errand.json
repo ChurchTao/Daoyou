@@ -1,0 +1,290 @@
+[
+  {
+    "id": "mine-errand-ask",
+    "title": "明早再来拿药",
+    "requires": [],
+    "cast": {
+      "peer": {
+        "name": "隔壁同门"
+      },
+      "keeper": {
+        "name": "丹房值事"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "山门 · 丹房"
+      },
+      {
+        "type": "title",
+        "text": "明早再来拿药"
+      },
+      {
+        "type": "narration",
+        "text": "值事听同门念完差帖，指给你看案上敞着的木匣。里头已经装了几包药，还缺最后一包。"
+      },
+      {
+        "type": "line",
+        "speaker": "keeper",
+        "text": "还有一包刚烘好，这就扣盖，药要返潮。明早来拿吧。"
+      },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "我们打算坐船。药怕不怕沾水？"
+      },
+      {
+        "type": "line",
+        "speaker": "keeper",
+        "text": "船板湿就搁腿上。到了铺子交给掌柜，他知道哪包先用。"
+      },
+      {
+        "type": "choice",
+        "options": [
+          {
+            "label": "（先回去歇歇）",
+            "outcome": "done"
+          }
+        ]
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-errand-home",
+    "title": "回洞府",
+    "requires": [],
+    "cast": {},
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "山门 · 饭堂外"
+      },
+      {
+        "type": "title",
+        "text": "回洞府"
+      },
+      {
+        "type": "narration",
+        "text": "同门要回去换身衣裳，和你走到饭堂前。门口有人抬饭桶，你领他从边上绕过去。昨晚头一回来，你还得在这儿认路。"
+      },
+      {
+        "type": "scene",
+        "alt": "山门 · 洞府"
+      },
+      {
+        "type": "narration",
+        "text": "沿岩壁走了几步，咪咪从你怀里跳到那道缺角的门槛上。你开门放下包袱，它已经抢了你昨晚枕过的地方。"
+      },
+      {
+        "type": "narration",
+        "text": "你挨着咪咪坐下，听见隔壁关门。白天在场边，你明明能瞧见两个木人。怎么一上场，就光盯着那面盾了？"
+      },
+      {
+        "type": "choice",
+        "options": [
+          {
+            "label": "（歇一会儿，再去敲隔壁的门）",
+            "outcome": "done"
+          }
+        ]
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-errand-evening",
+    "title": "散场以后",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "peer": {
+        "name": "隔壁同门"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "山门 · 洞府门外"
+      },
+      {
+        "type": "title",
+        "text": "散场以后"
+      },
+      {
+        "type": "narration",
+        "text": "你揣上钥匙，出去敲了敲隔壁的门。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "还去练功院么？"
+      },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "教习早走了，谁给咱们开闸？"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "不用开闸。你替我站一会儿就行。"
+      },
+      {
+        "type": "scene",
+        "alt": "山门 · 练功院"
+      },
+      {
+        "type": "narration",
+        "text": "院里还有人在打桩。你等人腾了地方，挑了根齐肩的桩，让同门站到后头。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "就把这个当盾。我喊一声，你从旁边伸手。"
+      },
+      {
+        "type": "narration",
+        "text": "你站到木桩正对面，和白天对着那面盾时一样。你一喊，他的手从桩边伸出来，等你看见，已经快挨着袖子了。"
+      },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "我都迈了两步。你光盯着桩干什么？"
+      },
+      {
+        "type": "narration",
+        "text": "你这才去看他留在土里的脚印。再试时，你斜着站开半步，他的肩膀刚从桩边露出来，你就看见了。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "再来。换我从那边走，你也站这儿试试。"
+      },
+      {
+        "type": "scene",
+        "alt": "山门 · 饭堂"
+      },
+      {
+        "type": "narration",
+        "text": "到饭堂时，蒸笼只剩最底下一层。同门连盘子也没等，拿了四个馒头回来，烫得直甩手。"
+      },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "明早我提匣子，到了渡口你去找船。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "找阿禾。他那条船就在接引亭下面，我上山时坐的就是他的船。"
+      },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "行。明早我敲门，你别睡死了。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "你敲两声。头一声咪咪就该踩我了。"
+      },
+      {
+        "type": "scene",
+        "alt": "山门 · 洞府"
+      },
+      {
+        "type": "narration",
+        "text": "次日你刚把鞋提上，门就响了。咪咪从铺上跳下来，贴着门缝往外挤。你把它抱起来开门，同门已经在门外等你了。"
+      },
+      {
+        "type": "choice",
+        "options": [
+          {
+            "label": "（一起去丹房）",
+            "outcome": "done"
+          }
+        ]
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-errand-pickup",
+    "title": "一匣药",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "peer": {
+        "name": "隔壁同门"
+      },
+      "cook": {
+        "name": "饭堂伙计"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "山门 · 丹房"
+      },
+      {
+        "type": "title",
+        "text": "一匣药"
+      },
+      {
+        "type": "narration",
+        "text": "值事扣上匣盖，用细绳系牢，把药交给同门。"
+      },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "走哪边？"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "从饭堂前头过，就是我投名那天走的路。"
+      },
+      {
+        "type": "scene",
+        "alt": "山门 · 饭堂外"
+      },
+      {
+        "type": "narration",
+        "text": "这回你走在前头。饭堂刚开门，里头有人招呼你们。"
+      },
+      {
+        "type": "line",
+        "speaker": "cook",
+        "text": "进来吃口热的！"
+      },
+      {
+        "type": "narration",
+        "text": "同门扬了扬手里的匣子。"
+      },
+      {
+        "type": "line",
+        "speaker": "peer",
+        "text": "回来再吃！"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  }
+]

@@ -230,7 +230,7 @@ export function SectPageLoading({ sceneKey }: { sceneKey?: SectSceneKey }) {
   const presentation = getSectPresentationForContext(context.data);
   return (
     <GameLoadingState
-      variant="immersive"
+      variant="scene"
       message={
         sceneKey
           ? presentation.scenes[sceneKey].loadingText

@@ -12,13 +12,12 @@
 [`docs/combat-v6-character-panel-design.md`](combat-v6-character-panel-design.md)，新版道装领域见
 [`docs/combat-v6-equipment-system-design.md`](combat-v6-equipment-system-design.md)，
 新版功法领域见
-[`docs/combat-v6-manual-system-design.md`](combat-v6-manual-system-design.md)，Phase 5A 数值见
-[`docs/combat-v6-manual-phase-5a-balance.md`](combat-v6-manual-phase-5a-balance.md)，红尘剑宗完整纵切见
+[`docs/combat-v6-manual-system-design.md`](combat-v6-manual-system-design.md)，红尘剑宗完整纵切见
 [`docs/combat-v6-lingxiao-datang-sect-design.md`](combat-v6-lingxiao-datang-sect-design.md)。
 幽都经典双流派纵切见
 [`docs/combat-v6-youdu-classic-sect-design.md`](combat-v6-youdu-classic-sect-design.md)。
-无相禅宗治疗防护纵切见
-[`docs/combat-v6-wuxiang-sect-design.md`](combat-v6-wuxiang-sect-design.md)。
+无相禅宗佛魔双相设计见
+[无相禅宗重做](combat-v6-wuxiang-tianji-redesign.md)。
 天衍圣地河洛九宫纵切见
 [`docs/combat-v6-tianyan-sect-design.md`](combat-v6-tianyan-sect-design.md)。
 九劫天宫经典双流派纵切见

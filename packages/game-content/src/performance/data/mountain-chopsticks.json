@@ -1,0 +1,69 @@
+{
+  "id": "mountain-chopsticks",
+  "title": "筷子",
+  "requires": [],
+  "cast": {
+    "player": {
+      "name": "你"
+    },
+    "peer": {
+      "name": "同门",
+      "portrait": "icon:portrait-disciple-m"
+    }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "门内 · 晚饭"
+    },
+    {
+      "type": "title",
+      "kicker": "自己报的名字",
+      "text": "筷子"
+    },
+    {
+      "type": "narration",
+      "text": "早课上，教习走到你跟前，伸手拨了拨你攥着木杆的手指。你松开些，一转身又攥紧了。到傍晚，院子里都没什么人了，你还在试。"
+    },
+    {
+      "type": "line",
+      "speaker": "peer",
+      "text": "开饭了。你再不来，锅巴都叫人刮光了。"
+    },
+    {
+      "type": "narration",
+      "text": "喊你的是早课上给你让座的人。你把木杆靠在廊柱上，跟着进了饭堂。他碗里扣着一大片锅巴，掰了一角给你。"
+    },
+    {
+      "type": "narration",
+      "text": "晚饭有一碟炒黄豆。你平日很会夹这个，今日第一颗掉进碗，第二颗掉到桌上。第三颗眼看夹住了，对座伸筷子把碟往你这头推了推。"
+    },
+    {
+      "type": "line",
+      "speaker": "peer",
+      "text": "手摊开看看。"
+    },
+    {
+      "type": "narration",
+      "text": "你右手虎口磨红了一片。对座那位翻开手掌给你看，他那儿有块硬茧。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "教习叫我歇一歇。我练完才发觉，连把手指伸直都疼。"
+    },
+    {
+      "type": "line",
+      "speaker": "peer",
+      "text": "明早我带你去器坊吧。那儿有个老师傅，我刚来时也向他请教过。"
+    },
+    {
+      "type": "narration",
+      "text": "回住处时，咪咪已经占了半张床。你把白天抄的地址摊开，借灯又认了一遍。明日写信回去，还有件新鲜事能讲。早晨才报的名字，方才去打饭，已经有人隔着半个饭堂喊你了。"
+    },
+    {
+      "type": "end",
+      "outcome": "done"
+    }
+  ]
+}

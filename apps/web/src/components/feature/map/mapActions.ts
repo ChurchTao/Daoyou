@@ -1,5 +1,8 @@
+import { INVASION_NODE_ID, INVASION_PATH } from '@daoyou/game-domain/invasion';
 import type { InkButton } from '@app/components/ui/InkButton';
-import { getMapNode } from '@daoyou/game-content/world/map';
+import { BAIXIAO_NODE_ID } from '@daoyou/game-domain/baixiao/meet';
+import { CONTEST_NODE_ID } from '@daoyou/game-domain/alchemy/contest';
+import type { WorldMapLocation } from '@daoyou/game-domain/world/map';
 import type { ComponentProps } from 'react';
 
 export interface MapNodeAction {
@@ -7,15 +10,10 @@ export interface MapNodeAction {
   label: string;
   onClick: () => void;
   variant?: ComponentProps<typeof InkButton>['variant'];
+  gate?: 'dungeon' | 'market';
 }
 
 export type MapIntent = 'world' | 'market' | 'dungeon' | 'sect';
-
-export interface NodeActionContext {
-  selectedNodeId: string;
-  isMainNode: boolean;
-  marketEnabled: boolean;
-}
 
 export function resolveMapIntent(value: string | null): MapIntent {
   if (value === 'market' || value === 'sect' || value === 'dungeon')
@@ -23,41 +21,67 @@ export function resolveMapIntent(value: string | null): MapIntent {
   return 'world';
 }
 
-export function buildNodeActions(
-  ctx: NodeActionContext,
+export function buildMapLocationActions(
+  location: WorldMapLocation,
+  activeSectId: string | null,
   navigate: (path: string) => void,
 ): MapNodeAction[] {
-  const node = getMapNode(ctx.selectedNodeId);
-  const hasDungeon = !!node?.dungeon_config;
+  if ('sect_id' in location)
+    return buildSectLandmarkActions(location.sect_id, activeSectId, navigate);
+
+  const nodeId = encodeURIComponent(location.id);
   const actions: MapNodeAction[] = [];
-  if (node?.wild_encounter_id)
+  if (location.id === INVASION_NODE_ID) {
+    actions.push({
+      key: 'enter-ancient-demon-invasion', label: '进入镇魔营地',
+      variant: 'primary', onClick: () => navigate(INVASION_PATH),
+    });
+  }
+  if (location.id === CONTEST_NODE_ID) {
+    actions.push({
+      key: 'enter-alchemy-contest',
+      label: '查看炼丹大会',
+      variant: 'primary',
+      onClick: () => navigate('/game/alchemy-contest'),
+    });
+  }
+  if (location.id === BAIXIAO_NODE_ID) {
+    actions.push({
+      key: 'enter-baixiao-meet',
+      label: '查看百晓盛会',
+      variant: 'primary',
+      onClick: () => navigate('/game/baixiao-meet'),
+    });
+  }
+  if (location.wild_encounter_id)
     actions.push({
       key: 'wild-explore',
       label: '进入野外',
       variant: 'primary',
-      onClick: () => navigate(`/game/wild?nodeId=${ctx.selectedNodeId}`),
+      onClick: () => navigate(`/game/wild?nodeId=${nodeId}`),
     });
-  if (!ctx.isMainNode && hasDungeon) {
+  if ('parent_id' in location && location.dungeon_config) {
     actions.push({
       key: 'enter-dungeon',
       label: '前往历练',
-      variant: 'secondary',
-      onClick: () => navigate(`/game/dungeon?nodeId=${ctx.selectedNodeId}`),
+      variant: actions.length ? 'secondary' : 'primary',
+      gate: 'dungeon',
+      onClick: () => navigate(`/game/dungeon?nodeId=${nodeId}`),
     });
   }
-  if (ctx.isMainNode && ctx.marketEnabled) {
+  if ('market_config' in location && location.market_config?.enabled) {
     actions.unshift({
       key: 'enter-market',
       label: '进入坊市',
       variant: 'primary',
-      onClick: () =>
-        navigate(`/game/market?nodeId=${ctx.selectedNodeId}&layer=common`),
+      gate: 'market',
+      onClick: () => navigate(`/game/market?nodeId=${nodeId}&layer=common`),
     });
   }
   return actions;
 }
 
-export function buildSectLandmarkActions(
+function buildSectLandmarkActions(
   sectId: string,
   activeSectId: string | null,
   navigate: (path: string) => void,

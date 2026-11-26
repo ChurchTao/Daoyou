@@ -22,6 +22,7 @@ import { apiErrorFilter } from '../http/error-filter.js';
 import { FirstQuery } from '../http/first-query.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 import { AlchemyFormulasService } from './alchemy-formulas.service.js';
 import {
   DiscoveryConfirmSchema,
@@ -73,6 +74,7 @@ function formulaErrors(message: string, includeDetails = true) {
 
 @Controller('api/alchemy')
 @Access('active')
+@StoryGate('sect-alchemy')
 export class AlchemyFormulasController {
   constructor(
     @Inject(AlchemyFormulasService)

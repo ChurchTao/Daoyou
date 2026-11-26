@@ -1,10 +1,11 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import {
   NpcConversation,
   RoomView,
   type RoomActorView,
 } from '@app/components/feature/room';
 import { GameSceneFrame } from '@app/components/game-shell';
+import { InkButton } from '@app/components/ui/InkButton';
+import { apiFetch } from '@app/lib/api/fetch';
 import { realtimeClient } from '@app/lib/realtime/realtimeClient';
 import { usePlayerSession } from '@app/lib/resources/player';
 import type {
@@ -16,10 +17,10 @@ import type {
 } from '@daoyou/contracts/arena';
 import {
   ARENA_ROOM_MAX_SEATS_PER_TEAM,
-  allArenaSeatsReady,
   hasBothArenaTeams,
   isArenaRoomActive,
 } from '@daoyou/contracts/arena';
+import { useParty } from '@app/components/feature/party/useParty';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -52,6 +53,7 @@ export default function ArenaPage() {
   const [room, setRoom] = useState<ArenaRoomV1 | null>(null);
   const [loading, setLoading] = useState(true);
   const currentCultivatorId = session.data?.activeCultivator?.id;
+  const selectedActor = selectedId ?? (room ? 'ring' : undefined);
 
   const applyRoom = useCallback((next: ArenaRoomV1 | null) => {
     setRoom((current) => {
@@ -148,7 +150,7 @@ export default function ArenaPage() {
   return (
     <GameSceneFrame
       variant="workflow"
-      description="无消耗的公共擂台切磋。创建房间或凭邀请码入场，准备完毕后即可开始。"
+      description="无消耗的公共擂台切磋。双方入场后，由房主开擂。"
     >
       <RoomView
         eyebrow="擂台场"
@@ -158,14 +160,14 @@ export default function ArenaPage() {
             ? { ...actor, status: { label: '已有候场房间', tone: 'active' } }
             : actor,
         )}
-        selectedId={selectedId}
+        selectedId={selectedActor}
         onSelect={setSelectedId}
         prompt="点击擂台入场；若想了解细则，可问王虎"
-        promptDetail="这里是无消耗的自由切磋，双方到齐并准备后即可开始。"
+        promptDetail="这里是无消耗的自由切磋，双方都有人入场即可开擂。"
         detail={
-          selectedId === 'wang-hu' ? (
+          selectedActor === 'wang-hu' ? (
             <WangHuConversation onExit={() => setSelectedId(undefined)} />
-          ) : selectedId === 'ring' ? (
+          ) : selectedActor === 'ring' ? (
             <ArenaFacility
               room={room}
               loading={loading}
@@ -192,14 +194,14 @@ function WangHuConversation({ onExit }: { onExit(): void }) {
           {
             id: 'greeting',
             speaker: '王虎',
-            body: '这里是无消耗的自由切磋，双方到齐并准备后即可开始。',
+            body: '这里是无消耗的自由切磋，双方都有人入场即可开擂。',
           },
           ...(topic === 'rules'
             ? [
                 {
                   id: 'rules',
                   speaker: '王虎',
-                  body: '双方人数不必相同，每方最多四人。所有人准备后，由房主开始切磋，每回合有三十息同时定招。此间不消耗费用、物资或战斗外状态。',
+                  body: '双方人数不必相同，每方最多四人。双方各有至少一名参战者后，由房主开始切磋，每回合有三十息同时定招。此间不消耗费用、物资或战斗外状态。',
                 },
               ]
             : []),
@@ -233,6 +235,12 @@ function ArenaFacility({
 }) {
   const [inviteCode, setInviteCode] = useState('');
   const [joining, setJoining] = useState(false);
+  const [withParty, setWithParty] = useState(true);
+  const { value: current, openParty } = useParty();
+  const party = current?.party;
+  const partySize = !current?.roleMismatch && party?.members.some((member) => member.userId === party.leaderId && member.cultivatorId === currentCultivatorId)
+    ? party.members.length
+    : 0;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [startRequestId] = useState(() => crypto.randomUUID());
@@ -248,9 +256,11 @@ function ArenaFacility({
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify(
             action === 'create'
-              ? {}
+              ? { withParty: partySize > 1 && withParty }
               : {
                   inviteCode,
+                  withParty:
+                    action === 'join' && partySize > 1 && withParty,
                   role: action === 'watch' ? 'spectator' : 'participant',
                 },
           ),
@@ -292,6 +302,33 @@ function ArenaFacility({
         />
       ) : (
         <div className="mt-4 space-y-2">
+          {partySize > 1 ? (
+            <label className="text-ink-secondary flex min-h-11 items-start gap-2 px-5 py-3 text-sm">
+              <input
+                type="checkbox"
+                checked={withParty}
+                onChange={(event) => setWithParty(event.target.checked)}
+              />
+              <span>
+                带当前队伍入场 · <b className="font-mono">{partySize}</b> 人
+              </span>
+            </label>
+          ) : (
+            <div className="text-ink-secondary px-5 text-sm">
+              {current?.roleMismatch
+                ? '切回在队角色即可随队入场。'
+                : party && !partySize
+                  ? '由队长带队入场，也可自行入场。'
+                  : '可单人入场，也可先召集道友同行。'}
+              <InkButton
+                variant="secondary"
+                className="min-h-11"
+                onClick={() => openParty()}
+              >
+                {party ? '查看队伍' : '先去组队'}
+              </InkButton>
+            </div>
+          )}
           <button
             type="button"
             disabled={busy || loading}
@@ -370,14 +407,17 @@ function ArenaRoomWorkspace({
   const watching = room.spectators?.some(
     (s) => s.cultivatorId === currentCultivatorId,
   );
-  const canStart =
-    isHost &&
-    isArenaRoomActive(room.status) &&
-    hasBothArenaTeams(room) &&
-    allArenaSeatsReady(room);
+  const canStart = isArenaRoomActive(room.status) && hasBothArenaTeams(room);
+  const reason = room.status === 'starting'
+    ? '正在开擂。'
+    : !hasBothArenaTeams(room)
+      ? `${room.teams.alpha.length ? '赤方' : '青方'}还没有参战者。`
+      : !isHost
+        ? '双方已入场，由房主开擂。'
+        : null;
 
   const mutate = async (
-    action: 'ready' | 'switch-team' | 'leave',
+    action: 'switch-team' | 'leave',
     body: Record<string, unknown>,
   ) => {
     onBusy(true);
@@ -471,15 +511,7 @@ function ArenaRoomWorkspace({
       </section>
 
       {current ? (
-        <div className="grid gap-2 sm:grid-cols-3">
-          <button
-            type="button"
-            disabled={busy || !isArenaRoomActive(room.status)}
-            onClick={() => void mutate('ready', { ready: !current.seat.ready })}
-            className="border-crimson/45 text-crimson bg-crimson/6 border px-4 py-3 text-sm disabled:opacity-45"
-          >
-            {current.seat.ready ? '取消准备' : '准备完毕'}
-          </button>
+        <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             disabled={
@@ -530,13 +562,7 @@ function ArenaRoomWorkspace({
         </button>
       ) : null}
 
-      <p className="text-ink-secondary text-xs leading-6">
-        {room.status === 'starting'
-          ? '阵容已冻结，正在创建实时战斗对局。'
-          : canStart
-            ? '双方已准备完毕，房主现在可以开始切磋。'
-            : '等待双方到齐并准备完毕。'}
-      </p>
+      {reason && <p className="text-ink-secondary text-sm">{reason}</p>}
     </div>
   );
 }
@@ -617,9 +643,6 @@ function ArenaTeamPanel({
                     : '未知'}
                 </span>
               </span>
-              <span className={seat.ready ? 'text-teal' : 'text-ink-secondary'}>
-                {seat.ready ? '已准备' : '未准备'}
-              </span>
             </div>
           ))
         ) : (
@@ -658,6 +681,7 @@ async function requestArena<T>(url: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   const body = (await response.json()) as T & { error?: string };
-  if (!response.ok) throw new Error(body.error ?? '擂台暂时无法使用，请稍后重试。');
+  if (!response.ok)
+    throw new Error(body.error ?? '擂台暂时无法使用，请稍后重试。');
   return body;
 }

@@ -1,10 +1,6 @@
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
-import {
-  getAtlasRegion,
-  ATLAS_CATEGORY_IDS,
-  getAtlasCategory,
-} from '@daoyou/game-rules/world/atlas';
+import { ATLAS_CATEGORY_IDS } from '@daoyou/game-rules/world/atlas';
 import { useEffect, useRef, useState } from 'react';
 import { ATLAS_CATEGORY_STYLE } from './atlasMarkerStyle';
 import type { AtlasToolbarProps } from './AtlasToolbar';
@@ -184,7 +180,7 @@ export function AtlasMobileToolbar({
               if (resultsList.current) resultsList.current.scrollTop = 0;
               onQuery(event.target.value);
             }}
-            className="border-ink/25 focus:border-ink/60 min-h-11 w-full rounded-sm border bg-white/50 px-3 text-base outline-none"
+            className="border-ink/25 focus:border-ink/60 dark:bg-paper-2 dark:focus:border-crimson/70 placeholder:text-ink-secondary min-h-11 w-full rounded-sm border bg-white/50 px-3 text-base outline-none"
           />
         </label>
         {canFilter ? (
@@ -252,19 +248,19 @@ export function AtlasMobileToolbar({
           className="max-h-[30dvh] overflow-y-auto overscroll-contain"
         >
           {results.map((location) => {
-            const style = ATLAS_CATEGORY_STYLE[getAtlasCategory(location)];
+            const style = ATLAS_CATEGORY_STYLE[location.category];
             return (
-              <li key={location.id}>
+              <li key={`${location.areaId ?? ''}/${location.id}`}>
                 <button
                   type="button"
-                  onClick={() => onSelect(location.id)}
+                  onClick={() => onSelect(location)}
                   className={`${control} w-full justify-start py-2 text-left`}
                 >
                   <GameIcon value={style.icon} className="text-3xl" />
                   <span className="min-w-0 flex-1">
                     <span className="block">{location.name}</span>
                     <span className="text-ink-secondary block text-xs">
-                      {getAtlasRegion(location)?.name} · {style.name}
+                      {location.context} · {style.name}
                     </span>
                   </span>
                   <span aria-hidden="true">›</span>

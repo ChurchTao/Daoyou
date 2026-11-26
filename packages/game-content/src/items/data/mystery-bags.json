@@ -1,0 +1,211 @@
+{
+  "materialFallbacks": {
+    "地品": {
+      "type": "ore",
+      "name": "太乙陨金",
+      "element": "金"
+    },
+    "天品": {
+      "type": "ore",
+      "name": "七情琉璃金",
+      "element": "金"
+    },
+    "仙品": {
+      "type": "ore",
+      "name": "乙木仙晶",
+      "element": "木"
+    },
+    "神品": {
+      "type": "ore",
+      "name": "万载青空髓",
+      "element": "木"
+    }
+  },
+  "pools": {
+    "mystery-bag.common": [
+      {
+        "chanceBps": 4000,
+        "type": "spirit_stones",
+        "min": 100000,
+        "max": 800000
+      },
+      {
+        "chanceBps": 800,
+        "type": "superior_book",
+        "quantity": 1
+      },
+      {
+        "chanceBps": 1200,
+        "type": "item",
+        "item": {
+          "definitionId": "beast.refinement.superior-origin-dew",
+          "quantity": 1
+        },
+        "maxQuantity": 3
+      },
+      {
+        "chanceBps": 500,
+        "type": "item",
+        "item": {
+          "definitionId": "beast.rejuvenation.huasheng-fruit",
+          "quantity": 1
+        }
+      },
+      {
+        "chanceBps": 1800,
+        "type": "material",
+        "rank": "地品",
+        "quantity": 10
+      },
+      {
+        "chanceBps": 800,
+        "type": "material",
+        "rank": "天品",
+        "quantity": 2
+      },
+      {
+        "chanceBps": 200,
+        "type": "material",
+        "rank": "仙品",
+        "quantity": 1
+      },
+      {
+        "chanceBps": 100,
+        "type": "material",
+        "rank": "神品",
+        "quantity": 1
+      },
+      {
+        "chanceBps": 600,
+        "type": "blueprint",
+        "quantity": 1,
+        "minRealm": "金丹",
+        "maxRealm": "元婴"
+      }
+    ],
+    "mystery-bag.fine": [
+      {
+        "chanceBps": 3400,
+        "type": "spirit_stones",
+        "min": 250000,
+        "max": 1600000
+      },
+      {
+        "chanceBps": 1200,
+        "type": "superior_book",
+        "quantity": 1
+      },
+      {
+        "chanceBps": 1200,
+        "type": "item",
+        "item": {
+          "definitionId": "beast.refinement.superior-origin-dew",
+          "quantity": 3
+        },
+        "maxQuantity": 6
+      },
+      {
+        "chanceBps": 800,
+        "type": "item",
+        "item": {
+          "definitionId": "beast.rejuvenation.huasheng-fruit",
+          "quantity": 1
+        },
+        "maxQuantity": 2
+      },
+      {
+        "chanceBps": 800,
+        "type": "material",
+        "rank": "地品",
+        "quantity": 20
+      },
+      {
+        "chanceBps": 1200,
+        "type": "material",
+        "rank": "天品",
+        "quantity": 5
+      },
+      {
+        "chanceBps": 500,
+        "type": "material",
+        "rank": "仙品",
+        "quantity": 3
+      },
+      {
+        "chanceBps": 200,
+        "type": "material",
+        "rank": "神品",
+        "quantity": 1
+      },
+      {
+        "chanceBps": 700,
+        "type": "blueprint",
+        "quantity": 1,
+        "minRealm": "元婴",
+        "maxRealm": "炼虚"
+      }
+    ],
+    "mystery-bag.luxurious": [
+      {
+        "chanceBps": 2800,
+        "type": "spirit_stones",
+        "min": 800000,
+        "max": 4800000
+      },
+      {
+        "chanceBps": 1600,
+        "type": "superior_book",
+        "quantity": 1
+      },
+      {
+        "chanceBps": 1200,
+        "type": "item",
+        "item": {
+          "definitionId": "beast.refinement.superior-origin-dew",
+          "quantity": 6
+        },
+        "maxQuantity": 15
+      },
+      {
+        "chanceBps": 1000,
+        "type": "item",
+        "item": {
+          "definitionId": "beast.rejuvenation.huasheng-fruit",
+          "quantity": 2
+        },
+        "maxQuantity": 3
+      },
+      {
+        "chanceBps": 300,
+        "type": "material",
+        "rank": "地品",
+        "quantity": 50
+      },
+      {
+        "chanceBps": 900,
+        "type": "material",
+        "rank": "天品",
+        "quantity": 15
+      },
+      {
+        "chanceBps": 1200,
+        "type": "material",
+        "rank": "仙品",
+        "quantity": 9
+      },
+      {
+        "chanceBps": 500,
+        "type": "material",
+        "rank": "神品",
+        "quantity": 1
+      },
+      {
+        "chanceBps": 500,
+        "type": "blueprint",
+        "quantity": 1,
+        "minRealm": "炼虚",
+        "maxRealm": "渡劫"
+      }
+    ]
+  }
+}

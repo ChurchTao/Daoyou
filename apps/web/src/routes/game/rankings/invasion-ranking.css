@@ -1,0 +1,252 @@
+.invasion-score-toolbar {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.55rem 1.1rem;
+  margin-bottom: 1rem;
+  color: var(--color-ink-secondary);
+  font-size: 0.85rem;
+}
+
+.invasion-score-mine {
+  margin-top: 0.18rem;
+  color: var(--color-teal);
+}
+
+.invasion-score-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.invasion-score-seat {
+  display: grid;
+  grid-template-columns: 6.1rem minmax(0, 1fr) 6.7rem;
+  grid-template-areas: 'place roster result';
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  border-block: 1px solid var(--color-ink-border);
+  text-align: start;
+  cursor: pointer;
+}
+
+.invasion-score-seat[data-podium],
+.invasion-score-seat[data-own] {
+  background-color: var(--color-paper-2);
+}
+
+.invasion-score-seat[data-champion] {
+  border-color: color-mix(
+    in srgb,
+    var(--color-wood) 55%,
+    var(--color-ink-border)
+  );
+  background-image: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--color-gold) 14%, transparent),
+    transparent 64%
+  );
+}
+
+.invasion-score-seat:hover {
+  background-color: var(--color-muted);
+}
+
+.invasion-score-seat:focus-visible {
+  outline: 2px solid var(--color-crimson);
+  outline-offset: 2px;
+}
+
+.invasion-score-place,
+.invasion-score-result {
+  display: grid;
+  align-content: center;
+  padding: 0.6rem 0.72rem;
+  border-inline: 1px solid var(--color-ink-border);
+}
+
+.invasion-score-place {
+  grid-area: place;
+  justify-items: center;
+  border-inline-start: 0;
+  line-height: 1;
+}
+
+.invasion-score-place b {
+  font-size: 1.55rem;
+  font-weight: 650;
+}
+
+.invasion-score-place small,
+.invasion-score-result small {
+  color: var(--color-ink-secondary);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.invasion-score-place small {
+  margin-bottom: 0.32rem;
+}
+
+.invasion-score-place > span {
+  margin-top: 0.35rem;
+  color: var(--color-teal);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.invasion-score-seat[data-champion] .invasion-score-place {
+  color: var(--color-wood);
+  background: color-mix(in srgb, var(--color-wood) 8%, transparent);
+  box-shadow: inset 0.2rem 0 var(--color-wood);
+}
+
+.invasion-score-seat[data-champion] .invasion-score-place small {
+  color: inherit;
+}
+
+.invasion-score-seat[data-champion] .invasion-score-place b {
+  font-size: 2.7rem;
+}
+
+.invasion-score-roster {
+  grid-area: roster;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  padding: 0.65rem 0.3rem;
+}
+
+.invasion-score-member {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  flex: 1 1 0;
+  max-width: 12rem;
+  min-width: 0;
+  gap: 0.28rem;
+  padding-inline: 0.38rem;
+  text-align: center;
+}
+
+.invasion-score-member + .invasion-score-member {
+  border-inline-start: 1px solid var(--color-ink-border);
+}
+
+.invasion-score-portrait {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--color-ink-border);
+  border-radius: 50%;
+  background-color: var(--color-paper);
+}
+
+.invasion-score-seat[data-champion] .invasion-score-roster {
+  padding-block: 1.05rem;
+}
+
+.invasion-score-seat[data-champion] .invasion-score-portrait {
+  width: 3.45rem;
+  height: 3.45rem;
+  border-color: color-mix(
+    in srgb,
+    var(--color-wood) 45%,
+    var(--color-ink-border)
+  );
+}
+
+.invasion-score-name {
+  display: grid;
+  gap: 0.08rem;
+  min-width: 0;
+  line-height: 1.32;
+  overflow-wrap: anywhere;
+}
+
+.invasion-score-name small {
+  color: var(--color-ink-secondary);
+  font-size: 0.76rem;
+}
+
+.invasion-score-result {
+  grid-area: result;
+  justify-items: end;
+  gap: 0.15rem;
+  border-inline-end: 0;
+  font-size: 0.84rem;
+  white-space: nowrap;
+}
+
+.invasion-score-result b {
+  font-size: 1.43rem;
+  line-height: 1;
+}
+
+.invasion-score-seat[data-champion] .invasion-score-result b {
+  font-size: 2rem;
+}
+
+.invasion-score-view {
+  color: var(--color-ink-secondary);
+  font-size: 0.75rem;
+}
+
+.invasion-score-seat:is(:hover, :focus-visible) .invasion-score-view {
+  color: var(--color-crimson);
+}
+
+@media (max-width: 46rem) {
+  .invasion-score-seat {
+    grid-template-columns: minmax(0, 1fr) max-content;
+    grid-template-areas: 'place result' 'roster roster';
+  }
+
+  .invasion-score-place,
+  .invasion-score-result {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.15rem 0.4rem;
+    border-inline: 0;
+    border-bottom: 1px solid var(--color-ink-border);
+    padding-block: 0.5rem;
+  }
+
+  .invasion-score-place small,
+  .invasion-score-place > span {
+    margin: 0;
+  }
+
+  .invasion-score-seat[data-champion] .invasion-score-place b {
+    font-size: 1.85rem;
+  }
+
+  .invasion-score-seat[data-champion] .invasion-score-result b {
+    font-size: 1.45rem;
+  }
+
+  .invasion-score-view {
+    font-size: 0;
+  }
+
+  .invasion-score-view::after {
+    content: '›';
+    font-size: 1rem;
+  }
+
+  .invasion-score-roster {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 0.8rem;
+  }
+
+  .invasion-score-member:nth-child(odd) {
+    border-inline-start: 0;
+  }
+
+  .invasion-score-seat[data-champion] .invasion-score-portrait {
+    width: 2.85rem;
+    height: 2.85rem;
+  }
+}

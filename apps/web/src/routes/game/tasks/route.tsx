@@ -1,11 +1,6 @@
-import { GameSceneLoading } from '@app/components/game-shell';
-import { Suspense } from 'react';
-import { TasksView } from './components/TasksView';
+import { Navigate } from 'react-router';
 
-export default function TasksPage() {
-  return (
-    <Suspense fallback={<GameSceneLoading message="卷宗整理中……" />}>
-      <TasksView />
-    </Suspense>
-  );
+/** 任务中心已经撤掉。破境的准备写在静室里，旧地址转过去。 */
+export default function TasksRedirect() {
+  return <Navigate to="/game/retreat" replace />;
 }

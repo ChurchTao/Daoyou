@@ -1,0 +1,91 @@
+{
+  "id": "mine-errand",
+  "track": "main",
+  "title": "明早再来拿药",
+  "next": "mine-baishui",
+  "deferredUnlocks": ["alchemy", "refine", "sect-alchemy", "sect-refinery"],
+  "beats": [
+    {
+      "id": "ask",
+      "kind": "performance",
+      "script": "mine-errand-ask",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "到丹房找值事，问几时能取药。",
+      "actionLabel": "问值事取药的时辰",
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "alchemy"
+      },
+      "entry": {
+        "kind": "npc",
+        "id": "dispensary-steward"
+      }
+    },
+    {
+      "id": "home",
+      "kind": "performance",
+      "arrival": "activity",
+      "script": "mine-errand-home",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "绕过饭堂，沿岩壁回洞府。",
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "cave"
+      },
+      "actionLabel": "回自己的洞府",
+      "entry": { "kind": "facility", "id": "home-door" }
+    },
+    {
+      "id": "evening",
+      "kind": "performance",
+      "arrival": "activity",
+      "script": "mine-errand-evening",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "去隔壁喊同门一起练两招。",
+      "actionLabel": "去敲隔壁的门",
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "cave"
+      },
+      "entry": {
+        "kind": "npc",
+        "id": "neighbor"
+      }
+    },
+    {
+      "id": "pickup",
+      "kind": "performance",
+      "arrival": "location",
+      "script": "mine-errand-pickup",
+      "outcome": "done",
+      "scene": "sect",
+      "prompt": "天亮了，和同门到丹房找值事取药匣。",
+      "actionLabel": "去拿药匣",
+      "finishLabel": "去山门的接引阵",
+      "location": {
+        "kind": "sect",
+        "spotId": "alchemy"
+      },
+      "href": "/game/story",
+      "entry": {
+        "kind": "npc",
+        "id": "dispensary-steward"
+      }
+    },
+    {
+      "id": "departure",
+      "kind": "passage",
+      "scene": "sect",
+      "prompt": "从山门的接引阵回山脚，找阿禾问船。",
+      "actionLabel": "去山门",
+      "location": { "kind": "sect", "spotId": "gate" },
+      "passage": { "id": "sect-gate-to-foothill" }
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import type {
   WandererBeastSale,
+  WandererMysteryBagPurchase,
   WandererPurchase,
 } from '@daoyou/contracts/wanderer';
 import { Injectable } from '@nestjs/common';
@@ -8,6 +9,7 @@ import {
   buyWandererBook,
   buyWandererDew,
   buyWandererIncense,
+  buyWandererMysteryBag,
   readWandererBeasts,
   readWandererState,
   sellWandererBeast,
@@ -15,8 +17,8 @@ import {
 
 @Injectable()
 export class WandererService {
-  state() {
-    return readWandererState().then((data) => ({
+  state(actor: ActiveCultivatorRef) {
+    return readWandererState(actor.cultivatorId).then((data) => ({
       success: true as const,
       data,
     }));
@@ -45,6 +47,16 @@ export class WandererService {
 
   async buyDew(actor: ActiveCultivatorRef, input: WandererPurchase) {
     return { success: true as const, data: await buyWandererDew(actor, input) };
+  }
+
+  async buyMysteryBag(
+    actor: ActiveCultivatorRef,
+    input: WandererMysteryBagPurchase,
+  ) {
+    return {
+      success: true as const,
+      ...(await buyWandererMysteryBag(actor, input)),
+    };
   }
 
   async buyIncense(actor: ActiveCultivatorRef, input: WandererPurchase) {

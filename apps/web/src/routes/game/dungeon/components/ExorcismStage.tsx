@@ -3,17 +3,12 @@ import type { ReactNode } from 'react';
 import './exorcism-stage.css';
 import { ExorcismTrack } from './ExorcismRunStrip';
 import { mysterySceneUrl } from './mysteryArt';
+import { MysterySceneArt } from './MysterySceneArt';
 
 /** 局内场景的远景：贴底的淡墨插画。没有素材的地貌不显示。 */
 function ExorcismScene({ scene }: { scene?: string }) {
   const url = mysterySceneUrl(scene);
-  return url ? (
-    <div
-      aria-hidden
-      className="exorcism-scene"
-      style={{ backgroundImage: `url(${url})` }}
-    />
-  ) : null;
+  return url ? <MysterySceneArt src={url} className="exorcism-scene" /> : null;
 }
 
 /** 迎战页和补给页共用的舞台：顶部地点与四场进度，下面是页面内容。 */

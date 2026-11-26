@@ -1,14 +1,15 @@
-import type { ArenaRoomV1 } from '@daoyou/contracts/arena';
 import { REALM_STAGE_VALUES, REALM_VALUES } from '@daoyou/constants/realms';
+import type { ArenaRoomV1 } from '@daoyou/contracts/arena';
 import { HttpException, Inject, Injectable } from '@nestjs/common';
+import { ArenaBattleStartOrchestrator } from '@server/arena/application/ArenaBattleStartOrchestrator.js';
+import { ArenaRoomService } from '@server/arena/application/ArenaRoomService.js';
+import { CombatV6BuildError } from '@server/combat/application/CombatV6BuildService.js';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import type { DbClient } from '@server/lib/drizzle/db.js';
 import { cultivators } from '@server/lib/drizzle/schema.js';
-import { ArenaBattleStartOrchestrator } from '@server/arena/application/ArenaBattleStartOrchestrator.js';
-import { ArenaRoomService } from '@server/arena/application/ArenaRoomService.js';
+import { partyForUser, partyOwns } from '@server/parties/party.service.js';
 import { publishArenaRoomChanges } from '@server/realtime/infrastructure/arenaRoomBroadcaster.js';
-import { CombatV6BuildError } from '@server/combat/application/CombatV6BuildService.js';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -22,7 +23,7 @@ function roomError(error: unknown): never {
   if (/不存在|过期|邀请码无效/.test(message))
     throw new HttpException({ error: message }, 404);
   if (
-    /已经|已满|不能|需要|准备|房主|不接受|不在|不可用|状态已变化/.test(message)
+    /已经|已满|不能|需要|准备|房主|不接受|不在|不可用|状态已变化|不足|足够|队长/.test(message)
   )
     throw new HttpException({ error: message }, 409);
   throw error;
@@ -111,10 +112,21 @@ export class ArenaRoomsService {
     await this.identity(actor);
     return { room: await this.memberRoom(actor, roomId, '你不在此擂台房间中') };
   }
-  async create(actor: ActiveCultivatorRef) {
+  private async selectedParty(actor: ActiveCultivatorRef, useParty?: boolean) {
+    if (!useParty) return;
+    const party = await partyForUser(actor.userId);
+    if (!party || !partyOwns(party, actor) || party.leaderId !== actor.userId)
+      throw new HttpException({ error: '需要通用队伍的队长带队入场' }, 409);
+    return party;
+  }
+
+  async create(actor: ActiveCultivatorRef, useParty?: boolean) {
     const identity = await this.identity(actor);
     try {
-      const room = await this.rooms.createRoom(identity);
+      const room = await this.rooms.createRoom({
+        ...identity,
+        party: await this.selectedParty(actor, useParty),
+      });
       publish(room);
       return { room };
     } catch (error) {
@@ -123,11 +135,22 @@ export class ArenaRoomsService {
   }
   async join(
     actor: ActiveCultivatorRef,
-    input: { inviteCode: string; role: 'participant' | 'spectator' },
+    input: {
+      inviteCode: string;
+      role: 'participant' | 'spectator';
+      withParty?: boolean;
+    },
   ) {
     const identity = await this.identity(actor);
     try {
-      const room = await this.rooms.joinRoom({ ...identity, ...input });
+      const room = await this.rooms.joinRoom({
+        ...identity,
+        ...input,
+        party: await this.selectedParty(
+          actor,
+          input.role === 'participant' && input.withParty,
+        ),
+      });
       publish(room);
       return { room };
     } catch (error) {

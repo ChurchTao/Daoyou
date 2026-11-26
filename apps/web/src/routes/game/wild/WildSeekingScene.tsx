@@ -166,27 +166,31 @@ export function WildSeekingScene({
           <WildLureStatus fallbackSearches={region.beastLureSearches} />
         </div>
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
-          <InkButton
-            variant={encounter ? 'secondary' : 'primary'}
-            pending={searching}
-            pendingLabel="正在寻觅……"
-            disabled={unavailable || starting || insufficient || qi === null}
-            className="min-h-11 px-4"
-            onClick={onSearch}
-          >
-            {encounter ? '继续寻觅' : '寻觅灵兽'}
-          </InkButton>
-          {encounter && !searching && (
+          <span data-guide="wild.seek" className="inline-flex">
             <InkButton
-              variant="primary"
-              pending={starting}
-              pendingLabel="正在开战……"
-              disabled={unavailable}
+              variant={encounter ? 'secondary' : 'primary'}
+              pending={searching}
+              pendingLabel="正在寻觅……"
+              disabled={unavailable || starting || insufficient || qi === null}
               className="min-h-11 px-4"
-              onClick={onStart}
+              onClick={onSearch}
             >
-              开战捕捉
+              {encounter ? '继续寻觅' : '寻觅灵兽'}
             </InkButton>
+          </span>
+          {encounter && !searching && (
+            <span data-guide="wild.start" className="inline-flex">
+              <InkButton
+                variant="primary"
+                pending={starting}
+                pendingLabel="正在开战……"
+                disabled={unavailable}
+                className="min-h-11 px-4"
+                onClick={onStart}
+              >
+                开战捕捉
+              </InkButton>
+            </span>
           )}
         </div>
         <p className="text-ink-secondary mt-3 text-xs leading-6">

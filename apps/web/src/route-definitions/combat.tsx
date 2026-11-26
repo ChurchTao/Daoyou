@@ -9,6 +9,11 @@ export const combatRoutes = (
     })}
   >
     <Route
+      path="combat-v6/invasion/:battleId"
+      lazy={lazyRoute(() => import('@app/routes/game/combat-v6/arena/route'))}
+      handle={scene({ id: 'ancient-demon-invasion', chrome: 'immersive', dock: 'hidden' }, '古魔入侵')}
+    />
+    <Route
       path="combat-v6/hunt/:battleId"
       lazy={lazyRoute(() => import('@app/routes/game/combat-v6/arena/route'))}
       handle={scene(
@@ -37,11 +42,27 @@ export const combatRoutes = (
       )}
     />
     <Route
+      path="story/battle"
+      lazy={lazyRoute(() => import('@app/routes/game/story/battle/route'))}
+      handle={scene(
+        { id: 'story-battle', chrome: 'immersive', dock: 'hidden' },
+        '交手',
+      )}
+    />
+    <Route
       path="wild"
       lazy={lazyRoute(() => import('@app/routes/game/wild/route'))}
       handle={scene(
         { id: 'wild', chrome: 'immersive', dock: 'hidden' },
         '野外寻觅',
+      )}
+    />
+    <Route
+      path="baixiao-meet/battle/:battleId"
+      lazy={lazyRoute(() => import('@app/routes/game/baixiao-meet/battle'))}
+      handle={scene(
+        { id: 'baixiao-meet', chrome: 'immersive', dock: 'hidden' },
+        '与百晓考官交手',
       )}
     />
   </Route>

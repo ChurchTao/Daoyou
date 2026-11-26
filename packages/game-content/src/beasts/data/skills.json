@@ -829,7 +829,7 @@
         "delay": 5
       },
       "icon": "icon:beast-skill-ghost",
-      "flavorText": "死亡后等待数回合复起，但无法接受普通气血恢复。"
+      "flavorText": "死亡后等待数回合复活，但无法接受普通气血恢复。"
     },
     {
       "id": "beast.advanced-ghost",
@@ -841,7 +841,7 @@
         "delay": 5
       },
       "icon": "icon:beast-skill-ghost",
-      "flavorText": "死亡后等待数回合复起，但无法接受普通气血恢复。"
+      "flavorText": "死亡后等待数回合复活，但无法接受普通气血恢复。"
     },
     {
       "id": "beast.exorcism",
@@ -853,7 +853,7 @@
         "factor": 1.5
       },
       "icon": "icon:beast-skill-exorcism",
-      "flavorText": "攻击灵魂体目标时伤害提高，击杀后阻止其复起。"
+      "flavorText": "攻击灵魂体目标时伤害提高，击杀后阻止其复活。"
     },
     {
       "id": "beast.advanced-exorcism",
@@ -865,7 +865,7 @@
         "factor": 2
       },
       "icon": "icon:beast-skill-exorcism",
-      "flavorText": "攻击灵魂体目标时伤害提高，击杀后阻止其复起。"
+      "flavorText": "攻击灵魂体目标时伤害提高，击杀后阻止其复活。"
     },
     {
       "id": "beast.denial",

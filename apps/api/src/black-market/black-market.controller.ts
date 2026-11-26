@@ -34,6 +34,7 @@ import {
   OpenSessionSchema,
 } from './black-market-input.js';
 import { BlackMarketService } from './black-market.service.js';
+import { StoryGate } from '../story/story-gate.guard.js';
 
 const BlackMarketErrors = apiErrorFilter((error) => {
   const lock = redisLockErrorResponse(error);
@@ -63,6 +64,7 @@ const BlackMarketErrors = apiErrorFilter((error) => {
 });
 
 @Controller('api/black-market')
+@StoryGate('market')
 @Access('active')
 @UseFilters(BlackMarketErrors)
 export class BlackMarketController {
@@ -114,6 +116,7 @@ export class BlackMarketController {
 
 // The unprefixed interact route stays until the Pages build that calls `/api/stream` is deployed.
 @Controller(['api/black-market', 'api/stream/black-market'])
+@StoryGate('market')
 @Access('active')
 @UseFilters(BlackMarketErrors)
 export class BlackMarketStreamController {

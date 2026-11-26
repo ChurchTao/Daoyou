@@ -4,7 +4,7 @@ import {
 } from '@app/components/feature/room';
 import { useSectTasksQuery } from '@app/components/feature/sect/sectResources';
 import { createSectTaskBattleHref } from '@app/components/feature/sect/sectTaskActivityLocations';
-import { GameImmersiveLoading } from '@app/components/game-shell';
+import { GameLoadingState } from '@app/components/game-shell';
 import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
 import { getSectPresentation } from '@app/lib/sect/sectPresentation';
 import type { SectTaskViewData } from '@daoyou/contracts/sect';
@@ -38,7 +38,9 @@ export default function SectForeignGatePage() {
 
   if (!definition) return <Navigate to="/game/map-v2?intent=sect" replace />;
   if (!tasks.data)
-    return <GameImmersiveLoading message="正在核对悬赏令与山门来客……" />;
+    return (
+      <GameLoadingState variant="scene" message="正在核对悬赏令与山门来客……" />
+    );
   if (!task?.battleTarget)
     return <Navigate to={visitHref} state={{ mapReturnTo }} replace />;
 

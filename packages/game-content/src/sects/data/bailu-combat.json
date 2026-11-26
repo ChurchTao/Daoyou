@@ -979,7 +979,7 @@
     },
     {
       "id": "bailu.status.revive_growth",
-      "description": "选择不屈后，每次凭借文脉不绝复起，都会在本场战斗增加40点法术攻击。倒地后保留。",
+      "description": "选择不屈后，每次凭借文脉不绝复活，都会在本场战斗增加40点法术攻击。倒地后保留。",
       "name": "文脉不绝",
       "kind": "bailu.revive_growth",
       "school": "bailu",

@@ -1,0 +1,175 @@
+[
+  {
+    "id": "mine-departure-care",
+    "title": "先看咪咪",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "healer": {
+        "name": "药婆"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "故乡 · 药婆家"
+      },
+      {
+        "type": "title",
+        "kicker": "报个名字",
+        "text": "先看咪咪"
+      },
+      {
+        "type": "narration",
+        "text": "药婆正要收门板，见你抱着咪咪来，把搭上门槛的那一块搬了下来。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "它跟我一块儿摔下了桥，后脚碰都不让碰。"
+      },
+      {
+        "type": "narration",
+        "text": "你把咪咪放上桌，它还揪着你的衣襟。药婆摸过它的两条后腿，拖了张矮凳过来。"
+      },
+      {
+        "type": "line",
+        "speaker": "healer",
+        "text": "手松开一点，叫它自己下来。"
+      },
+      {
+        "type": "narration",
+        "text": "你想着倒扣在灶边的鱼碗。咪咪松了爪，顺着桌沿跳上凳子，再跳到地上，两只后脚落得一样稳。"
+      },
+      {
+        "type": "line",
+        "speaker": "healer",
+        "text": "腿没事。擦干了再喂鱼。小时候你还让我替你们分，生怕少了它一口。"
+      },
+      {
+        "type": "narration",
+        "text": "药婆叫你卷起裤腿。你的膝盖已经肿起来了。"
+      },
+      {
+        "type": "line",
+        "speaker": "healer",
+        "text": "膝盖回去也敷一敷。你还要出门？"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "想问阿禾山门怎么走。他这会儿还在么？"
+      },
+      {
+        "type": "line",
+        "speaker": "healer",
+        "text": "在。窗下那包药捎给他，明早他要送到下游去。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-departure-ask",
+    "title": "渡口问路",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "he": {
+        "name": "阿禾"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "故乡 · 渡口"
+      },
+      {
+        "type": "title",
+        "kicker": "报个名字",
+        "text": "渡口问路"
+      },
+      {
+        "type": "narration",
+        "text": "阿禾正在船头系缆绳。你把药婆托带的药递给他。"
+      },
+      {
+        "type": "line",
+        "speaker": "he",
+        "text": "要过河？我明早往下游送药，去矿上得找别的船。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "我想找个山门。刚才有个弟子带我和咪咪飞过河，我想学那手御风。"
+      },
+      {
+        "type": "narration",
+        "text": "阿禾把药包搁进船篷，从里头拿出几张招徒的路帖。"
+      },
+      {
+        "type": "line",
+        "speaker": "he",
+        "text": "明早我在山脚卸药，能捎上你。山脚有个接引亭，拿帖进去报想去的山门，里头的阵就能送你到那家山门。你看看想去哪里。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-departure-morning",
+    "title": "早渡",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      },
+      "he": {
+        "name": "阿禾"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "故乡 · 渡船"
+      },
+      {
+        "type": "title",
+        "kicker": "报个名字",
+        "text": "早渡"
+      },
+      {
+        "type": "narration",
+        "text": "你收下路帖，在客簿上写了名字。阿禾叫你明早来得早些，船要赶在药铺开门前靠岸。"
+      },
+      {
+        "type": "scene",
+        "alt": "故乡 · 灶边"
+      },
+      {
+        "type": "narration",
+        "text": "回家揭开碗，煎焦的鱼皮已经粘在碗边。你挑完刺，照旧分了半条给咪咪。趁它吃鱼，你把膝盖敷上，收拾了明早要带的东西。"
+      },
+      {
+        "type": "scene",
+        "alt": "故乡 · 早渡"
+      },
+      {
+        "type": "narration",
+        "text": "天刚亮，你就到了渡口。阿禾已经在按客簿点名了。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  }
+]

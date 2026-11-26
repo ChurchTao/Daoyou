@@ -2,6 +2,7 @@
 export {
   ATLAS_ANCHORS,
   ATLAS_REGIONS,
+  getAtlasAreaLocations,
   getAtlasLocations,
   getAtlasRegion,
   hasAtlasMap,

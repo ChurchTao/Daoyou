@@ -1,5 +1,7 @@
+import { storyGateOpen } from '@daoyou/game-domain/story/gates';
 import Link from '@app/components/router/AppLink';
 import { GameIcon } from '@app/components/ui/GameIcon';
+import { useStory } from '@app/lib/story/useStory';
 import { useWorldChatFeedModel } from './useWorldChatFeedModel';
 import { getWorldChatMessageBody } from './worldChatSummary';
 
@@ -7,7 +9,11 @@ export function WorldChatPreviewBar() {
   const { latestMessage, newMessageCount, isWorldChatRoute } =
     useWorldChatFeedModel();
 
-  if (isWorldChatRoute) {
+  // 新手期主线还没把世界传音交到玩家手里，底栏先不露出来。
+  const story = useStory();
+  const unlocked = story.story?.unlocked;
+
+  if (isWorldChatRoute || !storyGateOpen(unlocked, 'world-chat')) {
     return null;
   }
 
@@ -33,7 +39,7 @@ export function WorldChatPreviewBar() {
             <span className="text-ink">{previewBody}</span>
           </div>
           {newMessageCount > 0 ? (
-            <span className="bg-crimson text-bgpaper inline-flex min-w-4 shrink-0 items-center justify-center rounded-full px-1 text-[0.62rem] leading-4">
+            <span className="bg-crimson text-on-crimson inline-flex min-w-4 shrink-0 items-center justify-center rounded-full px-1 text-[0.62rem] leading-4">
               {newMessageCount}
             </span>
           ) : null}

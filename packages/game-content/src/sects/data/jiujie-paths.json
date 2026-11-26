@@ -409,7 +409,7 @@
           "sourceIsSelf": true
         }
       ],
-      "description": "强化后恰为三重的震岳击倒敌方修士或灵兽时，有50%概率施加1回合[[jiujie.status.confuse]]。若目标在期限内复起，仍会受其影响。"
+      "description": "强化后恰为三重的震岳击倒敌方修士或灵兽时，有50%概率施加1回合[[jiujie.status.confuse]]。若目标在期限内复活，仍会受其影响。"
     },
     {
       "id": "jiujie.passive.rebirth",
@@ -1053,7 +1053,7 @@
           "name": "震魂",
           "layer": 5,
           "slot": 3,
-          "description": "强化后恰为三重的震岳击倒敌方修士或灵兽时，有50%概率施加1回合[[jiujie.status.confuse]]。若目标在期限内复起，仍会受其影响。",
+          "description": "强化后恰为三重的震岳击倒敌方修士或灵兽时，有50%概率施加1回合[[jiujie.status.confuse]]。若目标在期限内复活，仍会受其影响。",
           "passives": [
             "jiujie.passive.zhenhun"
           ]

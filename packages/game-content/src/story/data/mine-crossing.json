@@ -1,0 +1,49 @@
+{
+  "id": "mine-crossing",
+  "completionGift": "mine-crossing-complete",
+  "track": "main",
+  "title": "过河",
+  "beats": [
+    {
+      "id": "shoal",
+      "kind": "performance",
+      "arrival": "activity",
+      "script": "mine-crossing-shoal",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "去桥墩后面找咪咪。",
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "bridge-shoal"
+      },
+      "actionLabel": "找咪咪",
+      "entry": { "kind": "facility", "id": "sheltered-pier" },
+      "finishLabel": "抱稳咪咪，跟他过河"
+    },
+    {
+      "id": "flight",
+      "kind": "performance",
+      "arrival": "activity",
+      "script": "mine-crossing-flight",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "请路过的弟子带你们过河。",
+      "href": "/game/story",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_MINE_VALLEY",
+        "placeId": "bridge-shoal"
+      },
+      "actionLabel": "请他带你过河",
+      "entry": {
+        "kind": "npc",
+        "id": "passing-disciple"
+      },
+      "finishLabel": "去药婆家"
+    }
+  ],
+  "gated": true,
+  "next": "mine-departure"
+}

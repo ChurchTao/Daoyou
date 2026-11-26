@@ -1,0 +1,117 @@
+[
+  {
+    "id": "mine-shift-clock-out",
+    "title": "下工",
+    "requires": [],
+    "cast": {},
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "灵石矿 · 矿棚里"
+      },
+      {
+        "type": "title",
+        "text": "下工"
+      },
+      {
+        "type": "narration",
+        "text": "下工的梆子响了，你把最后一筐碎矿倒上秤。记工的挑出一粒泛青光的灵石，搁在秤盘边上另记一笔。"
+      },
+      {
+        "type": "narration",
+        "text": "等他记账时，你忽然馋起早上留在灶边的鱼，连煎焦的那块鱼皮都想起来了。这股馋劲是咪咪传来的，它准在棚门口等你。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-shift-work",
+    "title": "矿棚外",
+    "requires": [],
+    "cast": {
+      "player": {
+        "name": "你"
+      }
+    },
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "灵石矿 · 矿棚外"
+      },
+      {
+        "type": "title",
+        "kicker": "下工",
+        "text": "矿棚外"
+      },
+      {
+        "type": "narration",
+        "text": "咪咪蹲在棚门口的空筐旁。它小时候见了生人就钻进筐里，你下工还得挨个翻着找。"
+      },
+      {
+        "type": "narration",
+        "text": "见你出来，咪咪掉头就往坡下走。你拿半块饼叫它，它回头闻了闻，还是往家走。"
+      },
+      {
+        "type": "line",
+        "speaker": "player",
+        "text": "鱼还在。你走慢些，我鞋里全是砂。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  },
+  {
+    "id": "mine-shift-bridge",
+    "title": "木桥",
+    "requires": [],
+    "cast": {},
+    "cues": [
+      {
+        "type": "scene",
+        "alt": "矿坡 · 木桥"
+      },
+      {
+        "type": "title",
+        "kicker": "下工",
+        "text": "木桥"
+      },
+      {
+        "type": "narration",
+        "text": "你在桥头磕掉鞋里的砂。河对面，村里人正在收晒网的竹竿。雨下了半天，桥下捉虾的石滩叫水淹得只剩桥墩脚下一小片。"
+      },
+      {
+        "type": "narration",
+        "text": "走到半桥，咪咪突然扒住你的裤腿。你心里一紧，抱起它就往左躲，这才听见背后有蹄子踩上桥板。"
+      },
+      {
+        "type": "narration",
+        "text": "一头山豕擦着你冲过去，獠牙扯开了你的衣角。它在湿木板上一滑，撞翻右边的栏杆，连带着掀起了你脚下的桥板。你还没够着另一边的栏杆，就抱着咪咪摔了下去。"
+      },
+      {
+        "type": "scene",
+        "alt": "断桥下 · 石滩"
+      },
+      {
+        "type": "narration",
+        "text": "你磕疼了膝盖，扶着桥墩才站稳。咪咪还死死扒在你怀里。你想蹚回村岸，一只脚刚探进水里就险些站不住。掉下来的桥板早给冲过了晒网的地方。"
+      },
+      {
+        "type": "narration",
+        "text": "那头山豕也跳了下来，堵在你和水边之间。你绕到桥墩后，把咪咪放到地上，想让它钻进墩脚那条缝。它顺着你的意思钻了进去。"
+      },
+      {
+        "type": "narration",
+        "text": "山豕绕过桥墩。你跨了一步，挡在石缝前。"
+      },
+      {
+        "type": "end",
+        "outcome": "done"
+      }
+    ]
+  }
+]

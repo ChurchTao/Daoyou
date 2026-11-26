@@ -1,0 +1,136 @@
+{
+  "id": "mine-baishui-recovery",
+  "track": "main",
+  "title": "还能站住么",
+  "next": "mine-foundation-pill",
+  "deferredUnlocks": ["alchemy", "refine", "sect-alchemy", "sect-refinery"],
+  "beats": [
+    {
+      "id": "return-cross",
+      "kind": "passage",
+      "arrival": "location",
+      "scene": "map",
+      "prompt": "从镇渡搭早船回到白水渡。",
+      "actionLabel": "搭早船回白水渡",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "baishui-town"
+      },
+      "passage": {
+        "id": "baishui-town-to-ferry"
+      }
+    },
+    {
+      "id": "return-upstream",
+      "kind": "passage",
+      "arrival": "location",
+      "scene": "map",
+      "prompt": "在石阶换沿岸船，回山脚接引亭。",
+      "actionLabel": "搭船回山脚接引亭",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "baishui-ferry"
+      },
+      "passage": {
+        "id": "baishui-to-foothill"
+      }
+    },
+    {
+      "id": "return-sect",
+      "kind": "passage",
+      "arrival": "location",
+      "scene": "map",
+      "prompt": "到接引亭的传送阵，返回本宗。",
+      "actionLabel": "乘接引阵回本宗",
+      "location": {
+        "kind": "area",
+        "areaId": "TN_YUE_01",
+        "placeId": "foothill-pavilion"
+      },
+      "passage": {
+        "id": "foothill-to-own-sect"
+      }
+    },
+    {
+      "id": "home",
+      "kind": "performance",
+      "arrival": "activity",
+      "script": "mine-baishui-home",
+      "outcome": "done",
+      "scene": "sect",
+      "prompt": "已经到了山门。和同门一道回洞府。",
+      "actionLabel": "和同门回洞府",
+      "finishLabel": "去灵眼之泉",
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "gate"
+      },
+      "entry": {
+        "kind": "facility",
+        "id": "cave-path"
+      }
+    },
+    {
+      "id": "recover",
+      "kind": "practice",
+      "arrival": "activity",
+      "accept": [
+        {
+          "type": "fact",
+          "fact": "spring_recovered"
+        },
+        {
+          "type": "fact",
+          "fact": "condition_restored"
+        }
+      ],
+      "lesson": "baishui-spring",
+      "scene": "inn",
+      "prompt": "在灵眼之泉疗养，等气息稳下来。",
+      "actionLabel": "去灵眼之泉",
+      "href": "/game/inn?guide=baishui-spring",
+      "location": {
+        "kind": "cave"
+      }
+    },
+    {
+      "id": "reflect",
+      "kind": "performance",
+      "arrival": "activity",
+      "script": "mine-baishui-reflect",
+      "outcome": "done",
+      "scene": "inn",
+      "prompt": "在泉边歇一会儿，想想昨夜那几步。",
+      "actionLabel": "在泉边歇一会儿",
+      "finishLabel": "去传承处",
+      "href": "/game/story",
+      "location": {
+        "kind": "cave"
+      },
+      "indicatorFrom": ["/game/inn"]
+    },
+    {
+      "id": "ask-foundation",
+      "kind": "performance",
+      "arrival": "location",
+      "script": "mine-baishui-ask-foundation",
+      "outcome": "done",
+      "scene": "sect",
+      "prompt": "到传承处找守阁长老，问问昨夜那几步该怎么走。",
+      "actionLabel": "请教守阁长老",
+      "finishLabel": "去丹房",
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "archive"
+      },
+      "entry": {
+        "kind": "npc",
+        "id": "keeper"
+      }
+    }
+  ]
+}

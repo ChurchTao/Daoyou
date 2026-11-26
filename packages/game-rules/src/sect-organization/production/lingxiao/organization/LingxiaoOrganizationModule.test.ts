@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { resolveSectBenefitSnapshot } from '../../../core/organization/sectBenefits.js';
 import { LINGXIAO_ORGANIZATION } from './LingxiaoOrganizationModule.js';
 
 describe('LingxiaoOrganizationModule', () => {
@@ -8,18 +9,37 @@ describe('LingxiaoOrganizationModule', () => {
     expect(registered['sect.hall.view'].granted).toBe(true);
     expect(registered['sect.shop.use'].granted).toBe(false);
     expect(registered['sect.facility.cultivation.use'].granted).toBe(false);
-    expect(registered['sect.facility.alchemy.use'].granted).toBe(false);
+    expect(registered['sect.facility.alchemy.use'].granted).toBe(true);
+    expect(registered['sect.facility.refinery.use'].granted).toBe(true);
 
     const outer = LINGXIAO_ORGANIZATION.capabilities.snapshot('outer');
     expect(outer['sect.shop.use'].granted).toBe(true);
     expect(outer['sect.construction.view'].granted).toBe(true);
     expect(outer['sect.facility.cultivation.use'].granted).toBe(true);
-    expect(outer['sect.facility.alchemy.use'].granted).toBe(false);
+    expect(outer['sect.facility.alchemy.use'].granted).toBe(true);
 
     const inner = LINGXIAO_ORGANIZATION.capabilities.snapshot('inner');
     expect(inner['sect.facility.alchemy.use'].granted).toBe(true);
     expect(inner['sect.facility.refinery.use'].granted).toBe(true);
     expect(inner['sect.cave.view'].granted).toBe(true);
+  });
+
+  it('keeps crafting discounts tied to rank after opening the facilities', () => {
+    const levels = new Map([['workshop', 5]]);
+    const ranks = ['registered', 'outer', 'inner', 'true'] as const;
+    const benefits = ranks.map((rank) =>
+      resolveSectBenefitSnapshot(LINGXIAO_ORGANIZATION, rank, levels),
+    );
+
+    expect(benefits.map((item) => item.craftDiscounts)).toEqual(
+      [0, 0, 0.1, 0.2].map((discount) => ({
+        'sect.craft.alchemy': discount,
+        'sect.craft.refinery': discount,
+      })),
+    );
+    expect(benefits[0].facilityEffects.alchemy?.summary).toBe(
+      '炼丹灵石消耗减免 0%',
+    );
   });
 
   it('owns rank, economy, task, and construction content', () => {

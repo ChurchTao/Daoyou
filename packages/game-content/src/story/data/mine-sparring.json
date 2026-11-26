@@ -1,0 +1,86 @@
+{
+  "id": "mine-sparring",
+  "track": "main",
+  "title": "木人会还手",
+  "next": "mine-errand",
+  "deferredUnlocks": ["alchemy", "refine", "sect-alchemy", "sect-refinery"],
+  "beats": [
+    {
+      "id": "yard",
+      "kind": "performance",
+      "script": "mine-sparring-yard",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "去木人场，把早课学的那招用出来。",
+      "actionLabel": "到木人场试手",
+      "finishLabel": "与木人交手",
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "arena"
+      },
+      "entry": {
+        "kind": "facility",
+        "id": "sparring-yard"
+      }
+    },
+    {
+      "id": "fight",
+      "kind": "battle",
+      "arrival": "activity",
+      "battle": "mine-sparring",
+      "scene": "story-battle",
+      "prompt": "举盾的木人封住了去路，矮的已经绕了过来。",
+      "actionLabel": "迎战木人",
+      "href": "/game/story/battle",
+      "location": {
+        "kind": "sect",
+        "spotId": "arena"
+      },
+      "entry": {
+        "kind": "facility",
+        "id": "sparring-yard"
+      }
+    },
+    {
+      "id": "verdict",
+      "kind": "performance",
+      "arrival": "activity",
+      "script": "mine-sparring-verdict",
+      "outcome": "done",
+      "retryLostBattle": true,
+      "scene": "story",
+      "prompt": "打完了，到场边找隔壁同门。",
+      "actionLabel": "到场边找同门",
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "arena"
+      },
+      "entry": {
+        "kind": "npc",
+        "id": "neighbor"
+      },
+      "finishLabel": "留下看同门试手"
+    },
+    {
+      "id": "watch",
+      "kind": "performance",
+      "arrival": "activity",
+      "script": "mine-sparring-watch",
+      "outcome": "done",
+      "scene": "story",
+      "prompt": "轮到同门了。留下来替他看招。",
+      "actionLabel": "看同门试手",
+      "href": "/game/story",
+      "location": {
+        "kind": "sect",
+        "spotId": "arena"
+      },
+      "entry": {
+        "kind": "npc",
+        "id": "neighbor"
+      }
+    }
+  ]
+}

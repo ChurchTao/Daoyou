@@ -1,4 +1,12 @@
 /* 云游首页切换：长卷、转轮与切换仪式。 */
+.dungeon-mode-title {
+  opacity: calc(0.32 + 0.68 * var(--dungeon-mode-share));
+}
+
+:root[data-theme='dark'] .dungeon-mode-title {
+  opacity: calc(0.72 + 0.28 * var(--dungeon-mode-share));
+}
+
 .dungeon-mode-wheel {
   touch-action: none;
   cursor: grab;
@@ -23,6 +31,10 @@
 }
 .dungeon-mode-wheel[data-dragging='true'] .dungeon-mode-wheel-disc {
   transition: none;
+}
+
+:root[data-theme='dark'] .dungeon-mode-wheel-disc {
+  border: 1px solid var(--color-ink-border);
 }
 
 .dungeon-mode-wash {
