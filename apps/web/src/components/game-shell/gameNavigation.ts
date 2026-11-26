@@ -262,7 +262,7 @@ export const gameDockGroups: GameNavGroup[] = [
       },
       {
         id: 'hunt-team',
-        sceneLabel: '讨伐备战',
+        sceneLabel: '结伴讨伐',
         href: '/game/hunt-team',
       },
       {

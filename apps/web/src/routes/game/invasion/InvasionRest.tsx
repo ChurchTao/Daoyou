@@ -254,7 +254,6 @@ export function InvasionRest({
   );
   const enabled = remaining > 0 && now < closesAt && !busy;
   const self = playerId ? team.resources[playerId] : undefined;
-  const readySelf = !!playerId && team.ready.includes(playerId);
   const boss = invasionBossWave(team.wave);
 
   return (
@@ -292,16 +291,12 @@ export function InvasionRest({
           </div>
           {team.members.map((member) => {
             const condition = team.resources[member.cultivatorId];
-            const ready = team.ready.includes(member.cultivatorId);
             return (
               <div className="invasion-vital" key={member.cultivatorId}>
                 <InvasionPortrait member={member} />
                 <div>
                   <div className="invasion-vital-name">
                     <strong>{member.name}</strong>
-                    <span data-ready={ready}>
-                      {ready ? '已就绪' : '备战中'}
-                    </span>
                   </div>
                   {condition && condition.hp > 0 ? (
                     <div className="invasion-vital-bars">
@@ -360,21 +355,9 @@ export function InvasionRest({
         </div>
       </div>
       <footer className="invasion-operation-footer">
-        <div>
-          <strong>
-            <b className="font-mono">
-              {team.ready.length}/{team.members.length}
-            </b>{' '}
-            已就绪
-          </strong>
-          <p>
-            {readySelf
-              ? '等候队友就绪，或休憩结束后自动开阵。'
-              : '全员就绪可提前开阵。'}
-          </p>
-        </div>
-        <div className="invasion-action-row">
-          {team.leader && (
+        <p>{now >= closesAt ? '本期已收阵。' : '休憩结束后自动开阵。'}</p>
+        {team.leader && (
+          <div className="invasion-action-row">
             <InkButton
               variant="secondary"
               disabled={!enabled}
@@ -382,15 +365,17 @@ export function InvasionRest({
             >
               全队返回集结
             </InkButton>
-          )}
-          <InkButton
-            variant={readySelf ? 'secondary' : 'primary'}
-            disabled={!enabled}
-            onClick={() => void send({ type: 'ready', ready: !readySelf })}
-          >
-            {readySelf ? '取消就绪' : '准备迎战'}
-          </InkButton>
-        </div>
+            <InkButton
+              variant="primary"
+              disabled={!enabled}
+              onClick={() =>
+                void send({ type: 'next', runId: team.id, wave: team.wave })
+              }
+            >
+              开启下一波
+            </InkButton>
+          </div>
+        )}
       </footer>
     </section>
   );

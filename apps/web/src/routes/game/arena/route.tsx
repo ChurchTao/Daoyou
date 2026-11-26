@@ -17,7 +17,6 @@ import type {
 } from '@daoyou/contracts/arena';
 import {
   ARENA_ROOM_MAX_SEATS_PER_TEAM,
-  allArenaSeatsReady,
   hasBothArenaTeams,
   isArenaRoomActive,
 } from '@daoyou/contracts/arena';
@@ -151,7 +150,7 @@ export default function ArenaPage() {
   return (
     <GameSceneFrame
       variant="workflow"
-      description="无消耗的公共擂台切磋。创建房间或凭邀请码入场，准备完毕后即可开始。"
+      description="无消耗的公共擂台切磋。双方入场后，由房主开擂。"
     >
       <RoomView
         eyebrow="擂台场"
@@ -164,7 +163,7 @@ export default function ArenaPage() {
         selectedId={selectedActor}
         onSelect={setSelectedId}
         prompt="点击擂台入场；若想了解细则，可问王虎"
-        promptDetail="这里是无消耗的自由切磋，双方到齐并准备后即可开始。"
+        promptDetail="这里是无消耗的自由切磋，双方都有人入场即可开擂。"
         detail={
           selectedActor === 'wang-hu' ? (
             <WangHuConversation onExit={() => setSelectedId(undefined)} />
@@ -195,14 +194,14 @@ function WangHuConversation({ onExit }: { onExit(): void }) {
           {
             id: 'greeting',
             speaker: '王虎',
-            body: '这里是无消耗的自由切磋，双方到齐并准备后即可开始。',
+            body: '这里是无消耗的自由切磋，双方都有人入场即可开擂。',
           },
           ...(topic === 'rules'
             ? [
                 {
                   id: 'rules',
                   speaker: '王虎',
-                  body: '双方人数不必相同，每方最多四人。所有人准备后，由房主开始切磋，每回合有三十息同时定招。此间不消耗费用、物资或战斗外状态。',
+                  body: '双方人数不必相同，每方最多四人。双方各有至少一名参战者后，由房主开始切磋，每回合有三十息同时定招。此间不消耗费用、物资或战斗外状态。',
                 },
               ]
             : []),
@@ -408,14 +407,17 @@ function ArenaRoomWorkspace({
   const watching = room.spectators?.some(
     (s) => s.cultivatorId === currentCultivatorId,
   );
-  const canStart =
-    isHost &&
-    isArenaRoomActive(room.status) &&
-    hasBothArenaTeams(room) &&
-    allArenaSeatsReady(room);
+  const canStart = isArenaRoomActive(room.status) && hasBothArenaTeams(room);
+  const reason = room.status === 'starting'
+    ? '正在开擂。'
+    : !hasBothArenaTeams(room)
+      ? `${room.teams.alpha.length ? '赤方' : '青方'}还没有参战者。`
+      : !isHost
+        ? '双方已入场，由房主开擂。'
+        : null;
 
   const mutate = async (
-    action: 'ready' | 'switch-team' | 'leave',
+    action: 'switch-team' | 'leave',
     body: Record<string, unknown>,
   ) => {
     onBusy(true);
@@ -509,15 +511,7 @@ function ArenaRoomWorkspace({
       </section>
 
       {current ? (
-        <div className="grid gap-2 sm:grid-cols-3">
-          <button
-            type="button"
-            disabled={busy || !isArenaRoomActive(room.status)}
-            onClick={() => void mutate('ready', { ready: !current.seat.ready })}
-            className="border-crimson/45 text-crimson bg-crimson/6 border px-4 py-3 text-sm disabled:opacity-45"
-          >
-            {current.seat.ready ? '取消准备' : '准备完毕'}
-          </button>
+        <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             disabled={
@@ -568,13 +562,7 @@ function ArenaRoomWorkspace({
         </button>
       ) : null}
 
-      <p className="text-ink-secondary text-xs leading-6">
-        {room.status === 'starting'
-          ? '阵容已冻结，正在创建实时战斗对局。'
-          : canStart
-            ? '双方已准备完毕，房主现在可以开始切磋。'
-            : '等待双方到齐并准备完毕。'}
-      </p>
+      {reason && <p className="text-ink-secondary text-sm">{reason}</p>}
     </div>
   );
 }
@@ -654,9 +642,6 @@ function ArenaTeamPanel({
                     ? `${seat.realm}${seat.realmStage}`
                     : '未知'}
                 </span>
-              </span>
-              <span className={seat.ready ? 'text-teal' : 'text-ink-secondary'}>
-                {seat.ready ? '已准备' : '未准备'}
               </span>
             </div>
           ))

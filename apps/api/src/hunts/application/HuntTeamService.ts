@@ -526,18 +526,26 @@ export async function commandHuntTeam(
     }
     if (team.leaderId !== actor.cultivatorId)
       throw new ArenaV6Error('只有队长可以开战', 403);
-    // Re-read every actor at admission; preparing a room never authorizes a build.
+    if (
+      team.status === 'starting' &&
+      command.eventId &&
+      team.event?.id !== command.eventId
+    )
+      throw new ArenaV6Error('队伍正在向另一目标出战');
+    const event = command.eventId ? requireEvent(command.eventId) : team.event;
+    // Re-read every actor at admission before freezing the roster.
     const members: HuntMember[] = [];
     for (const m of team.members)
-      members.push({ ...(await member(m, team.event)), ready: m.ready });
+      members.push(await member(m, event));
     const error = huntStartError(
-      { ...team, members, status: 'assembling' },
+      { ...team, event, members, status: 'assembling' },
       actor.cultivatorId,
       Date.now(),
     );
     if (error) throw new ArenaV6Error(error);
     const starting: StoredHuntTeam = {
       ...team,
+      event,
       members,
       status: 'starting',
       startRequestId:
@@ -572,9 +580,9 @@ export async function commandHuntTeam(
       if (!(await battleStore.source(starting.id, starting.startRequestId!)))
         await saveTeam(
           {
-            ...starting,
+            ...team,
             status: 'assembling',
-            members: starting.members.map((m) => ({ ...m, ready: false })),
+            startRequestId: undefined,
             revision: starting.revision + 1,
           },
           starting,

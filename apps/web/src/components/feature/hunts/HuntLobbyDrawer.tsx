@@ -37,14 +37,12 @@ export function HuntLobbyDrawer({
       onClose={onClose}
       size="md"
     >
-      {(error || actionError) && (
+      {error && (
         <InkNotice tone="warning">
-          {actionError || error}{' '}
-          {error && (
-            <InkButton variant="secondary" onClick={refresh}>
-              重试
-            </InkButton>
-          )}
+          {error}{' '}
+          <InkButton variant="secondary" onClick={refresh}>
+            重试
+          </InkButton>
         </InkNotice>
       )}
       {data && boss ? (
@@ -73,71 +71,46 @@ export function HuntLobbyDrawer({
               返回战斗
             </InkButton>
           ) : data.open ? (
-            team && teamUrl && team.event?.id === eventId ? (
-              <HuntBattleActions
-                team={team}
-                actorId={actorId}
-                now={data.serverNow}
-                busy={pending}
-                onParty={openBoard}
-                onReady={(ready) =>
-                  void act(teamUrl, {
-                    type: 'ready',
-                    ready,
-                    revision: team.revision,
-                  })
-                }
-                onStart={() =>
-                  void act(teamUrl, { type: 'start', revision: team.revision })
-                }
-              />
-            ) : (
-              <section
-                className="border-ink-border space-y-2 border-y py-3"
-                aria-label="讨伐"
-              >
-                <p className="text-ink-secondary">
-                  {value?.roleMismatch
-                    ? '请切回在队角色参加讨伐。'
-                    : !team
-                      ? '需要 2～4 人结伴。可可以创建队伍，或查看有意讨伐的队伍。'
-                      : team.status !== 'assembling'
-                        ? '队伍正在为另一目标开战，本场结束后可更换。'
-                        : team.leaderId === actorId
-                          ? team.event
-                            ? `当前目标是「${huntTargetLabel(team.event)}」。更换后全队需要重新准备。`
-                            : '选定目标后，由队员各自确认准备。'
-                          : '请队长选定这只妖兽，再各自确认准备。'}
-                </p>
-                {team &&
-                teamUrl &&
-                team.status === 'assembling' &&
-                team.leaderId === actorId ? (
-                  <InkButton
-                    variant="primary"
-                    className="min-h-11"
-                    pending={pending}
-                    onClick={() =>
-                      void act(teamUrl, {
-                        type: 'target',
-                        eventId,
-                        revision: team.revision,
-                      })
-                    }
-                  >
-                    讨伐
-                  </InkButton>
-                ) : (
+            <>
+              {actionError && (
+                <InkNotice tone="warning">{actionError}</InkNotice>
+              )}
+              {team && teamUrl ? (
+                <HuntBattleActions
+                  team={team}
+                  event={data.event}
+                  actorId={actorId}
+                  now={data.serverNow}
+                  busy={pending}
+                  onParty={openBoard}
+                  onStart={() =>
+                    void act(teamUrl, {
+                      type: 'start',
+                      eventId,
+                      revision: team.revision,
+                    })
+                  }
+                />
+              ) : (
+                <section
+                  className="border-ink-border space-y-2 border-y py-3"
+                  aria-label="讨伐"
+                >
+                  <p className="text-ink-secondary">
+                    {value?.roleMismatch
+                      ? '请切回在队角色参加讨伐。'
+                      : '讨伐需要 2～4 人结队，由队长开战。'}
+                  </p>
                   <InkButton
                     variant="primary"
                     className="min-h-11"
                     onClick={openBoard}
                   >
-                    {team || value?.roleMismatch ? '查看队伍' : '组队讨伐'}
+                    {value?.roleMismatch ? '查看队伍' : '组队讨伐'}
                   </InkButton>
-                )}
-              </section>
-            )
+                </section>
+              )}
+            </>
           ) : null}
 
           <HuntRewardPreview realm={data.event.realm} />

@@ -1,8 +1,8 @@
 .invasion-view {
   display: flex;
-  flex: 1;
   flex-direction: column;
   width: 100%;
+  height: 100%;
   min-width: 0;
   min-height: 0;
 }
@@ -255,14 +255,6 @@
 }
 .invasion-vital-name strong {
   overflow-wrap: anywhere;
-}
-.invasion-vital-name span {
-  color: var(--color-ink-secondary);
-  font-size: 0.75rem;
-  white-space: nowrap;
-}
-.invasion-vital-name span[data-ready='true'] {
-  color: var(--color-teal);
 }
 .invasion-vital-bars {
   display: grid;

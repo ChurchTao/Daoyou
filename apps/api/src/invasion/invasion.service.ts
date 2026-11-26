@@ -346,13 +346,18 @@ export class InvasionService {
       leader: party.leaderId === actor.userId,
       captainId: members.find(({ userId }) => userId === party.leaderId)!
         .cultivatorId,
-      busyMembers: entries.some(
-        (progress) =>
-          progress.activeRunId !== null ||
-          !party.members.some(
-            ({ cultivatorId }) => cultivatorId === progress.cultivatorId,
-          ),
-      ),
+      startBlockedReason: entries.some(
+        ({ activeRunId }) => activeRunId !== null,
+      )
+        ? '有队员仍在另一轮挑战中。'
+        : entries.some(
+            (entry) =>
+              !party.members.some(
+                ({ cultivatorId }) => cultivatorId === entry.cultivatorId,
+              ),
+          )
+          ? '有队员需要切回本期出战的角色。'
+          : undefined,
       phase: 'assembling',
       wave,
       restEndsAt: null,
@@ -371,6 +376,8 @@ export class InvasionService {
     const entry = await readProgress(clock.week, actor.userId);
     if (entry && entry.cultivatorId !== actor.cultivatorId)
       throw new ForbiddenException('请使用本期出战的角色');
+    if (input.type === 'next' && input.runId !== entry?.activeRunId)
+      throw new ConflictException('本轮挑战已变化，请重新查看营地');
     if (!entry?.activeRunId) {
       if (!(await prepareInvasionWeek(clock)))
         throw new ConflictException('本期尚在准备，请稍后再试');
@@ -384,6 +391,7 @@ export class InvasionService {
     } else if (input.type === 'recover') {
       await this.recover(actor, clock.week, entry.activeRunId, input);
     } else if (
+      input.type === 'next' ||
       input.type === 'ready' ||
       input.type === 'card' ||
       input.type === 'withdraw'
@@ -405,7 +413,10 @@ export class InvasionService {
     actor: ActiveCultivatorRef,
     week: string,
     runId: string,
-    input: Extract<InvasionCommand, { type: 'ready' | 'card' | 'withdraw' }>,
+    input: Extract<
+      InvasionCommand,
+      { type: 'next' | 'ready' | 'card' | 'withdraw' }
+    >,
   ) {
     return db.transaction(async (tx) => {
       const { run, self, members } = await lockOwnedRun(tx, actor, week, runId);
@@ -421,9 +432,21 @@ export class InvasionService {
       }
       const now = Date.now();
       if (now >= run.dueAt!) throw new ConflictException('休憩已结束');
+      if (input.type === 'next' && input.wave !== run.wave)
+        throw new ConflictException('波次已变化，请重新查看营地');
       if (!(await invasionRosterMatches(run, tx))) {
+        if (input.type === 'next')
+          throw new ConflictException('队伍已有变化，请返回集结后再开阵');
         await finishInvasionRun(tx, run.id);
         return;
+      }
+      if (input.type === 'next') {
+        if (run.leaderId !== actor.userId)
+          throw new ForbiddenException('由队长开启下一波');
+        if (now >= invasionClosesAt(week))
+          throw new ConflictException('活动已截止');
+        await this.queueWave(tx, run, now);
+        return run.id;
       }
       const ready = run.ready.filter((id) => id !== self.cultivatorId);
       if (input.type === 'card') {
@@ -482,11 +505,8 @@ export class InvasionService {
       }
       if (party.leaderId !== actor.userId)
         throw new ForbiddenException('由队长开启挑战');
-      if (
-        party.members.length < 2 ||
-        party.members.some((member) => !ready.includes(member.cultivatorId))
-      )
-        throw new ConflictException('需要至少两名队员且全员准备');
+      if (party.members.length < 2)
+        throw new ConflictException('至少需要两名道友结队出战');
       const members = party.members.map(invasionMember);
       for (const member of [...members].sort((a, b) =>
         a.userId.localeCompare(b.userId),

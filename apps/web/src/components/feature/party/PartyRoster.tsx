@@ -423,9 +423,9 @@ export function PartyRoster({
               {confirmation.type === 'promote'
                 ? `「${target?.name}」将接任队长，负责队务和入队审批。`
                 : confirmation.type === 'kick'
-                  ? `「${target?.name}」将离开队伍，已准备的队员需要重新确认。`
+                  ? `「${target?.name}」将离开队伍。`
                   : captain && teammates.length
-                    ? '离队后，队长由其他队员接任，已准备的队员需要重新确认。'
+                    ? '离队后，队长由其他队员接任。'
                     : '离队后将无法参与这支队伍接下来的挑战。'}
             </p>
             <div className="flex flex-wrap gap-x-2">

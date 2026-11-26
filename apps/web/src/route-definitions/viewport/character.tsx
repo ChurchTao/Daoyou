@@ -22,9 +22,9 @@ export const characterRoutes = [
       {
         id: 'hunt-team',
         presentation: 'workflow',
-        summary: '结成队伍，再选定要讨伐的目标。',
+        summary: '查阅妖兽行踪，结伴前往讨伐。',
       },
-      '讨伐备战',
+      '结伴讨伐',
     )}
   />,
   <Route

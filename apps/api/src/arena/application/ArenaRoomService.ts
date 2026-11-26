@@ -1,6 +1,5 @@
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import {
-  allArenaSeatsReady,
   ARENA_ROOM_INVITE_CODE_LENGTH,
   ARENA_ROOM_MAX_SEATS_PER_TEAM,
   ARENA_ROOM_MAX_SPECTATORS,
@@ -467,8 +466,6 @@ export class ArenaRoomService {
     if (!isArenaRoomActive(room.status))
       throw new Error('擂台房间当前不能开始');
     if (!hasBothArenaTeams(room)) throw new Error('双方都需要至少一名参战者');
-    if (!allArenaSeatsReady(room))
-      throw new Error('所有参战者准备完毕后才能开始');
     const freeze = () =>
       this.commit(
         room,
@@ -541,7 +538,7 @@ export class ArenaRoomService {
     await this.commit(
       room,
       nextRoom(room, {
-        status: 'ready_check',
+        status: 'assembling',
         startRequestId: undefined,
         frozenRoster: undefined,
       }),

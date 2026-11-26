@@ -136,8 +136,8 @@ function Entry({
         <div className="space-y-2">
           <p className="text-ink-secondary text-sm">
             {value?.roleMismatch
-              ? '请切回在队角色，再到营地准备。'
-              : '在队伍面板集结道友，入队后回营地准备出战。'}
+              ? '请切回在队角色，再到营地参战。'
+              : '至少两人才能出战，结队后由队长开阵。'}
           </p>
           <InkButton
             variant="primary"
@@ -289,7 +289,6 @@ function Camp({ playerId }: { playerId?: string }) {
               <InvasionParty
                 key={team.id}
                 team={team}
-                playerId={playerId}
                 busy={busy}
                 open={open}
                 remaining={status.closesAt - now}
@@ -365,7 +364,7 @@ function Camp({ playerId }: { playerId?: string }) {
           <section>
             <h3>波间休憩</h3>
             <p>
-              全员就绪可提前迎战。可用储物袋里的回复丹药，按实扣库存。每波至多启用一张增益卡。
+              休憩结束自动开阵，队长也可提前开阵。可用储物袋里的回复丹药，按实扣库存。每波至多启用一张增益卡。
             </p>
           </section>
           <section>

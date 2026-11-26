@@ -33,6 +33,7 @@ export const HuntTeamCommandSchema = z.discriminatedUnion('type', [
     .object({
       type: z.literal('start'),
       revision: z.number().int().nonnegative(),
+      eventId: HuntEventIdSchema.optional(),
     })
     .strict(),
   z

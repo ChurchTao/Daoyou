@@ -180,7 +180,7 @@ export async function createArenaV6(
               REALM_VALUES.indexOf(identity.realm as RealmType),
             );
           if (hunt && !huntRealmAllowed(hunt, identity.realm as RealmType))
-            throw new ArenaV6Error('参战境界已变化，请重新准备');
+            throw new ArenaV6Error('有队员不符合当前讨伐的出战境界');
           if (huntEvent)
             huntRewards[seat.cultivatorId] = await prepareHuntReward(
               huntEvent,
@@ -266,7 +266,7 @@ export async function createArenaV6(
         }
         if (invasion) {
           if (!invasion.build && highestInvasionRealm !== REALM_VALUES.indexOf(invasion.realm))
-            throw new ArenaV6Error('参战境界已变化，请重新准备');
+            throw new ArenaV6Error('队伍的最高境界已变化，请重新开阵');
           if (invasion.build) {
             mergeDefinitions(skills, invasion.build.skills);
             mergeDefinitions(statuses, invasion.build.statusDefs);

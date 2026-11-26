@@ -13,6 +13,11 @@ import { z } from 'zod';
 export const InvasionCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('recruit'), advertised: z.boolean() }),
   z.strictObject({ type: z.literal('start') }),
+  z.strictObject({
+    type: z.literal('next'),
+    runId: z.uuid(),
+    wave: z.number().int().positive(),
+  }),
   z.strictObject({ type: z.literal('withdraw') }),
   z.strictObject({ type: z.literal('ready'), ready: z.boolean() }),
   z.strictObject({
@@ -48,7 +53,7 @@ export type InvasionStatus = {
         realm: RealmType;
         leader: boolean;
         captainId: string;
-        busyMembers?: boolean;
+        startBlockedReason?: string;
         regrouping?: boolean;
         recruiting?: boolean;
         ready: string[];

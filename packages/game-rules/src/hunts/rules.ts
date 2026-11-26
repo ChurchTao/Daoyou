@@ -25,8 +25,7 @@ export function huntStartError(
   if (new Set(team.members.map((m) => m.userId)).size !== team.members.length)
     return '同一账号不能重复参战';
   if (team.members.some((m) => !huntRealmAllowed(team, m.realm)))
-    return '有成员不符合招募境界';
-  if (team.members.some((m) => !m.ready)) return '请等待全员准备';
+    return '有队员不符合队长设置的出战境界范围';
   return null;
 }
 export function huntKickError(

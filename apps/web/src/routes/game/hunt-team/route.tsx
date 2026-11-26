@@ -1,4 +1,3 @@
-import { HuntBattleActions } from '@app/components/feature/hunts/HuntBattleActions';
 import { huntTargetLabel } from '@app/components/feature/hunts/huntTeamView';
 import { useHuntActions } from '@app/components/feature/hunts/useHuntActions';
 import { useHuntBattleNavigation } from '@app/components/feature/hunts/useHuntBattleNavigation';
@@ -9,49 +8,17 @@ import {
   GameSceneLoading,
   GameSceneNote,
 } from '@app/components/game-shell';
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkSelect } from '@app/components/ui/InkSelect';
 import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
 import type { HuntMine } from '@daoyou/contracts/hunts';
 import { HUNT_BOSSES } from '@daoyou/game-content/hunts';
 import type { HuntEvent, HuntTeam } from '@daoyou/game-domain/hunts';
+import { huntMapHref } from '@daoyou/game-rules/hunts';
 import { useState } from 'react';
 
-function HuntTargetField({
-  team,
-  disabled,
-  onPick,
-}: {
-  team: HuntTeam;
-  disabled: boolean;
-  onPick: (eventId: string | null) => void;
-}) {
-  const events = useHunts<{ events: HuntEvent[] }>('/api/hunts', 15000).data
-    ?.events;
-  return (
-    <InkSelect
-      label="讨伐目标"
-      disabled={disabled}
-      value={team.event?.id ?? ''}
-      onChange={(value) => onPick(value || null)}
-    >
-      <option value="">暂不选定</option>
-      {team.event && !events?.some((item) => item.id === team.event?.id) ? (
-        <option value={team.event.id}>
-          {huntTargetLabel(team.event)} · {team.event.locationName}
-        </option>
-      ) : null}
-      {events?.map((event) => (
-        <option key={event.id} value={event.id}>
-          {event.realm}期 · {HUNT_BOSSES[event.bossId].name} ·{' '}
-          {event.locationName}
-        </option>
-      ))}
-    </InkSelect>
-  );
-}
-
-function HuntRecruitmentForm({
+function HuntRealmRange({
   team,
   pending,
   onSave,
@@ -105,113 +72,86 @@ function HuntRecruitmentForm({
 }
 
 export default function HuntTeamPage() {
-  const { data, error, actorId, refresh } = useHunts<HuntMine>(
-    '/api/hunts/me',
-    5000,
-  );
-  const { value, openParty } = useParty();
+  const { data, error, actorId, refresh } = useHunts<HuntMine>('/api/hunts/me');
+  const feed = useHunts<{ events: HuntEvent[] }>('/api/hunts', 15000);
+  const { openParty } = useParty();
   const { act, pending, actionError } = useHuntActions(actorId, refresh);
   const team = data?.team;
-  const leader = team?.leaderId === actorId;
-  const openBoard = () => openParty({ kind: 'hunt' });
   useHuntBattleNavigation(team, actorId, refresh);
-
-  if (!data && !error) return <GameSceneLoading message="正在确认队伍……" />;
 
   return (
     <GameSceneFrame variant="workflow">
-      {(actionError || error) && (
-        <GameSceneNote tone="danger">{actionError || error}</GameSceneNote>
+      {(actionError || error || feed.error) && (
+        <GameSceneNote tone="danger">
+          {actionError || error || feed.error}
+        </GameSceneNote>
       )}
-      {!team ? (
-        <div className="space-y-3">
-          <p className="text-ink-secondary">
-            {value?.roleMismatch
-              ? '请切回在队角色参加讨伐。'
-              : '创建队伍或加入正在招募的队伍，再随队讨伐。'}
-          </p>
-          <InkButton variant="primary" onClick={openBoard}>
-            {value?.roleMismatch ? '查看队伍' : '组队讨伐'}
-          </InkButton>
-          <InkButton variant="secondary" href="/game/map-v2">
-            寻找讨伐目标
-          </InkButton>
-        </div>
+      {team?.battleId && team.status === 'in_battle' && (
+        <InkButton
+          variant="primary"
+          className="min-h-11"
+          href={`/game/combat-v6/hunt/${team.battleId}`}
+        >
+          返回战斗
+        </InkButton>
+      )}
+      {!feed.data ? (
+        !feed.error && <GameSceneLoading message="正在探听妖兽行踪……" />
+      ) : !feed.data.events.length ? (
+        <p className="text-ink-secondary text-sm">暂无可讨伐的目标。</p>
       ) : (
-        <div className="space-y-4 text-sm">
-          {leader && team.status === 'assembling' ? (
-            <>
-              <HuntTargetField
-                team={team}
-                disabled={pending}
-                onPick={(eventId) =>
-                  void act(`/api/hunts/teams/${team.id}`, {
-                    type: 'target',
-                    eventId,
-                    revision: team.revision,
-                  })
-                }
+        <ul className="divide-ink-border divide-y" aria-label="当前讨伐目标">
+          {feed.data.events.map((event) => (
+            <li key={event.id} className="flex items-center gap-3 py-2">
+              <GameIcon
+                value={HUNT_BOSSES[event.bossId].icon}
+                className="text-4xl"
               />
-              <details>
-                <summary className="text-ink-secondary mb-2 cursor-pointer">
-                  调整出战境界 · {team.minRealm}至{team.maxRealm}
-                </summary>
-                <HuntRecruitmentForm
-                  key={`${team.id}:${team.minRealm}:${team.maxRealm}`}
-                  team={team}
-                  pending={pending}
-                  onSave={(minRealm, maxRealm) =>
-                    void act('/api/hunts/teams', {
-                      minRealm,
-                      maxRealm,
-                      eventId: team.event?.id,
-                    })
-                  }
-                />
-              </details>
-            </>
-          ) : (
-            <p>
-              {team.event
-                ? `${huntTargetLabel(team.event)} · ${team.event.locationName}`
-                : '等待队长选定讨伐目标。'}
-            </p>
-          )}
-          {team.event ? (
-            <HuntBattleActions
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold">{huntTargetLabel(event)}</p>
+                <p className="text-ink-secondary text-sm">
+                  {event.locationName}
+                </p>
+              </div>
+              <InkButton
+                variant="primary"
+                className="min-h-11"
+                href={huntMapHref(event)}
+              >
+                前往查看
+              </InkButton>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex flex-wrap items-start gap-x-3 text-sm">
+        <InkButton
+          variant="secondary"
+          className="min-h-11"
+          onClick={() => openParty({ kind: 'hunt' })}
+        >
+          查看队伍
+        </InkButton>
+        {team?.leaderId === actorId && team.status === 'assembling' && (
+          <details className="min-w-0 flex-1">
+            <summary className="text-ink-secondary flex min-h-11 cursor-pointer items-center">
+              出战境界 · {team.minRealm}至{team.maxRealm}
+            </summary>
+            <HuntRealmRange
+              key={`${team.id}:${team.minRealm}:${team.maxRealm}`}
               team={team}
-              actorId={actorId}
-              now={data.serverNow}
-              busy={pending}
-              onParty={openBoard}
-              onReady={(ready) =>
-                void act(`/api/hunts/teams/${team.id}`, {
-                  type: 'ready',
-                  ready,
-                  revision: team.revision,
-                })
-              }
-              onStart={() =>
-                void act(`/api/hunts/teams/${team.id}`, {
-                  type: 'start',
-                  revision: team.revision,
+              pending={pending}
+              onSave={(minRealm, maxRealm) =>
+                void act('/api/hunts/teams', {
+                  minRealm,
+                  maxRealm,
+                  eventId: team.event?.id,
                 })
               }
             />
-          ) : (
-            <>
-              {leader && (
-                <p className="text-ink-secondary">
-                  选定目标后，全员确认准备即可出战。
-                </p>
-              )}
-              <InkButton variant="secondary" onClick={openBoard}>
-                查看队伍
-              </InkButton>
-            </>
-          )}
-        </div>
-      )}
+          </details>
+        )}
+      </div>
     </GameSceneFrame>
   );
 }

@@ -71,7 +71,7 @@ function ArenaBattle({
       ? '擂台观战'
       : '擂台切磋';
   const back = invasion ? INVASION_PATH : session?.hunt ? HUNT_TEAM_HREF : '/game/arena';
-  const backLabel = invasion ? '返回镇魔营地' : session?.hunt ? '返回讨伐队伍' : '返回擂台';
+  const backLabel = invasion ? '返回镇魔营地' : session?.hunt ? '返回讨伐' : '返回擂台';
   return (
     <CombatV6Page
       title={title}

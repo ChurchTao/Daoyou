@@ -147,16 +147,17 @@ describe('世界讨伐准入与刷新', () => {
     expect(huntEventById('hunt-v1-1-99')).toBeUndefined();
   });
   it.each([2, 3, 4])('%i人可开战，全部为助战成员也不限制开战', (count) => {
-    expect(huntStartError(team(count, true), 'c0', now)).toBeNull();
+    const t = team(count, true);
+    t.members.forEach((member) => {
+      member.ready = false;
+    });
+    expect(huntStartError(t, 'c0', now)).toBeNull();
   });
-  it('拒绝单人、超员、未准备、非队长、同账号分身与过期事件', () => {
+  it('拒绝单人、超员、非队长、同账号分身与过期事件', () => {
     expect(huntStartError(team(1), 'c0', now)).toMatch('2～4');
     expect(huntStartError(team(5), 'c0', now)).toMatch('2～4');
     expect(huntStartError(team(2), 'c1', now)).toMatch('队长');
     const t = team(2);
-    t.members[1].ready = false;
-    expect(huntStartError(t, 'c0', now)).toMatch('全员准备');
-    t.members[1].ready = true;
     t.members[1].userId = 'u0';
     expect(huntStartError(t, 'c0', now)).toMatch('同一账号');
     expect(huntStartError(team(2), 'c0', team(2).event!.expiresAt)).toMatch(
