@@ -603,6 +603,13 @@
       "when": 1795765808456,
       "tag": "0086_unified_battle_vitals",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1795787853862,
+      "tag": "0087_remove_ancient_demon_invasion_replays",
+      "breakpoints": true
     }
   ]
 }

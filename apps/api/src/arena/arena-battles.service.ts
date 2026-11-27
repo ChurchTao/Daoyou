@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import {
   arenaReplayV6,
-  ownedArenaV6,
+  ownedArenaViewV6,
   submitArenaV6,
   watchedArenaV6,
 } from '@server/combat/application/CombatV6ArenaService.js';
-import { arenaView } from '@server/combat/arena-view.js';
+import { arenaDeliveryView } from '@server/combat/arena-view.js';
 import type { ArenaV6Submit } from '@daoyou/contracts/combat/arena';
 
 @Injectable()
@@ -16,7 +16,7 @@ export class ArenaBattlesService {
     id: string,
     spectator: boolean,
   ) {
-    await (spectator ? watchedArenaV6 : ownedArenaV6)(id, actor);
+    await (spectator ? watchedArenaV6 : ownedArenaViewV6)(id, actor);
   }
 
   async read(
@@ -26,10 +26,11 @@ export class ArenaBattlesService {
     cursor?: number,
   ) {
     const { runtime, participant } = await (
-      spectator ? watchedArenaV6 : ownedArenaV6
+      spectator ? watchedArenaV6 : ownedArenaViewV6
     )(id, actor);
     const last = runtime.lastResults[participant.unitId];
     const incremental =
+      cursor !== undefined &&
       last?.revision === runtime.revision &&
       last.playback?.fromEventSeq === cursor;
     const view = incremental
@@ -38,7 +39,7 @@ export class ArenaBattlesService {
           serverNow: Date.now(),
           events: last.events.filter((e) => e.seq > cursor!),
         }
-      : arenaView(runtime, participant.unitId, Date.now());
+      : arenaDeliveryView(runtime, participant.unitId, Date.now());
     const unchanged = cursor === view.latestEventSeq;
     return {
       success: true,

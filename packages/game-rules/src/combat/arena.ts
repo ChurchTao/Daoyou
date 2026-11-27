@@ -200,6 +200,7 @@ export function arenaView(
   runtime: ArenaState,
   viewerId: string,
   now: number,
+  afterEventSeq = -1,
 ): ArenaSnapshot {
   const viewer = runtime.participants.find((p) => p.unitId === viewerId);
   const spectator = viewerId === ARENA_PUBLIC_VIEW;
@@ -272,7 +273,7 @@ export function arenaView(
     stage: runtime.stage,
     outcome,
     units: arenaUnits(state, runtime, viewerId),
-    events,
+    events: afterEventSeq < 0 ? events : events.slice(afterEventSeq + 1),
     latestEventSeq: events.length - 1,
     commandOptions,
     pendingCommand: undefined,
@@ -319,15 +320,22 @@ export function resolveArena<
 >(
   runtime: TRuntime,
   now: number,
-  makeView: (runtime: TRuntime, viewerId: string, now: number) => TView,
+  makeView: (
+    runtime: TRuntime,
+    viewerId: string,
+    now: number,
+    afterEventSeq?: number,
+  ) => TView,
 ): TRuntime {
   const next = structuredClone(runtime);
-  const recording = replayRound(
-    next.timeline,
-    next.state,
-    next.statusDefs,
-    next.events.length - 1,
-  );
+  const recording = next.invasion
+    ? undefined
+    : replayRound(
+        next.timeline,
+        next.state,
+        next.statusDefs,
+        next.events.length - 1,
+      );
   const battle = arenaBattle(next);
   const commands = arenaWaitingUnits(next).map((unit) => ({
     unitId: unit.id,
@@ -335,7 +343,7 @@ export function resolveArena<
       next.commands[unit.id]?.command ?? arenaDefaultCommand(next, unit.id),
   }));
   for (const entry of commands) battle.submit(entry.unitId, entry.command);
-  next.rounds.push({ round: next.state.round, commands });
+  if (recording) next.rounds.push({ round: next.state.round, commands });
   const fromSeq = arenaEvents(next.events).length - 1;
   const frames = new Map(
     [...next.participants.map((p) => p.unitId), ARENA_PUBLIC_VIEW].map((id) => [
@@ -358,10 +366,10 @@ export function resolveArena<
     }
   };
   battle.lockAndResolve((state, seq) => {
-    recording.capture(state, seq);
+    recording?.capture(state, seq);
     capture(state);
   });
-  recording.finish(battle.snapshot(), battle.log().length - 1);
+  recording?.finish(battle.snapshot(), battle.log().length - 1);
   capture(battle.snapshot());
   next.state = battle.snapshot();
   next.events = [...battle.log()];
@@ -378,7 +386,7 @@ export function resolveArena<
     [...next.participants.map((p) => p.unitId), ARENA_PUBLIC_VIEW].map((id) => [
       id,
       {
-        ...makeView(next, id, now),
+        ...makeView(next, id, now, next.invasion ? fromSeq : undefined),
         playback: {
           format: 'delta-v1' as const,
           fromEventSeq: fromSeq,

@@ -6,7 +6,10 @@ import { appendBattleEntries, type BattleLog } from '@daoyou/game-rules/combat/l
 export type CombatV6Session = Omit<
   CombatV6TrainingSessionViewV1,
   'encounterId' | 'tier'
-> & { settlement?: 'pending' | 'settled' | 'not-started' };
+> & {
+  settlement?: 'pending' | 'settled' | 'not-started';
+  eventWindowStartSeq?: number;
+};
 export type CombatV6Unit = CombatV6Session['units'][number];
 export type SequencedEvent = CombatV6Session['events'][number];
 export type SessionState<T extends CombatV6Session> = {
@@ -57,8 +60,15 @@ export function reduceSession<T extends CombatV6Session>(
   const snapshot = withoutPlayback as T;
   const reset = action.full || !sameSession;
   if (reset) {
-    if (!contiguousEvents(next.events, -1, next.latestEventSeq))
+    const beforeWindow = (next.eventWindowStartSeq ?? 0) - 1;
+    if (!contiguousEvents(next.events, beforeWindow, next.latestEventSeq))
       return { ...state, session: snapshot, queue: [], recoveryNeeded: true };
+    const log = {
+      entries: [],
+      open: false,
+      round: next.eventWindowStartSeq === undefined ? 0 : next.round,
+      seq: beforeWindow,
+    };
     return {
       session: snapshot,
       shown: {
@@ -67,7 +77,7 @@ export function reduceSession<T extends CombatV6Session>(
         visibleSeq: next.latestEventSeq,
       },
       queue: [],
-      log: appendBattleEntries(emptySession<T>().log, next.events, next),
+      log: appendBattleEntries(log, next.events, next),
       recoveryNeeded: false,
     };
   }

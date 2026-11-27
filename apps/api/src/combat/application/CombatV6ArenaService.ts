@@ -56,10 +56,11 @@ import { hasActiveCombat } from '@server/combat/application/CombatOccupancy.js';
 import { broadcastArenaV6 } from '@server/combat/application/CombatV6ArenaBroadcast.js';
 import {
   arenaDueKey,
+  type ArenaViewSource,
   CombatV6ArenaStore,
 } from '@server/combat/application/CombatV6ArenaStore.js';
 import { assembleCombatV6TrainingPlayer } from '@server/combat/application/CombatV6BuildService.js';
-import { resolveArena } from '@server/combat/arena-view.js';
+import { invasionResultViews, resolveArena } from '@server/combat/arena-view.js';
 import { prepareHuntReward } from '@server/hunts/application/HuntRewardService.js';
 import { db } from '@server/lib/drizzle/db.js';
 import { cultivators } from '@server/lib/drizzle/schema.js';
@@ -316,7 +317,14 @@ export async function createArenaV6(
 }
 
 export async function ownedArenaV6(id: string, actor: Actor) {
-  const runtime = await store.get(id);
+  return requireArenaParticipant(await store.get(id), actor);
+}
+
+export async function ownedArenaViewV6(id: string, actor: Actor) {
+  return requireArenaParticipant(await store.getForViewing(id), actor);
+}
+
+function requireArenaParticipant<T extends ArenaViewSource>(runtime: T | null, actor: Actor) {
   if (!runtime) throw new ArenaV6Error('战斗不存在或已过期', 404);
   const participant = runtime.participants.find(
     (p) => p.userId === actor.userId && p.cultivatorId === actor.cultivatorId,
@@ -541,7 +549,7 @@ async function finalizeArenaV6(runtime: ArenaRuntime) {
   if (runtime.invasion) {
     await recordInvasionTerminal(runtime);
     await store.release(runtime);
-    await store.acknowledge(runtime);
+    await store.finishInvasion(runtime, invasionResultViews(runtime, Date.now()));
     return;
   }
   if (runtime.hunt) {

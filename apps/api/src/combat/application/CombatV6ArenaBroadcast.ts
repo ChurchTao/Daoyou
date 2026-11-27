@@ -1,8 +1,5 @@
-import { arenaView } from '@server/combat/arena-view.js';
-import type {
-  ArenaRuntime,
-  ArenaSocketMessage,
-} from '@daoyou/contracts/combat/arena';
+import { arenaDeliveryView } from '@server/combat/arena-view.js';
+import type { ArenaRuntime, ArenaSocketMessage } from '@daoyou/contracts/combat/arena';
 import { ARENA_PUBLIC_VIEW } from '@daoyou/game-domain/combat/arena';
 import { ArenaRoomService } from '@server/arena/application/ArenaRoomService.js';
 import {
@@ -10,7 +7,7 @@ import {
   subscribeNatsCoreSubject,
   waitForNatsCoreSubjectReady,
 } from '@server/realtime/infrastructure/natsCorePubSub.js';
-import { CombatV6ArenaStore } from '@server/combat/application/CombatV6ArenaStore.js';
+import { CombatV6ArenaStore, type ArenaViewSource } from '@server/combat/application/CombatV6ArenaStore.js';
 
 const subject = (id: string) => `daoyou.realtime.combat-v6.arena.${id}`;
 export async function subscribeArenaV6(
@@ -36,14 +33,14 @@ export async function broadcastArenaV6(runtime: ArenaRuntime) {
   );
 }
 export function arenaSocketState(
-  runtime: ArenaRuntime,
+  runtime: ArenaViewSource,
   viewer: string,
 ): ArenaSocketMessage {
   const result = runtime.lastResults[viewer];
   const session =
     result?.revision === runtime.revision
       ? { ...result, serverNow: Date.now() }
-      : arenaView(runtime, viewer, Date.now());
+      : arenaDeliveryView(runtime, viewer, Date.now());
   const message: ArenaSocketMessage = {
     type: 'state',
     session: {

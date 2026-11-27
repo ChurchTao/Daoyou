@@ -348,6 +348,25 @@ describe('arena public host', () => {
       'ARENA_FORBIDDEN',
     );
   });
+  it('古魔两回合仍可播放和恢复，累计日志只保留在运行态', () => {
+    const runtime = fixture(4);
+    runtime.invasion = { teamId: 'team', wave: 5, endsAt: 7200000 };
+    const first = resolveArena(runtime, 0);
+    const firstView = first.lastResults.u0;
+    first.stage = 'collecting';
+    const next = resolveArena(first, 30000);
+    const view = next.lastResults.u0;
+    const restored = arenaView(next, 'u0', 30000);
+
+    expect(next.rounds).toEqual([]);
+    expect(next.timeline.frames).toEqual([]);
+    expect(view.playback?.fromEventSeq).toBe(firstView.latestEventSeq);
+    expect(view.events.length).toBeGreaterThan(0);
+    expect(view.events).toEqual(restored.events.slice(firstView.latestEventSeq + 1));
+    expect(view.latestEventSeq).toBe(restored.latestEventSeq);
+    expect(view.playback?.frames.reduce(applyUnitDelta, firstView.units)).toEqual(view.units);
+  });
+
   it('archives consecutive rounds once and reproduces each participant live delta view', () => {
     let runtime = fixture();
     const id = 'c431d125-c61d-423a-9b2d-dde9dd94daac';

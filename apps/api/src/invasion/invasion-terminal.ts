@@ -1,6 +1,5 @@
 import type { ArenaRuntime } from '@daoyou/contracts/combat/arena';
 import type { ResourceChange } from '@daoyou/contracts/resources';
-import { createCombatV6Replay } from '@daoyou/game-rules/combat/replay';
 import {
   INVASION_REST_MS,
   invasionCardDrop,
@@ -9,7 +8,6 @@ import {
 import { settlePersistentBattle } from '@server/combat/application/CombatV6PersistentCondition.js';
 import { db } from '@server/lib/drizzle/db.js';
 import { invasionProgress, invasionRuns } from '@server/lib/drizzle/schema.js';
-import { archiveCombatV6Replay } from '@server/lib/repositories/combatV6ReplayRepository.js';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
 import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
 import { publishResourceEvents } from '@server/realtime/infrastructure/playerStateBroadcaster.js';
@@ -48,33 +46,6 @@ export async function recordInvasionTerminal(runtime: ArenaRuntime) {
     const closesAt = await invasionClosesAt(run.week, tx);
     const endedAt = runtime.terminalAt ?? runtime.deadlineAt;
     const won = runtime.state.result?.winner === 0 && endedAt < closesAt;
-    await archiveCombatV6Replay(
-      createCombatV6Replay({
-        battleId: runtime.battleId,
-        participants: runtime.participants,
-        metadata: {
-          schemaVersion: 1,
-          sourceType: 'ancient-demon-invasion',
-          battleType: 'pve',
-          idempotencyKey: runtime.startRequestId,
-          payload: { teamId: run.id, wave: run.wave },
-        },
-        startedAt: new Date(runtime.createdAt).toISOString(),
-        finishedAt: new Date(endedAt).toISOString(),
-        reason: runtime.terminalReason!,
-        trace: {
-          seed: runtime.seed,
-          initialUnits: runtime.units,
-          skills: runtime.skills,
-          statusDefs: runtime.statusDefs,
-          rounds: runtime.rounds,
-          events: runtime.events,
-          finalState: runtime.state,
-          timeline: runtime.timeline,
-        },
-      }),
-      tx,
-    );
     const changes: ResourceChange[] = [];
     for (const participant of runtime.participants) {
       if (runtime.terminalReason === 'battle-ended') {
