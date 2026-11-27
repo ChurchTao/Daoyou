@@ -7,10 +7,6 @@ export type PubSubEnvelope<T> = {
   payload: T;
 };
 
-export function getPubSubInstanceId() {
-  return instanceId;
-}
-
 export function createPubSubEnvelope<T>(payload: T): PubSubEnvelope<T> {
   return {
     sourceInstanceId: instanceId,

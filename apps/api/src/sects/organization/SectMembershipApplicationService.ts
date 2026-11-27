@@ -11,6 +11,7 @@ import {
   SectMembership,
 } from '@daoyou/game-rules/sect-organization';
 import type { Cultivator } from '@daoyou/game-domain/character';
+import type { PresenceService } from '@server/presence/presence.service.js';
 import type { SectBenefitService } from '@server/sects/organization/SectBenefitService.js';
 import type { SectDomainEventDispatcherFactory } from '@server/sects/organization/SectDomainEventDispatcher.js';
 import {
@@ -25,7 +26,6 @@ import type {
   SectMembershipQueryContext,
   SectMembershipRecord,
 } from '@server/sects/organization/ports.js';
-import { getOnlineCultivatorIds } from '@server/realtime/infrastructure/onlinePresenceService.js';
 
 const SHANGHAI_DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'Asia/Shanghai',
@@ -256,7 +256,9 @@ export class SectMembershipApplicationService {
     cultivatorId: string,
     page: number,
     pageSize: number,
-    context: SectMembershipQueryContext,
+    context: SectMembershipQueryContext & {
+      presence: Pick<PresenceService, 'getOnlineCultivatorIds'>;
+    },
   ) {
     const membership = await requireMembership(
       cultivatorId,
@@ -272,7 +274,7 @@ export class SectMembershipApplicationService {
       page,
       pageSize,
     );
-    const onlineIds = await getOnlineCultivatorIds(
+    const onlineIds = await context.presence.getOnlineCultivatorIds(
       result.rows.map((row) => row.cultivatorId),
     );
     const now = new Date();

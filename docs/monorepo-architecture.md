@@ -57,12 +57,14 @@ flowchart LR
 
 - 背包、炼丹、炼器、邮件、交易、任务、叙事、角色等实现进入所属 feature 的 `application/`。
 - 宗门组织进入 `sects/organization/`，战斗编排进入 `combat/application/`。
-- 广播、在线状态及 NATS 实时适配进入 `realtime/infrastructure/`。
+- 广播及 NATS 实时适配进入 `realtime/infrastructure/`。全局角色在线状态由独立的 `PresenceModule` 管理。
 - `lib/services` 只保留五个文件、约 1120 行，负责命令协调、资源读取/提交/响应和通用资源引擎。
 
 文件归位主要改动导入路径。领域函数、纯计算和无状态应用对象保持框架无关；Nest Service 负责请求边界、依赖组合和响应适配。宗门的现有应用组合通过 `SECT_ORGANIZATION` Provider 注入，避免重复创建另一套对象。
 
 这仍是一个模块化单体。源码函数的跨功能复用不自动要求创建额外 Nest Provider；新增需要替换或有状态的依赖应通过明确的模块导出、Provider 或领域 port 提供。目录归位不意味着所有跨领域依赖已变成独立模块的公开 API。
+
+需要查询角色在线状态的功能导入 `PresenceModule`，注入 `PresenceService`，通过 `getOnlineCultivatorIds` 批量查询已经授权可见的角色。通用 WebSocket 将连接建立、心跳和断开交给该服务。Redis 按角色汇总各 API 实例的有效连接，Redis 不可用时读取当前实例的连接。后台在线统计使用同一份在线状态。
 
 ### 配置与数据库
 
