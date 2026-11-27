@@ -3,8 +3,15 @@ import type {
   AdminAiUsageResponse,
 } from '@daoyou/contracts/admin/ai-usage';
 import {
+  AdminOnlineCharactersQuerySchema,
+  AdminOnlineTrendQuerySchema,
+  type AdminOnlineCharactersQuery,
+  type AdminOnlineTrendRange,
+} from '@daoyou/contracts/admin/online-users';
+import {
   Controller,
   Get,
+  Header,
   Inject,
   Param,
   Patch,
@@ -87,8 +94,25 @@ export class AdminController {
   }
 
   @Get('online-users')
+  @Header('Cache-Control', 'private, no-store')
   onlineUsers() {
     return this.monitoring.onlineUsers();
+  }
+
+  @Get('online-users/trend')
+  @Header('Cache-Control', 'private, no-store')
+  onlineTrend(
+    @FirstQuery(new ZodPipe(AdminOnlineTrendQuerySchema)) query: { range: AdminOnlineTrendRange },
+  ) {
+    return this.monitoring.onlineTrend(query.range);
+  }
+
+  @Get('online-users/characters')
+  @Header('Cache-Control', 'private, no-store')
+  onlineCharacters(
+    @FirstQuery(new ZodPipe(AdminOnlineCharactersQuerySchema)) query: AdminOnlineCharactersQuery,
+  ) {
+    return this.monitoring.onlineCharacters(query);
   }
 
   @Get('feedback')

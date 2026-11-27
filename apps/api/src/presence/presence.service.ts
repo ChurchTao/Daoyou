@@ -140,6 +140,25 @@ export class PresenceService {
     return new Set(cultivatorIds.filter((id) => online.has(id)));
   }
 
+  async getOnlineCultivatorsSnapshot(now = Date.now()): Promise<{
+    source: PresenceSnapshot['source'];
+    generatedAt: string;
+    cultivatorIds: ReadonlySet<string>;
+  }> {
+    const generatedAt = new Date(now).toISOString();
+    try {
+      const cultivatorIds = await this.readOnlineCultivatorIds(now);
+      return { source: 'redis', generatedAt, cultivatorIds };
+    } catch (error) {
+      console.warn('[presence] falling back to local online snapshot', { error });
+      return {
+        source: 'memory',
+        generatedAt,
+        cultivatorIds: new Set(this.localConnections.keys()),
+      };
+    }
+  }
+
   async getSnapshot(): Promise<PresenceSnapshot> {
     const now = new Date();
     const generatedAt = now.toISOString();
