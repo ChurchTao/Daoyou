@@ -28,9 +28,8 @@ import { DungeonService } from './dungeon.service.js';
   providers: [
     {
       provide: DungeonRunStore,
-      useFactory: (database: DbClient, cache: Redis) =>
-        new DungeonRunStore(database, cache),
-      inject: [DRIZZLE_DATABASE, REDIS_CLIENT],
+      useFactory: (database: DbClient) => new DungeonRunStore(database),
+      inject: [DRIZZLE_DATABASE],
     },
     {
       provide: DungeonFlowService,
