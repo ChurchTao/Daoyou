@@ -9,6 +9,7 @@ export function PartyMemberCard({
   captain,
   self,
   online,
+  sectName,
   vitals,
   showVitals = true,
   onInspect,
@@ -17,6 +18,7 @@ export function PartyMemberCard({
   captain?: boolean;
   self?: boolean;
   online?: boolean;
+  sectName?: string | null;
   vitals?: PartyMemberVitals | null;
   showVitals?: boolean;
   onInspect?: () => void;
@@ -25,7 +27,22 @@ export function PartyMemberCard({
     online === undefined ? undefined : online ? '在线' : '离线';
   const identity = (
     <>
-      <PartyPortrait member={member} className="size-10 shrink-0" />
+      <span className="relative flex size-11 shrink-0">
+        <span className="border-ink-border bg-paper-2 absolute inset-0 overflow-hidden rounded-full border">
+          <PartyPortrait
+            member={member}
+            className="size-full origin-[50%_36%] scale-125"
+          />
+        </span>
+        {presenceLabel && (
+          <span
+            role="img"
+            aria-label={presenceLabel}
+            title={presenceLabel}
+            className={`border-paper absolute top-0 right-0 size-3 rounded-full border-2 ${online ? 'bg-teal' : 'bg-crimson'}`}
+          />
+        )}
+      </span>
       <span className="min-w-0 flex-1 wrap-anywhere">
         <strong className="block text-sm">{member.name}</strong>
         <span className="text-ink-secondary flex flex-wrap items-center gap-x-2 text-xs">
@@ -33,13 +50,10 @@ export function PartyMemberCard({
             {member.realm}
             {member.realmStage}
           </span>
-          {presenceLabel && (
-            <span className={online ? 'text-teal' : undefined}>
-              <span
-                aria-hidden="true"
-                className={`mr-1 inline-block size-1.5 rounded-full ${online ? 'bg-teal' : 'bg-ink-secondary/50'}`}
-              />
-              {presenceLabel}
+          {sectName !== undefined && (
+            <span>
+              <span aria-hidden="true">· </span>
+              {sectName ?? '散修'}
             </span>
           )}
         </span>

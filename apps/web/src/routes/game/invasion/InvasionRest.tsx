@@ -362,6 +362,7 @@ export function InvasionRest({
                   captain={member.cultivatorId === team.captainId}
                   self={member.cultivatorId === playerId}
                   online={memberStates?.data?.[member.cultivatorId]?.online}
+                  sectName={memberStates?.data?.[member.cultivatorId]?.sectName}
                   vitals={team.resources[member.cultivatorId] ?? null}
                 />
               </li>

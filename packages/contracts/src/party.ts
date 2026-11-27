@@ -92,6 +92,7 @@ export type PartyMemberVitals = {
 };
 export type PartyMemberState = {
   online: boolean;
+  sectName: string | null;
   vitals: PartyMemberVitals | null;
 };
 export type PartyVitalsView = Partial<Record<string, PartyMemberState>>;

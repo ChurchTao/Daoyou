@@ -178,6 +178,7 @@ export function PartyRoster({
                   captain={member.userId === party.leaderId}
                   self={member.cultivatorId === actorId}
                   online={vitals?.data?.[member.cultivatorId]?.online}
+                  sectName={vitals?.data?.[member.cultivatorId]?.sectName}
                   showVitals={!roleMismatch}
                   vitals={
                     vitals?.error

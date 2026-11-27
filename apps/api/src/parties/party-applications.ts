@@ -8,6 +8,7 @@ import {
   type PartyRecruitmentSource,
   type PartyVitalsView,
 } from '@daoyou/contracts/party';
+import { SECT_ORGANIZATION_DEFINITIONS } from '@daoyou/game-content/sect-organization/definitions';
 import {
   ConflictException,
   ForbiddenException,
@@ -21,6 +22,7 @@ import {
   cultivators,
   parties,
   partyMembers,
+  sectMemberships,
 } from '@server/lib/drizzle/schema.js';
 import type { PresenceService } from '@server/presence/presence.service.js';
 import { publishPartyChanges } from '@server/realtime/infrastructure/partyBroadcaster.js';
@@ -431,15 +433,36 @@ export async function readPartyVitals(
     throw new ForbiddenException('仅当前队员可查看队伍状态');
 
   const ids = party.members.map(({ cultivatorId }) => cultivatorId);
-  const [online, vitals] = await Promise.all([
+  const [online, vitals, memberships] = await Promise.all([
     presence.getOnlineCultivatorIds(ids),
     Promise.allSettled(ids.map((id) => readPersistentCharacterVitals(id, db))),
+    db
+      .select({
+        cultivatorId: sectMemberships.cultivatorId,
+        sectId: sectMemberships.sectId,
+      })
+      .from(sectMemberships)
+      .where(
+        and(
+          inArray(sectMemberships.cultivatorId, ids),
+          eq(sectMemberships.status, 'active'),
+        ),
+      ),
   ]);
+  const sectNames = new Map(
+    memberships.map(({ cultivatorId, sectId }) => [
+      cultivatorId,
+      Object.hasOwn(SECT_ORGANIZATION_DEFINITIONS, sectId)
+        ? SECT_ORGANIZATION_DEFINITIONS[sectId].name
+        : '未知宗门',
+    ] as const),
+  );
   return Object.fromEntries(
     ids.map((id, index) => {
       const result = vitals[index];
       return [id, {
         online: online.has(id),
+        sectName: sectNames.get(id) ?? null,
         vitals: result.status === 'fulfilled' ? result.value : null,
       }];
     }),
