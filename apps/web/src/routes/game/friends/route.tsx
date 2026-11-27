@@ -24,12 +24,15 @@ import type {
 } from '@daoyou/contracts/direct-messages';
 import type {
   FriendCultivatorSummary,
+  FriendListEntry,
+  FriendListResponse,
   FriendRequestDTO,
 } from '@daoyou/contracts/friends';
 import { Activity, lazy, Suspense, useCallback, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { DirectChatPanel } from './components/DirectChatPanel';
 import { FriendDetailsModal } from './components/FriendDetailsModal';
+import { FriendOnlineDot } from './components/FriendOnlineDot';
 import {
   FriendsManagement,
   type FriendsManagementTab,
@@ -45,7 +48,7 @@ const MailComposer = lazy(async () => ({
 type Contact = {
   key: string;
   name: string;
-  friend?: FriendCultivatorSummary;
+  friend?: FriendListEntry;
   conversation?: DirectConversationDTO;
 };
 const timeFormatter = new Intl.DateTimeFormat('zh-CN', {
@@ -88,8 +91,11 @@ function FriendsWorkspace({ identity }: { identity: string }) {
   )
     ? (managementValue as FriendsManagementTab)
     : null;
-  const friends = useSocialQuery<{ friends: FriendCultivatorSummary[] }>(
-    '/api/friends',
+  const friends = useSocialQuery<FriendListResponse>('/api/friends');
+  const friendPresence = new Map<string, boolean | null>(
+    friends.error
+      ? []
+      : friends.data?.friends.map(({ id, online }) => [id, online]),
   );
   const composeTo = params.get('composeTo');
   const giftRecipient = friends.data?.friends.find(
@@ -286,6 +292,11 @@ function FriendsWorkspace({ identity }: { identity: string }) {
     const conversation = contact.conversation;
     const active = conversation?.id === conversationId;
     const last = conversation?.lastMessage;
+    const online = contact.friend
+      ? friendPresence.get(contact.friend.id)
+      : undefined;
+    const presenceLabel =
+      typeof online === 'boolean' ? (online ? '在线' : '离线') : null;
     const preview =
       contact.friend && contact.friend.status !== 'active'
         ? '道途已结束 · 查看资料'
@@ -300,7 +311,7 @@ function FriendsWorkspace({ identity }: { identity: string }) {
       <button
         type="button"
         key={contact.key}
-        aria-label={`与${contact.name}私聊${conversation?.unreadCount ? `，${conversation.unreadCount}条未读` : ''}`}
+        aria-label={`与${contact.name}私聊${presenceLabel ? `，${presenceLabel}` : ''}${conversation?.unreadCount ? `，${conversation.unreadCount}条未读` : ''}`}
         aria-current={active ? 'true' : undefined}
         disabled={!!opening}
         onClick={() => void openContact(contact)}
@@ -312,11 +323,14 @@ function FriendsWorkspace({ identity }: { identity: string }) {
         <span
           aria-hidden="true"
           className={cn(
-            'flex size-9 shrink-0 items-center justify-center rounded-full text-base',
+            'relative flex size-9 shrink-0 items-center justify-center rounded-full text-base',
             active ? 'bg-crimson/8' : 'bg-ink/5 text-ink-secondary',
           )}
         >
           {Array.from(contact.name)[0]}
+          {online ? (
+            <FriendOnlineDot className="border-paper absolute top-0 right-0 size-3 border-2" />
+          ) : null}
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">
@@ -562,6 +576,7 @@ function FriendsWorkspace({ identity }: { identity: string }) {
               >
                 <DirectChatPanel
                   conversationId={id}
+                  friendPresence={friendPresence}
                   identity={identity}
                   onBack={() => selectChat(null)}
                   onDetails={setDetails}

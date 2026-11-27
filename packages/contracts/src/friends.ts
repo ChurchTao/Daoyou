@@ -14,6 +14,15 @@ export interface FriendCultivatorSummary {
   status: string;
 }
 
+export interface FriendListEntry extends FriendCultivatorSummary {
+  /** Null for a character that is no longer active. */
+  online: boolean | null;
+}
+
+export interface FriendListResponse {
+  friends: FriendListEntry[];
+}
+
 export interface FriendTargetResponse {
   target: FriendCultivatorSummary;
   relationship: FriendRelationship;

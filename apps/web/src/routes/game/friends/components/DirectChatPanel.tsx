@@ -28,6 +28,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { FriendOnlineDot } from './FriendOnlineDot';
 
 type PendingMessage = { clientMessageId: string; text: string; error?: string };
 const merge = (left: DirectMessageDTO[], right: DirectMessageDTO[]) =>
@@ -52,6 +53,7 @@ function dateLabel(createdAt: string) {
 
 export function DirectChatPanel({
   conversationId,
+  friendPresence,
   identity,
   onBack,
   onDetails,
@@ -59,6 +61,7 @@ export function DirectChatPanel({
   onConversation,
 }: {
   conversationId: string;
+  friendPresence: ReadonlyMap<string, boolean | null>;
   identity: string;
   onBack: () => void;
   onDetails: (conversation: DirectConversationDTO) => void;
@@ -461,6 +464,20 @@ export function DirectChatPanel({
       initialReadRef.current >= 0 &&
       message.sequence > initialReadRef.current,
   )?.id;
+  const peerId = conversation?.peer.cultivatorId;
+  const peerOnline = peerId ? friendPresence.get(peerId) : undefined;
+  const headerStatus =
+    connection === 'offline'
+      ? '连接已断开'
+      : connection === 'blocked'
+        ? '暂时无法连接'
+        : connection === 'connecting' || connection === 'reconnecting'
+          ? '正在接续……'
+          : conversation?.archived
+            ? '往昔会话 · 只读'
+            : conversation && !conversation.canSend
+              ? '暂时无法发送'
+              : null;
   return (
     <>
       <div className="border-ink/15 flex min-h-12 shrink-0 items-center justify-between gap-2 border-b border-dashed pb-2">
@@ -473,22 +490,20 @@ export function DirectChatPanel({
             道友列表
           </InkButton>
           <div className="min-w-0">
-            <p className="truncate font-semibold">
-              {conversation?.peer.name ?? '接续私聊……'}
-            </p>
-            <p className="text-ink-secondary text-xs" role="status">
-              {connection === 'offline'
-                ? '连接已断开'
-                : connection === 'blocked'
-                  ? '暂时无法连接'
-                  : connection === 'connecting' || connection === 'reconnecting'
-                    ? '正在接续……'
-                    : conversation?.canSend
-                      ? '私聊'
-                      : conversation?.archived
-                        ? '往昔会话 · 只读'
-                        : '暂时无法发送'}
-            </p>
+            <div className="flex min-w-0 items-center gap-2">
+              <p className="truncate font-semibold">
+                {conversation?.peer.name ?? '接续私聊……'}
+              </p>
+              {peerOnline ? <FriendOnlineDot /> : null}
+              {typeof peerOnline === 'boolean' ? (
+                <span className="sr-only">{peerOnline ? '在线' : '离线'}</span>
+              ) : null}
+            </div>
+            {headerStatus ? (
+              <p className="text-ink-secondary text-xs" role="status">
+                {headerStatus}
+              </p>
+            ) : null}
           </div>
         </div>
         {conversation ? (
