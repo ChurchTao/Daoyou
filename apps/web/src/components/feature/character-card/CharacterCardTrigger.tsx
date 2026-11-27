@@ -1,10 +1,7 @@
 import { InkModal } from '@app/components/layout';
 import { InkButton } from '@app/components/ui/InkButton';
-import { fetchJsonCached } from '@app/lib/client/requestCache';
-import type { ApiSuccess } from '@daoyou/contracts/http';
-import type { CharacterCard } from '@daoyou/contracts/player/card';
-import { useEffect, useState, type ReactNode } from 'react';
-import { CharacterCardView } from './CharacterCardView';
+import { useState, type ReactNode } from 'react';
+import { CharacterCardContent } from './CharacterCardContent';
 
 export function CharacterCardTrigger({
   id,
@@ -19,35 +16,10 @@ export function CharacterCardTrigger({
 }) {
   const [open, setOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [card, setCard] = useState<CharacterCard | null>(null);
-  const [error, setError] = useState('');
-  const [attempt, setAttempt] = useState(0);
   const close = () => {
     setOpen(false);
     setDetailOpen(false);
   };
-
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    fetchJsonCached<ApiSuccess<CharacterCard>>(`/api/cultivator/${id}/card`, {
-      key: `character-card:${id}`,
-      ttlMs: 5000,
-    })
-      .then((response) => {
-        if (!cancelled) {
-          setCard(response.data);
-          setError('');
-        }
-      })
-      .catch((reason: unknown) => {
-        if (!cancelled)
-          setError(reason instanceof Error ? reason.message : '名片读取失败');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [id, open, attempt]);
 
   return (
     <>
@@ -61,47 +33,40 @@ export function CharacterCardTrigger({
       >
         {children}
       </button>
-      <InkModal isOpen={open} onClose={close} className="max-w-sm">
-        <div className="bg-bgpaper sticky top-0 z-10 mb-2 flex items-center justify-between text-xs">
-          <span className="text-ink-secondary">道友名片</span>
-          <button
-            type="button"
-            aria-label="关闭名片"
-            className="-mt-2 flex size-9 items-center justify-center text-lg"
-            onClick={close}
-          >
-            ×
-          </button>
-        </div>
-        {error ? (
-          <div role="alert" className="space-y-2 text-sm">
-            <p>{error}</p>
-            <InkButton
-              onClick={() => {
-                setError('');
-                setAttempt((value) => value + 1);
-              }}
-            >
-              重试
+      <InkModal
+        isOpen={open}
+        onClose={close}
+        title="道友名片"
+        className="max-w-sm"
+        manageFocus
+        footer={
+          <div className="flex justify-end">
+            <InkButton variant="secondary" className="min-h-11" onClick={close}>
+              关闭名片
             </InkButton>
           </div>
-        ) : card ? (
-          <CharacterCardView card={card} onDetailChange={setDetailOpen} />
-        ) : (
-          <p className="text-ink-secondary py-4 text-sm">正在展开名片……</p>
-        )}
-        {card && onSelectFriend && !detailOpen ? (
-          <div className="border-ink/15 mt-3 border-t pt-2">
-            <InkButton
-              onClick={() => {
-                close();
-                onSelectFriend(id);
-              }}
-            >
-              收录道友
-            </InkButton>
-          </div>
-        ) : null}
+        }
+      >
+        <CharacterCardContent
+          key={id}
+          id={id}
+          onDetailChange={setDetailOpen}
+          actions={
+            onSelectFriend && !detailOpen ? (
+              <div className="border-ink/15 mt-3 border-t pt-2">
+                <InkButton
+                  className="min-h-11"
+                  onClick={() => {
+                    close();
+                    onSelectFriend(id);
+                  }}
+                >
+                  收录道友
+                </InkButton>
+              </div>
+            ) : null
+          }
+        />
       </InkModal>
     </>
   );

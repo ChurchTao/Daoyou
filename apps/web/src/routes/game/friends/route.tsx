@@ -29,6 +29,7 @@ import type {
 import { Activity, lazy, Suspense, useCallback, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { DirectChatPanel } from './components/DirectChatPanel';
+import { FriendDetailsModal } from './components/FriendDetailsModal';
 import {
   FriendsManagement,
   type FriendsManagementTab,
@@ -119,8 +120,6 @@ function FriendsWorkspace({ identity }: { identity: string }) {
   const [friendDetails, setFriendDetails] =
     useState<FriendCultivatorSummary | null>(null);
   const [details, setDetails] = useState<DirectConversationDTO | null>(null);
-  const [confirm, setConfirm] = useState<'remove' | 'block' | null>(null);
-  const [busy, setBusy] = useState(false);
   const { pushToast } = useInkUI();
   const workspaceRef = useRef<HTMLDivElement>(null);
   const { height, keyboardViewport } = useChatViewport(workspaceRef);
@@ -221,10 +220,12 @@ function FriendsWorkspace({ identity }: { identity: string }) {
       { replace: true },
     );
   }
-  function openGift(cultivatorId: string, chatId: string) {
+  function closeDetails() {
     setDetails(null);
     setFriendDetails(null);
-    setConfirm(null);
+  }
+  function openGift(cultivatorId: string, chatId: string) {
+    closeDetails();
     setParams({ chat: chatId, composeTo: cultivatorId });
   }
   async function openContact(contact: Contact) {
@@ -279,33 +280,6 @@ function FriendsWorkspace({ identity }: { identity: string }) {
       });
     } finally {
       setLoadingOlder(false);
-    }
-  }
-  async function confirmAction() {
-    if (!detailFriend || !confirm || busy) return;
-    setBusy(true);
-    try {
-      await socialRequest(
-        confirm === 'block'
-          ? `/api/social/blocks/${detailFriend.id}`
-          : `/api/friends/${detailFriend.id}`,
-        undefined,
-        confirm === 'block' ? 'POST' : 'DELETE',
-      );
-      pushToast({
-        message: confirm === 'block' ? '已屏蔽道友' : '已移出好友名录',
-        tone: 'success',
-      });
-      setConfirm(null);
-      setDetails(null);
-      setFriendDetails(null);
-    } catch (error) {
-      pushToast({
-        message: error instanceof Error ? error.message : '操作失败',
-        tone: 'warning',
-      });
-    } finally {
-      setBusy(false);
     }
   }
   function contactRow(contact: Contact) {
@@ -657,119 +631,15 @@ function FriendsWorkspace({ identity }: { identity: string }) {
           )
         }
       />
-      <InkModal
-        isOpen={!!details || !!friendDetails}
-        title={
-          confirm
-            ? confirm === 'block'
-              ? '屏蔽道友'
-              : '移出好友'
-            : (details?.peer.name ?? detailFriend?.name)
-        }
-        onClose={() => {
-          if (!busy) {
-            setDetails(null);
-            setFriendDetails(null);
-            setConfirm(null);
-          }
-        }}
-        footer={
-          <div className="flex justify-end gap-2">
-            <InkButton
-              variant="secondary"
-              disabled={busy}
-              onClick={() => {
-                if (confirm) setConfirm(null);
-                else {
-                  setDetails(null);
-                  setFriendDetails(null);
-                }
-              }}
-            >
-              {confirm ? '取消' : '返回聊天'}
-            </InkButton>
-            {confirm ? (
-              <InkButton
-                variant="primary"
-                pending={busy}
-                onClick={() => void confirmAction()}
-              >
-                确认{confirm === 'block' ? '屏蔽' : '移出'}
-              </InkButton>
-            ) : null}
-          </div>
-        }
-      >
-        {confirm ? (
-          <div className="space-y-3 text-sm leading-7">
-            <p>
-              确定{confirm === 'block' ? '屏蔽' : '移出'}{' '}
-              {details?.peer.name ?? detailFriend?.name}？
-            </p>
-            <p className="text-ink-secondary">
-              {confirm === 'block'
-                ? '停止新的直接联系，同时结束在授师徒关系并释放名额。既有历史仍保留；解除屏蔽不会自动恢复关系，账号一生绑定师父的记录不会清除。'
-                : '双方将不能继续私聊，在授师徒关系保留，仍可自主出师。已有消息、物品和个人成长保留，可重新申请好友继续往来。'}
-            </p>
-          </div>
-        ) : details || detailFriend ? (
-          <div className="space-y-4">
-            {detailFriend ? (
-              <p className="text-ink-secondary text-sm">
-                {detailFriend.realm} {detailFriend.realmStage}
-                {detailFriend.title ? ` · ${detailFriend.title}` : ''}
-              </p>
-            ) : (
-              <p className="text-ink-secondary text-sm">
-                {details?.unavailableReason || '私聊往来'}
-              </p>
-            )}
-            {details?.peer.cultivatorId ? (
-              <div className="flex flex-wrap gap-2">
-                {details.canSend ? (
-                  <InkButton
-                    onClick={() => {
-                      const targetId = details.peer.cultivatorId;
-                      if (targetId) openGift(targetId, details.id);
-                    }}
-                  >
-                    传音赠物
-                  </InkButton>
-                ) : null}
-                <InkButton
-                  href={`/game/mentorship?target=${details.peer.cultivatorId}`}
-                >
-                  师徒结缘
-                </InkButton>
-                {!detailFriend && !details.archived ? (
-                  <InkButton
-                    onClick={() => setDetails(null)}
-                    href={`/game/friends?chat=${details.id}&addFriend=${details.peer.cultivatorId}`}
-                  >
-                    查看好友关系
-                  </InkButton>
-                ) : null}
-              </div>
-            ) : null}
-            {detailFriend ? (
-              <div className="border-ink/15 flex flex-wrap gap-2 border-t border-dashed pt-3">
-                <InkButton
-                  variant="secondary"
-                  onClick={() => setConfirm('remove')}
-                >
-                  移出好友
-                </InkButton>
-                <InkButton
-                  variant="secondary"
-                  onClick={() => setConfirm('block')}
-                >
-                  屏蔽道友
-                </InkButton>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </InkModal>
+      {details || detailFriend ? (
+        <FriendDetailsModal
+          key={details?.id ?? detailFriend?.id}
+          conversation={details}
+          friend={detailFriend}
+          onClose={closeDetails}
+          onGift={openGift}
+        />
+      ) : null}
     </GameSceneFrame>
   );
 }

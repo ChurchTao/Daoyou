@@ -11,7 +11,13 @@ import type {
 } from '@daoyou/contracts/player/card';
 import { BEAST_SPECIES } from '@daoyou/game-content/beasts';
 import { SPONSORSHIP_TIER_META } from '@daoyou/game-domain/sponsorship';
-import { useLayoutEffect, useRef, useState } from 'react';
+import {
+  Activity,
+  type MouseEventHandler,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { BeastTradeDetails } from '../beasts/BeastTradePreview';
 import { itemPresentation } from '../items/itemPresentation';
 import { ItemPreview } from '../items/ItemPreview';
@@ -36,7 +42,7 @@ function CardThumb({
   label: string;
   icon: string;
   color?: string;
-  onClick: () => void;
+  onClick: MouseEventHandler<HTMLButtonElement>;
 }) {
   return (
     <button
@@ -142,6 +148,8 @@ export function CharacterCardView({
   onDetailChange?: (open: boolean) => void;
 }) {
   const [detail, setDetail] = useState<CardDetail | null>(null);
+  const detailRef = useRef<HTMLDivElement>(null);
+  const thumbRef = useRef<HTMLButtonElement>(null);
   const active =
     detail &&
     (detail.kind === 'equipment'
@@ -149,7 +157,17 @@ export function CharacterCardView({
       : card.beasts.some((beast) => beast.id === detail.beast.id))
       ? detail
       : null;
-  const showDetail = (next: CardDetail) => {
+  useLayoutEffect(() => {
+    if (active) {
+      detailRef.current?.focus();
+    } else {
+      thumbRef.current?.focus();
+      thumbRef.current = null;
+    }
+  }, [active]);
+
+  const showDetail = (next: CardDetail, thumb: HTMLButtonElement) => {
+    thumbRef.current = thumb;
     setDetail(next);
     onDetailChange?.(true);
   };
@@ -177,7 +195,7 @@ export function CharacterCardView({
         </>
       ) : null}
       {active ? (
-        <div className="space-y-3">
+        <div ref={detailRef} tabIndex={-1} className="space-y-3">
           <InkButton className="px-0" onClick={hideDetail}>
             返回名片
           </InkButton>
@@ -187,7 +205,8 @@ export function CharacterCardView({
             <BeastTradeDetails beast={active.beast} tradeNotice={false} />
           )}
         </div>
-      ) : (
+      ) : null}
+      <Activity mode={active ? 'hidden' : 'visible'}>
         <div className="space-y-3">
           <header className="flex items-center gap-3">
             <GameIcon
@@ -228,7 +247,7 @@ export function CharacterCardView({
                 <span
                   key={achievement.id}
                   title={achievement.description}
-                  className="min-w-0 max-w-full"
+                  className="max-w-full min-w-0"
                 >
                   <InkBadge className="text-teal max-w-full wrap-anywhere">
                     {achievement.name}
@@ -255,8 +274,11 @@ export function CharacterCardView({
                           label={item.name}
                           icon={summary.icon}
                           color={summary.color}
-                          onClick={() =>
-                            showDetail({ kind: 'equipment', item })
+                          onClick={(event) =>
+                            showDetail(
+                              { kind: 'equipment', item },
+                              event.currentTarget,
+                            )
                           }
                         />
                       );
@@ -276,7 +298,12 @@ export function CharacterCardView({
                         key={beast.id}
                         label={beast.name}
                         icon={beastIcon(beast)}
-                        onClick={() => showDetail({ kind: 'beast', beast })}
+                        onClick={(event) =>
+                          showDetail(
+                            { kind: 'beast', beast },
+                            event.currentTarget,
+                          )
+                        }
                       />
                     ))}
                   </div>
@@ -285,7 +312,7 @@ export function CharacterCardView({
             </div>
           ) : null}
         </div>
-      )}
+      </Activity>
     </div>
   );
 }
