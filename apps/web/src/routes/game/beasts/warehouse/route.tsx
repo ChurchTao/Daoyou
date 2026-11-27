@@ -1,3 +1,4 @@
+import { BeastRestDialog } from '@app/components/feature/beasts/BeastRestButton';
 import { BeastIcon } from '@app/components/feature/beasts/BeastIcon';
 import { BeastRosterEntry } from '@app/components/feature/beasts/BeastRosterEntry';
 import { BeastPickerPager } from '@app/components/feature/beasts/beastPicker';
@@ -482,12 +483,17 @@ export default function BeastWarehousePage() {
           onUpdate={remember}
         />
       ) : null}
-      {action && selected && action.beastId === selected.id && list.data ? (
+      {action?.type === 'rest' && selected && action.beastId === selected.id && list.data ? (
+        <BeastRestDialog beasts={[selected]} spiritStones={list.data.spiritStones} scope="single"
+          onClose={() => setAction(undefined)} onRest={(view) => {
+            const updated = view.beasts.find(({ id }) => id === selected.id);
+            if (updated) remember(updated);
+            void list.reload();
+          }} />
+      ) : action && selected && action.beastId === selected.id && list.data ? (
         <BeastActionDrawer
           key={`${action.type}:${action.beastId}`}
           beast={selected}
-          action={action.type}
-          spiritStones={list.data.spiritStones}
           pending={pending}
           close={() => {
             if (!busy.current) setAction(undefined);

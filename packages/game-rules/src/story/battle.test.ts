@@ -1,3 +1,4 @@
+import type { CultivatorCondition } from '@daoyou/game-domain/condition';
 import { getPerformanceScript } from '@daoyou/game-content/performance/catalog';
 import {
   getStoryBattle,
@@ -22,6 +23,27 @@ import {
   acknowledgePerformance,
   presentStory,
 } from './resolve.js';
+
+const tutorialCondition: CultivatorCondition = {
+        version: 1,
+        resources: { hp: { current: 380 }, mp: { current: 220 } },
+        gauges: { pillToxicity: 0 },
+        tracks: {
+          tempering: {
+            vitality: { level: 0, progress: 0 },
+            spirit: { level: 0, progress: 0 },
+            wisdom: { level: 0, progress: 0 },
+            speed: { level: 0, progress: 0 },
+            willpower: { level: 0, progress: 0 },
+          },
+          marrowWash: { level: 0, progress: 0 },
+        },
+        counters: {
+          longTermPillUsesByRealm: {}, cultivationPillUsesByRealm: {}, longevityPillUsesByRealm: {},
+        },
+        statuses: [],
+        timestamps: {},
+      };
 
 describe('剧情战', () => {
   const creek = getStoryChapter('mountain-bend');
@@ -267,6 +289,9 @@ describe('木人试手', () => {
       const host = createStoryBattleHost({
         cultivator: {
           id: 'student', name: '新弟子', realm: '炼气', realm_stage: '初期',
+          condition: { ...structuredClone(tutorialCondition), resources: {
+            hp: { current: Number.MAX_SAFE_INTEGER }, mp: { current: Number.MAX_SAFE_INTEGER },
+          } },
           attributes: { vitality: 10, strength: 10, spirit: 10, endurance: 10, speed: 10, willpower: 10 },
         },
         sect: createEmptySectCombatProgressV6(sectId, path.id, createFreshCombatV6MethodLevels(sectId)),
@@ -292,26 +317,7 @@ it('白水渡散修会打伤初入门的弟子，战损只认战斗中减少的�
     cultivator: {
       id: 'student', name: '新弟子', realm: '炼气', realm_stage: '初期',
       attributes: { vitality: 10, strength: 10, spirit: 10, endurance: 10, speed: 10, willpower: 10 },
-      condition: {
-        version: 1,
-        resources: { hp: { current: 380 }, mp: { current: 220 } },
-        gauges: { pillToxicity: 0 },
-        tracks: {
-          tempering: {
-            vitality: { level: 0, progress: 0 },
-            spirit: { level: 0, progress: 0 },
-            wisdom: { level: 0, progress: 0 },
-            speed: { level: 0, progress: 0 },
-            willpower: { level: 0, progress: 0 },
-          },
-          marrowWash: { level: 0, progress: 0 },
-        },
-        counters: {
-          longTermPillUsesByRealm: {}, cultivationPillUsesByRealm: {}, longevityPillUsesByRealm: {},
-        },
-        statuses: [],
-        timestamps: {},
-      },
+      condition: structuredClone(tutorialCondition),
     },
     sect: createEmptySectCombatProgressV6(sect.id, sect.paths[0].id, createFreshCombatV6MethodLevels(sect.id)),
     equipment: {},

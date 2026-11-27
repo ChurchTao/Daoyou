@@ -1,3 +1,5 @@
+import { useCultivatorDisplayProjection } from '@app/components/feature/cultivator/useCultivatorDisplayProjection';
+import { BeastRestButton } from '@app/components/feature/beasts/BeastRestButton';
 import { InkChoiceButton } from '@app/components/ui/InkChoiceButton';
 import { EXORCISM_ENCOUNTER_PACK } from '@daoyou/game-content/dungeon/exorcism';
 import type {
@@ -19,6 +21,7 @@ import { MysteryPortrait } from './MysteryPortrait';
 /** 补给点：要血还是要东西。两条路直接写结果，不写规则。 */
 export function ExorcismSupply({
   run,
+  runId,
   location,
   scene,
   processing,
@@ -27,6 +30,7 @@ export function ExorcismSupply({
   onRefresh,
 }: {
   run: ExorcismRunState;
+  runId?: string;
   location: string;
   scene?: string;
   processing: boolean;
@@ -35,7 +39,8 @@ export function ExorcismSupply({
   onRefresh: () => Promise<void>;
 }) {
   const [hovered, setHovered] = useState(false);
-  const player = run.resources?.player;
+  const resources = useCultivatorDisplayProjection().data?.display.resources;
+  const player = resources && { hp: resources.hp.current, mp: resources.mp.current, maxHp: resources.hp.max, maxMp: resources.mp.max };
   if (!player) return null;
   const { restHpRatio, restMpRatio } = EXORCISM_ENCOUNTER_PACK.supply;
   const restedHp = Math.min(
@@ -57,14 +62,14 @@ export function ExorcismSupply({
         <aside className="min-w-0 space-y-5">
           <div className="space-y-3">
             <ExorcismMeter
-              label="局内气血"
+              label="气血"
               current={player.hp}
               max={player.maxHp}
               tone="hp"
               preview={hovered ? restedHp : undefined}
             />
             <ExorcismMeter
-              label="局内法力"
+              label="法力"
               current={player.mp}
               max={player.maxMp}
               tone="mp"
@@ -72,10 +77,11 @@ export function ExorcismSupply({
             />
           </div>
           <ExorcismPillBar
-            run={run}
             processing={processing}
             onUsed={onRefresh}
           />
+          {runId && <BeastRestButton label="灵兽休养" disabled={processing}
+            activity={{ kind: 'exorcism', runId }} onRest={() => void onRefresh()} />}
         </aside>
 
         <section className="min-w-0 space-y-5">
@@ -106,7 +112,7 @@ export function ExorcismSupply({
                   <span className="font-mono">
                     {ratioPercent(restedMp, player.maxMp)}%
                   </span>
-                  。存活的灵兽同样恢复。
+                  。
                 </div>
               </InkChoiceButton>
             </div>

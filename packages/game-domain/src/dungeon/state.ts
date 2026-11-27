@@ -326,7 +326,6 @@ export interface DungeonState {
   encounter?: import('./actions.js').DungeonEncounterView;
   rewardSeed?: number;
   v6Rewards?: import('./rewards.js').DungeonRewardEntry[];
-  beastResources?: Record<string, { hp: number; mp: number }>;
   endDisposition?: import('./settlement.js').DungeonEndDisposition;
   runId?: string;
   cultivatorId: string;

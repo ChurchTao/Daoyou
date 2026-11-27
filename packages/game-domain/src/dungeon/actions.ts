@@ -30,7 +30,5 @@ export interface DungeonEncounterView {
   id: string;
   description: string;
   enemies: string[];
-  hp: { current: number; max: number };
-  mp: { current: number; max: number };
   beast: string | null;
 }

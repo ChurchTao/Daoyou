@@ -73,7 +73,7 @@ export function createStoryBattleHost(
     ...player,
     side: 0,
     slot: 0,
-    resourcePolicy: battle.fresh ? 'full' : 'persistent',
+    resourcePolicy: 'persistent',
   });
   if (!projected.ok) throw new Error('眼下的状态还不能迎战');
   const opponents = battle.opponents.map((spec, slot) => {
@@ -123,6 +123,7 @@ export function createStoryBattleHost(
           0,
           0,
           projected.unit.level!,
+          'persistent',
         ),
         ...opponents,
       ],

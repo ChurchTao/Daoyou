@@ -1,3 +1,4 @@
+import { useCultivatorDisplayProjection } from '@app/components/feature/cultivator/useCultivatorDisplayProjection';
 import { InkButton } from '@app/components/ui/InkButton';
 import {
   EXORCISM_BOSSES,
@@ -53,6 +54,7 @@ export function ExorcismEncounter({
   onRetreat: (title: string, content: string) => Promise<void>;
   onRefresh: () => Promise<void>;
 }) {
+  const resources = useCultivatorDisplayProjection().data?.display.resources;
   const boss = EXORCISM_BOSSES[run.bossId];
   const opening = run.wins === 0;
   const bossStage = run.wins === 3;
@@ -148,22 +150,21 @@ export function ExorcismEncounter({
               </div>
             </section>
           )}
-          <div className="space-y-3">
+          {resources && <div className="space-y-3">
             <ExorcismMeter
-              label="局内气血"
-              current={encounter.hp.current}
-              max={encounter.hp.max}
+              label="气血"
+              current={resources.hp.current}
+              max={resources.hp.max}
               tone="hp"
             />
             <ExorcismMeter
-              label="局内法力"
-              current={encounter.mp.current}
-              max={encounter.mp.max}
+              label="法力"
+              current={resources.mp.current}
+              max={resources.mp.max}
               tone="mp"
             />
-          </div>
+          </div>}
           <ExorcismPillBar
-            run={run}
             processing={processing}
             onUsed={onRefresh}
           />

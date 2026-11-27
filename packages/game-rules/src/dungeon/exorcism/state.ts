@@ -9,10 +9,8 @@ import {
   type ExorcismBossId,
   type ExorcismGrade,
   type ExorcismLineageId,
-  type ExorcismResources,
   type ExorcismRunState,
   type ExorcismSupplyChoice,
-  type ExorcismUnitResources,
 } from '@daoyou/game-domain/dungeon/exorcism';
 
 /** 本祟脉的首领权重更高但不独占，一处节点也能遇到各种首领；最近遇到过的降权。 */
@@ -88,114 +86,28 @@ function finish(
   };
 }
 
-function hpRatio(unit: ExorcismUnitResources | undefined) {
-  return unit && unit.maxHp > 0 ? unit.hp / unit.maxHp : 1;
-}
-
-/**
- * 一场战斗的权威结果入账。胜方带走当前气血法力进下一场；
- * 人物倒地但灵兽收尾时留 1 点气血（已阵亡的灵兽记 0，后续不再出战）。
- */
 export function applyExorcismBattle(
   run: ExorcismRunState,
-  result: { victory: boolean; resources: ExorcismResources },
+  result: { victory: boolean; hpRatio: number },
 ): ExorcismRunState {
   if (run.phase !== 'battle') throw new Error('当前不在除祟战斗阶段');
-  const ratio = hpRatio(result.resources.player);
-  // 已阵亡的灵兽不会再进入下一场的阵容，这里保留记录，防止它被当成新灵兽复活。
-  const beasts = { ...run.resources?.beasts, ...result.resources.beasts };
-  if (!result.victory)
-    return finish(
-      { ...run, resources: { player: result.resources.player, beasts } },
-      'defeated',
-      ratio,
-    );
-  const wins = run.wins + 1;
-  const player = {
-    ...result.resources.player,
-    hp: Math.max(1, Math.floor(result.resources.player.hp)),
-  };
-  const next: ExorcismRunState = {
-    ...run,
-    wins,
-    resources: { player, beasts },
-  };
-  if (wins >= EXORCISM_STAGE_COUNT) return finish(next, 'cleared', ratio);
+  if (!result.victory) return finish(run, 'defeated', result.hpRatio);
+  const next = { ...run, wins: run.wins + 1 };
+  if (next.wins >= EXORCISM_STAGE_COUNT) return finish(next, 'cleared', result.hpRatio);
   return { ...next, phase: 'supply' };
 }
 
-function rested(
-  unit: ExorcismUnitResources,
-  hpRatioGain: number,
-  mpRatioGain: number,
-): ExorcismUnitResources {
-  if (unit.hp <= 0) return unit;
-  return {
-    ...unit,
-    hp: Math.min(unit.maxHp, Math.floor(unit.hp + unit.maxHp * hpRatioGain)),
-    mp: Math.min(unit.maxMp, Math.floor(unit.mp + unit.maxMp * mpRatioGain)),
-  };
-}
-
-/** 调息是局内唯一的额外恢复；搜寻不改状态，奖励由调用方按种子发放。 */
 export function applyExorcismSupply(
   run: ExorcismRunState,
   choice: ExorcismSupplyChoice,
-  pack = EXORCISM_ENCOUNTER_PACK,
 ): ExorcismRunState {
-  if (run.phase !== 'supply' || !run.resources)
-    throw new Error('当前不在除祟补给阶段');
-  const { restHpRatio, restMpRatio } = pack.supply;
-  return {
-    ...run,
-    phase: 'battle',
-    supplies: [...run.supplies, choice],
-    resources:
-      choice === 'rest'
-        ? {
-            player: rested(run.resources.player, restHpRatio, restMpRatio),
-            beasts: Object.fromEntries(
-              Object.entries(run.resources.beasts).map(([id, unit]) => [
-                id,
-                rested(unit, restHpRatio, restMpRatio),
-              ]),
-            ),
-          }
-        : run.resources,
-  };
+  if (run.phase !== 'supply') throw new Error('当前不在除祟补给阶段');
+  return { ...run, phase: 'battle', supplies: [...run.supplies, choice] };
 }
 
-/** 回复丹药作用到局内人物，不超过上限。战斗中由调用方拦截。 */
-export function applyExorcismRestore(
-  run: ExorcismRunState,
-  restored: { hp: number; mp: number },
-): ExorcismRunState {
-  if (run.phase === 'finished' || !run.resources)
-    throw new Error('现在不需要恢复局内状态');
-  const player = run.resources.player;
-  return {
-    ...run,
-    resources: {
-      ...run.resources,
-      player: {
-        ...player,
-        hp: Math.min(
-          player.maxHp,
-          Math.max(player.hp, Math.floor(restored.hp)),
-        ),
-        mp: Math.min(
-          player.maxMp,
-          Math.max(player.mp, Math.floor(restored.mp)),
-        ),
-      },
-    },
-  };
-}
-
-/** 主动收手：按当前进度结算。战斗进行中不能收手，由调用方按进行中的战局拦截。 */
-export function retreatExorcism(run: ExorcismRunState): ExorcismRunState {
+export function retreatExorcism(run: ExorcismRunState, hpRatio: number): ExorcismRunState {
   if (run.phase === 'finished') throw new Error('本局已经结束');
-  return finish(run, 'retreated', hpRatio(run.resources?.player));
+  return finish(run, 'retreated', hpRatio);
 }
 
 /** 结算页一段手写的结局，不调用模型。 */

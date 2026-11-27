@@ -6,6 +6,7 @@ import {
 } from '@daoyou/constants/realms';
 import { DUNGEON_LIFESPAN_COST_MAX } from '@daoyou/game-content/dungeon/cost';
 import {
+  EXORCISM_ENCOUNTER_PACK,
   exorcismLineageForScene,
 } from '@daoyou/game-content/dungeon/exorcism';
 import { getMysteryFallbackCase } from '@daoyou/game-content/dungeon/scenarios';
@@ -888,10 +889,27 @@ export class DungeonFlowService {
     state.encounter = prepared.preview;
     state.status = 'WAITING_BATTLE';
     state.currentRound = state.exorcism.wins + 1;
+    const hooks = this.buildStateHooks(cultivatorId, state, prepared);
     return {
       state,
       isFinished: false,
-      ...this.buildStateHooks(cultivatorId, state, prepared),
+      ...hooks,
+      persist: async (tx: DbTransaction) => {
+        const { player, caps } = await dungeonPlayer(cultivatorId, tx);
+        const current = player.cultivator.condition!;
+        const { restHpRatio, restMpRatio } = EXORCISM_ENCOUNTER_PACK.supply;
+        if (choice === 'rest') {
+          const condition = ConditionService.applyCombatV6Resources(current, {
+            ...caps,
+            hp: Math.min(caps.maxHp, Math.floor(current.resources.hp.current + caps.maxHp * restHpRatio)),
+            mp: Math.min(caps.maxMp, Math.floor(current.resources.mp.current + caps.maxMp * restMpRatio)),
+          });
+          await updateCultivator(cultivatorId, { condition }, tx);
+          await hooks.persist(tx);
+          return { condition };
+        }
+        return hooks.persist(tx);
+      },
     };
   }
 
@@ -921,6 +939,11 @@ export class DungeonFlowService {
     return { ...settled, state: settled.state ?? state };
   }
 
+  private async exorcismHpRatio(cultivatorId: string) {
+    const { player, caps } = await dungeonPlayer(cultivatorId);
+    return player.cultivator.condition!.resources.hp.current / caps.maxHp;
+  }
+
   private exorcismRewardContext(state: DungeonState) {
     const map = getMapNode(state.mapNodeId);
     if (!map || !('realm_requirement' in map)) throw new Error('秘境地图无效');
@@ -943,7 +966,7 @@ export class DungeonFlowService {
   private async finalizeExorcism(state: DungeonState) {
     if (!state.exorcism || state.settlement) return;
     if (state.exorcism.phase !== 'finished')
-      state.exorcism = retreatExorcism(state.exorcism);
+      state.exorcism = retreatExorcism(state.exorcism, await this.exorcismHpRatio(state.cultivatorId));
     const run = state.exorcism;
     const { mapRealm, level, context } = this.exorcismRewardContext(state);
     let insight: 'full' | 'partial' | 'none' = 'none';
@@ -1034,16 +1057,18 @@ export class DungeonFlowService {
     const prepared = run?.battlePayload as DungeonEncounterPayload | undefined;
     if (!prepared?.encounter || prepared.preview.id !== encounterId)
       throw new Error('遭遇输入缺失');
-    const payload = beginDungeonBattle(state, prepared);
+    const { payload, condition } = await beginDungeonBattle(state, prepared);
     state.status = 'IN_BATTLE';
     state.activeBattleId = payload.session.battleId;
-    if (options.deferPersistence)
-      return {
-        state,
-        isFinished: false,
-        ...this.buildStateHooks(cultivatorId, state, payload),
-      };
-    await this.saveState(cultivatorId, state, payload);
+    const hooks = this.buildStateHooks(cultivatorId, state, payload);
+    const persist = async (tx: DbTransaction) => {
+      await updateCultivator(cultivatorId, { condition }, tx);
+      await hooks.persist(tx);
+      return { condition };
+    };
+    if (options.deferPersistence) return { state, isFinished: false, ...hooks, persist };
+    await this.database.transaction(persist);
+    await hooks.afterCommit?.();
     return { state, isFinished: false };
   }
 

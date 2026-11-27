@@ -14,8 +14,6 @@ export type {
   ExorcismLineageId,
   ExorcismNpcPlan,
   ExorcismPhase,
-  ExorcismResources,
   ExorcismRunState,
   ExorcismSupplyChoice,
-  ExorcismUnitResources,
 } from '../dungeon/exorcism.js';

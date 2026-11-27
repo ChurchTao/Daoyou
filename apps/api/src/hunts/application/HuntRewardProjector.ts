@@ -1,3 +1,4 @@
+import { settlePersistentBattle } from '@server/combat/application/CombatV6PersistentCondition.js';
 import { db } from '@server/lib/drizzle/db.js';
 import { cultivators, messageConsumptions } from '@server/lib/drizzle/schema.js';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
@@ -16,18 +17,15 @@ import type { JournalChange } from '@daoyou/game-domain/journal/changes';
 import { HUNT_BOSSES } from '@daoyou/game-content/hunts';
 import {
   huntParticipantSucceeded,
-  settleHuntResources,
 } from '@daoyou/game-rules/hunts';
 import { dungeonRewardItemName } from '@daoyou/game-rules/rewards/dungeon';
 import { HuntRewardSnapshotSchema } from '@daoyou/game-rules/rewards/hunt';
-import type { CultivatorCondition } from '@daoyou/game-domain/condition';
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import type { CultivationProgress } from '@daoyou/game-domain/character';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { ArenaV6Error, ownedArenaV6 } from '@server/combat/application/CombatV6ArenaService.js';
 import { CombatV6ArenaStore } from '@server/combat/application/CombatV6ArenaStore.js';
-import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 import {
   updateCultivationExp,
   updateSpiritStones,
@@ -95,27 +93,10 @@ export async function projectHuntReward(battleId: string) {
         // Resources and rewards share the transport receipt and transaction, including defeat/assist.
         if (runtime.huntResourcePolicy === 'persistent') {
           for (const p of participants) {
-            const row = await tx.query.cultivators.findFirst({
-              where: and(
-                eq(cultivators.id, p.cultivatorId),
-                eq(cultivators.userId, p.userId),
-              ),
-            });
-            if (!row?.condition) throw new Error('讨伐角色状态不存在');
-            const resources = settleHuntResources(
-              runtime.units.find((u) => u.id === p.unitId)?.attrs,
-              runtime.state.units.find((u) => u.id === p.unitId),
-              runtime.terminalReason === 'technical-abort',
-            );
-            await tx
-              .update(cultivators)
-              .set({
-                condition: ConditionService.applyCombatV6Resources(
-                  row.condition as CultivatorCondition,
-                  resources,
-                ),
-              })
-              .where(eq(cultivators.id, p.cultivatorId));
+            if (runtime.terminalReason !== 'technical-abort' && runtime.terminalReason !== 'expired') {
+              await settlePersistentBattle(tx, p.cultivatorId, runtime.state, runtime.events, p.unitId,
+                runtime.units.find((unit) => unit.id === p.unitId)?.attrs);
+            }
             const committed = await new ResourceEventCommitter().commit(tx, {
               actor: p,
               source: 'hunt-condition',

@@ -1,3 +1,6 @@
+import { baixiaoDuelKey } from './BaixiaoBattleOccupancy.js';
+import { settlePersistentBattle } from '@server/combat/application/CombatV6PersistentCondition.js';
+import type { DbTransaction } from '@server/lib/drizzle/db.js';
 import type {
   CombatV6CommandGroup,
   CombatV6SessionSnapshot,
@@ -43,7 +46,6 @@ interface Duel {
   completedAt?: number;
 }
 
-const key = (id: string) => `baixiao:duel:${id}`;
 const retainMs = 60 * 60_000;
 const compareAndSave = `
 local existing = redis.call('GET', KEYS[1])
@@ -118,7 +120,7 @@ export class BaixiaoDuelService {
       snapshot: host.runtimeSnapshot(),
     };
     await redis.set(
-      key(duel.id),
+      baixiaoDuelKey(duel.id),
       JSON.stringify(duel),
       'PX',
       remaining + retainMs,
@@ -127,7 +129,7 @@ export class BaixiaoDuelService {
   }
 
   private async find(actor: ActiveCultivatorRef, id: string) {
-    const raw = await redis.get(key(id));
+    const raw = await redis.get(baixiaoDuelKey(id));
     if (!raw) return null;
     const duel = JSON.parse(raw) as Duel;
     if (
@@ -138,16 +140,16 @@ export class BaixiaoDuelService {
     return duel;
   }
 
-  async result(actor: ActiveCultivatorRef, id: string) {
+  async result(actor: ActiveCultivatorRef, id: string, tx: DbTransaction) {
     const duel = await this.find(actor, id);
     if (!duel) return { state: 'missing' } as const;
-    return duel.completedAt === undefined
-      ? ({ state: 'active' } as const)
-      : ({
-          state: 'finished',
-          victory: duel.outcome === 'victory',
-          completedAt: duel.completedAt,
-        } as const);
+    if (duel.completedAt === undefined) return { state: 'active' } as const;
+    if (duel.completedAt < duel.endsAt) {
+      const snapshot = duel.snapshot;
+      await settlePersistentBattle(tx, actor.cultivatorId, snapshot.state, snapshot.events,
+        snapshot.playerId, snapshot.input.units.find((unit) => unit.id === snapshot.playerId)?.attrs);
+    }
+    return { state: 'finished', victory: duel.outcome === 'victory', completedAt: duel.completedAt } as const;
   }
 
   async read(actor: ActiveCultivatorRef, id: string, after = -1) {
@@ -216,7 +218,7 @@ export class BaixiaoDuelService {
       (await redis.eval(
         compareAndSave,
         1,
-        key(id),
+        baixiaoDuelKey(id),
         revision,
         JSON.stringify(duel),
       )) !== 1

@@ -179,13 +179,6 @@ describe('beast content packs', () => {
       '捕捉下限',
     ],
     [
-      'zero rest recovery',
-      (p) => {
-        p.progression.lifespan.restRecoveryPerStone = 0;
-      },
-      'restRecoveryPerStone',
-    ],
-    [
       'experience overflow',
       (p) => {
         p.progression.experience.perLevel = 100000;
@@ -298,7 +291,6 @@ it('uses edited points, experience, lifespan and panel parameters consistently',
   copy.lifespan = {
     deathLoss: 20,
     deployMinimum: 30,
-    restRecoveryPerStone: 20,
   };
   copy.panel.health = { aptitudeCoefficient: 0, attributeCoefficient: 7 };
   vi.resetModules();
@@ -319,7 +311,8 @@ it('uses edited points, experience, lifespan and panel parameters consistently',
   expect(canDeployBeast({ ...born, currentLifespan: 30 }, 180)).toBe(true);
   expect(canDeployBeast({ ...born, currentLifespan: 29 }, 180)).toBe(false);
   expect(loseBeastLifespan(born).currentLifespan).toBe(980);
-  expect(beastRestCost({ ...born, currentLifespan: 961 })).toBe(2);
+  expect(beastRestCost({ ...born, currentLifespan: 961 })).toBe(0);
+  expect(beastRestCost({ ...born, vitals: { hp: 1, mp: 0 } })).toBe(200);
 });
 
 it('derives book availability from the skill pack', async () => {

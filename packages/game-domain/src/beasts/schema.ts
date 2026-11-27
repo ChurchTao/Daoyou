@@ -38,6 +38,7 @@ export function createBeastSchema(content: {
       unallocatedPoints: points,
       skillSlotCapacity: z.number().int().min(0).max(content.skills.length),
       skills: z.array(z.string()).max(content.skills.length),
+      vitals: z.strictObject({ hp: z.int().nonnegative(), mp: z.int().nonnegative() }).optional(),
       currentLifespan: points,
       maxLifespan: points,
       generationVersion: z.enum([BEAST_VERSION, 'summoned_beast_fusion_v1']),

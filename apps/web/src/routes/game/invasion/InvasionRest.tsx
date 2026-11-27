@@ -1,3 +1,4 @@
+import { BeastRestButton } from '@app/components/feature/beasts/BeastRestButton';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { RewardItemGrid } from '@app/components/feature/items/RewardItemGrid';
 import { ActivityCardInfoButton } from '@app/components/feature/weekly-activity/ActivityCardInfoButton';
@@ -403,6 +404,8 @@ export function InvasionRest({
             disabled={!enabled}
             send={send}
           />
+          <BeastRestButton label="灵兽休养" disabled={!enabled}
+            activity={{ kind: 'invasion', runId: team.id }} />
           <InvasionHand
             hand={team.self}
             disabled={!enabled || !self?.hp}

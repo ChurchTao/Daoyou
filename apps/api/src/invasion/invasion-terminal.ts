@@ -1,13 +1,18 @@
 import type { ArenaRuntime } from '@daoyou/contracts/combat/arena';
+import type { ResourceChange } from '@daoyou/contracts/resources';
 import { createCombatV6Replay } from '@daoyou/game-rules/combat/replay';
 import {
   INVASION_REST_MS,
   invasionCardDrop,
   invasionFirstClear,
 } from '@daoyou/game-rules/invasion';
+import { settlePersistentBattle } from '@server/combat/application/CombatV6PersistentCondition.js';
 import { db } from '@server/lib/drizzle/db.js';
 import { invasionProgress, invasionRuns } from '@server/lib/drizzle/schema.js';
 import { archiveCombatV6Replay } from '@server/lib/repositories/combatV6ReplayRepository.js';
+import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
+import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
+import { publishResourceEvents } from '@server/realtime/infrastructure/playerStateBroadcaster.js';
 import { eq } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 import {
@@ -19,19 +24,14 @@ import {
   runProgress,
 } from './invasion-run.js';
 
-export function invasionBuild(runtime: ArenaRuntime) {
-  return {
-    units: runtime.units.filter((unit) => unit.side === 0),
-    skills: runtime.skills,
-    statusDefs: runtime.statusDefs,
-    autoStrategies: runtime.autoStrategies,
-    unitAppearances: runtime.timeline.unitAppearances,
-  };
-}
-
 export async function recordInvasionTerminal(runtime: ArenaRuntime) {
   const invasion = runtime.invasion!;
-  await db.transaction(async (tx) => {
+  const changes = await db.transaction(async (tx) => {
+    for (const participant of [...runtime.participants].sort((a, b) =>
+      a.cultivatorId.localeCompare(b.cultivatorId),
+    )) {
+      await lockCultivatorForStateMutation(tx, participant.cultivatorId);
+    }
     const [run] = await tx
       .select()
       .from(invasionRuns)
@@ -75,6 +75,35 @@ export async function recordInvasionTerminal(runtime: ArenaRuntime) {
       }),
       tx,
     );
+    const changes: ResourceChange[] = [];
+    for (const participant of runtime.participants) {
+      if (runtime.terminalReason === 'battle-ended') {
+        await settlePersistentBattle(
+          tx,
+          participant.cultivatorId,
+          runtime.state,
+          runtime.events,
+          participant.unitId,
+          runtime.units.find((unit) => unit.id === participant.unitId)?.attrs,
+        );
+      }
+      const committed = await new ResourceEventCommitter().commit(tx, {
+        actor: {
+          userId: participant.userId,
+          cultivatorId: participant.cultivatorId,
+        },
+        source: 'invasion.battle',
+        scopeDefaults: { cultivatorId: participant.cultivatorId },
+        changes: [
+          {
+            resourceTopic: 'player.condition',
+            operation: 'invalidate',
+            eventType: 'condition.invasion.settled',
+          },
+        ],
+      });
+      changes.push(...committed.changes);
+    }
     const progress = await runProgress(run.id, tx).for('update');
     if (run.phase === 'launching')
       await consumeInvasionCards(tx, run, progress);
@@ -88,43 +117,19 @@ export async function recordInvasionTerminal(runtime: ArenaRuntime) {
         run.wave,
       );
       for (const entry of progress) {
-        const actor = runtime.participants.find(
-          ({ cultivatorId }) => cultivatorId === entry.cultivatorId,
-        );
-        if (!actor) continue;
-        const resources = { ...entry.resources };
-        for (const unit of runtime.state.units) {
-          if (unit.id !== actor.unitId && unit.ownerId !== actor.unitId)
-            continue;
-          resources[unit.id] = {
-            hp:
-              unit.flags.dead || unit.flags.downed || unit.flags.escaped
-                ? 0
-                : Math.floor(unit.attrs.hp),
-            mp: Math.floor(unit.attrs.mp),
-            maxHp: unit.attrs.maxHp,
-            maxMp: unit.attrs.maxMp,
-            benched: unit.flags.benched,
-          };
-        }
-        const firstClear = invasionFirstClear(entry.completedWave, run.wave);
+        if (!invasionFirstClear(entry.completedWave, run.wave)) continue;
         await tx
           .update(invasionProgress)
           .set({
-            resources,
-            ...(firstClear
+            completedWave: run.wave,
+            lastRunId: run.id,
+            lastBattleId: runtime.battleId,
+            ...(drop
               ? {
-                  completedWave: run.wave,
-                  lastRunId: run.id,
-                  lastBattleId: runtime.battleId,
-                  ...(drop
-                    ? {
-                        cards: {
-                          ...entry.cards,
-                          [drop]: (entry.cards[drop] ?? 0) + 1,
-                        },
-                      }
-                    : {}),
+                  cards: {
+                    ...entry.cards,
+                    [drop]: (entry.cards[drop] ?? 0) + 1,
+                  },
                 }
               : {}),
           })
@@ -137,7 +142,7 @@ export async function recordInvasionTerminal(runtime: ArenaRuntime) {
       !(await invasionRosterMatches(run, tx))
     ) {
       await finishInvasionRun(tx, run.id);
-      return;
+      return changes;
     }
     await tx
       .update(invasionRuns)
@@ -146,10 +151,11 @@ export async function recordInvasionTerminal(runtime: ArenaRuntime) {
         wave: run.wave + 1,
         dueAt: Math.min(closesAt, runtime.playbackEndsAt + INVASION_REST_MS),
         battleId: null,
-        build: run.build ?? invasionBuild(runtime),
         ready: [],
         selectedCards: {},
       })
       .where(eq(invasionRuns.id, run.id));
+    return changes;
   });
+  if (changes) publishResourceEvents(changes);
 }

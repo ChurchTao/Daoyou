@@ -85,6 +85,7 @@ export function towerReferenceBuild(
     },
     level,
   );
+  delete pet.vitals;
   return {
     cultivator: {
       id: owner,
@@ -93,7 +94,7 @@ export function towerReferenceBuild(
       realm_stage: stage,
       condition: {
         version: 1,
-        resources: { hp: { current: 1 }, mp: { current: 1 } },
+        resources: { hp: { current: Number.MAX_SAFE_INTEGER }, mp: { current: Number.MAX_SAFE_INTEGER } },
         gauges: { pillToxicity: 0 },
         tracks: {
           tempering: {

@@ -7,6 +7,7 @@ import {
   BeastPlaceSchema,
   BeastRenameSchema,
   BeastRestSchema,
+  BeastRecoverySchema,
 } from '@daoyou/contracts/beasts';
 import {
   Controller,
@@ -108,10 +109,10 @@ export class BeastsController {
   @HttpCode(200)
   rest(
     @CurrentCultivator() actor: ActiveCultivatorRef,
-    @JsonBody(new ZodPipe(BeastRestSchema))
-    input: z.infer<typeof BeastRestSchema>,
+    @JsonBody(new ZodPipe(BeastRecoverySchema))
+    input: z.infer<typeof BeastRecoverySchema>,
   ) {
-    return this.beasts.rest(actor.cultivatorId, input);
+    return this.beasts.rest(actor, input);
   }
 
   @Post('allocate')

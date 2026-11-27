@@ -8,7 +8,6 @@ export const BeastRefinementPackShape = z.strictObject({
   contentRevision: z.number().int().positive(),
   resetLevel: z.literal(0),
   resetExperience: z.literal(0),
-  restoreLifespan: z.boolean(),
   items: z
     .array(
       z.strictObject({

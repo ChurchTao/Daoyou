@@ -70,6 +70,7 @@ export function compileRankingBattle(
         side,
         0,
         p.unit.level,
+        'full',
       ).filter((b) => !b.benched),
     );
     merge(statuses, p.statusDefs);

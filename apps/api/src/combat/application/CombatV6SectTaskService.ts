@@ -1,3 +1,4 @@
+import { settlePersistentBattle } from './CombatV6PersistentCondition.js';
 import { automaticCommands } from '@daoyou/game-rules/combat/auto';
 import {
   combatV6Display,
@@ -13,25 +14,20 @@ import {
   type SectTaskBattleRuntime,
   type SectTaskSessionView,
 } from '@daoyou/contracts/combat/sect-tasks';
-import { beastDeathIds } from '@daoyou/game-rules/beasts/growth';
 import { SectBattleHost } from '@daoyou/game-rules/combat/sect/host';
 import { SectTaskRecordPayloadSchema } from '@daoyou/game-rules/sect-organization';
 import { productionSectRuntime } from '@daoyou/game-rules/sect-organization/production';
-import type { CultivatorCondition } from '@daoyou/game-domain/condition';
 import { db } from '@server/lib/drizzle/db.js';
 import {
   combatReplayArchives,
-  cultivators,
   sectMemberships,
   sectTaskRecords,
 } from '@server/lib/drizzle/schema.js';
 import { redis } from '@server/lib/redis/index.js';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock.js';
-import { settleBeastDeaths } from '@server/lib/repositories/combatV6BeastRepository.js';
 import { archiveCombatV6Replay } from '@server/lib/repositories/combatV6ReplayRepository.js';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
 import { and, eq } from 'drizzle-orm';
-import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 import { describeJournal, runJournalSettlement } from '@server/player/application/JournalSettlement.js';
 import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
 import { createPostgresSectCommandContext } from '@server/sects/organization/PostgresSectOrganizationAdapters.js';
@@ -260,35 +256,7 @@ export async function changeSectTaskBattle(
                 });
                 changes = fulfilled.effects.resourceChanges;
               }
-              if (runtime.snapshot.resourcePolicy === 'persistent') {
-                const [player] = await tx
-                  .select({ condition: cultivators.condition })
-                  .from(cultivators)
-                  .where(eq(cultivators.id, actor.cultivatorId));
-                if (!player?.condition) invalidSectTask('角色资源缺失');
-                const final = host.state.units.find(
-                  (unit) => unit.id === host.playerId,
-                )!;
-                await tx
-                  .update(cultivators)
-                  .set({
-                    condition: ConditionService.applyCombatV6Resources(
-                      player.condition as CultivatorCondition,
-                      {
-                        hp: Math.max(1, final.attrs.hp),
-                        mp: final.attrs.mp,
-                        maxHp: final.attrs.maxHp,
-                        maxMp: final.attrs.maxMp,
-                      },
-                    ),
-                  })
-                  .where(eq(cultivators.id, actor.cultivatorId));
-                await settleBeastDeaths(
-                  actor.cultivatorId,
-                  beastDeathIds(runtime.snapshot.events),
-                  tx,
-                );
-              }
+              await settlePersistentBattle(tx, actor.cultivatorId, host.state, runtime.snapshot.events, host.playerId);
               await archiveCombatV6Replay(
                 createCombatV6Replay({
                   battleId: id,

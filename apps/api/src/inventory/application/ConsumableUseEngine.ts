@@ -1,4 +1,3 @@
-import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db.js';
 import * as schema from '@server/lib/drizzle/schema.js';
 import { hasActiveDungeon } from '@server/dungeon/occupancy.js';
@@ -22,15 +21,10 @@ import {
   isSpiritFruitConsumable,
   isTalismanConsumable,
 } from '@daoyou/game-domain/consumables';
-import type {
-  DungeonEncounterView,
-  DungeonState,
-} from '@daoyou/game-domain/dungeon';
 import {
   canUseDungeonRecoveryPill,
   isDungeonRecoveryPill,
 } from '@daoyou/game-rules/dungeon';
-import { applyExorcismRestore } from '@daoyou/game-rules/dungeon/exorcism';
 import { getAttributeLabel } from '@daoyou/game-content/presentation/concepts';
 import { getTrackConfig } from '@daoyou/game-rules/condition';
 import type { Consumable } from '@daoyou/game-domain/character';
@@ -84,13 +78,7 @@ export const ConsumableUseEngine = {
       tx?: DbTransaction;
       lease?: RedisLeaseContext;
       quantity?: number;
-      localRecovery?: {
-        hp: number;
-        mp: number;
-        maxHp: number;
-        maxMp: number;
-        save(tx: DbTransaction, resources: { hp: number; mp: number }): Promise<void>;
-      };
+      invasionRest?: boolean;
     } = {},
   ): Promise<{
     message: string;
@@ -117,21 +105,15 @@ export const ConsumableUseEngine = {
     if (quantity > consumable.quantity) throw new Error('随身消耗品数量不足');
     if (quantity > 1 && !isPillConsumable(consumable))
       throw new Error('仅丹药支持批量服用');
-    if (options.localRecovery && (!options.tx || !isDungeonRecoveryPill(consumable)))
+    if (options.invasionRest && (!options.tx || !isDungeonRecoveryPill(consumable)))
       throw new Error('休憩时只能使用回复气血或法力的消耗品');
-    let exorcismRow: {
-      id: string;
-      runState: unknown;
-      battlePayload: unknown;
-    } | null = null;
-    if (!options.localRecovery && await hasActiveDungeon(cultivatorId)) {
+    if (!options.invasionRest && await hasActiveDungeon(cultivatorId)) {
       const [run] = await getExecutor(options.tx)
         .select({
           id: schema.dungeonRuns.id,
           activeBattleId: schema.dungeonRuns.activeBattleId,
           status: schema.dungeonRuns.status,
           runState: schema.dungeonRuns.runState,
-          battlePayload: schema.dungeonRuns.battlePayload,
         })
         .from(schema.dungeonRuns)
         .where(
@@ -141,17 +123,15 @@ export const ConsumableUseEngine = {
           ),
         )
         .limit(1);
-      // 除祟：回复丹在两场之间恢复局内状态（见下方 persistExorcismRestore），现实状态不变。
       const exorcismRun = Boolean(
         (run?.runState as { exorcism?: unknown } | undefined)?.exorcism,
       );
       if (exorcismRun && run?.activeBattleId)
         throw new Error('战斗中不能服药，打完这一场再用');
-      if (exorcismRun && isPillConsumable(consumable) && run) exorcismRow = run;
       if (
         !run ||
         !(exorcismRun
-          ? isDungeonRecoveryPill(consumable)
+          ? ['EXPLORING', 'WAITING_BATTLE'].includes(run.status) && isDungeonRecoveryPill(consumable)
           : canUseDungeonRecoveryPill(run, consumable))
       ) {
         throw new Error(
@@ -278,37 +258,7 @@ export const ConsumableUseEngine = {
       throw new Error('角色不存在或无权限操作。');
     }
 
-    // 除祟局内服药：用局内气血法力结算药效，丹毒等照常记入，现实气血法力保持不变。
-    const exorcismState = exorcismRow?.runState as
-      | (Pick<DungeonState, 'exorcism' | 'encounter'> & Record<string, unknown>)
-      | undefined;
-    const exorcismPlayer = exorcismState?.exorcism?.resources?.player;
-    const inRun = options.localRecovery ?? exorcismPlayer;
-    if (exorcismRow && (!exorcismPlayer || (exorcismPlayer.hp >= exorcismPlayer.maxHp && exorcismPlayer.mp >= exorcismPlayer.maxMp)))
-      throw new Error('局内气血法力已满，不需要服药');
-    const condition = options.localRecovery
-      ? ConditionService.normalizeCondition(cultivator, cultivator.condition)
-      : cultivator.condition;
-    const realResources = condition?.resources;
-    const authority = cultivator.combatV6ResourceAuthority;
-    const localAuthority = options.localRecovery && authority
-      ? { ...authority, maxHp: options.localRecovery.maxHp, maxMp: options.localRecovery.maxMp, recoveryPaused: true }
-      : authority;
-    let nextCultivator: PillCultivatorFacts =
-      inRun && condition
-        ? {
-            ...cultivator,
-            combatV6ResourceAuthority: localAuthority,
-            condition: {
-              ...condition,
-              resources: {
-                ...condition.resources,
-                hp: { current: inRun.hp },
-                mp: { current: inRun.mp },
-              },
-            },
-          }
-        : cultivator;
+    let nextCultivator: PillCultivatorFacts = cultivator;
     const trackLevelUps: ReturnType<
       typeof PillOperationExecutor.execute
     >['trackLevelUps'] = [];
@@ -332,63 +282,18 @@ export const ConsumableUseEngine = {
       trackLevelUps.push(...execution.trackLevelUps);
       appliedEffects.push(...execution.appliedEffects);
     }
+    if (options.invasionRest && nextCultivator.condition && cultivator.condition) {
+      const before = cultivator.condition.resources;
+      const after = nextCultivator.condition.resources;
+      if (after.hp.current <= before.hp.current && after.mp.current <= before.mp.current)
+        throw new Error('这件回复品无法恢复当前状态');
+    }
     const lifespanGain = Math.max(
       0,
       Math.floor(nextCultivator.lifespan) - Math.floor(cultivator.lifespan),
     );
 
-    const persistExorcismRestore = async (tx: DbTransaction) => {
-      if (!exorcismRow || !exorcismState?.exorcism) return;
-      const exorcism = applyExorcismRestore(exorcismState.exorcism, {
-        hp: nextCultivator.condition?.resources.hp.current ?? 0,
-        mp: nextCultivator.condition?.resources.mp.current ?? 0,
-      });
-      const player = exorcism.resources!.player;
-      const payload = exorcismRow.battlePayload as {
-        encounter?: {
-          playerId: string;
-          input: { units: Array<{ id?: string; attrs?: { hp?: number; mp?: number } }> };
-        };
-        preview?: DungeonEncounterView;
-      } | null;
-      const unit = payload?.encounter?.input.units.find(
-        (entry) => entry.id === payload.encounter?.playerId,
-      );
-      if (unit?.attrs) {
-        unit.attrs.hp = player.hp;
-        unit.attrs.mp = player.mp;
-      }
-      const syncPreview = (preview?: DungeonEncounterView) => {
-        if (!preview) return;
-        preview.hp.current = player.hp;
-        preview.mp.current = player.mp;
-      };
-      syncPreview(payload?.preview);
-      syncPreview(exorcismState.encounter);
-      await tx
-        .update(schema.dungeonRuns)
-        .set({
-          runState: { ...exorcismState, exorcism },
-          battlePayload: payload,
-        })
-        .where(eq(schema.dungeonRuns.id, exorcismRow.id));
-      if (realResources && nextCultivator.condition)
-        nextCultivator = {
-          ...nextCultivator,
-          condition: { ...nextCultivator.condition, resources: realResources },
-        };
-    };
-
     const persistPillEffect = async (tx: DbTransaction) => {
-      await persistExorcismRestore(tx);
-      if (options.localRecovery && nextCultivator.condition && realResources) {
-        const { hp, mp } = nextCultivator.condition.resources;
-        await options.localRecovery.save(tx, { hp: hp.current, mp: mp.current });
-        nextCultivator = {
-          ...nextCultivator,
-          condition: { ...nextCultivator.condition, resources: realResources },
-        };
-      }
       await tx
         .update(schema.cultivators)
         .set({
@@ -422,7 +327,7 @@ export const ConsumableUseEngine = {
         consumableId,
         consumedQuantity,
         tx,
-        { includeInvasion: !options.localRecovery },
+        { includeInvasion: !options.invasionRest },
       );
     };
 

@@ -84,6 +84,8 @@ const week = createTowerWeek(getTowerSeasonMeta(new Date('2026-09-19')));
 function durablePlayer() {
   const p = player('youdu');
   p.cultivator.attributes.vitality = 10000;
+  p.cultivator.condition.resources.hp.current = Number.MAX_SAFE_INTEGER;
+  p.cultivator.condition.resources.mp.current = Number.MAX_SAFE_INTEGER;
   return p;
 }
 function defendRound(host: TowerHost) {
@@ -95,8 +97,8 @@ function defendRound(host: TowerHost) {
   );
   host.resolveRound();
 }
-describe('满状态幻境与可恢复机制', () => {
-  it('每场人物与携带灵兽满状态，兽威只提升灵兽双攻，不修改输入', () => {
+describe('幻境常驻状态与可恢复机制', () => {
+  it('人物与灵兽按常驻状态入场，兽威只提升灵兽双攻', () => {
     const input = player('youdu');
     const owner = '00000000-0000-4000-8000-000000000001';
     input.cultivator.id = owner;
@@ -106,6 +108,7 @@ describe('满状态幻境与可恢复机制', () => {
       BEAST_SPECIES[0].id,
       42,
     );
+    beast.vitals = { hp: 35, mp: 0 };
     const p = {
       ...input,
       beasts: {
@@ -126,13 +129,11 @@ describe('满状态幻境与可恢复机制', () => {
       Math.floor(basePet.attrs.physicalAtk * 1.28),
     );
     expect(pet.attrs.magicAtk).toBe(Math.floor(basePet.attrs.magicAtk * 1.28));
-    for (const u of buffed.state.units.filter((u) => u.side === 0)) {
-      expect(u.attrs.hp).toBe(u.attrs.maxHp);
-      expect(u.attrs.mp).toBe(u.attrs.maxMp);
-    }
+    expect(buffed.state.units[0].attrs).toMatchObject({ hp: 100, mp: 40 });
+    expect(pet.attrs).toMatchObject({ hp: 35, mp: 0 });
     expect(p).toEqual(before);
   });
-  it('刷新恢复保留战中消耗，下一场重新满状态', () => {
+  it('刷新保留战中消耗，下一场读取结算后的常驻状态', () => {
     const p = durablePlayer();
     const host = createTowerHost(p, '金丹', 1, {}, week, 42);
     defendRound(host);
@@ -142,8 +143,11 @@ describe('满状态幻境与可恢复机制', () => {
     expect(restored.state.units[0].attrs.hp).toBeLessThan(
       restored.state.units[0].attrs.maxHp,
     );
+    const settled = restored.state.units[0].attrs;
+    p.cultivator.condition.resources.hp.current = settled.hp;
+    p.cultivator.condition.resources.mp.current = settled.mp;
     const next = createTowerHost(p, '金丹', 2, {}, week, 42);
-    expect(next.state.units[0].attrs.hp).toBe(next.state.units[0].attrs.maxHp);
+    expect(next.state.units[0].attrs).toMatchObject({ hp: settled.hp, mp: settled.mp });
   });
   it.each(['combat_auto_rules_v3', undefined])('旧自动策略版本（%s）的进行中战局仍可恢复和结算回合', (version) => {
     const host = createTowerHost(

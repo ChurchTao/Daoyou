@@ -96,6 +96,7 @@ const WildSettlementSchema = z
       .strict()
       .optional(),
     deadBeastIds: z.array(z.uuid()).max(8).optional(),
+    beasts: z.array(z.strictObject({ id: z.uuid(), hp: z.int().nonnegative(), mp: z.int().nonnegative(), died: z.boolean() })).max(8).optional(),
     schemaVersion: z.literal(1),
     battleId: z.uuid(),
     userId: z.uuid(),

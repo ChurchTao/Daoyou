@@ -259,7 +259,7 @@ export function BeastBookDrawer({
           message: feeding
             ? `灵兽修为 +${result.gained}，当前${result.level}级。`
             : refining
-              ? `已重归初生，技能 ${result.oldSkillCount} → ${result.newSkillCount} 项，寿命已恢复。`
+              ? `已重归初生，技能 ${result.oldSkillCount} → ${result.newSkillCount} 项。`
               : rejuvenating
                 ? '洗点完成，属性点已重置。'
                 : result.oldSkill
@@ -534,7 +534,7 @@ export function BeastBookDrawer({
                 ? '洗炼后回到0级，仍是变异。每项基础属性20点，另有50点可分配。'
                 : '洗炼后成为0级宝宝。每项基础属性10点，另有50点可分配。'}
               修为与已加的点清零，资质、成长和技能都会重来，原先融合或领悟的技能不会留下，技能也可能变少。
-              用掉的传承灵印不退还，寿命恢复到上限，不能反悔。
+              用掉的传承灵印不退还，不能反悔。
             </>
           ) : rejuvenating ? (
             <>

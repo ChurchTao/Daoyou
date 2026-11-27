@@ -45,19 +45,6 @@ export type ExorcismSupplyChoice = 'rest' | 'search';
 export type ExorcismEndReason = 'cleared' | 'defeated' | 'retreated';
 export type ExorcismPhase = 'battle' | 'supply' | 'finished';
 
-export interface ExorcismUnitResources {
-  hp: number;
-  mp: number;
-  maxHp: number;
-  maxMp: number;
-}
-
-/** 局内资源，与人物现实气血法力完全分开。缺省表示本局尚未开战、将以满状态入场。 */
-export interface ExorcismResources {
-  player: ExorcismUnitResources;
-  beasts: Record<string, ExorcismUnitResources>;
-}
-
 export interface ExorcismRunState {
   bossId: ExorcismBossId;
   lineageId: ExorcismLineageId;
@@ -66,7 +53,6 @@ export interface ExorcismRunState {
   phase: ExorcismPhase;
   /** 已胜场次，0–4。 */
   wins: number;
-  resources?: ExorcismResources;
   supplies: ExorcismSupplyChoice[];
   endReason?: ExorcismEndReason;
   /** 一场未胜为 null。 */

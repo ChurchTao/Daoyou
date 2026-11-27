@@ -1,3 +1,4 @@
+import { rebaseBeastVitals } from './projection.js';
 import { type SummonedBeast } from '@daoyou/game-domain/beasts';
 import { GeneratedBeastSchema } from './schema.js';
 import { beastPointBudget } from './identity.js';
@@ -21,5 +22,5 @@ export function rejuvenateBeast(beast: SummonedBeast): SummonedBeast {
     unallocatedPoints: beastPointBudget(beast),
     revision: beast.revision + 1,
   };
-  return GeneratedBeastSchema.parse(reset);
+  return rebaseBeastVitals(beast, GeneratedBeastSchema.parse(reset));
 }

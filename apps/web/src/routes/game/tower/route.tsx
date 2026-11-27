@@ -386,7 +386,7 @@ export default function TowerRoute() {
             ) : null}
             {!choosing ? (
               <p className="text-ink-secondary mt-3 text-xs">
-                入境锁定装备、功法与灵兽。祝福可叠加。每场满气血、满法力迎战。
+                入境锁定装备和功法，祝福可叠加。每场使用人物与灵兽当前的气血、法力。
               </p>
             ) : null}
             {state && Object.keys(state.blessings).length ? (

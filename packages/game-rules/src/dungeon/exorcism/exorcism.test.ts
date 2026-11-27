@@ -11,7 +11,6 @@ import {
   EXORCISM_BOSS_IDS,
   EXORCISM_LINEAGE_IDS,
   type ExorcismBossId,
-  type ExorcismResources,
   type ExorcismRunState,
 } from '@daoyou/game-domain/dungeon/exorcism';
 import { describe, expect, it } from 'vitest';
@@ -31,7 +30,6 @@ import {
 } from './rewards.js';
 import {
   applyExorcismBattle,
-  applyExorcismRestore,
   applyExorcismSupply,
   createExorcismRun,
   exorcismCurrentStage,
@@ -45,13 +43,6 @@ const CONTEXT = {
   playerRealm: '金丹',
   difficultyTier: 'normal',
 } as const;
-
-function resources(hp: number, maxHp = 100, mp = 50): ExorcismResources {
-  return {
-    player: { hp, maxHp, mp, maxMp: 100 },
-    beasts: { pet: { hp: 40, maxHp: 100, mp: 40, maxMp: 100 } },
-  };
-}
 
 function baseRun(wins = 0): ExorcismRunState {
   return {
@@ -83,13 +74,13 @@ describe('除祟流程', () => {
       expect(exorcismCurrentStage(run)).toBe(stage);
       run = applyExorcismBattle(run, {
         victory: true,
-        resources: resources(80),
+        hpRatio: 0.8,
       });
       expect(run.phase).toBe('supply');
       run = applyExorcismSupply(run, 'search');
       expect(run.phase).toBe('battle');
     }
-    run = applyExorcismBattle(run, { victory: true, resources: resources(80) });
+    run = applyExorcismBattle(run, { victory: true, hpRatio: 0.8 });
     expect(run).toMatchObject({
       phase: 'finished',
       endReason: 'cleared',
@@ -98,50 +89,18 @@ describe('除祟流程', () => {
     });
   });
 
-  it('调息是唯一恢复，搜寻不改状态；已阵亡灵兽不恢复', () => {
-    const start = applyExorcismBattle(baseRun(), {
-      victory: true,
-      resources: {
-        ...resources(40),
-        beasts: { dead: { hp: 0, maxHp: 100, mp: 10, maxMp: 100 } },
-      },
-    });
+  it('调息和搜寻只保留玩法选择', () => {
+    const start = applyExorcismBattle(baseRun(), { victory: true, hpRatio: 0.4 });
     const rest = applyExorcismSupply(start, 'rest');
-    expect(rest.resources?.player).toMatchObject({ hp: 70, mp: 80 });
-    expect(rest.resources?.beasts.dead.hp).toBe(0);
-    const search = applyExorcismSupply(start, 'search');
-    expect(search.resources?.player).toMatchObject({ hp: 40, mp: 50 });
-    expect(search.supplies).toEqual(['search']);
-  });
-
-  it('调息不能超过上限', () => {
-    const start = applyExorcismBattle(baseRun(), {
-      victory: true,
-      resources: resources(90),
-    });
-    expect(applyExorcismSupply(start, 'rest').resources?.player.hp).toBe(100);
-  });
-
-  it('回复丹药恢复局内状态，不超过上限，结束后不能用', () => {
-    const start = applyExorcismBattle(baseRun(), {
-      victory: true,
-      resources: resources(40),
-    });
-    expect(
-      applyExorcismRestore(start, { hp: 60, mp: 70 }).resources?.player,
-    ).toMatchObject({ hp: 60, mp: 70 });
-    expect(
-      applyExorcismRestore(start, { hp: 999, mp: 999 }).resources?.player,
-    ).toMatchObject({ hp: 100, mp: 100 });
-    expect(() =>
-      applyExorcismRestore(retreatExorcism(start), { hp: 50, mp: 50 }),
-    ).toThrow();
+    expect(rest).toMatchObject({ phase: 'battle', supplies: ['rest'] });
+    expect(rest).not.toHaveProperty('resources');
+    expect(applyExorcismSupply(start, 'search').supplies).toEqual(['search']);
   });
 
   it('败退按已胜场次评级', () => {
     const lost = applyExorcismBattle(baseRun(3), {
       victory: false,
-      resources: resources(0),
+      hpRatio: 0.0,
     });
     expect(lost).toMatchObject({
       phase: 'finished',
@@ -150,50 +109,35 @@ describe('除祟流程', () => {
     });
     const first = applyExorcismBattle(baseRun(0), {
       victory: false,
-      resources: resources(0),
+      hpRatio: 0.0,
     });
     expect(first.grade).toBeNull();
   });
 
-  it('人物倒地、灵兽收尾算胜，下场留 1 点气血，胜首领只能 A', () => {
+  it('人物倒地、灵兽收尾算胜，胜首领只能 A', () => {
     const next = applyExorcismBattle(baseRun(1), {
       victory: true,
-      resources: resources(0),
+      hpRatio: 0.0,
     });
-    expect(next.resources?.player.hp).toBe(1);
+    expect(next).toMatchObject({ wins: 2, phase: 'supply' });
     const boss = applyExorcismBattle(baseRun(3), {
       victory: true,
-      resources: resources(0),
+      hpRatio: 0.0,
     });
     expect(boss.grade).toBe('A');
   });
 
-  it('已阵亡的灵兽不会因为不在下一场阵容里而复活', () => {
-    const first = applyExorcismBattle(baseRun(), {
-      victory: true,
-      resources: {
-        ...resources(80),
-        beasts: { pet: { hp: 0, maxHp: 100, mp: 0, maxMp: 100 } },
-      },
-    });
-    const next = applyExorcismBattle(applyExorcismSupply(first, 'search'), {
-      victory: true,
-      resources: { player: resources(70).player, beasts: {} },
-    });
-    expect(next.resources?.beasts.pet.hp).toBe(0);
-  });
-
   it('只有补给时才能选择补给，结束后不能再收手，防止重复提交', () => {
     expect(() => applyExorcismSupply(baseRun(1), 'rest')).toThrow();
-    expect(() => retreatExorcism(retreatExorcism(baseRun(1)))).toThrow();
+    expect(() => retreatExorcism(retreatExorcism(baseRun(1), 0.5), 0.5)).toThrow();
     const supply = applyExorcismBattle(baseRun(1), {
       victory: true,
-      resources: resources(50),
+      hpRatio: 0.5,
     });
     expect(() =>
-      applyExorcismBattle(supply, { victory: true, resources: resources(50) }),
+      applyExorcismBattle(supply, { victory: true, hpRatio: 0.5 }),
     ).toThrow();
-    expect(retreatExorcism(supply)).toMatchObject({
+    expect(retreatExorcism(supply, 0.5)).toMatchObject({
       endReason: 'retreated',
       grade: 'C',
     });
@@ -396,12 +340,11 @@ function fight(host: ExorcismHost, maxRounds = 60) {
 function hostFor(
   bossId: ExorcismBossId,
   wins = 3,
-  carried?: ExorcismResources,
 ) {
   return createExorcismHost(
     towerReferenceBuild('jiujie', '金丹', '中期'),
     { realm: '金丹', tier: 'normal' },
-    { bossId, lineageId: 'grass', wins, resources: carried },
+    { bossId, lineageId: 'grass', wins },
     11,
   );
 }
@@ -422,50 +365,20 @@ function tanky(host: ExorcismHost) {
 }
 
 describe('除祟战斗', () => {
-  it('局内资源独立：入场回满，不读现实气血，并带入累计状态', () => {
+  it('每场读取常驻人物与灵兽的气血法力', () => {
     const player = towerReferenceBuild('jiujie', '金丹', '中期');
-    player.cultivator.condition!.resources.hp.current = 1;
-    const fresh = createExorcismHost(
-      player,
-      { realm: '金丹', tier: 'normal' },
-      { bossId: 'broken_vein', lineageId: 'earth', wins: 0 },
-      1,
-    );
-    const unit = fresh.state.units.find((u) => u.id === fresh.playerId)!;
-    expect(unit.attrs.hp).toBe(unit.attrs.maxHp);
-    const carried = createExorcismHost(
-      player,
-      { realm: '金丹', tier: 'normal' },
-      {
-        bossId: 'broken_vein',
-        lineageId: 'earth',
-        wins: 1,
-        resources: {
-          player: {
-            hp: 123,
-            mp: 45,
-            maxHp: unit.attrs.maxHp,
-            maxMp: unit.attrs.maxMp,
-          },
-          beasts: {},
-        },
-      },
-      1,
-    );
-    const next = carried.state.units.find((u) => u.id === carried.playerId)!;
-    expect(next.attrs.hp).toBe(123);
-    expect(next.attrs.mp).toBe(45);
-    expect(player.cultivator.condition!.resources.hp.current).toBe(1);
-  });
-
-  it('已阵亡的灵兽本局不再出战', () => {
-    const base = hostFor('broken_vein', 0);
-    const petId = base.state.units.find((u) => u.ownerId === base.playerId)!.id;
-    const host = hostFor('broken_vein', 1, {
-      player: { hp: 500, mp: 100, maxHp: 1000, maxMp: 1000 },
-      beasts: { [petId]: { hp: 0, mp: 0, maxHp: 100, maxMp: 100 } },
-    });
-    expect(host.state.units.some((u) => u.id === petId)).toBe(false);
+    const pet = player.beasts!.beasts[0];
+    pet.vitals = { hp: 41, mp: 22 };
+    player.cultivator.condition!.resources.hp.current = 123;
+    player.cultivator.condition!.resources.mp.current = 45;
+    for (const wins of [0, 1]) {
+      const host = createExorcismHost(player, { realm: '金丹', tier: 'normal' },
+        { bossId: 'broken_vein', lineageId: 'earth', wins }, 1);
+      expect(host.state.units.find((unit) => unit.id === host.playerId)?.attrs)
+        .toMatchObject({ hp: 123, mp: 45 });
+      expect(host.state.units.find((unit) => unit.id === `beast:${pet.id}`)?.attrs)
+        .toMatchObject({ hp: 41, mp: 22 });
+    }
   });
 
   it('快照可恢复，恢复后继续行动方案', () => {
@@ -740,7 +653,7 @@ describe('除祟战斗', () => {
       expect(host.finished).toBe(true);
       run = applyExorcismBattle(run, {
         victory: host.trace().outcome === 'victory',
-        resources: host.finalResources(),
+        hpRatio: host.finalHpRatio(),
       });
     }
     expect(run.wins).toBeGreaterThan(0);

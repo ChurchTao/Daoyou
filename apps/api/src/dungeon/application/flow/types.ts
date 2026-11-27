@@ -475,7 +475,6 @@ export interface DungeonState {
   encounter?: import('@daoyou/game-domain/dungeon').DungeonEncounterView;
   rewardSeed?: number;
   v6Rewards?: import('@daoyou/game-domain/dungeon').DungeonRewardEntry[];
-  beastResources?: Record<string, { hp: number; mp: number }>;
   endDisposition?: import('@daoyou/game-domain/dungeon').DungeonEndDisposition;
   runId?: string;
   cultivatorId: string;

@@ -11,7 +11,6 @@ import { AUTO_POLICY_VERSION } from '@daoyou/game-domain/combat/auto';
 import type { DungeonDifficultyTier } from '@daoyou/game-domain/dungeon';
 import type {
   ExorcismBattleSnapshot,
-  ExorcismResources,
   ExorcismRunState,
 } from '@daoyou/game-domain/dungeon/exorcism';
 import { projectBeastRoster } from '../../beasts/projection.js';
@@ -105,35 +104,18 @@ export class ExorcismHost extends CombatV6PveHostSession {
   }
 
   /** 战斗结束时的局内资源，交给 applyExorcismBattle 入账。 */
-  finalResources(): ExorcismResources {
-    const units = this.state.units;
-    const player = units.find((u) => u.id === this.playerId);
+  finalHpRatio() {
+    const player = this.state.units.find((unit) => unit.id === this.playerId);
     if (!player) throw new Error('除祟战局缺少人物');
-    const pick = (u: (typeof units)[number]) => ({
-      hp: Math.max(0, Math.floor(u.attrs.hp)),
-      mp: Math.max(0, Math.floor(u.attrs.mp)),
-      maxHp: u.attrs.maxHp,
-      maxMp: u.attrs.maxMp,
-    });
-    return {
-      player: pick(player),
-      beasts: Object.fromEntries(
-        units
-          .filter((u) => u.ownerId === this.playerId)
-          .map((u) => [u.id, pick(u)]),
-      ),
-    };
+    return player.attrs.maxHp > 0 ? player.attrs.hp / player.attrs.maxHp : 0;
   }
+
 }
 
-/**
- * 局内资源独立：按满状态投影，再覆盖成本局累计值。
- * 不读取、也不写回人物现实气血法力。已阵亡的灵兽不再上场。
- */
 export function createExorcismHost(
   player: CombatV6TrainingPlayerInput,
   encounter: { realm: RealmType; tier: DungeonDifficultyTier },
-  run: Pick<ExorcismRunState, 'wins' | 'bossId' | 'lineageId' | 'resources'>,
+  run: Pick<ExorcismRunState, 'wins' | 'bossId' | 'lineageId'>,
   seed: number,
   leadIdentity?: { name: string; appearance: CombatV6UnitAppearance },
 ) {
@@ -141,39 +123,11 @@ export function createExorcismHost(
     ...structuredClone(player),
     side: 0,
     slot: 0,
-    resourcePolicy: 'full',
+    resourcePolicy: 'persistent',
   });
   if (!projected.ok) throw new Error('请先完成新版宗门构筑');
   const unit = projected.unit;
-  const carried = run.resources;
-  if (carried) {
-    unit.attrs = {
-      ...unit.attrs,
-      hp: Math.min(unit.attrs?.maxHp ?? carried.player.hp, carried.player.hp),
-      mp: Math.min(unit.attrs?.maxMp ?? carried.player.mp, carried.player.mp),
-    };
-  }
-  const beasts = projectBeastRoster(
-    player.beasts,
-    unit.id!,
-    0,
-    0,
-    unit.level,
-  ).flatMap((beast) => {
-    const previous = carried?.beasts[beast.id!];
-    if (!previous) return [beast];
-    if (previous.hp <= 0) return [];
-    return [
-      {
-        ...beast,
-        attrs: {
-          ...beast.attrs,
-          hp: Math.min(beast.attrs?.maxHp ?? previous.hp, previous.hp),
-          mp: Math.min(beast.attrs?.maxMp ?? previous.mp, previous.mp),
-        },
-      },
-    ];
-  });
+  const beasts = projectBeastRoster(player.beasts, unit.id!, 0, 0, unit.level, 'persistent');
   const compiled = compileExorcismEncounter({
     ...encounter,
     stage: exorcismCurrentStage(run),
