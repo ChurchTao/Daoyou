@@ -14,7 +14,10 @@ import { scheduleSystemMailObservation } from '@server/mail/application/SystemMa
 import { PresenceService } from '@server/presence/presence.service.js';
 import { subscribeArenaRoomChanges } from '@server/realtime/infrastructure/arenaRoomBroadcaster.js';
 import { subscribeHuntTeamChat } from '@server/realtime/infrastructure/huntTeamChatBroadcaster.js';
-import { subscribePartyChanges } from '@server/realtime/infrastructure/partyBroadcaster.js';
+import {
+  subscribePartyChanges,
+  waitForPartyChangesReady,
+} from '@server/realtime/infrastructure/partyBroadcaster.js';
 import { subscribeHuntTeamStart } from '@server/realtime/infrastructure/huntTeamStartBroadcaster.js';
 import { subscribeResourceEvents } from '@server/realtime/infrastructure/playerStateBroadcaster.js';
 import { subscribeSectChatMessages } from '@server/realtime/infrastructure/sectChatBroadcaster.js';
@@ -158,10 +161,12 @@ export class RealtimeService {
     let lastActivityAt = Date.now();
     let closed = false;
     let heartbeat: ReturnType<typeof setInterval> | undefined;
+    const setup = new AbortController();
     const unsubscribers: (() => void)[] = [];
     const cleanup = () => {
       if (closed) return;
       closed = true;
+      setup.abort();
       if (heartbeat) clearInterval(heartbeat);
       for (const unsubscribe of unsubscribers) {
         try {
@@ -262,9 +267,7 @@ export class RealtimeService {
         subscribeHuntTeamChat(reservation.userId, (message) =>
           send({ type: 'hunt-team.chat', payload: message }),
         ),
-        subscribePartyChanges(reservation.userId, () =>
-          send({ type: 'party.changed', payload: null }),
-        ),
+        subscribePartyChanges(reservation.userId, cultivatorId, send),
       );
       if (channels.includes('player-state')) {
         unsubscribers.push(
@@ -337,10 +340,18 @@ export class RealtimeService {
           payload: { serverTime: new Date().toISOString() },
         });
       }, 25_000);
-      send({
-        type: 'ready',
-        payload: { cultivatorId, channels, resourceScopes },
-      });
+      void waitForPartyChangesReady(reservation.userId, setup.signal)
+        .then(() =>
+          send({
+            type: 'ready',
+            payload: { cultivatorId, channels, resourceScopes },
+          }),
+        )
+        .catch((error: unknown) => {
+          if (closed) return;
+          console.error('[realtime] party subscription setup failed', error);
+          close(1011, 'Connection setup failed');
+        });
     } catch (error) {
       console.error('[realtime] connection setup failed', error);
       close(1011, 'Connection setup failed');

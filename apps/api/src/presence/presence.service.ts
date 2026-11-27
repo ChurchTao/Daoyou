@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import type { DbClient } from '@server/lib/drizzle/db.js';
 import { cultivators } from '@server/lib/drizzle/schema.js';
+import { publishPartyMemberChanges } from '@server/realtime/infrastructure/partyBroadcaster.js';
 import { REDIS_CLIENT } from '@server/redis/redis.module.js';
 import { eq } from 'drizzle-orm';
 import type { Redis } from 'ioredis';
@@ -25,7 +26,13 @@ local ttlSeconds = tonumber(ARGV[3])
 local nowMs = tonumber(ARGV[4])
 local connectionTtlMs = tonumber(ARGV[5])
 
+local function cultivatorOf(value)
+  return string.match(value, "^[^:]+:(.+)$") or value
+end
+
+local expired = redis.call("zrangebyscore", connectionsKey, "-inf", nowMs)
 redis.call("zremrangebyscore", connectionsKey, "-inf", nowMs)
+local wasPresent = redis.call("zscore", connectionsKey, member) ~= false
 if online == "1" then
   redis.call("zadd", connectionsKey, nowMs + connectionTtlMs, member)
 else
@@ -33,14 +40,14 @@ else
 end
 
 local members = redis.call("zrange", connectionsKey, 0, -1)
-local unique = {}
+local connectionCounts = {}
 local currentOnline = 0
 for _, value in ipairs(members) do
-  local cultivatorId = string.match(value, "^[^:]+:(.+)$") or value
-  if not unique[cultivatorId] then
-    unique[cultivatorId] = true
+  local cultivatorId = cultivatorOf(value)
+  if not connectionCounts[cultivatorId] then
     currentOnline = currentOnline + 1
   end
+  connectionCounts[cultivatorId] = (connectionCounts[cultivatorId] or 0) + 1
 end
 
 local todayPeak = tonumber(redis.call("get", todayPeakKey) or "0")
@@ -52,6 +59,20 @@ local allTimePeak = tonumber(redis.call("get", allTimePeakKey) or "0")
 if currentOnline > allTimePeak then
   redis.call("set", allTimePeakKey, tostring(currentOnline))
 end
+
+local cultivatorId = cultivatorOf(member)
+local changed = {}
+if (online == "1" and not wasPresent and connectionCounts[cultivatorId] == 1)
+  or (online == "0" and wasPresent and not connectionCounts[cultivatorId]) then
+  changed[cultivatorId] = true
+end
+for _, value in ipairs(expired) do
+  local expiredId = cultivatorOf(value)
+  if not connectionCounts[expiredId] then changed[expiredId] = true end
+end
+local ids = {}
+for id in pairs(changed) do ids[#ids + 1] = id end
+return ids
 `;
 
 interface PresenceSnapshot {
@@ -150,7 +171,9 @@ export class PresenceService {
       const cultivatorIds = await this.readOnlineCultivatorIds(now);
       return { source: 'redis', generatedAt, cultivatorIds };
     } catch (error) {
-      console.warn('[presence] falling back to local online snapshot', { error });
+      console.warn('[presence] falling back to local online snapshot', {
+        error,
+      });
       return {
         source: 'memory',
         generatedAt,
@@ -210,21 +233,26 @@ export class PresenceService {
   }
 
   private syncPresence(cultivatorId: string, online: boolean): void {
-    void this.writePresence(cultivatorId, online).catch((error) => {
-      console.warn('[presence] failed to sync online state', {
-        cultivatorId,
-        online,
-        error,
+    void this.writePresence(cultivatorId, online)
+      .then((changed) => {
+        if (changed.length)
+          return publishPartyMemberChanges('presence', changed);
+      })
+      .catch((error) => {
+        console.warn('[presence] failed to sync online state', {
+          cultivatorId,
+          online,
+          error,
+        });
       });
-    });
   }
 
   private async writePresence(
     cultivatorId: string,
     online: boolean,
-  ): Promise<void> {
+  ): Promise<string[]> {
     const now = new Date();
-    await this.redis.eval(
+    return (await this.redis.eval(
       UPDATE_ONLINE_PRESENCE_SCRIPT,
       3,
       ONLINE_CONNECTIONS_KEY,
@@ -235,7 +263,7 @@ export class PresenceService {
       String(DAY_PEAK_TTL_SECONDS),
       String(now.getTime()),
       String(ONLINE_CONNECTION_TTL_MS),
-    );
+    )) as string[];
   }
 
   private persistLastActive(cultivatorId: string, force: boolean): void {

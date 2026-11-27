@@ -5,7 +5,7 @@ export function PartyPortrait({
   member,
   className,
 }: {
-  member: PartyPublicMember;
+  member: Pick<PartyPublicMember, 'gender'>;
   className: string;
 }) {
   return (

@@ -6,12 +6,14 @@ import {
   type PartyApplication,
   type PartyApplicationStatus,
   type PartyRecruitmentSource,
+  type PartyVitalsView,
 } from '@daoyou/contracts/party';
 import {
   ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
+import { readPersistentCharacterVitals } from '@server/combat/application/CombatV6PersistentCondition.js';
 import { loadCultivatorInspectionData } from '@server/cultivator/application/readers/CultivatorCombatProjectionReader.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { db, type DbExecutor } from '@server/lib/drizzle/db.js';
@@ -20,6 +22,7 @@ import {
   parties,
   partyMembers,
 } from '@server/lib/drizzle/schema.js';
+import type { PresenceService } from '@server/presence/presence.service.js';
 import { publishPartyChanges } from '@server/realtime/infrastructure/partyBroadcaster.js';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
@@ -416,4 +419,29 @@ export async function inspectPartyMember(actor: Identity, id: string) {
   const profile = await loadCultivatorInspectionData(id);
   if (!profile) throw new NotFoundException('队员角色已不可用');
   return profile;
+}
+
+export async function readPartyVitals(
+  actor: Identity,
+  partyId: string,
+  presence: Pick<PresenceService, 'getOnlineCultivatorIds'>,
+): Promise<PartyVitalsView> {
+  const party = await partyForUser(actor.userId);
+  if (!party || party.id !== partyId || !partyOwns(party, actor))
+    throw new ForbiddenException('仅当前队员可查看队伍状态');
+
+  const ids = party.members.map(({ cultivatorId }) => cultivatorId);
+  const [online, vitals] = await Promise.all([
+    presence.getOnlineCultivatorIds(ids),
+    Promise.allSettled(ids.map((id) => readPersistentCharacterVitals(id, db))),
+  ]);
+  return Object.fromEntries(
+    ids.map((id, index) => {
+      const result = vitals[index];
+      return [id, {
+        online: online.has(id),
+        vitals: result.status === 'fulfilled' ? result.value : null,
+      }];
+    }),
+  );
 }

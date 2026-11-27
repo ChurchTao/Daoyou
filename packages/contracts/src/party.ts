@@ -84,6 +84,17 @@ export type PartyView = {
   }>;
 };
 export type PartyPublicMember = Omit<PartyView['members'][number], 'userId'>;
+export type PartyMemberVitals = {
+  hp: number;
+  maxHp: number;
+  mp: number;
+  maxMp: number;
+};
+export type PartyMemberState = {
+  online: boolean;
+  vitals: PartyMemberVitals | null;
+};
+export type PartyVitalsView = Partial<Record<string, PartyMemberState>>;
 export type PartyRecruitment = {
   partyId: string;
   leader: PartyPublicMember;

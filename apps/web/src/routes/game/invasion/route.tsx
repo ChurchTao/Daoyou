@@ -7,6 +7,7 @@ import { activityDate } from '@app/components/feature/weekly-activity/schedule';
 import { GameLoadingState } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/useInkUI';
 import { InkButton, InkDetailDrawer, InkNotice } from '@app/components/ui';
+import { realtimeClient } from '@app/lib/realtime/realtimeClient';
 import { usePlayerSession } from '@app/lib/resources/player';
 import type {
   InvasionCommand,
@@ -147,14 +148,22 @@ export default function InvasionRoute() {
 function Camp({ playerId }: { playerId?: string }) {
   const [params] = useSearchParams();
   const { pushToast } = useInkUI();
+  const { value: partyState } = useParty();
   const [status, setStatus] = useState<InvasionStatus>();
   const [now, setNow] = useState(Date.now);
   const [busy, setBusy] = useState(false);
   const [rules, setRules] = useState(false);
   const [error, setError] = useState('');
+  const [vitalsRevision, setVitalsRevision] = useState(0);
   const clockOffset = useRef(0);
   const latest = useRef(0);
   const sending = useRef(false);
+  const restPartyId =
+    status?.team?.phase === 'rest' &&
+    !status.team.regrouping &&
+    !partyState?.roleMismatch
+      ? partyState?.party?.id
+      : undefined;
   const cadence =
     !status ||
     status.rewardsPending ||
@@ -206,7 +215,19 @@ function Camp({ playerId }: { playerId?: string }) {
       abort.abort();
       window.clearTimeout(timer);
     };
-  }, [playerId, cadence]);
+  }, [playerId, cadence, vitalsRevision]);
+
+  useEffect(() => {
+    if (!restPartyId) return;
+    return realtimeClient.subscribe('party.vitals.changed', ({ payload }) => {
+      if (
+        payload.partyId === restPartyId &&
+        !document.hidden &&
+        !sending.current
+      )
+        setVitalsRevision((revision) => revision + 1);
+    });
+  }, [restPartyId]);
 
   useEffect(() => {
     const timer = window.setInterval(

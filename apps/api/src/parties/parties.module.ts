@@ -13,6 +13,7 @@ import {
   Get,
   Header,
   HttpCode,
+  Inject,
   Module,
   Param,
   Post,
@@ -24,6 +25,8 @@ import { FirstQuery } from '@server/http/first-query.js';
 import { JsonBody } from '@server/http/json-body.js';
 import { ZodPipe } from '@server/http/zod.pipe.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
+import { PresenceModule } from '@server/presence/presence.module.js';
+import { PresenceService } from '@server/presence/presence.service.js';
 import { publishPartyChanges } from '@server/realtime/infrastructure/partyBroadcaster.js';
 import { ChatError } from '@server/social/application/chatError.js';
 import { z, ZodError } from 'zod';
@@ -35,6 +38,7 @@ import {
   inspectPartyApplicant,
   inspectPartyMember,
   previewPartyApplication,
+  readPartyVitals,
   reviewPartyApplication,
 } from './party-applications.js';
 import { listPartyChat, sendPartyChat } from './party-chat.js';
@@ -59,6 +63,10 @@ import { changeParty, createParty, partyForUser } from './party.service.js';
   ),
 )
 class PartiesController {
+  constructor(
+    @Inject(PresenceService) private readonly presence: PresenceService,
+  ) {}
+
   @Get(':partyId/chat')
   @Header('Cache-Control', 'private, no-store')
   async chat(
@@ -89,6 +97,15 @@ class PartiesController {
     @CurrentCultivator() actor: ActiveCultivatorRef,
   ): Promise<CurrentParty> {
     return currentParty(actor);
+  }
+
+  @Get(':partyId/vitals')
+  @Header('Cache-Control', 'private, no-store')
+  vitals(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @Param('partyId', new ZodPipe(z.uuid())) partyId: string,
+  ) {
+    return readPartyVitals(actor, partyId, this.presence);
   }
 
   @Get('recruitments')
@@ -185,5 +202,8 @@ class PartiesController {
   }
 }
 
-@Module({ controllers: [PartiesController] })
+@Module({
+  imports: [PresenceModule],
+  controllers: [PartiesController],
+})
 export class PartiesModule {}

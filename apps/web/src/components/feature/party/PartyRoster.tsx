@@ -11,9 +11,11 @@ import {
   type PartyView,
 } from '@daoyou/contracts/party';
 import { useEffect, useRef, useState } from 'react';
+import { PartyMemberCard } from './PartyMemberCard';
 import { PartyPortrait } from './PartyPortrait';
 import { partyInviteHref } from './partyWorkspaceApi';
 import { useParty, type PartyRecruitmentFocus } from './useParty';
+import { usePartyVitals } from './usePartyVitals';
 
 type RosterCommand = Extract<
   PartyCommand,
@@ -61,6 +63,10 @@ export function PartyRoster({
     (member) => member.userId !== party.leaderId,
   );
   const activeView = captain ? view : 'members';
+  const vitals = usePartyVitals(
+    actorId,
+    activeView === 'members' && !roleMismatch ? party : undefined,
+  );
   const managed = teammates.find((member) => member.userId === selected);
   const target =
     confirm && 'userId' in confirm
@@ -161,48 +167,33 @@ export function PartyRoster({
           </p>
         )}
         {activeView === 'members' ? (
-          <ul className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          <ul className="grid gap-2 sm:grid-cols-2">
             {members.map((member) => (
               <li
                 key={member.cultivatorId}
-                className="border-ink-border bg-paper-2/45 min-w-0 overflow-hidden rounded-sm border"
+                className="border-ink-border bg-paper-2/45 min-w-0 rounded-sm border px-3 py-2"
               >
-                <button
-                  type="button"
-                  disabled={roleMismatch}
-                  aria-label={`查看${member.name}的资料`}
-                  onClick={() =>
-                    onInspect(
-                      `/members/${member.cultivatorId}/cultivator`,
-                      member.name,
-                    )
+                <PartyMemberCard
+                  member={member}
+                  captain={member.userId === party.leaderId}
+                  self={member.cultivatorId === actorId}
+                  online={vitals?.data?.[member.cultivatorId]?.online}
+                  showVitals={!roleMismatch}
+                  vitals={
+                    vitals?.error
+                      ? null
+                      : vitals?.data?.[member.cultivatorId]?.vitals
                   }
-                  className="bg-paper hover:bg-crimson/5 focus-visible:outline-crimson relative flex h-24 w-full items-end justify-center disabled:pointer-events-none"
-                >
-                  {member.userId === party.leaderId && (
-                    <span className="bg-crimson text-paper absolute top-2 left-2 rounded-sm px-1.5 py-0.5 text-xs">
-                      队长
-                    </span>
-                  )}
-                  {member.cultivatorId === actorId && (
-                    <span className="text-teal absolute top-2 right-2 text-xs">
-                      你
-                    </span>
-                  )}
-                  <PartyPortrait member={member} className="size-[5.25rem]" />
-                </button>
-                <div className="border-ink-border border-t px-2.5 py-2 text-center wrap-anywhere">
-                  <p className="text-sm font-semibold">{member.name}</p>
-                  <p className="text-ink-secondary mt-0.5 text-xs leading-5">
-                    {member.realm}
-                    {member.realmStage}
-                  </p>
-                  {member.title && (
-                    <p className="text-wood text-xs leading-5">
-                      {member.title}
-                    </p>
-                  )}
-                </div>
+                  onInspect={
+                    roleMismatch
+                      ? undefined
+                      : () =>
+                          onInspect(
+                            `/members/${member.cultivatorId}/cultivator`,
+                            member.name,
+                          )
+                  }
+                />
               </li>
             ))}
             {Array.from(
@@ -211,7 +202,7 @@ export function PartyRoster({
                 <li
                   key={index}
                   aria-hidden="true"
-                  className="border-ink-border text-ink-secondary/75 flex min-h-36 items-center justify-center rounded-sm border border-dashed text-xs"
+                  className="border-ink-border text-ink-secondary/75 flex min-h-11 items-center justify-center rounded-sm border border-dashed text-xs"
                 >
                   空席
                 </li>

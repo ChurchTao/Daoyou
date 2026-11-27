@@ -1,29 +1,13 @@
 import { useParty } from '@app/components/feature/party/useParty';
 import { InkButton } from '@app/components/ui';
-import { GameIcon } from '@app/components/ui/GameIcon';
 import type {
   InvasionCommand,
-  InvasionIdentity,
   InvasionStatus,
 } from '@daoyou/contracts/invasion';
 import { invasionBossWave } from '@daoyou/game-rules/invasion';
 import { invasionClock } from './request';
 
 type Team = NonNullable<InvasionStatus['team']>;
-
-export function InvasionPortrait({ member }: { member: InvasionIdentity }) {
-  return (
-    <GameIcon
-      className="invasion-portrait"
-      purpose="artwork"
-      value={
-        member.gender === '女'
-          ? 'icon:cultivator-female-avatar'
-          : 'icon:cultivator-male-avatar'
-      }
-    />
-  );
-}
 
 export function InvasionParty({
   team,
