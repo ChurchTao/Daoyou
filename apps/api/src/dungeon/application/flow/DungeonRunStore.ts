@@ -188,6 +188,7 @@ export class DungeonRunStore {
       state = run.runState as DungeonState;
       state.runId = run.id;
       state.status = run.status as DungeonState['status'];
+      state.isFinished = state.status === 'FINISHED';
       state.currentRound = run.currentRound;
       state.maxRounds = run.maxRounds;
       state.dangerScore = run.dangerScore;

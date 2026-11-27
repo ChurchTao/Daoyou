@@ -138,23 +138,7 @@ export function useDungeonViewModel(
       return { type: 'not_authenticated' };
     }
 
-    if (
-      !state?.isFinished &&
-      state?.status === 'WAITING_BATTLE' &&
-      state.encounter
-    )
-      return { type: 'battle_preparation', state };
-    // 战斗中
-    if (
-      !state?.isFinished &&
-      state?.status === 'IN_BATTLE' &&
-      state.activeBattleId
-    ) {
-      return { type: 'in_battle', battleId: state.activeBattleId, state };
-    }
-
-    // 结算
-    if (state?.isFinished) {
+    if (state?.status === 'FINISHED' || state?.isFinished) {
       return {
         type: 'settlement',
         settlement: state.settlement,
@@ -162,6 +146,14 @@ export function useDungeonViewModel(
         mystery: state.mysteryView,
         exorcism: state.exorcism,
       };
+    }
+
+    if (state?.status === 'WAITING_BATTLE' && state.encounter) {
+      return { type: 'battle_preparation', state };
+    }
+
+    if (state?.status === 'IN_BATTLE' && state.activeBattleId) {
+      return { type: 'in_battle', battleId: state.activeBattleId, state };
     }
 
     if (state?.status === 'RECOVERABLE_ERROR') {
