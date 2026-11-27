@@ -1,5 +1,4 @@
-import type { ArenaRuntime } from '@daoyou/contracts/combat/arena';
-import type { InvasionCard, InvasionCards, InvasionMember, InvasionPhase, InvasionResources, InvasionRewardSummary } from '@daoyou/game-domain/invasion';
+import type { InvasionCard, InvasionCards, InvasionMember, InvasionPhase, InvasionRewardSummary } from '@daoyou/game-domain/invasion';
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import type {
   BaixiaoAnswer, BaixiaoFinish, BaixiaoPaperSlot, BaixiaoQuestionData, BaixiaoResources, BaixiaoReward, BaixiaoScore,
@@ -2986,7 +2985,6 @@ export const invasionRuns = pgTable('wanjiedaoyou_invasion_runs', {
   launchId: uuid('launch_id').notNull(),
   ready: uuid('ready').array().notNull().default(sql`'{}'::uuid[]`),
   selectedCards: jsonb('selected_cards').$type<Record<string, InvasionCard>>().notNull().default({}),
-  build: jsonb('build').$type<Pick<ArenaRuntime, 'units' | 'skills' | 'statusDefs' | 'autoStrategies'> & { unitAppearances: ArenaRuntime['timeline']['unitAppearances'] }>(),
 }, (table) => [
   index('invasion_runs_due_idx').on(table.dueAt).where(sql`${table.dueAt} is not null`),
   index('invasion_runs_week_phase_idx').on(table.week, table.phase),
@@ -3004,7 +3002,6 @@ export const invasionProgress = pgTable('wanjiedaoyou_invasion_progress', {
   completedWave: integer('completed_wave').notNull().default(0),
   lastRunId: uuid('last_run_id').references(() => invasionRuns.id),
   lastBattleId: uuid('last_battle_id'),
-  resources: jsonb('resources').$type<Record<string, InvasionResources>>().notNull().default({}),
   cards: jsonb('cards').$type<InvasionCards>().notNull().default({}),
   rewardedWave: integer('rewarded_wave').notNull().default(0),
   reward: jsonb('reward').$type<InvasionRewardSummary>(),

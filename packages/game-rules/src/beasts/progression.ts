@@ -22,6 +22,9 @@ import { BEAST_PROGRESSION, BEAST_SPECIES } from '@daoyou/game-content/beasts';
 import { beastPointBudget } from './identity.js';
 
 import { BeastSchema } from './schema.js';
+import { beastVitals, rebaseBeastVitals } from './projection.js';
+import { getLevelRealmStage } from '@daoyou/game-domain/progression';
+import type { RealmType } from '@daoyou/constants/realms';
 
 export { generateCapturedBeast } from './generator.js';
 
@@ -104,11 +107,17 @@ export function nextBeastExp(level: number) {
   );
 }
 
+const BEAST_REST_COST: Record<RealmType, number> = {
+  炼气: 200, 筑基: 400, 金丹: 800, 元婴: 1500, 化神: 3000,
+  炼虚: 5000, 合体: 8000, 大乘: 12000, 渡劫: 20000,
+};
+
 export function beastRestCost(beast: SummonedBeast) {
-  return Math.ceil(
-    (beast.maxLifespan - beast.currentLifespan) /
-      BEAST_PROGRESSION.lifespan.restRecoveryPerStone,
-  );
+  const { hp, mp, maxHp, maxMp } = beastVitals(beast);
+  if (hp === maxHp && mp === maxMp) return 0;
+  const species = BEAST_SPECIES.find(({ id }) => id === beast.speciesId);
+  if (!species) throw new Error('灵兽物种不存在');
+  return BEAST_REST_COST[getLevelRealmStage(species.carryLevel).realm];
 }
 
 export function gainBeastExp(
@@ -131,7 +140,7 @@ export function gainBeastExp(
     exp -= nextBeastExp(level);
     level++;
   }
-  return BeastSchema.parse({
+  return rebaseBeastVitals(beast, BeastSchema.parse({
     ...beast,
     level,
     exp: level === cap ? 0 : exp,
@@ -140,7 +149,7 @@ export function gainBeastExp(
       beastPointBudget({ ...beast, level }) -
       beastPointBudget(beast),
     revision: beast.revision + 1,
-  });
+  }));
 }
 
 export function allocateBeast(
@@ -152,7 +161,7 @@ export function allocateBeast(
   const total = Object.values(points).reduce((a, b) => a + b, 0);
   if (beast.level > ownerLevel || total <= 0 || total > beast.unallocatedPoints)
     throw new Error('等级或可分配点数不足');
-  return BeastSchema.parse({
+  return rebaseBeastVitals(beast, BeastSchema.parse({
     ...beast,
     allocatedAttributes: Object.fromEntries(
       Object.entries(points).map(([k, v]) => [
@@ -162,7 +171,7 @@ export function allocateBeast(
     ),
     unallocatedPoints: beast.unallocatedPoints - total,
     revision: beast.revision + 1,
-  });
+  }));
 }
 
 export function captureSkill(
@@ -233,4 +242,18 @@ export function loseBeastLifespan(beast: SummonedBeast): SummonedBeast {
     ),
     revision: beast.revision + 1,
   };
+}
+
+export function settleBeastVitals(
+  beast: SummonedBeast,
+  result: { hp: number; mp: number; died: boolean },
+): SummonedBeast {
+  const { hp, mp, maxHp, maxMp } = beastVitals(beast);
+  if (result.died) return { ...loseBeastLifespan(beast), vitals: { hp: maxHp, mp: maxMp } };
+  const vitals = {
+    hp: Math.max(0, Math.min(Math.floor(result.hp), maxHp)),
+    mp: Math.max(0, Math.min(Math.floor(result.mp), maxMp)),
+  };
+  if (hp === vitals.hp && mp === vitals.mp) return beast;
+  return { ...beast, vitals, revision: beast.revision + 1 };
 }

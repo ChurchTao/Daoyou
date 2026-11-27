@@ -1,7 +1,8 @@
 import { InvasionRanking } from './InvasionRanking';
 import { BaixiaoRanking } from './BaixiaoRanking';
 import { combatV6Request } from '@app/components/feature/combat-v6/request';
-import { CultivatorInspectionModal } from '@app/components/feature/cultivator-inspection';
+import { CharacterCardContent } from '@app/components/feature/character-card/CharacterCardContent';
+import { CharacterCardDialog } from '@app/components/feature/character-card/CharacterCardDialog';
 import {
   BattleRankingCard,
   WealthRankingCard,
@@ -26,7 +27,6 @@ import {
 } from '@app/lib/resources/player';
 import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
 import type { RankingChallengeRequest } from '@daoyou/contracts/combat/ranking';
-import type { CultivatorInspectionData } from '@daoyou/contracts/player';
 import type {
   BattleRankingItem,
   RankingsDisplayItem,
@@ -223,9 +223,7 @@ export default function RankingsPage() {
   const [challenging, setChallenging] = useState<string | null>(null);
   const [pending, setPending] = useState<RankingChallengeRequest | null>(null);
   const [error, setError] = useState<string>('');
-  const [probing, setProbing] = useState<string | null>(null);
-  const [inspectedCultivator, setInspectedCultivator] =
-    useState<CultivatorInspectionData | null>(null);
+  const [cardId, setCardId] = useState<string | null>(null);
   const activeRealm = resolveRealm(
     searchParams.get('realm') ?? cultivator?.realm,
   );
@@ -337,36 +335,6 @@ export default function RankingsPage() {
     setRankings([]);
     setLoadingRankings(true);
     setActiveTab(val);
-  };
-
-  const handleProbe = async (targetId: string) => {
-    if (!cultivator?.id) return;
-    setProbing(targetId);
-    try {
-      const response = await apiFetch('/api/rankings/probe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          targetId,
-          realm: activeRealm,
-        }),
-      });
-
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || '神识查探失败');
-      }
-
-      setInspectedCultivator(result.data.cultivator);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : '神识查探失败，请稍后重试';
-      pushToast({ message: errorMessage, tone: 'danger' });
-    } finally {
-      setProbing(null);
-    }
   };
 
   const handleChallenge = async (targetId: string | null) => {
@@ -634,9 +602,8 @@ export default function RankingsPage() {
                               isSelf,
                             )}
                             isChallenging={challenging === item.id}
-                            isProbing={probing === item.id}
                             onChallenge={handleChallenge}
-                            onProbe={handleProbe}
+                            onViewCard={setCardId}
                             variant="podium"
                           />
                         );
@@ -661,9 +628,8 @@ export default function RankingsPage() {
                               isSelf,
                             )}
                             isChallenging={challenging === item.id}
-                            isProbing={probing === item.id}
                             onChallenge={handleChallenge}
-                            onProbe={handleProbe}
+                            onViewCard={setCardId}
                           />
                         );
                       })}
@@ -707,12 +673,11 @@ export default function RankingsPage() {
         )}
       </GameSceneFrame>
 
-      <CultivatorInspectionModal
-        cultivator={inspectedCultivator}
-        isOpen={Boolean(inspectedCultivator)}
-        onClose={() => setInspectedCultivator(null)}
-        mode="cultivator"
-      />
+      {cardId ? (
+        <CharacterCardDialog onClose={() => setCardId(null)}>
+          <CharacterCardContent key={cardId} id={cardId} />
+        </CharacterCardDialog>
+      ) : null}
     </>
   );
 }

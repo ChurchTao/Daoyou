@@ -7,6 +7,7 @@ import { activityDate } from '@app/components/feature/weekly-activity/schedule';
 import { GameLoadingState } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/useInkUI';
 import { InkButton, InkDetailDrawer, InkNotice } from '@app/components/ui';
+import { realtimeClient } from '@app/lib/realtime/realtimeClient';
 import { usePlayerSession } from '@app/lib/resources/player';
 import type {
   InvasionCommand,
@@ -147,14 +148,22 @@ export default function InvasionRoute() {
 function Camp({ playerId }: { playerId?: string }) {
   const [params] = useSearchParams();
   const { pushToast } = useInkUI();
+  const { value: partyState } = useParty();
   const [status, setStatus] = useState<InvasionStatus>();
   const [now, setNow] = useState(Date.now);
   const [busy, setBusy] = useState(false);
   const [rules, setRules] = useState(false);
   const [error, setError] = useState('');
+  const [vitalsRevision, setVitalsRevision] = useState(0);
   const clockOffset = useRef(0);
   const latest = useRef(0);
   const sending = useRef(false);
+  const restPartyId =
+    status?.team?.phase === 'rest' &&
+    !status.team.regrouping &&
+    !partyState?.roleMismatch
+      ? partyState?.party?.id
+      : undefined;
   const cadence =
     !status ||
     status.rewardsPending ||
@@ -206,7 +215,19 @@ function Camp({ playerId }: { playerId?: string }) {
       abort.abort();
       window.clearTimeout(timer);
     };
-  }, [playerId, cadence]);
+  }, [playerId, cadence, vitalsRevision]);
+
+  useEffect(() => {
+    if (!restPartyId) return;
+    return realtimeClient.subscribe('party.vitals.changed', ({ payload }) => {
+      if (
+        payload.partyId === restPartyId &&
+        !document.hidden &&
+        !sending.current
+      )
+        setVitalsRevision((revision) => revision + 1);
+    });
+  }, [restPartyId]);
 
   useEffect(() => {
     const timer = window.setInterval(
@@ -360,7 +381,7 @@ function Camp({ playerId }: { playerId?: string }) {
           <section>
             <h3>波间休憩</h3>
             <p>
-              休憩结束自动开阵，队长也可提前开阵。可用储物袋里的回复丹药，按实扣库存。每波至多启用一张增益卡。
+              每波使用人物和灵兽当前的气血、法力。休憩结束自动开阵，队长也可提前开阵。休憩时可服用回复丹药、付费休养灵兽或选用一张增益卡。
             </p>
           </section>
           <section>

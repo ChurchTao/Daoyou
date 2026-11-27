@@ -149,6 +149,7 @@ export function createBreakthroughHost(
           0,
           0,
           projected.unit.level!,
+          'persistent',
         ),
         opponent,
       ],

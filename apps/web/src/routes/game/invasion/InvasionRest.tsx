@@ -1,5 +1,11 @@
+import { BeastRestButton } from '@app/components/feature/beasts/BeastRestButton';
+import { CharacterCardContent } from '@app/components/feature/character-card/CharacterCardContent';
+import { CharacterCardDialog } from '@app/components/feature/character-card/CharacterCardDialog';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { RewardItemGrid } from '@app/components/feature/items/RewardItemGrid';
+import { PartyMemberCard } from '@app/components/feature/party/PartyMemberCard';
+import { useParty } from '@app/components/feature/party/useParty';
+import { usePartyVitals } from '@app/components/feature/party/usePartyVitals';
 import { ActivityCardInfoButton } from '@app/components/feature/weekly-activity/ActivityCardInfoButton';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
@@ -21,7 +27,6 @@ import {
   invasionBossWave,
 } from '@daoyou/game-rules/invasion';
 import { useEffect, useId, useRef, useState } from 'react';
-import { InvasionPortrait } from './InvasionParty';
 import { invasionClock } from './request';
 
 type Team = NonNullable<InvasionStatus['team']>;
@@ -303,6 +308,12 @@ export function InvasionRest({
   busy: boolean;
   send: Send;
 }) {
+  const { actorId, value } = useParty();
+  const memberStates = usePartyVitals(
+    actorId,
+    value?.roleMismatch ? undefined : value?.party ?? undefined,
+    'presence',
+  );
   const remaining = Math.max(
     0,
     Math.min(INVASION_REST_MS, (team.restEndsAt ?? now) - now),
@@ -310,6 +321,7 @@ export function InvasionRest({
   const enabled = remaining > 0 && now < closesAt && !busy;
   const self = playerId ? team.resources[playerId] : undefined;
   const boss = invasionBossWave(team.wave);
+  const [cardId, setCardId] = useState<string | null>(null);
 
   return (
     <section className="invasion-operations" aria-label="波间休憩">
@@ -345,56 +357,26 @@ export function InvasionRest({
               本期已过 <b className="font-mono">{currentWave}</b> 波
             </span>
           </div>
-          {team.members.map((member) => {
-            const condition = team.resources[member.cultivatorId];
-            return (
-              <div className="invasion-vital" key={member.cultivatorId}>
-                <InvasionPortrait member={member} />
-                <div>
-                  <div className="invasion-vital-name">
-                    <strong>{member.name}</strong>
-                  </div>
-                  {condition && condition.hp > 0 ? (
-                    <div className="invasion-vital-bars">
-                      <div>
-                        <span>
-                          气血{' '}
-                          <strong className="font-mono">
-                            {condition.hp}/{condition.maxHp}
-                          </strong>
-                        </span>
-                        <meter
-                          min="0"
-                          max={condition.maxHp}
-                          value={condition.hp}
-                          aria-label={`${member.name} 气血`}
-                        />
-                      </div>
-                      <div>
-                        <span>
-                          法力{' '}
-                          <strong className="font-mono">
-                            {condition.mp}/{condition.maxMp}
-                          </strong>
-                        </span>
-                        <meter
-                          data-mana
-                          min="0"
-                          max={condition.maxMp || 1}
-                          value={condition.mp}
-                          aria-label={`${member.name} 法力`}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="invasion-note">
-                      {condition ? '已倒地' : '状态待回传'}
-                    </p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          <ul className="divide-ink-border divide-y">
+            {team.members.map((member) => (
+              <li className="py-2 first:pt-0 last:pb-0" key={member.cultivatorId}>
+                <PartyMemberCard
+                  member={member}
+                  captain={member.cultivatorId === team.captainId}
+                  self={member.cultivatorId === playerId}
+                  online={memberStates?.data?.[member.cultivatorId]?.online}
+                  sectName={memberStates?.data?.[member.cultivatorId]?.sectName}
+                  vitals={team.resources[member.cultivatorId] ?? null}
+                  onInspect={() => setCardId(member.cultivatorId)}
+                />
+              </li>
+            ))}
+          </ul>
+          {cardId ? (
+            <CharacterCardDialog onClose={() => setCardId(null)}>
+              <CharacterCardContent key={cardId} id={cardId} />
+            </CharacterCardDialog>
+          ) : null}
         </section>
         <div className="invasion-preparation-actions">
           <RecoverySlots
@@ -403,6 +385,8 @@ export function InvasionRest({
             disabled={!enabled}
             send={send}
           />
+          <BeastRestButton label="灵兽休养" disabled={!enabled}
+            activity={{ kind: 'invasion', runId: team.id }} />
           <InvasionHand
             hand={team.self}
             disabled={!enabled || !self?.hp}

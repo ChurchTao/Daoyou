@@ -154,7 +154,6 @@ export const RewardBlueprintSchema = z.object({
     .enum(['金', '木', '水', '火', '土', '风', '雷', '冰'])
     .optional()
     .describe('元素'),
-  quality_hint: z.any().optional().describe('已废弃，请使用 reward_score'), // 保持向后兼容性或作为过渡
   reward_score: z
     .number()
     .min(0)
@@ -326,7 +325,6 @@ export interface DungeonState {
   encounter?: import('./actions.js').DungeonEncounterView;
   rewardSeed?: number;
   v6Rewards?: import('./rewards.js').DungeonRewardEntry[];
-  beastResources?: Record<string, { hp: number; mp: number }>;
   endDisposition?: import('./settlement.js').DungeonEndDisposition;
   runId?: string;
   cultivatorId: string;
@@ -348,7 +346,6 @@ export interface DungeonState {
     location_tags: string[];
     location_description: string;
   };
-  summary_of_sacrifice?: DungeonOptionCost[];
   costPreview?: DungeonOptionCost[];
   costLedger?: DungeonCostLedgerEntry[];
   gainLedger?: DungeonGainLedgerEntry[];

@@ -13,17 +13,22 @@ import {
   Get,
   Header,
   HttpCode,
+  Inject,
   Module,
   Param,
   Post,
   UseFilters,
 } from '@nestjs/common';
 import { Access, CurrentCultivator } from '@server/auth/access.js';
+import { CharacterCardService } from '@server/cultivator/character-card.service.js';
+import { CultivatorModule } from '@server/cultivator/cultivator.module.js';
 import { apiErrorFilter } from '@server/http/error-filter.js';
 import { FirstQuery } from '@server/http/first-query.js';
 import { JsonBody } from '@server/http/json-body.js';
 import { ZodPipe } from '@server/http/zod.pipe.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
+import { PresenceModule } from '@server/presence/presence.module.js';
+import { PresenceService } from '@server/presence/presence.service.js';
 import { publishPartyChanges } from '@server/realtime/infrastructure/partyBroadcaster.js';
 import { ChatError } from '@server/social/application/chatError.js';
 import { z, ZodError } from 'zod';
@@ -32,9 +37,10 @@ import {
   applyToParty,
   currentParty,
   expireApplicationsAfterPartyCreation,
-  inspectPartyApplicant,
-  inspectPartyMember,
   previewPartyApplication,
+  readPartyVitals,
+  resolvePartyApplicantCardTarget,
+  resolvePartyMemberCardTarget,
   reviewPartyApplication,
 } from './party-applications.js';
 import { listPartyChat, sendPartyChat } from './party-chat.js';
@@ -59,6 +65,11 @@ import { changeParty, createParty, partyForUser } from './party.service.js';
   ),
 )
 class PartiesController {
+  constructor(
+    @Inject(CharacterCardService) private readonly cards: CharacterCardService,
+    @Inject(PresenceService) private readonly presence: PresenceService,
+  ) {}
+
   @Get(':partyId/chat')
   @Header('Cache-Control', 'private, no-store')
   async chat(
@@ -89,6 +100,15 @@ class PartiesController {
     @CurrentCultivator() actor: ActiveCultivatorRef,
   ): Promise<CurrentParty> {
     return currentParty(actor);
+  }
+
+  @Get(':partyId/vitals')
+  @Header('Cache-Control', 'private, no-store')
+  vitals(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @Param('partyId', new ZodPipe(z.uuid())) partyId: string,
+  ) {
+    return readPartyVitals(actor, partyId, this.presence);
   }
 
   @Get('recruitments')
@@ -124,20 +144,20 @@ class PartiesController {
 
   @Get('applications/:id/cultivator')
   @Header('Cache-Control', 'private, no-store')
-  inspect(
+  async inspect(
     @CurrentCultivator() actor: ActiveCultivatorRef,
     @Param('id', new ZodPipe(z.uuid())) id: string,
   ) {
-    return inspectPartyApplicant(actor, id);
+    return this.cards.card(await resolvePartyApplicantCardTarget(actor, id));
   }
 
   @Get('members/:id/cultivator')
   @Header('Cache-Control', 'private, no-store')
-  inspectMember(
+  async inspectMember(
     @CurrentCultivator() actor: ActiveCultivatorRef,
     @Param('id', new ZodPipe(z.uuid())) id: string,
   ) {
-    return inspectPartyMember(actor, id);
+    return this.cards.card(await resolvePartyMemberCardTarget(actor, id));
   }
 
   @Post()
@@ -185,5 +205,8 @@ class PartiesController {
   }
 }
 
-@Module({ controllers: [PartiesController] })
+@Module({
+  imports: [CultivatorModule, PresenceModule],
+  controllers: [PartiesController],
+})
 export class PartiesModule {}

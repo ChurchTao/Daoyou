@@ -1,3 +1,4 @@
+import { rebaseBeastVitals } from '@daoyou/game-rules/beasts/projection';
 import { QUALITY_VALUES } from '@daoyou/constants/qualities';
 import { recordGrowthObserved } from '@server/cultivator/application/GrowthDomainEvents.js';
 import type {
@@ -858,7 +859,7 @@ export async function mutateInventory(
             );
             await tx
               .update(cultivatorBeasts)
-              .set({ individual: beastIndividualData(learned) })
+              .set({ individual: beastIndividualData(rebaseBeastVitals(beast, learned)) })
               .where(
                 and(
                   eq(cultivatorBeasts.id, beast.id),

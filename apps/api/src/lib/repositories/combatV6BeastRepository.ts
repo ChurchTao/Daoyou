@@ -15,7 +15,6 @@ import type { WildSettlement } from '@daoyou/game-domain/wild';
 import {
   carriedBeastIds,
   gainBeastExp,
-  loseBeastLifespan,
   splitCapturedBeasts,
 } from '@daoyou/game-rules/beasts/growth';
 import { BeastSchema } from '@daoyou/game-rules/beasts/validation';
@@ -246,29 +245,4 @@ export async function settleBeastProgress(
   if (observedLevel > 0) await recordGrowthObserved(tx, {
     cultivatorId: summary.cultivatorId, discipline: 'beasts', value: observedLevel,
   });
-}
-
-/** Caller holds the character lock and claims the battle settlement in the same transaction. */
-export async function settleBeastDeaths(
-  cultivatorId: string,
-  ids: string[],
-  tx: DbExecutor,
-) {
-  if (!ids.length) return;
-  const rows = await tx
-    .select()
-    .from(cultivatorBeasts)
-    .where(
-      and(
-        eq(cultivatorBeasts.cultivatorId, cultivatorId),
-        inArray(cultivatorBeasts.id, [...new Set(ids)]),
-      ),
-    );
-  for (const row of rows)
-    await tx
-      .update(cultivatorBeasts)
-      .set({
-        individual: beastIndividualData(loseBeastLifespan(beastFromRow(row))),
-      })
-      .where(eq(cultivatorBeasts.id, row.id));
 }

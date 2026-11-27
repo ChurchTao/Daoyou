@@ -332,7 +332,6 @@ export const BeastProgressionPackShape = z.strictObject({
   lifespan: z.strictObject({
     deathLoss: integer,
     deployMinimum: integer,
-    restRecoveryPerStone: integer.min(1),
   }),
   capture: z.strictObject({
     mpBase: integer,

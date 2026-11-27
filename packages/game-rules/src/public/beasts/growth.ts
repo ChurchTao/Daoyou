@@ -18,6 +18,7 @@ export {
   loseBeastLifespan,
   nextBeastExp,
   receivedBeastPlacement,
+  settleBeastVitals,
   splitCapturedBeasts,
   warehouseBeastCount,
 } from '../../beasts/progression.js';

@@ -1,4 +1,5 @@
 import { useSocialQuery } from '@app/components/feature/friends/socialApi';
+import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
@@ -19,6 +20,7 @@ import type { ApiSuccess } from '@daoyou/contracts/http';
 import type { InventoryView } from '@daoyou/contracts/inventory';
 import {
   CharacterCardSettingsSchema,
+  type CharacterCardBeast,
   type CharacterCardSettingsView,
 } from '@daoyou/contracts/player/card';
 import {
@@ -28,7 +30,9 @@ import {
 import { useEffect, useState } from 'react';
 import { useBeforeUnload, useBlocker } from 'react-router';
 import { achievementIcon } from '../achievements/achievementIcons';
+import { BeastIcon } from '../beasts/BeastIcon';
 import { BeastRosterEntry } from '../beasts/BeastRosterEntry';
+import { BeastTradeDetails } from '../beasts/BeastTradePreview';
 import { BeastPickerPager } from '../beasts/beastPicker';
 import { useBeastPicker } from '../beasts/useBeastPicker';
 import { CraftInventoryPanel } from '../items/CraftInventoryPanel';
@@ -36,9 +40,36 @@ import { InventoryItems } from '../items/InventoryItems';
 import { ItemSlot } from '../items/ItemSlot';
 import { matchesInventoryFilters } from '../items/inventoryFilterModel';
 import { AchievementPicker } from './AchievementPicker';
-import { CharacterCardBeastSlot, CharacterCardView } from './CharacterCardView';
+import { CharacterCardDialog } from './CharacterCardDialog';
+import { CharacterCardView } from './CharacterCardView';
 
 const equipmentFilter = { kind: 'equipment' } as const;
+
+function SelectedBeastSlot({ beast }: { beast: CharacterCardBeast }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={`查看${beast.name}`}
+        onClick={() => setOpen(true)}
+        className="bg-paper border-ink/20 hover:border-crimson/50 focus-visible:outline-crimson flex aspect-square min-w-0 cursor-pointer flex-col items-center justify-center gap-1 border px-1 text-xs"
+      >
+        <BeastIcon
+          speciesId={beast.speciesId}
+          isMutant={beast.isMutant}
+          className="text-2xl"
+        />
+        <span className="line-clamp-2 w-full text-center wrap-anywhere">
+          {beast.name}
+        </span>
+      </button>
+      <InkModal isOpen={open} title={beast.name} onClose={() => setOpen(false)}>
+        <BeastTradeDetails beast={beast} tradeNotice={false} />
+      </InkModal>
+    </>
+  );
+}
 
 export function CharacterCardSettings() {
   const id = usePlayerSession().data?.activeCultivator?.id;
@@ -340,18 +371,10 @@ function CharacterCardSettingsEditor({
   const achievementCatalog =
     achievementsQuery.data?.achievements ?? view.achievements ?? [];
   const selectedAchievements = selectedAchievementIds.flatMap((id) => {
-    const achievement = achievementCatalog.find(
-      (entry) => entry.id === id && entry.unlocked,
-    );
-    return achievement
-      ? [
-          {
-            id: achievement.id,
-            name: achievement.name,
-            description: achievement.description,
-          },
-        ]
-      : [];
+    const achievement =
+      achievementCatalog.find((entry) => entry.id === id && entry.unlocked) ??
+      view.card.achievements.find((entry) => entry.id === id);
+    return achievement ? [achievement] : [];
   });
   const preview = {
     ...view.card,
@@ -395,9 +418,9 @@ function CharacterCardSettingsEditor({
     };
   };
   return (
-    <div className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <div className="grid min-w-0 items-start gap-5">
       <div className="space-y-5">
-        <div className="flex items-center justify-between gap-3 lg:hidden">
+        <div className="flex items-center justify-between gap-3">
           <p className="text-ink-secondary text-xs">编辑对外展示的内容</p>
           <InkButton className="min-h-11" onClick={() => setDrawer('preview')}>
             预览名片
@@ -539,7 +562,7 @@ function CharacterCardSettingsEditor({
                   key={beast.id}
                   className="grid min-w-0 content-start gap-1"
                 >
-                  <CharacterCardBeastSlot beast={beast} />
+                  <SelectedBeastSlot beast={beast} />
                   <InkButton
                     className="min-h-11 px-0"
                     variant="secondary"
@@ -556,14 +579,7 @@ function CharacterCardSettingsEditor({
           )}
         </section>
       </div>
-      <section
-        aria-label="名片预览"
-        className="border-ink/15 sticky top-3 hidden min-w-0 space-y-3 border-l pl-5 lg:block"
-      >
-        <h3 className="text-ink-secondary text-sm">名片预览</h3>
-        <CharacterCardView card={preview} />
-      </section>
-      <footer className="bg-paper border-ink/20 sticky bottom-(--game-bottom-offset) z-20 space-y-2 border-t py-3 lg:col-span-2">
+      <footer className="bg-paper border-ink/20 sticky bottom-(--game-bottom-offset) z-20 space-y-2 border-t py-3">
         {error ? (
           <p role="alert" className="text-crimson text-sm leading-6">
             {error}
@@ -618,50 +634,50 @@ function CharacterCardSettingsEditor({
           </div>
         </div>
       </footer>
+      {drawer === 'preview' && blocker.state !== 'blocked' && (
+        <CharacterCardDialog
+          title="名片预览"
+          closeLabel="返回设置"
+          onClose={() => setDrawer(null)}
+        >
+          <CharacterCardView card={preview} />
+        </CharacterCardDialog>
+      )}
       <InkDetailDrawer
-        isOpen={drawer !== null && blocker.state !== 'blocked'}
+        isOpen={
+          drawer !== null && drawer !== 'preview' && blocker.state !== 'blocked'
+        }
         onClose={() => setDrawer(null)}
         title={
           drawer === 'equipment'
             ? '选择展示道装'
             : drawer === 'beasts'
               ? '选择展示灵兽'
-              : drawer === 'achievements'
-                ? '选择展示成就'
-                : '名片预览'
+              : '选择展示成就'
         }
         size="md"
         description={
-          drawer !== 'preview' ? (
-            <div>
-              <p>
-                已选择{' '}
-                <span className="font-mono">{drawerSelectedCount}/3</span>
-                ，每类最多展示3项。
-              </p>
-              {drawer === 'equipment' && drawerSelectedCount >= 3 ? (
-                <p className="mt-1">已选满，请先取消一项再替换。</p>
-              ) : null}
-            </div>
-          ) : (
-            <span>这是本次编辑的预览，保存后对外生效。</span>
-          )
+          <div>
+            <p>
+              已选择 <span className="font-mono">{drawerSelectedCount}/3</span>
+              ，每类最多展示3项。
+            </p>
+            {drawer === 'equipment' && drawerSelectedCount >= 3 ? (
+              <p className="mt-1">已选满，请先取消一项再替换。</p>
+            ) : null}
+          </div>
         }
         footer={
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-ink-secondary text-xs">
-              {drawer !== 'preview'
-                ? '选择已加入草稿，保存名片后生效。'
-                : dirty
-                  ? '有未保存的修改'
-                  : '当前设置已保存'}
+              选择已加入草稿，保存名片后生效。
             </p>
             <InkButton
               variant="primary"
               className="min-h-11"
               onClick={() => setDrawer(null)}
             >
-              {drawer === 'preview' ? '返回设置' : '完成选择'}
+              完成选择
             </InkButton>
           </div>
         }
@@ -683,8 +699,6 @@ function CharacterCardSettingsEditor({
               onToggle={toggleAchievement}
             />
           </>
-        ) : drawer === 'preview' ? (
-          <CharacterCardView card={preview} />
         ) : drawer === 'equipment' ? (
           <CraftInventoryPanel
             source={source}

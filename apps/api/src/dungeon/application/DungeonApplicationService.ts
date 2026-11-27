@@ -72,7 +72,7 @@ export class DungeonStartError extends Error {
 
 type DungeonDeferredResult = Record<string, unknown> & {
   persist?: (tx: DbTransaction) => Promise<DungeonPersistenceSettlement | void>;
-  afterCommit?: () => Promise<void>;
+  afterCommit?: () => void;
 };
 
 export class DungeonApplicationService {
@@ -161,7 +161,7 @@ export class DungeonApplicationService {
               tx,
             }),
         });
-        if (afterCommit) await afterCommit();
+        afterCommit?.();
         // 持久化会补全 runId 等字段，投影必须在提交之后进行。
         return toPlayerStateMutationResponse({
           ...committed,

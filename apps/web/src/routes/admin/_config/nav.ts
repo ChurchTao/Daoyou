@@ -71,8 +71,8 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/ai-usage',
   },
   {
-    title: '在线人数',
-    description: '查看实时在线与峰值',
+    title: '在线监测',
+    description: '查看在线趋势与角色明细',
     href: '/admin/online-users',
   },
   {

@@ -11,8 +11,7 @@
   },
   "lifespan": {
     "deathLoss": 50,
-    "deployMinimum": 50,
-    "restRecoveryPerStone": 10
+    "deployMinimum": 50
   },
   "capture": {
     "mpBase": 10,

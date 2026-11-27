@@ -1,9 +1,11 @@
+import { hasStoryBattle } from './CombatV6StoryOccupancy.js';
+import { hasBaixiaoBattle } from '@server/baixiao/application/BaixiaoBattleOccupancy.js';
 import { redis } from '@server/lib/redis/index.js';
 import { arenaOccupancyKey, CombatV6ArenaStore } from '@server/combat/application/CombatV6ArenaStore.js';
 import { hasTowerBattle } from '@server/tower/occupancy.js';
 import { readCharacterCombatBuild } from '@server/lib/repositories/characterLoadoutRepository.js';
 import type { DbExecutor } from '@server/lib/drizzle/db.js';
-import { hasActiveDungeon } from '@server/dungeon/occupancy.js';
+import { hasDungeonBattle } from '@server/dungeon/occupancy.js';
 import {
   characterIdentityRow,
 } from '@server/lib/repositories/sectCombatRepository.js';
@@ -47,7 +49,7 @@ export async function readCombatV6ConditionAuthority(
   if (arenaId) {
     const runtime = await new CombatV6ArenaStore().get(arenaId);
     if (!runtime) throw new Error('ARENA_RESOURCE_AUTHORITY_MISSING');
-    if (runtime.huntResourcePolicy === 'persistent') {
+    if (runtime.hunt || runtime.invasion) {
       const participant = runtime.participants.find((p) => p.cultivatorId === id);
       const entry = runtime.units.find((u) => u.id === participant?.unitId)?.attrs;
       if (!entry?.maxHp || entry.maxMp === undefined) throw new Error('HUNT_RESOURCES_MISSING');
@@ -64,7 +66,7 @@ export async function readCombatV6ConditionAuthority(
     build,
     maxHp: attrs.maxHp,
     maxMp: attrs.maxMp,
-    recoveryPaused: (await hasTowerBattle(id)) || (await hasActiveDungeon(id)) || taskTarget?.resourcePolicy === 'persistent' ||
-      !!(await activeBreakthroughBattle(id, q)),
+    recoveryPaused: (await hasTowerBattle(id)) || (await hasDungeonBattle(id)) || !!taskTarget ||
+      !!(await activeBreakthroughBattle(id, q)) || await hasStoryBattle(id) || await hasBaixiaoBattle(id, q),
   };
 }

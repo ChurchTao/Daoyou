@@ -214,6 +214,7 @@ export function DungeonViewRenderer({
         <ExorcismSupply
           {...exorcismRunScene(viewState.state)}
           run={viewState.run}
+          runId={viewState.state.runId}
           processing={processing}
           onSupply={actions.exorcismSupply}
           onRetreat={actions.exorcismRetreat}
@@ -473,7 +474,7 @@ export function DungeonViewRenderer({
             <ModeHowTo mode={mode} />
             {mode === 'exorcism' ? (
               <p className="border-crimson/40 border-l-2 pl-3 text-sm leading-7">
-                入场回满，现实气血不受影响。局内只能靠调息和回复丹药恢复。
+                每场使用人物与灵兽当前的气血和法力，战后保留消耗。补给时可以调息、服用回复丹药或付费休养灵兽。
               </p>
             ) : (
               <TravelStatus displayResources={displayResources} />

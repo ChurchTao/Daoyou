@@ -60,7 +60,7 @@ export function BeastTradeDetails({
       </p>
       {beast.currentLifespan < BEAST_PROGRESSION.lifespan.deployMinimum && (
         <p className="text-crimson">
-          寿命不足，须先休养才能出战。{tradeNotice ? '交易不恢复寿命。' : ''}
+          寿命不足，无法出战。{tradeNotice ? '交易不恢复寿命。' : ''}
         </p>
       )}
       <dl className="grid grid-cols-2 gap-x-5 gap-y-2">

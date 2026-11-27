@@ -57,7 +57,7 @@ import {
   type InvasionProgress,
   type InvasionRun,
 } from './invasion-run.js';
-import { invasionBuild } from './invasion-terminal.js';
+import { readPersistentCharacterVitals } from '@server/combat/application/CombatV6PersistentCondition.js';
 import {
   announceInvasion,
   invasionIdentity,
@@ -165,13 +165,6 @@ function partyProgress(
       ),
     )
     .orderBy(asc(progress.userId));
-}
-
-function memberResources(entries: InvasionProgress[]) {
-  return Object.assign(
-    {},
-    ...entries.map(({ resources }) => resources),
-  ) as InvasionProgress['resources'];
 }
 
 async function lockOwnedRun(
@@ -321,7 +314,10 @@ export class InvasionService {
         const members = await runProgress(run.id);
         const own =
           members.find(({ userId }) => userId === actor.userId) ?? entry;
-        const resources = memberResources(members);
+        const resources = run.phase === 'rest'
+          ? Object.fromEntries(await Promise.all(members.map(async ({ cultivatorId }) =>
+              [cultivatorId, await readPersistentCharacterVitals(cultivatorId, db)] as const)))
+          : {};
         const regrouping =
           run.phase === 'rest' && !(await invasionRosterMatches(run));
         const recovery =
@@ -486,7 +482,7 @@ export class InvasionService {
       }
       const ready = run.ready.filter((id) => id !== self.cultivatorId);
       if (input.type === 'card') {
-        if (!self.resources[self.cultivatorId]?.hp)
+        if (!(await readPersistentCharacterVitals(self.cultivatorId, tx)).hp)
           throw new ConflictException('倒地角色不能使用增益卡');
         const selectedCards = { ...run.selectedCards };
         if (input.card) {
@@ -642,7 +638,6 @@ export class InvasionService {
             Date.now() < closesAt &&
             (await invasionRosterMatches(run))
           ) {
-            const members = await runProgress(id);
             try {
               battleId = await createArenaV6(
                 {
@@ -671,8 +666,6 @@ export class InvasionService {
                   realm: run.realm,
                   week: run.week,
                   formation: invasionFormation(run.week, run.wave),
-                  resources: memberResources(members),
-                  build: run.build ?? undefined,
                   cards: run.selectedCards,
                 },
               );
@@ -707,7 +700,6 @@ export class InvasionService {
                 phase: 'battle',
                 battleId,
                 selectedCards: {},
-                build: current.build ?? invasionBuild(runtime),
                 dueAt: runtime.expiresAt,
               })
               .where(eq(runs.id, id));
@@ -744,7 +736,7 @@ export class InvasionService {
           !(await invasionRosterMatches(run, tx))
         )
           throw new ConflictException('休憩已结束');
-        const current = self.resources[actor.cultivatorId];
+        const current = await readPersistentCharacterVitals(actor.cultivatorId, tx);
         if (!current || current.hp <= 0)
           throw new ConflictException('倒地角色不能服药');
         const item = await getBagConsumable(
@@ -761,45 +753,12 @@ export class InvasionService {
             actor.userId,
             actor.cultivatorId,
             input.itemId,
-            {
-              tx,
-              localRecovery: {
-                hp: current.hp,
-                mp: current.mp,
-                maxHp: current.maxHp,
-                maxMp: current.maxMp,
-                save: async (executor, recovered) => {
-                  if (Date.now() >= run.dueAt!)
-                    throw new ConflictException('休憩已结束');
-                  const hp = Math.max(
-                    current.hp,
-                    Math.min(current.maxHp, recovered.hp),
-                  );
-                  const mp = Math.max(
-                    current.mp,
-                    Math.min(current.maxMp, recovered.mp),
-                  );
-                  if (hp === current.hp && mp === current.mp)
-                    throw new ConflictException('这件回复品无法恢复当前状态');
-                  await executor
-                    .update(progress)
-                    .set({
-                      resources: {
-                        ...self.resources,
-                        [actor.cultivatorId]: { ...current, hp, mp },
-                      },
-                    })
-                    .where(progressKey(week, actor.userId));
-                  await executor
-                    .update(runs)
-                    .set({
-                      ready: run.ready.filter((id) => id !== self.cultivatorId),
-                    })
-                    .where(eq(runs.id, run.id));
-                },
-              },
-            },
+            { tx, invasionRest: true },
           );
+          if (Date.now() >= run.dueAt!) throw new ConflictException('休憩已结束');
+          await tx.update(runs).set({
+            ready: run.ready.filter((id) => id !== self.cultivatorId),
+          }).where(eq(runs.id, run.id));
         } catch (error) {
           if (
             error instanceof Error &&

@@ -596,6 +596,13 @@
       "when": 1795690524895,
       "tag": "0085_weekly_activity_calendar",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1795765808456,
+      "tag": "0086_unified_battle_vitals",
+      "breakpoints": true
     }
   ]
 }

@@ -1,8 +1,10 @@
+import type { FriendListResponse } from '@daoyou/contracts/friends';
 import { FRIEND_SEARCH_COOLDOWN_SECONDS } from '@daoyou/game-content/social/config';
-import { HttpException, Injectable } from '@nestjs/common';
+import { HttpException, Inject, Injectable } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { db } from '@server/lib/drizzle/db.js';
 import { acquireRedisCooldown } from '@server/lib/redis/cooldownLimiter.js';
+import { PresenceService } from '@server/presence/presence.service.js';
 import {
   getInviteTarget,
   listFriends,
@@ -23,8 +25,23 @@ import { enqueueSocialNotification } from './social-notifications.js';
 
 @Injectable()
 export class FriendsService {
-  async list(cultivatorId: string) {
-    return { friends: await listFriends(cultivatorId) };
+  constructor(
+    @Inject(PresenceService) private readonly presence: PresenceService,
+  ) {}
+
+  async list(cultivatorId: string): Promise<FriendListResponse> {
+    const friends = await listFriends(cultivatorId);
+    const onlineIds = await this.presence.getOnlineCultivatorIds(
+      friends
+        .filter((friend) => friend.status === 'active')
+        .map((friend) => friend.id),
+    );
+    return {
+      friends: friends.map((friend) => ({
+        ...friend,
+        online: friend.status === 'active' ? onlineIds.has(friend.id) : null,
+      })),
+    };
   }
 
   async search(cultivatorId: string, name: string) {

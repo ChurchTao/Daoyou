@@ -1,3 +1,4 @@
+import { rebaseBeastVitals } from './projection.js';
 import {
   BEAST_SPECIES,
   BEAST_SPECIES_REVISION,
@@ -36,7 +37,7 @@ export function refineBeast(
     (species) => species.id === beast.speciesId,
   )!;
   const traits = rollBeastTraits(species, seed, beast.isMutant);
-  return GeneratedBeastSchema.parse({
+  return rebaseBeastVitals(beast, GeneratedBeastSchema.parse({
     ...beast,
     ...traits,
     originKind: 'baby',
@@ -52,12 +53,9 @@ export function refineBeast(
     },
     unallocatedPoints: 50,
     skillSlotCapacity: traits.skills.length,
-    currentLifespan: BEAST_REFINEMENT.restoreLifespan
-      ? beast.maxLifespan
-      : beast.currentLifespan,
     generationVersion: BEAST_VERSION,
     generationContentRevision: BEAST_SPECIES_REVISION,
     generationSeed: seed,
     revision: beast.revision + 1,
-  });
+  }));
 }

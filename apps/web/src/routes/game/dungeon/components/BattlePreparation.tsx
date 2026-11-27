@@ -1,3 +1,4 @@
+import { useCultivatorDisplayProjection } from '@app/components/feature/cultivator/useCultivatorDisplayProjection';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { cn } from '@app/lib/cn';
 import type { DungeonEncounterView } from '@daoyou/game-domain/dungeon';
@@ -100,8 +101,8 @@ export function BattlePreparation({
   const copy = COPY[mode ?? 'other'];
   const foeIcon = mysteryPortraitIcon(portrait);
   const foeName = encounter.enemies.join('、');
-  const lowHp =
-    encounter.hp.max > 0 && encounter.hp.current / encounter.hp.max < 0.3;
+  const resources = useCultivatorDisplayProjection().data?.display.resources;
+  const lowHp = !!resources && resources.hp.max > 0 && resources.hp.current / resources.hp.max < 0.3;
 
   return (
     <div className="bg-paper text-ink relative overflow-hidden rounded-lg px-5 py-6 shadow-[inset_0_0_70px_12px_rgba(44,24,16,0.14)] md:px-8 md:py-8">
@@ -159,18 +160,10 @@ export function BattlePreparation({
               出战灵兽：{encounter.beast ?? '无'}
             </div>
           </div>
-          <Meter
-            label="气血"
-            current={encounter.hp.current}
-            max={encounter.hp.max}
-            tone="hp"
-          />
-          <Meter
-            label="法力"
-            current={encounter.mp.current}
-            max={encounter.mp.max}
-            tone="mp"
-          />
+          {resources && <>
+            <Meter label="气血" current={resources.hp.current} max={resources.hp.max} tone="hp" />
+            <Meter label="法力" current={resources.mp.current} max={resources.mp.max} tone="mp" />
+          </>}
           <p
             className={cn(
               'text-xs leading-6',

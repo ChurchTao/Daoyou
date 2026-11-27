@@ -1,31 +1,23 @@
 import { InkModal } from '@app/components/layout/InkModal';
 import { InkButton } from '@app/components/ui/InkButton';
-import { SpiritStones } from '@app/components/ui/SpiritStones';
 import type { SummonedBeast } from '@daoyou/game-domain/beasts';
-import { beastRestCost } from '@daoyou/game-rules/beasts/growth';
 
 export type BeastAction = 'release' | 'rest';
-const labels = { release: '放生', rest: '休养' };
 export function BeastActionDrawer({
   beast,
-  action,
-  spiritStones,
   pending,
   close,
   confirm,
 }: {
   beast: SummonedBeast;
-  action: BeastAction;
-  spiritStones: number;
   pending: boolean;
   close: () => void;
   confirm: () => void;
 }) {
-  const cost = beastRestCost(beast);
   return (
     <InkModal
       isOpen
-      title={`${labels[action]} · ${beast.name}`}
+      title={`放生 · ${beast.name}`}
       onClose={close}
       footer={
         <div className="flex justify-end gap-3">
@@ -35,40 +27,22 @@ export function BeastActionDrawer({
           <InkButton
             variant="primary"
             pending={pending}
-            disabled={
-              (action === 'rest' && (cost <= 0 || cost > spiritStones)) ||
-              (action === 'release' && beast.isLocked)
-            }
+            disabled={beast.isLocked}
             onClick={confirm}
           >
-            确认{labels[action]}
+            确认放生
           </InkButton>
         </div>
       }
     >
-      {action === 'rest' ? (
-        <div className="space-y-3 text-sm">
-          <p>
-            恢复{' '}
-            <span className="font-mono">
-              {beast.maxLifespan - beast.currentLifespan}
-            </span>{' '}
-            点寿命，消耗 <SpiritStones amount={cost} />。
-          </p>
-          <p>
-            现有灵石 <SpiritStones amount={spiritStones} mode="compact" />
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3 text-sm">
-          <p>
-            <span className="font-mono">{beast.level}</span> 级 · 成长{' '}
-            <span className="font-mono">{beast.growth.toFixed(3)}</span> ·{' '}
-            <span className="font-mono">{beast.skillSlotCapacity}</span> 项技能
-          </p>
-          <p>放生没有收益，无法找回。该灵兽会同时取消携带。</p>
-        </div>
-      )}
+      <div className="space-y-3 text-sm">
+        <p>
+          <span className="font-mono">{beast.level}</span> 级 · 成长{' '}
+          <span className="font-mono">{beast.growth.toFixed(3)}</span> ·{' '}
+          <span className="font-mono">{beast.skillSlotCapacity}</span> 项技能
+        </p>
+        <p>放生没有收益，无法找回。该灵兽会同时取消携带。</p>
+      </div>
     </InkModal>
   );
 }

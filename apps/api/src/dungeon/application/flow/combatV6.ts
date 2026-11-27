@@ -1,3 +1,6 @@
+import type { ResourceChange } from '@daoyou/contracts/resources';
+import { publishResourceEvents } from '@server/realtime/infrastructure/playerStateBroadcaster.js';
+import { recoverPersistentBattleCondition, settlePersistentBattle } from '@server/combat/application/CombatV6PersistentCondition.js';
 import type { RealmType } from '@daoyou/constants/realms';
 import type { DungeonSessionView } from '@daoyou/contracts/combat/dungeon';
 import { EXORCISM_ENCOUNTER_PACK } from '@daoyou/game-content/dungeon/exorcism';
@@ -5,20 +8,16 @@ import { getMapNode } from '@daoyou/game-content/world/map';
 import type { CombatV6CommandGroup } from '@daoyou/game-domain/combat';
 import type { DungeonTemplate } from '@daoyou/game-domain/combat/challenges';
 import { type DungeonBattleSnapshot } from '@daoyou/game-domain/combat/challenges';
-import type { CultivatorCondition } from '@daoyou/game-domain/condition';
 import type { DungeonEncounterView } from '@daoyou/game-domain/dungeon';
 import type { ExorcismBattleSnapshot } from '@daoyou/game-domain/dungeon/exorcism';
 import { getRealmStageLevel as combatCharacterLevel } from '@daoyou/game-domain/progression';
 import {
-  beastDeathIds,
   beastVictoryExperience,
   gainBeastExp,
 } from '@daoyou/game-rules/beasts/growth';
-import { evaluateFateContext } from '@daoyou/game-rules/character/fates';
 import { publicUnitAppearances } from '@daoyou/game-rules/combat/appearance';
 import { automaticCommands } from '@daoyou/game-rules/combat/auto';
 import {
-  carryDungeonBeastResources,
   createDungeonHost,
   DungeonHost,
 } from '@daoyou/game-rules/combat/dungeon/host';
@@ -45,9 +44,7 @@ import {
   resolveDungeonMapConfig,
 } from '@daoyou/game-rules/world/dungeon';
 import { assembleCombatV6WildPlayer } from '@server/combat/application/CombatV6BuildService.js';
-import { ConditionService } from '@server/cultivator/application/ConditionService.js';
-import { getCultivatorPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
-import { hasActiveDungeon } from '@server/dungeon/application/flow/occupancy.js';
+import { hasDungeonBattle } from '@server/dungeon/application/flow/occupancy.js';
 import {
   resolveDungeonReward,
   resolvePlanItems,
@@ -60,14 +57,12 @@ import { db, type DbExecutor, type DbTransaction } from '@server/lib/drizzle/db.
 import { recordGrowthObserved } from '@server/cultivator/application/GrowthDomainEvents.js';
 import {
   cultivatorBeasts,
-  cultivators,
   dungeonRuns,
 } from '@server/lib/drizzle/schema.js';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock.js';
 import {
   beastFromRow,
   beastIndividualData,
-  settleBeastDeaths,
 } from '@server/lib/repositories/combatV6BeastRepository.js';
 import { archiveCombatV6Replay } from '@server/lib/repositories/combatV6ReplayRepository.js';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
@@ -118,17 +113,11 @@ export async function dungeonPlayer(owner: string, tx: DbExecutor = db) {
   });
   if (!projection.ok || !assembled.player.cultivator.condition)
     throw new Error('角色战斗数据或资源尚未初始化');
-  if (!(await hasActiveDungeon(owner))) {
-    assembled.player.cultivator.condition =
-      ConditionService.recoverCombatV6Resources(
-        assembled.player.cultivator.condition,
-        {
-          maxHp: projection.unit.attrs.maxHp!,
-          maxMp: projection.unit.attrs.maxMp!,
-        },
-        new Date(),
-        evaluateFateContext(await getCultivatorPreHeavenFates(owner, tx)),
-      );
+  if (!(await hasDungeonBattle(owner, tx))) {
+    assembled.player.cultivator.condition = await recoverPersistentBattleCondition(
+      owner, assembled.player.cultivator.condition,
+      { maxHp: projection.unit.attrs.maxHp!, maxMp: projection.unit.attrs.maxMp! }, tx,
+    );
   }
   return {
     ...assembled,
@@ -192,7 +181,6 @@ export async function prepareDungeonEncounter(
     },
     randomInt(0, 0x7fffffff),
   );
-  // Carry resources across encounters within this run without changing the persistent beast schema.
   const snapshot = host.runtimeSnapshot();
   const narratedName =
     narration?.enemyName ??
@@ -210,19 +198,11 @@ export async function prepareDungeonEncounter(
       ).slice(0, 40);
     });
   }
-  snapshot.input.units = carryDungeonBeastResources(
-    snapshot.input.units,
-    snapshot.playerId,
-    state.beastResources,
-  );
-  const unit = snapshot.input.units.find(
-    (unit) => unit.id === snapshot.playerId,
-  )!;
   return {
     encounter: {
       version: snapshot.version,
       playerId: snapshot.playerId,
-      input: snapshot.input,
+      input: { ...snapshot.input, units: snapshot.input.units.filter((unit) => unit.side === 1) },
     },
     preview: {
       id: randomUUID(),
@@ -234,8 +214,6 @@ export async function prepareDungeonEncounter(
       enemies: snapshot.input.units
         .filter((unit) => unit.side === 1)
         .map((unit) => unit.name ?? '秘境守敌'),
-      hp: { current: unit.attrs?.hp ?? 0, max: unit.attrs?.maxHp ?? 0 },
-      mp: { current: unit.attrs?.mp ?? 0, max: unit.attrs?.maxMp ?? 0 },
       beast:
         snapshot.input.units.find(
           (unit) => unit.ownerId === snapshot.playerId && !unit.benched,
@@ -267,12 +245,11 @@ export async function prepareExorcismEncounter(
     (state.rewardSeed + stage * 7919) >>> 0,
   );
   const snapshot = host.runtimeSnapshot();
-  const unit = snapshot.input.units.find((u) => u.id === snapshot.playerId)!;
   return {
     encounter: {
       version: snapshot.version,
       playerId: snapshot.playerId,
-      input: snapshot.input,
+      input: { ...snapshot.input, units: snapshot.input.units.filter((unit) => unit.side === 1) },
       npcPlans: snapshot.npcPlans,
     },
     preview: {
@@ -281,8 +258,6 @@ export async function prepareExorcismEncounter(
       enemies: snapshot.input.units
         .filter((u) => u.side === 1)
         .map((u) => u.name ?? '祟物'),
-      hp: { current: unit.attrs?.hp ?? 0, max: unit.attrs?.maxHp ?? 0 },
-      mp: { current: unit.attrs?.mp ?? 0, max: unit.attrs?.maxMp ?? 0 },
       beast:
         snapshot.input.units.find(
           (u) => u.ownerId === snapshot.playerId && !u.benched,
@@ -291,7 +266,7 @@ export async function prepareExorcismEncounter(
   };
 }
 
-/** 除祟场次结束：只记局内资源，不写现实气血，也不扣灵兽寿元。 */
+/** 以本场终局状态评定除祟评级。 */
 async function settleExorcismBattle(
   state: DungeonState,
   host: ExorcismHost,
@@ -323,17 +298,37 @@ async function settleExorcismBattle(
   }
   state.exorcism = applyExorcismBattle(run, {
     victory,
-    resources: host.finalResources(),
+    hpRatio: host.finalHpRatio(),
   });
 }
 
-export function beginDungeonBattle(
+export async function beginDungeonBattle(
   state: DungeonState,
   prepared: DungeonEncounterPayload,
-): DungeonBattlePayload {
-  const restored = hostOf(prepared.encounter);
+) {
+  const { player } = await dungeonPlayer(state.cultivatorId);
+  const input = prepared.encounter.input;
   const encounter = dungeonBattleSetup(state);
-  return {
+  const fresh = prepared.encounter.version === 'exorcism-v6-v1'
+    ? createExorcismHost(player, encounter, state.exorcism!, input.seed!).runtimeSnapshot()
+    : createDungeonHost(player, encounter, input.seed!).runtimeSnapshot();
+  const restored = hostOf({
+    ...prepared.encounter,
+    input: {
+      ...fresh.input,
+      units: [
+        ...fresh.input.units.filter((unit) => unit.side === 0),
+        ...input.units.filter((unit) => unit.side === 1),
+      ],
+      unitAppearances: { ...input.unitAppearances, ...Object.fromEntries(
+        fresh.input.units.filter((unit) => unit.side === 0).flatMap((unit) => {
+          const appearance = unit.id && fresh.input.unitAppearances?.[unit.id];
+          return appearance ? [[unit.id!, appearance]] : [];
+        }),
+      ) },
+    },
+  });
+  const payload: DungeonBattlePayload = {
     session: {
       battleId: randomUUID(),
       cultivatorId: state.cultivatorId,
@@ -351,6 +346,7 @@ export function beginDungeonBattle(
     startedAt: new Date().toISOString(),
     settled: false,
   };
+  return { payload, condition: player.cultivator.condition! };
 }
 async function readRun(owner: string, battleId?: string, tx: DbExecutor = db) {
   const [run] = await tx
@@ -422,7 +418,7 @@ export async function changeDungeonBattle(
   command?: { unitId: string; commands: CombatV6CommandGroup },
   autoRound?: number,
 ) {
-  return withRedisLock(
+  const committed = await withRedisLock(
     {
       key: redisLockKeys.cultivatorMutation(actor.cultivatorId),
       context: 'dungeon-v6-battle',
@@ -438,7 +434,7 @@ export async function changeDungeonBattle(
         if (payload.revision !== revision)
           throw new Error('战斗状态已变化，请刷新');
         const host = hostOf(payload.snapshot, payload.snapshot);
-        if (host.finished) return view(payload);
+        if (host.finished) return { battle: view(payload), changes: [] };
         if (autoRound !== undefined) {
           if (host.state.round !== autoRound)
             throw new Error('战斗回合已变化，请刷新');
@@ -470,44 +466,15 @@ export async function changeDungeonBattle(
         payload.revision++;
         if (!command)
           playback.capture(host.state, payload.snapshot.events.length - 1);
+        let changes: ResourceChange[] = [];
         if (host.finished && !payload.settled) {
+          await settlePersistentBattle(tx, actor.cultivatorId, host.state, payload.snapshot.events,
+            host.playerId, payload.snapshot.input.units.find((unit) => unit.id === host.playerId)?.attrs);
           if (state.exorcism) {
             if (!(host instanceof ExorcismHost))
               throw new Error('除祟战斗宿主不匹配');
             await settleExorcismBattle(state, host, tx);
           } else {
-            const final = host.state.units.find((u) => u.id === host.playerId)!;
-            const [row] = await tx
-              .select({ condition: cultivators.condition })
-              .from(cultivators)
-              .where(eq(cultivators.id, actor.cultivatorId));
-            if (!row?.condition) throw new Error('角色资源缺失');
-            const condition = ConditionService.applyCombatV6Resources(
-              row.condition as CultivatorCondition,
-              {
-                hp: Math.max(1, final.attrs.hp),
-                mp: final.attrs.mp,
-                maxHp: final.attrs.maxHp,
-                maxMp: final.attrs.maxMp,
-              },
-            );
-            await tx
-              .update(cultivators)
-              .set({ condition })
-              .where(eq(cultivators.id, actor.cultivatorId));
-            await settleBeastDeaths(
-              actor.cultivatorId,
-              beastDeathIds(payload.snapshot.events),
-              tx,
-            );
-            state.beastResources = {
-              ...state.beastResources,
-              ...Object.fromEntries(
-                host.state.units
-                  .filter((u) => u.ownerId === host.playerId)
-                  .map((u) => [u.id, { hp: u.attrs.hp, mp: u.attrs.mp }]),
-              ),
-            };
             if (host.trace().outcome === 'victory') {
               const reward = await resolveDungeonReward(
                 state,
@@ -553,7 +520,7 @@ export async function changeDungeonBattle(
             tx,
           );
           payload.settled = true;
-          await new ResourceEventCommitter().commit(tx, {
+          const committed = await new ResourceEventCommitter().commit(tx, {
             actor,
             source: 'dungeon-v6-terminal',
             scopeDefaults: { cultivatorId: actor.cultivatorId },
@@ -565,6 +532,7 @@ export async function changeDungeonBattle(
               },
             ],
           });
+          changes = committed.changes;
         }
         lease.assertHeld();
         await tx
@@ -572,11 +540,13 @@ export async function changeDungeonBattle(
           .set({ battlePayload: payload, runState: state })
           .where(eq(dungeonRuns.id, run.id));
         return {
-          ...view(payload, after),
-          ...(!command ? { playback: playback.playback } : {}),
+          battle: { ...view(payload, after), ...(!command ? { playback: playback.playback } : {}) },
+          changes,
         };
       }),
   );
+  publishResourceEvents(committed.changes);
+  return committed.battle;
 }
 
 export async function grantDungeonBeastExperience(

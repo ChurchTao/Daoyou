@@ -1,3 +1,6 @@
+import { settlePersistentBattle } from './CombatV6PersistentCondition.js';
+import { storyBattleKey } from './CombatV6StoryOccupancy.js';
+import { claimMessageForConsumer } from '@server/lib/repositories/messageConsumptionRepository.js';
 import type { CombatV6CommandGroup } from '@daoyou/game-domain/combat';
 import type {
   StoryBattleRuntime,
@@ -24,8 +27,6 @@ import {
   storyBattleOutcome,
   storyBattleResourceLoss,
 } from '@daoyou/game-rules/story';
-import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
-import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 import { dungeonPlayer } from '@server/dungeon/combat-player.js';
 import { assertInventoryIdle } from '@server/inventory/operations.js';
 import { db } from '@server/lib/drizzle/db.js';
@@ -41,11 +42,10 @@ import { eq } from 'drizzle-orm';
 
 /**
  * 剧情战：对手和胜负规则由主线指定。
- * 白水渡胜后保留主角的气血与法力损耗，其余剧情战只记战果。
  * 每个角色同一时间只有一场，存在 Redis 里。
  */
 type Actor = { userId: string; cultivatorId: string };
-const key = (cultivatorId: string) => `combat:v6:story:${cultivatorId}`;
+
 const saveScript = `
 local raw = redis.call('GET', KEYS[1])
 if not raw then return 0 end
@@ -55,7 +55,7 @@ return 1
 `;
 
 async function readRuntime(cultivatorId: string) {
-  const raw = await redis.get(key(cultivatorId));
+  const raw = await redis.get(storyBattleKey(cultivatorId));
   if (!raw) return null;
   const runtime = JSON.parse(raw) as StoryBattleRuntime;
   if (
@@ -139,7 +139,6 @@ export async function startStoryBattle(actor: Actor) {
       retries: 0,
     },
     async (lease) => {
-      await assertInventoryIdle(actor.cultivatorId);
       const runtime = await db.transaction(async (tx) => {
         await lockCultivatorForStateMutation(tx, actor.cultivatorId);
         const story = await StoryService.read(actor.cultivatorId, tx);
@@ -151,7 +150,10 @@ export async function startStoryBattle(actor: Actor) {
           !existing.settled
         )
           return existing;
+        await assertInventoryIdle(actor.cultivatorId, tx);
         const { player } = await dungeonPlayer(actor.cultivatorId, tx);
+        await tx.update(cultivators).set({ condition: player.cultivator.condition })
+          .where(eq(cultivators.id, actor.cultivatorId));
         const host = createStoryBattleHost(
           player,
           getStoryBattle(story.battleId),
@@ -168,7 +170,7 @@ export async function startStoryBattle(actor: Actor) {
           snapshot: host.runtimeSnapshot(),
           settled: false,
         };
-        await redis.set(key(actor.cultivatorId), JSON.stringify(created));
+        await redis.set(storyBattleKey(actor.cultivatorId), JSON.stringify(created));
         lease.assertHeld();
         return created;
       });
@@ -179,56 +181,30 @@ export async function startStoryBattle(actor: Actor) {
 
 async function settle(actor: Actor, runtime: StoryBattleRuntime) {
   const battle = getStoryBattle(runtime.battleId);
-  // 输了又必须赢的一场不往主线里记，等玩家再打。
-  if (!(runtime.result === 'lost' && battle.defeat === 'retry')) {
-    const state = await db.transaction(async (tx) => {
-      await lockCultivatorForStateMutation(tx, actor.cultivatorId);
-      const effects = runtime.battleId === MINE_SPARRING_BATTLE
-        ? [...mineSparringEffects(runtime.snapshot)]
-        : [];
-      const conditionChanges: ResourceChangeDescriptor[] = [];
-      if (runtime.battleId === MINE_BAISHUI_ROGUE_BATTLE && runtime.result === 'won') {
-        const story = await StoryService.read(actor.cultivatorId, tx);
-        // The completed beat is the durable receipt if Redis still says pending.
-        if (story.battleId !== runtime.battleId)
-          return { changes: [] };
-        const loss = storyBattleResourceLoss(runtime.snapshot);
-        if (loss.hp || loss.mp) {
-          const { player, caps } = await dungeonPlayer(actor.cultivatorId, tx);
-          const current = player.cultivator.condition!;
-          const next = ConditionService.applyCombatV6Resources(current, {
-            ...caps,
-            hp: Math.max(1, current.resources.hp.current - loss.hp),
-            mp: Math.max(0, current.resources.mp.current - loss.mp),
-          });
-          await tx.update(cultivators).set({ condition: next })
-            .where(eq(cultivators.id, actor.cultivatorId));
-          if (loss.hp > 0) effects.push('baishui.battle-hurt');
-          conditionChanges.push({
-            resourceTopic: 'player.condition',
-            operation: 'invalidate',
-            eventType: 'combat_v6.condition.settled',
-          });
-        }
-      }
-      const story = await StoryService.completeBattle(
-        actor.cultivatorId,
-        runtime.battleId,
-        runtime.result!,
-        tx,
-        effects,
-      );
-      return new ResourceEventCommitter().commit(tx, {
-        actor,
-        source: 'story-battle',
-        scopeDefaults: { cultivatorId: actor.cultivatorId },
-        changes: [...story.changes, ...conditionChanges],
-      });
+  const state = await db.transaction(async (tx) => {
+    await lockCultivatorForStateMutation(tx, actor.cultivatorId);
+    if (!(await claimMessageForConsumer({
+      consumerName: 'story-battle-condition-v1', messageId: runtime.sessionId, messageKey: 'story.battle.finished',
+    }, tx))) return { changes: [] };
+    await settlePersistentBattle(tx, actor.cultivatorId, runtime.snapshot.state,
+      runtime.snapshot.events, runtime.snapshot.playerId);
+    const effects = runtime.battleId === MINE_SPARRING_BATTLE
+      ? [...mineSparringEffects(runtime.snapshot)]
+      : [];
+    if (runtime.battleId === MINE_BAISHUI_ROGUE_BATTLE && runtime.result === 'won' &&
+        storyBattleResourceLoss(runtime.snapshot).hp > 0) effects.push('baishui.battle-hurt');
+    const story = runtime.result === 'lost' && battle.defeat === 'retry' ? null
+      : await StoryService.completeBattle(actor.cultivatorId, runtime.battleId, runtime.result!, tx, effects);
+    return new ResourceEventCommitter().commit(tx, {
+      actor, source: 'story-battle', scopeDefaults: { cultivatorId: actor.cultivatorId },
+      changes: [...(story?.changes ?? []), {
+        resourceTopic: 'player.condition', operation: 'invalidate', eventType: 'combat_v6.condition.settled',
+      }],
     });
-    publishResourceEvents(state.changes);
-  }
+  });
+  publishResourceEvents(state.changes);
   runtime.settled = true;
-  await redis.set(key(actor.cultivatorId), JSON.stringify(runtime), 'EX', 86400);
+  await redis.set(storyBattleKey(actor.cultivatorId), JSON.stringify(runtime), 'EX', 86400);
 }
 
 export async function changeStoryBattle(
@@ -291,7 +267,7 @@ export async function changeStoryBattle(
           (await redis.eval(
             saveScript,
             1,
-            key(actor.cultivatorId),
+            storyBattleKey(actor.cultivatorId),
             revision,
             JSON.stringify(runtime),
           )) !== 1

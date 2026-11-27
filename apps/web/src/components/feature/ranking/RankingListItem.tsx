@@ -15,9 +15,8 @@ interface BattleRankingCardProps {
   canChallenge: boolean;
   challengeUnavailableReason?: string;
   isChallenging: boolean;
-  isProbing: boolean;
   onChallenge: (targetId: string) => Promise<void>;
-  onProbe: (targetId: string) => Promise<void>;
+  onViewCard: (targetId: string) => void;
   variant?: 'list' | 'podium';
 }
 
@@ -73,9 +72,8 @@ function BattleRankingCardComponent({
   canChallenge,
   challengeUnavailableReason,
   isChallenging,
-  isProbing,
   onChallenge,
-  onProbe,
+  onViewCard,
 }: BattleRankingCardProps) {
   const rankTone = resolveBattleRankTone(item.rank);
   const sectAffiliation = item.sectAffiliation || '散修';
@@ -131,13 +129,11 @@ function BattleRankingCardComponent({
             {!isSelf ? (
               <>
                 <InkButton
-                  onClick={() => onProbe(item.id)}
+                  onClick={() => onViewCard(item.id)}
                   variant="secondary"
-                  pending={isProbing}
-                  pendingLabel="查探中……"
                   className="text-sm"
                 >
-                  查探
+                  名片
                 </InkButton>
                 {canChallenge ? (
                   <InkButton

@@ -12,6 +12,7 @@ export interface WildSettlement {
   capturedBeasts?: SummonedBeast[];
   beastExperience?: { beastId: string; amount: number };
   deadBeastIds?: string[];
+  beasts?: { id: string; hp: number; mp: number; died: boolean }[];
   schemaVersion: 1;
   battleId: string;
   userId: string;

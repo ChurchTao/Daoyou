@@ -6,6 +6,7 @@ import {
 } from '@daoyou/constants/realms';
 import { DUNGEON_LIFESPAN_COST_MAX } from '@daoyou/game-content/dungeon/cost';
 import {
+  EXORCISM_ENCOUNTER_PACK,
   exorcismLineageForScene,
 } from '@daoyou/game-content/dungeon/exorcism';
 import { getMysteryFallbackCase } from '@daoyou/game-content/dungeon/scenarios';
@@ -56,7 +57,6 @@ import {
   grantDungeonBeastExperience,
   prepareDungeonEncounter,
   prepareExorcismEncounter,
-  type DungeonBattlePayload,
   type DungeonEncounterPayload,
 } from '@server/dungeon/application/flow/combatV6.js';
 import { applyDungeonCosts } from '@server/dungeon/application/flow/costs.js';
@@ -127,7 +127,10 @@ import {
   scenarioTemplatesForNode,
   wakeScenarioWorker,
 } from '../mystery/ScenarioLibrary.js';
-import type { DungeonRunStore } from './DungeonRunStore.js';
+import type {
+  DungeonRunBattlePayload,
+  DungeonRunStore,
+} from './DungeonRunStore.js';
 import { DungeonFlowError, DungeonFlowErrorCode } from './errors.js';
 
 const FLOW_LOCK_TTL_SECONDS = 180;
@@ -184,7 +187,7 @@ type DungeonSettlementResult = {
   isFinished: boolean;
   realGains?: ResourceOperation[];
   persist?: (tx: DbTransaction) => Promise<DungeonPersistenceSettlement | void>;
-  afterCommit?: () => Promise<void>;
+  afterCommit?: () => void;
 };
 
 type DungeonSettlementOptions = {
@@ -199,11 +202,6 @@ type DungeonFlowOptions = {
   materialSelections?: import('@daoyou/game-domain/dungeon').DungeonMaterialSelection[];
   deferPersistence?: boolean;
   lease?: RedisLeaseContext;
-};
-
-type DungeonPersistenceHooks = {
-  persist: (tx: DbTransaction) => Promise<DungeonPersistenceSettlement | void>;
-  afterCommit: () => Promise<void>;
 };
 
 export interface DungeonPersistenceSettlement {
@@ -348,8 +346,6 @@ function assertDungeonRealmEligible(
   }
 }
 
-type DungeonBattleCachePayload = DungeonBattlePayload | DungeonEncounterPayload;
-
 function cloneCosts(
   costs: DungeonOptionCost[] | undefined,
 ): DungeonOptionCost[] {
@@ -415,9 +411,6 @@ export class DungeonFlowService {
       costs: this.normalizeOptionCosts(entry),
     }));
     state.gainLedger ??= [];
-    state.summary_of_sacrifice = state.costLedger.flatMap((entry) =>
-      cloneCosts(entry.costs),
-    );
     if (state.pendingAction) {
       state.pendingAction = {
         ...state.pendingAction,
@@ -462,19 +455,13 @@ export class DungeonFlowService {
     return state;
   }
 
-  private buildStateHooks(
+  private deferStatePersistence(
     cultivatorId: string,
     state: DungeonState,
-    battlePayload?: DungeonBattleCachePayload,
-  ): DungeonPersistenceHooks {
-    return {
-      persist: async (tx) => {
-        await this.persistStateRecord(cultivatorId, state, battlePayload, tx);
-      },
-      afterCommit: async () => {
-        await this.runs.saveRedisState(cultivatorId, state);
-      },
-    };
+    battlePayload?: DungeonRunBattlePayload,
+  ) {
+    return (tx: DbTransaction) =>
+      this.saveState(cultivatorId, state, battlePayload, tx);
   }
 
   private async withFlowLock<T>(
@@ -550,9 +537,6 @@ export class DungeonFlowService {
       materialSelections: action.materialSelections,
       committedAt: new Date().toISOString(),
     });
-    state.summary_of_sacrifice = state.costLedger.flatMap((entry) =>
-      cloneCosts(entry.costs),
-    );
     state.pendingAction = {
       ...action,
       status: 'committed',
@@ -666,7 +650,6 @@ export class DungeonFlowService {
         isFinished: false,
         cultivatorId: context.playerInfo.id!,
         theme: context.location.location,
-        summary_of_sacrifice: [],
         costLedger: [],
         gainLedger: [],
         accumulatedRewards: [],
@@ -726,7 +709,7 @@ export class DungeonFlowService {
               tx,
             });
             await this.persistMysteryStart(tx, state);
-            await this.persistStateRecord(cultivatorId, state, undefined, tx);
+            await this.saveState(cultivatorId, state, undefined, tx);
             await QiService.commitReservation({
               actionInstanceId: qiActionInstanceId,
               metadata: {
@@ -743,10 +726,7 @@ export class DungeonFlowService {
               },
             } satisfies DungeonPersistenceSettlement;
           },
-          afterCommit: async () => {
-            await this.runs.saveRedisState(cultivatorId, state);
-            this.requestMysteryRestock(state);
-          },
+          afterCommit: () => this.requestMysteryRestock(state),
         };
       }
 
@@ -811,7 +791,6 @@ export class DungeonFlowService {
       isFinished: false,
       cultivatorId: context.playerInfo.id!,
       theme: context.location.location,
-      summary_of_sacrifice: [],
       costLedger: [],
       gainLedger: [],
       accumulatedRewards: [],
@@ -838,7 +817,7 @@ export class DungeonFlowService {
           metadata: { mapNodeId },
           tx,
         });
-        await this.persistStateRecord(cultivatorId, state, prepared, tx);
+        await this.saveState(cultivatorId, state, prepared, tx);
         await QiService.commitReservation({
           actionInstanceId,
           metadata: {
@@ -855,7 +834,6 @@ export class DungeonFlowService {
           },
         } satisfies DungeonPersistenceSettlement;
       },
-      afterCommit: () => this.runs.saveRedisState(cultivatorId, state),
     };
   }
 
@@ -888,10 +866,26 @@ export class DungeonFlowService {
     state.encounter = prepared.preview;
     state.status = 'WAITING_BATTLE';
     state.currentRound = state.exorcism.wins + 1;
+    const persistState = this.deferStatePersistence(cultivatorId, state, prepared);
     return {
       state,
       isFinished: false,
-      ...this.buildStateHooks(cultivatorId, state, prepared),
+      persist: async (tx: DbTransaction) => {
+        const { player, caps } = await dungeonPlayer(cultivatorId, tx);
+        const current = player.cultivator.condition!;
+        const { restHpRatio, restMpRatio } = EXORCISM_ENCOUNTER_PACK.supply;
+        if (choice === 'rest') {
+          const condition = ConditionService.applyCombatV6Resources(current, {
+            ...caps,
+            hp: Math.min(caps.maxHp, Math.floor(current.resources.hp.current + caps.maxHp * restHpRatio)),
+            mp: Math.min(caps.maxMp, Math.floor(current.resources.mp.current + caps.maxMp * restMpRatio)),
+          });
+          await updateCultivator(cultivatorId, { condition }, tx);
+          await persistState(tx);
+          return { condition };
+        }
+        return persistState(tx);
+      },
     };
   }
 
@@ -921,6 +915,11 @@ export class DungeonFlowService {
     return { ...settled, state: settled.state ?? state };
   }
 
+  private async exorcismHpRatio(cultivatorId: string) {
+    const { player, caps } = await dungeonPlayer(cultivatorId);
+    return player.cultivator.condition!.resources.hp.current / caps.maxHp;
+  }
+
   private exorcismRewardContext(state: DungeonState) {
     const map = getMapNode(state.mapNodeId);
     if (!map || !('realm_requirement' in map)) throw new Error('秘境地图无效');
@@ -943,7 +942,7 @@ export class DungeonFlowService {
   private async finalizeExorcism(state: DungeonState) {
     if (!state.exorcism || state.settlement) return;
     if (state.exorcism.phase !== 'finished')
-      state.exorcism = retreatExorcism(state.exorcism);
+      state.exorcism = retreatExorcism(state.exorcism, await this.exorcismHpRatio(state.cultivatorId));
     const run = state.exorcism;
     const { mapRealm, level, context } = this.exorcismRewardContext(state);
     let insight: 'full' | 'partial' | 'none' = 'none';
@@ -1034,16 +1033,17 @@ export class DungeonFlowService {
     const prepared = run?.battlePayload as DungeonEncounterPayload | undefined;
     if (!prepared?.encounter || prepared.preview.id !== encounterId)
       throw new Error('遭遇输入缺失');
-    const payload = beginDungeonBattle(state, prepared);
+    const { payload, condition } = await beginDungeonBattle(state, prepared);
     state.status = 'IN_BATTLE';
     state.activeBattleId = payload.session.battleId;
-    if (options.deferPersistence)
-      return {
-        state,
-        isFinished: false,
-        ...this.buildStateHooks(cultivatorId, state, payload),
-      };
-    await this.saveState(cultivatorId, state, payload);
+    const persistState = this.deferStatePersistence(cultivatorId, state, payload);
+    const persist = async (tx: DbTransaction) => {
+      await updateCultivator(cultivatorId, { condition }, tx);
+      await persistState(tx);
+      return { condition };
+    };
+    if (options.deferPersistence) return { state, isFinished: false, persist };
+    await this.database.transaction(persist);
     return { state, isFinished: false };
   }
 
@@ -1075,7 +1075,7 @@ export class DungeonFlowService {
       return {
         state,
         isFinished: false,
-        ...this.buildStateHooks(cultivatorId, state),
+        persist: this.deferStatePersistence(cultivatorId, state),
       };
     }
     if (state.mystery?.pendingGuard)
@@ -1134,7 +1134,7 @@ export class DungeonFlowService {
         ? {
             state: recoverable,
             isFinished: false,
-            ...this.buildStateHooks(state.cultivatorId, recoverable),
+            persist: this.deferStatePersistence(state.cultivatorId, recoverable),
           }
         : { state: recoverable, isFinished: false };
     }
@@ -1353,10 +1353,7 @@ export class DungeonFlowService {
     let rumorOutboxId: string | undefined;
     const persistSettlement = async (tx: DbTransaction) => {
       if (!state.runId) throw new Error('副本结算缺少运行编号');
-      await this.archiveDungeon(state, settlement, realGains, {
-        tx,
-        clearRedis: false,
-      });
+      await this.archiveDungeon(state, settlement, realGains, { tx });
       const event = await createDomainEvent(
         {
           type: 'dungeon.run.settled',
@@ -1385,8 +1382,7 @@ export class DungeonFlowService {
         });
       }
     };
-    const afterCommit = async () => {
-      await this.runs.clearRedisState(state.cultivatorId);
+    const afterCommit = () => {
       const context = {
         source: 'dungeon_settlement',
         cultivatorId: state.cultivatorId,
@@ -1398,7 +1394,7 @@ export class DungeonFlowService {
 
     if (!deferPersistence) {
       await this.database.transaction(persistSettlement);
-      await afterCommit();
+      afterCommit();
       return { isFinished: true, settlement, realGains };
     }
 
@@ -1622,7 +1618,7 @@ export class DungeonFlowService {
       return {
         state,
         isFinished: false,
-        ...this.buildStateHooks(cultivatorId, state),
+        persist: this.deferStatePersistence(cultivatorId, state),
       };
     }
     return this.saveState(cultivatorId, state).then(() => ({
@@ -1858,7 +1854,7 @@ export class DungeonFlowService {
             return {
               state,
               isFinished: false,
-              ...this.buildStateHooks(cultivatorId, state, encounter),
+              persist: this.deferStatePersistence(cultivatorId, state, encounter),
             };
           }
           await this.saveState(cultivatorId, state, encounter);
@@ -1941,7 +1937,7 @@ export class DungeonFlowService {
           return {
             state,
             isFinished: false,
-            ...this.buildStateHooks(cultivatorId, state, encounter),
+            persist: this.deferStatePersistence(cultivatorId, state, encounter),
           };
         }
         await this.saveState(cultivatorId, state, encounter);
@@ -1997,20 +1993,10 @@ export class DungeonFlowService {
     return { ...settled, state: settled.state ?? state };
   }
 
-  async saveState(
+  private saveState(
     cultivatorId: string,
     state: DungeonState,
-    battlePayload?: DungeonBattleCachePayload,
-  ) {
-    this.normalizeState(state);
-    await this.persistStateRecord(cultivatorId, state, battlePayload);
-    await this.runs.saveRedisState(cultivatorId, state);
-  }
-
-  private persistStateRecord(
-    cultivatorId: string,
-    state: DungeonState,
-    battlePayload?: DungeonBattleCachePayload,
+    battlePayload?: DungeonRunBattlePayload,
     tx?: DbTransaction,
   ) {
     this.normalizeState(state);
@@ -2019,10 +2005,7 @@ export class DungeonFlowService {
 
   async getState(cultivatorId: string, runId?: string) {
     const state = await this.runs.getState(cultivatorId, runId);
-    if (!state) return null;
-    this.normalizeState(state);
-    if (!runId) await this.runs.saveRedisState(cultivatorId, state);
-    return this.normalizeState(state);
+    return state ? this.normalizeState(state) : null;
   }
 
   async prepareDungeonContext(cultivatorId: string, mapNodeId: string) {
@@ -2089,7 +2072,7 @@ export class DungeonFlowService {
     state: DungeonState,
     settlement: DungeonSettlement,
     realGains?: ResourceOperation[],
-    options: { tx?: DbTransaction; clearRedis?: boolean } = {},
+    options: { tx?: DbTransaction } = {},
   ) {
     state.status = 'FINISHED';
     state.isFinished = true;
@@ -2238,7 +2221,7 @@ export class DungeonFlowService {
         return {
           state,
           isFinished: false,
-          ...this.buildStateHooks(cultivatorId, state),
+          persist: this.deferStatePersistence(cultivatorId, state),
         };
       }
       await this.saveState(cultivatorId, state);

@@ -93,6 +93,7 @@ export function freezeSectBattleOpponent(
         1,
         0,
         projected.unit.level,
+        'full',
       ).filter((unit) => !unit.benched),
     ],
     skills: projected.skills,
@@ -166,7 +167,7 @@ export function createSectBattleHost(
       projected.unit.id!,
       0,
       0,
-      projected.unit.level,
+      projected.unit.level, 'persistent'
     ),
     ...opponent.units.map((unit) =>
       unit.kind === 'player'

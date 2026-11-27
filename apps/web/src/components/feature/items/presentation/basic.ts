@@ -249,7 +249,7 @@ export const refinementAdapter: ItemAdapter = (item, def) => {
         {
           title: '洗炼效果',
           entries: lines(
-            '重置等级，重新孕育资质、成长与技能，寿命恢复至原上限。',
+            '重置等级，重新孕育资质、成长与技能。',
           ),
         },
       ],

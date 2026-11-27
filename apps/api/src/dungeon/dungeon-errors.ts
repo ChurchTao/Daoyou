@@ -108,13 +108,19 @@ export const DungeonQuitErrors = apiErrorFilter(
       : undefined),
 );
 
-export const DungeonBeginErrors = apiErrorFilter(
-  (error) =>
+export const DungeonBeginErrors = apiErrorFilter((error) => {
+  if (error instanceof ZodError || error instanceof JsonBodyParseError)
+    return Response.json(
+      { error: '迎战请求无效，请刷新后重试' },
+      { status: 400 },
+    );
+  return (
     redisLockErrorResponse(error) ??
     (error instanceof DungeonFlowError
       ? Response.json({ error: error.message }, { status: 409 })
-      : undefined),
-);
+      : undefined)
+  );
+});
 
 export const DungeonCompleteErrors = apiErrorFilter((error) => {
   const flow = flowError(error);

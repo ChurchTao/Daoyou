@@ -9,6 +9,7 @@ import {
   subscribeNatsCoreSubject,
 } from '@server/realtime/infrastructure/natsCorePubSub.js';
 import { createPubSubEnvelope, parsePubSubEnvelope } from '@server/realtime/infrastructure/pubSubEnvelope.js';
+import { publishPartyMemberChanges } from './partyBroadcaster.js';
 
 type Listener = (changes: ResourceChange[]) => void;
 
@@ -84,11 +85,17 @@ export function publishResourceEvents(events: ResourceChange[]): void {
     string,
     { scope: ResourceScope; events: ResourceChange[] }
   >();
+  const conditionOwners = new Set<string>();
   for (const event of events) {
     const key = scopeKey(event.scope);
     const group = grouped.get(key) ?? { scope: event.scope, events: [] };
     group.events.push(event);
     grouped.set(key, group);
+    if (
+      event.scope.kind === 'cultivator' &&
+      event.resourceTopic === 'player.condition'
+    )
+      conditionOwners.add(event.scope.id);
   }
   for (const group of grouped.values()) {
     notifyLocalListeners(group.scope, group.events);
@@ -97,4 +104,10 @@ export function publishResourceEvents(events: ResourceChange[]): void {
       JSON.stringify(createPubSubEnvelope(group.events)),
     );
   }
+  if (conditionOwners.size)
+    void publishPartyMemberChanges('vitals', [...conditionOwners]).catch(
+      (error: unknown) => {
+        console.warn('[party] vitals notification failed', { error });
+      },
+    );
 }

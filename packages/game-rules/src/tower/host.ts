@@ -229,11 +229,11 @@ export function createTowerHost(
     ...structuredClone(player),
     side: 0,
     slot: 0,
-    resourcePolicy: 'full',
+    resourcePolicy: 'persistent',
   });
   if (!projected.ok) throw new Error('请先完成新版宗门构筑');
   const unit = projected.unit;
-  const beasts = projectBeastRoster(player.beasts, unit.id!, 0, 0, unit.level);
+  const beasts = projectBeastRoster(player.beasts, unit.id!, 0, 0, unit.level, 'persistent');
   const blessingSkills = applyTowerBlessings(unit, beasts, blessings);
   const enemies = published
     ? publishedTowerEncounter(published, realm, floor)

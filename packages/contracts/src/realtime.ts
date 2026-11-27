@@ -73,6 +73,8 @@ export type RealtimeServerEvent =
       payload: { teamId: string };
     }
   | { type: 'party.changed'; payload: null }
+  | { type: 'party.vitals.changed'; payload: { partyId: string } }
+  | { type: 'party.presence.changed'; payload: { partyId: string } }
   | {
       type: 'ping';
       payload: {

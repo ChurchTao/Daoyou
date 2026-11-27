@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
-import { BACKGROUND_SCHEDULES } from '@server/runtime/jobs/schedules.js';
 import { publishScheduledBackgroundCommand } from '@server/lib/mq/backgroundCommandPublisher.js';
+import { PresenceHistoryService } from '@server/presence/presence-history.service.js';
+import { BACKGROUND_SCHEDULES } from '@server/runtime/jobs/schedules.js';
 import { CronJob } from 'cron';
 import { AppConfigService } from '../config/app-config.service.js';
 
@@ -10,9 +11,27 @@ export class CronService {
   constructor(
     @Inject(AppConfigService) private readonly config: AppConfigService,
     @Inject(SchedulerRegistry) private readonly scheduler: SchedulerRegistry,
+    @Inject(PresenceHistoryService)
+    private readonly presenceHistory: PresenceHistoryService,
   ) {}
 
   start(): void {
+    const presenceSampling = CronJob.from({
+      cronTime: '0 * * * * *',
+      onTick: async () => {
+        try {
+          await this.presenceHistory.sample();
+        } catch (error) {
+          console.warn('[cron] online presence sample failed', error);
+        }
+      },
+      start: false,
+      timeZone: 'UTC',
+      waitForCompletion: true,
+    });
+    this.scheduler.addCronJob('online-presence-sampling', presenceSampling);
+    presenceSampling.start();
+
     if (this.config.get('NODE_ENV') !== 'production') return;
     for (const { type, expression } of BACKGROUND_SCHEDULES) {
       const job = CronJob.from({

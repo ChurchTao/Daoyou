@@ -113,6 +113,22 @@ export function beastPanel(input: SummonedBeast) {
 }
 
 /** Complete beast attributes and the removable contribution from defense skills. */
+export function beastVitals(beast: SummonedBeast) {
+  const { maxHp, maxMp } = beastPanel(beast);
+  return {
+    hp: Math.min(maxHp, beast.vitals?.hp ?? maxHp),
+    mp: Math.min(maxMp, beast.vitals?.mp ?? maxMp),
+    maxHp,
+    maxMp,
+  };
+}
+
+export function rebaseBeastVitals(before: SummonedBeast, next: SummonedBeast): SummonedBeast {
+  const previous = beastVitals(before);
+  const { maxHp, maxMp } = beastPanel(next);
+  return { ...next, vitals: { hp: Math.min(previous.hp, maxHp), mp: Math.min(previous.mp, maxMp) } };
+}
+
 export function beastCombatFacts(beast: SummonedBeast) {
   const defenseTraining = activeBeastSkills(beast).reduce((sum, id) => {
     const effect = BEAST_SKILL_CONTENT.find((skill) => skill.id === id)!.effect;
@@ -130,6 +146,7 @@ export function projectBeastRoster(
   side: Side,
   slot: number,
   ownerLevel = 180,
+  resourcePolicy: 'full' | 'persistent' = 'persistent',
 ): LineupUnit[] {
   if (!roster) return [];
   const lineup = BeastLineupSchema.parse(roster.lineup);
@@ -151,7 +168,7 @@ export function projectBeastRoster(
               slot,
               benched: id !== lineup.leadBeastId,
               level: beast.level,
-              attrs: beastPanel(beast),
+              attrs: { ...beastPanel(beast), ...(resourcePolicy === 'persistent' ? beastVitals(beast) : {}) },
               combatFacts: beastCombatFacts(beast),
               tags: [`beastSpecies.${beast.speciesId}`],
               skills: activeBeastSkills(beast).filter(

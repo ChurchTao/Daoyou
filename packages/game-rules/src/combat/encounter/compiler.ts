@@ -317,6 +317,7 @@ export function compileCombatV6TrainingEncounterV1(
       Team.A,
       encounter.playerSlot,
       player.unit.level,
+      'full',
     ),
   );
   const skills = mergeDefinitions(

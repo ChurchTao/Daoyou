@@ -50,10 +50,7 @@ export async function freezeSectTaskTarget(
     lockedAt: context.ports.clock.now().toISOString(),
     seed: randomInt(0, 0x7fffffff),
     contentVersion: 'combat-v6-sect-task-v1' as const,
-    resourcePolicy:
-      taskId === 'weekly_tournament'
-        ? ('full' as const)
-        : ('persistent' as const),
+    resourcePolicy: 'persistent' as const,
   };
   if (taskId === 'mine_patrol' || taskId === 'elder_trial') {
     const opponent = freezeSectNpcOpponent(
@@ -157,15 +154,13 @@ export async function startSectTaskBattle(
   const host = createSectBattleHost(
     player,
     target.data.opponent,
-    target.data.resourcePolicy,
+    'persistent',
     target.data.seed,
   );
-  if (target.data.resourcePolicy === 'persistent') {
-    await tx
-      .update(cultivators)
-      .set({ condition: player.cultivator.condition })
-      .where(eq(cultivators.id, context.cultivatorId));
-  }
+  await tx
+    .update(cultivators)
+    .set({ condition: player.cultivator.condition })
+    .where(eq(cultivators.id, context.cultivatorId));
   const runtime: SectTaskBattleRuntime = {
     version: 'sect-task-session-v1',
     battleId: randomUUID(),

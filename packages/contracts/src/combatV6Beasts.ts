@@ -17,6 +17,22 @@ export const BeastRestSchema = z
     expectedRevision: z.number().int().nonnegative(),
   })
   .strict();
+export const BeastRecoverySchema = z.strictObject({
+  requestId: z.uuid(),
+  scope: z.enum(['single', 'bag']),
+  beasts: z.array(BeastRestSchema).min(1).max(8),
+  expectedCost: z.int().min(200).max(160_000),
+  activity: z.strictObject({
+    kind: z.enum(['invasion', 'exorcism']),
+    runId: z.uuid(),
+  }).optional(),
+}).superRefine((input, ctx) => {
+  if ((input.scope === 'single' && (input.beasts.length !== 1 || input.activity)) ||
+      new Set(input.beasts.map(({ beastId }) => beastId)).size !== input.beasts.length)
+    ctx.addIssue({ code: 'custom', message: '休养名单无效' });
+});
+export type BeastRecoveryRequest = z.infer<typeof BeastRecoverySchema>;
+
 export const BeastLockSchema = BeastRestSchema.extend({
   isLocked: z.boolean(),
 });

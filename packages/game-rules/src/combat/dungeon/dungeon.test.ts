@@ -14,7 +14,6 @@ import {
 import { DUNGEON_TEMPLATES } from '@daoyou/game-content/combat/dungeon';
 import {
   DungeonHost,
-  carryDungeonBeastResources,
   createDungeonHost,
 } from './host.js';
 function player(sectId: CombatV6SectId) {
@@ -121,25 +120,6 @@ describe('秘境遭遇与收益', () => {
       'dungeon.enemy.0': { icon: 'icon:portrait-manifest-earth' },
       'dungeon.enemy.1': { icon: 'icon:portrait-manifest-earth' },
     });
-  });
-  it('连续遭遇保留灵兽损耗，死亡灵兽不能重新入场，零法力不回满', () => {
-    const units = [
-      { id: 'player' },
-      {
-        id: 'pet',
-        ownerId: 'player',
-        attrs: { hp: 100, maxHp: 100, mp: 40, maxMp: 40 },
-      },
-      { id: 'dead', ownerId: 'player', attrs: { hp: 100, maxHp: 100 } },
-    ];
-    const before = structuredClone(units);
-    const next = carryDungeonBeastResources(units, 'player', {
-      pet: { hp: 37, mp: 0 },
-      dead: { hp: 0, mp: 20 },
-    });
-    expect(next.map((u) => u.id)).toEqual(['player', 'pet']);
-    expect(next[1].attrs).toMatchObject({ hp: 37, mp: 0 });
-    expect(units).toEqual(before);
   });
   for (const template of Object.keys(DUNGEON_TEMPLATES) as Array<
     keyof typeof DUNGEON_TEMPLATES

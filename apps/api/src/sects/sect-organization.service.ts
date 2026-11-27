@@ -22,6 +22,7 @@ import {
   readResourceWithMeta,
   readResourceWithResolvedScope,
 } from '@server/player/application/state/ResourceReadService.js';
+import { PresenceService } from '@server/presence/presence.service.js';
 import { SectError } from '@server/sects/application/SectError.js';
 import {
   createPostgresSectConstructionQueryContext,
@@ -59,6 +60,7 @@ export class SectOrganizationService {
   constructor(
     @Inject(DRIZZLE_DATABASE) private readonly database: DbClient,
     @Inject(SECT_ORGANIZATION) private readonly organization: SectOrganization,
+    @Inject(PresenceService) private readonly presence: PresenceService,
   ) {}
 
   infrastructure(actor: ActiveCultivatorRef) {
@@ -183,7 +185,10 @@ export class SectOrganizationService {
             actor.cultivatorId,
             query.page,
             query.pageSize,
-            createPostgresSectMembershipQueryContext({ q, runtime }),
+            {
+              ...createPostgresSectMembershipQueryContext({ q, runtime }),
+              presence: this.presence,
+            },
           ),
         };
       },

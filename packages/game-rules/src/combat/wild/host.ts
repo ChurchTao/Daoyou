@@ -114,7 +114,7 @@ export function createWildHost(
       projected.unit.id!,
       0,
       0,
-      projected.unit.level,
+      projected.unit.level, 'persistent'
     ),
   ];
   for (const [slot, c] of combatants.entries()) {

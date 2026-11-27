@@ -16,7 +16,7 @@
 | Redis 运行态 | [CombatV6RuntimeStore](../apps/api/src/combat/application/CombatV6RuntimeStore.ts)及各模式运行态，保留 CAS、占用锁与幂等结算 |
 | 终局与回放 | [终局消息](../apps/api/src/runtime/messaging/combatV6Messaging.ts)、[回放仓储](../apps/api/src/lib/repositories/combatV6ReplayRepository.ts) |
 
-个人道装、功法和灵兽属于角色，宗门心法和经脉属于成员关系。纯投影允许无宗门输入，战斗入场仍由服务器检查。气血／法力遵守 `full` / `persistent` 策略；属性变化不能隐式回满资源。
+个人道装、功法和灵兽属于角色，宗门心法和经脉属于成员关系。纯投影允许无宗门输入，战斗入场仍由服务器检查。气血、法力的持久化、灵兽休养及停机切换见[战斗常驻状态](battle-vitals.md)。
 
 阶段投影入口、阶段宗门目录和 V2—V5 ruleset 包装已移除。基础投影和可配置公式仍是当前实现及纯领域测试使用的组件。已保存的当前版本字符串保持原值，不能按名称中的旧版本号随意删除装备实例解析或修改回放版本。
 

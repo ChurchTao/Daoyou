@@ -1,14 +1,13 @@
-import { CultivatorInspectionModal } from '@app/components/feature/cultivator-inspection/CultivatorInspectionModal';
+import { CharacterCardContent } from '@app/components/feature/character-card/CharacterCardContent';
+import { CharacterCardDialog } from '@app/components/feature/character-card/CharacterCardDialog';
 import { GameLoadingState, GameSceneTabs } from '@app/components/game-shell';
 import { InkButton, InkNotice } from '@app/components/ui';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import type { PartyView } from '@daoyou/contracts/party';
-import type { CultivatorInspectionData } from '@daoyou/contracts/player';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PartyChat } from './PartyChat';
 import { PartyRecruitmentBoard } from './PartyRecruitmentBoard';
 import { PartyRoster } from './PartyRoster';
-import { requestParty } from './partyWorkspaceApi';
 import { useParty, type PartyRecruitmentFocus } from './useParty';
 
 function PartyConversation({ party }: { party: PartyView }) {
@@ -55,34 +54,10 @@ export function PartyWorkspace({
   const { value, error, unread, refresh } = useParty();
   const [tab, setTab] = useState(initialTab);
   const [applications, showApplications] = useState(false);
-  const [profile, setProfile] = useState<CultivatorInspectionData | null>(null);
-  const [inspectionStatus, setInspectionStatus] = useState('');
-  const inspection = useRef<AbortController>(null);
+  const [card, setCard] = useState<{ id: string; path: string } | null>(null);
   const party = value?.party;
   const hasTabs = !!party && !value.roleMismatch;
   const chat = hasTabs && tab === 'chat';
-  useEffect(() => () => inspection.current?.abort(), []);
-
-  async function inspect(path: string, name: string) {
-    inspection.current?.abort();
-    const abort = new AbortController();
-    inspection.current = abort;
-    setInspectionStatus(`正在查探「${name}」……`);
-    try {
-      const result = await requestParty<CultivatorInspectionData>(path, {
-        signal: abort.signal,
-      });
-      if (!abort.signal.aborted) {
-        setProfile(result);
-        setInspectionStatus('');
-      }
-    } catch (cause) {
-      if (!abort.signal.aborted)
-        setInspectionStatus(
-          cause instanceof Error ? cause.message : '暂时无法查探这位道友',
-        );
-    }
-  }
 
   const closeLabel =
     focus?.kind === 'hunt'
@@ -126,8 +101,7 @@ export function PartyWorkspace({
               },
             ]}
             onChange={(next) => {
-              inspection.current?.abort();
-              setInspectionStatus('');
+              setCard(null);
               setTab(next === 'chat' ? 'chat' : 'party');
             }}
           />
@@ -148,11 +122,6 @@ export function PartyWorkspace({
             )}
           </InkNotice>
         )}
-        {!chat && inspectionStatus && (
-          <p role="status" className="text-ink-secondary text-sm">
-            {inspectionStatus}
-          </p>
-        )}
         {!value ? (
           !error && (
             <GameLoadingState variant="inline" message="正在读取队伍……" />
@@ -165,7 +134,7 @@ export function PartyWorkspace({
             party={party}
             current={value}
             focus={focus}
-            onInspect={(path, name) => void inspect(path, name)}
+            onInspect={(id, path) => setCard({ id, path })}
           />
         ) : (
           <PartyRecruitmentBoard
@@ -175,12 +144,15 @@ export function PartyWorkspace({
             onToggleApplications={() => showApplications(!applications)}
           />
         )}
-        <CultivatorInspectionModal
-          cultivator={party ? profile : null}
-          isOpen={!!party && !!profile}
-          onClose={() => setProfile(null)}
-          mode="cultivator"
-        />
+        {hasTabs && !chat && card ? (
+          <CharacterCardDialog onClose={() => setCard(null)}>
+            <CharacterCardContent
+              key={card.path}
+              id={card.id}
+              path={card.path}
+            />
+          </CharacterCardDialog>
+        ) : null}
       </div>
     </InkDetailDrawer>
   );

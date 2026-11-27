@@ -1,12 +1,11 @@
 import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
 import type { RankingChallengeRequest } from '@daoyou/contracts/combat/ranking';
 import type { WealthRankingEntry } from '@daoyou/contracts/rankings';
-import { HttpException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   pendingRanking,
   runRankingChallenge,
 } from '@server/combat/application/CombatV6RankingService.js';
-import { loadCultivatorInspectionData } from '@server/cultivator/application/readers/CultivatorCombatProjectionReader.js';
 import { readCultivatorRealm } from '@server/cultivator/facts.js';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
@@ -75,15 +74,6 @@ export class RankingsService {
       actor.cultivatorId,
     );
     return { success: true, data: { rank, realm, remainingChallenges } };
-  }
-  async probe(input: { targetId?: unknown }) {
-    const { targetId } = input;
-    if (!targetId || typeof targetId !== 'string')
-      throw new HttpException({ error: '请提供有效的目标角色ID' }, 400);
-    const inspection = await loadCultivatorInspectionData(targetId);
-    if (!inspection)
-      throw new HttpException({ error: '目标角色不存在或不可查探' }, 404);
-    return { success: true, data: { cultivator: inspection } };
   }
   async current(actor: ActiveCultivatorRef) {
     return { success: true, data: await pendingRanking(actor.cultivatorId) };

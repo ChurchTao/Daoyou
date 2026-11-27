@@ -6,7 +6,6 @@ import type { ResourceOperation } from '@daoyou/game-domain/resources';
 import type { DbClient, DbTransaction } from '@server/lib/drizzle/db.js';
 import { dungeonHistories, dungeonRuns } from '@server/lib/drizzle/schema.js';
 import { and, desc, eq, isNull, ne, sql } from 'drizzle-orm';
-import type { Redis } from 'ioredis';
 import { mysteryHistorySnapshot } from '../mystery/mysteryHistory.js';
 import type {
   DungeonBattlePayload,
@@ -15,22 +14,15 @@ import type {
 import { DungeonFlowError, DungeonFlowErrorCode } from './errors.js';
 import type { DungeonSettlement, DungeonState } from './types.js';
 
-const REDIS_TTL = 3600;
 const RUN_TERMINAL_STATUSES = new Set(['FINISHED']);
-type DungeonBattleCachePayload = DungeonBattlePayload | DungeonEncounterPayload;
-function getDungeonKey(cultivatorId: string) {
-  return `dungeon:active:${cultivatorId}`;
-}
+export type DungeonRunBattlePayload = DungeonBattlePayload | DungeonEncounterPayload;
 function isActiveRunStatus(status: string | null | undefined) {
   return Boolean(status && !RUN_TERMINAL_STATUSES.has(status));
 }
 
-/** Durable run records own recovery; Redis caches only committed flow state. */
+/** Durable run records own recovery and settlement. */
 export class DungeonRunStore {
-  constructor(
-    private readonly database: DbClient,
-    private readonly cache: Pick<Redis, 'set' | 'del'>,
-  ) {}
+  constructor(private readonly database: DbClient) {}
   async loadActiveRun(cultivatorId: string) {
     const rows = await this.database
       .select()
@@ -77,7 +69,7 @@ export class DungeonRunStore {
   async persistStateRecord(
     cultivatorId: string,
     state: DungeonState,
-    battlePayload?: DungeonBattleCachePayload,
+    battlePayload?: DungeonRunBattlePayload,
     tx?: DbTransaction,
   ) {
     const values = {
@@ -176,15 +168,6 @@ export class DungeonRunStore {
     );
   }
 
-  async saveRedisState(cultivatorId: string, state: DungeonState) {
-    await this.cache.set(
-      getDungeonKey(cultivatorId),
-      JSON.stringify(state),
-      'EX',
-      REDIS_TTL,
-    );
-  }
-
   async getState(cultivatorId: string, runId?: string) {
     const run = runId
       ? (
@@ -224,7 +207,7 @@ export class DungeonRunStore {
     state: DungeonState,
     settlement: DungeonSettlement,
     realGains?: ResourceOperation[],
-    options: { tx?: DbTransaction; clearRedis?: boolean } = {},
+    options: { tx?: DbTransaction } = {},
   ) {
     const archive = async (tx: DbTransaction) => {
       if (!state.archiveHistoryCommittedAt) {
@@ -291,13 +274,5 @@ export class DungeonRunStore {
     } else {
       await this.database.transaction(archive);
     }
-
-    if (options.clearRedis !== false) {
-      await this.clearRedisState(state.cultivatorId);
-    }
-  }
-
-  clearRedisState(cultivatorId: string) {
-    return this.cache.del(getDungeonKey(cultivatorId));
   }
 }

@@ -1,10 +1,10 @@
+import { settlePersistentBattle } from './CombatV6PersistentCondition.js';
 import { publicUnitAppearances } from '@daoyou/game-rules/combat/appearance';
 import { db, type DbTransaction } from '@server/lib/drizzle/db.js';
 import { cultivators, cultivatorTasks } from '@server/lib/drizzle/schema.js';
 import { dungeonPlayer } from '@server/dungeon/combat-player.js';
 import { redis } from '@server/lib/redis/index.js';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock.js';
-import { settleBeastDeaths } from '@server/lib/repositories/combatV6BeastRepository.js';
 import { archiveCombatV6Replay } from '@server/lib/repositories/combatV6ReplayRepository.js';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
 import {
@@ -23,16 +23,13 @@ import { liveReplayDelta } from '@daoyou/game-rules/combat/playback';
 import type { CombatV6CommandGroup } from '@daoyou/game-domain/combat';
 import { BreakthroughBattlePointerSchema } from '@daoyou/game-domain/tasks';
 import { type BreakthroughRuntime, type BreakthroughSessionView } from '@daoyou/contracts/combat/breakthrough';
-import { beastDeathIds } from '@daoyou/game-rules/beasts/growth';
 import { type BreakthroughChallengeId } from '@daoyou/game-domain/combat/challenges';
 import { BREAKTHROUGH_CHALLENGES } from '@daoyou/game-content/combat/breakthrough';
 import { BreakthroughHost, createBreakthroughHost } from '@daoyou/game-rules/combat/breakthrough/host';
 import { hasActiveConditionStatus } from '@daoyou/game-rules/condition';
-import type { CultivatorCondition } from '@daoyou/game-domain/condition';
 import type { TaskInstanceMetadata } from '@daoyou/game-domain/tasks';
 import { eq } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
-import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 import { assertInventoryIdle } from '@server/inventory/operations.js';
 import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
 import { TaskService } from '@server/tasks/application/TaskService.js';
@@ -216,31 +213,7 @@ async function settle(
   )
     throw new Error('任务战局不匹配');
   if (pointer.settled) return;
-  const [player] = await tx
-    .select({ condition: cultivators.condition })
-    .from(cultivators)
-    .where(eq(cultivators.id, actor.cultivatorId));
-  if (!player?.condition) throw new Error('角色资源缺失');
-  const final = host.state.units.find((unit) => unit.id === host.playerId)!;
-  await tx
-    .update(cultivators)
-    .set({
-      condition: ConditionService.applyCombatV6Resources(
-        player.condition as CultivatorCondition,
-        {
-          hp: Math.max(1, final.attrs.hp),
-          mp: final.attrs.mp,
-          maxHp: final.attrs.maxHp,
-          maxMp: final.attrs.maxMp,
-        },
-      ),
-    })
-    .where(eq(cultivators.id, actor.cultivatorId));
-  await settleBeastDeaths(
-    actor.cultivatorId,
-    beastDeathIds(runtime.snapshot.events),
-    tx,
-  );
+  await settlePersistentBattle(tx, actor.cultivatorId, host.state, runtime.snapshot.events, host.playerId);
   if (host.trace().outcome === 'victory')
     await TaskService.completeTaskChallenge(
       actor.cultivatorId,

@@ -27,14 +27,9 @@ export type { TowerReward, TowerRewardPreview } from '../tower/reward.js';
 export type { CompiledTowerEncounter } from '../tower/encounter.js';
 export type {
   TowerBlessingChoice,
-  TowerEncounter,
   TowerFloorKind,
   TowerLeaderboardEntry,
-  TowerMilestoneReward,
   TowerMilestoneTier,
-  TowerRunStatus,
   TowerSeasonMeta,
-  TowerSettlement,
-  TowerState,
   TowerWeeklyRecord,
 } from '../tower/state.js';

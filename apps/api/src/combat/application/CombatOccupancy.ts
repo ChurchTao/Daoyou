@@ -1,3 +1,5 @@
+import { hasStoryBattle } from './CombatV6StoryOccupancy.js';
+import { hasBaixiaoBattle } from '@server/baixiao/application/BaixiaoBattleOccupancy.js';
 import { arenaOccupancyKey } from '@server/combat/application/CombatV6ArenaStore.js';
 import { hasActiveBreakthroughBattle } from '@server/combat/application/CombatV6BreakthroughOccupancy.js';
 import { CombatV6RuntimeStore } from '@server/combat/application/CombatV6RuntimeStore.js';
@@ -25,7 +27,7 @@ export async function hasActiveCombat(
 ) {
   const includeDungeon = options.includeDungeon !== false;
   const executor = options.executor ?? db;
-  const dungeonAndInvasion = runDbTasks(executor, [
+  const activity = runDbTasks(executor, [
     () =>
       includeDungeon
         ? hasDungeonBattle(owner, executor)
@@ -43,6 +45,7 @@ export async function hasActiveCombat(
               ),
             )
             .limit(1),
+    () => hasBaixiaoBattle(owner, executor),
   ] as const);
   const [
     towerBattle,
@@ -52,7 +55,8 @@ export async function hasActiveCombat(
     wildLock,
     arena,
     runtimeId,
-    [dungeonBattle, invasion],
+    story,
+    [dungeonBattle, invasion, baixiao],
   ] = await Promise.all([
     hasTowerBattle(owner),
     hasActiveRanking(owner),
@@ -61,7 +65,8 @@ export async function hasActiveCombat(
     new CombatV6WildStore().lock(owner),
     redis.get(arenaOccupancyKey(owner)),
     new CombatV6RuntimeStore().currentId(owner),
-    dungeonAndInvasion,
+    hasStoryBattle(owner),
+    activity,
   ]);
   return !!(
     towerBattle ||
@@ -72,6 +77,6 @@ export async function hasActiveCombat(
     wildLock ||
     arena ||
     runtimeId ||
-    invasion.length
+    story || baixiao || invasion.length
   );
 }

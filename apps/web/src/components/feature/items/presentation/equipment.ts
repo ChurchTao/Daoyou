@@ -28,7 +28,7 @@ import type {
   PreviewLine,
   PreviewSection,
 } from './types';
-const icons = {
+export const equipmentSlotIcons = {
   weapon: '⚔️',
   head: '👑',
   armor: '🥋',
@@ -289,7 +289,7 @@ export const equipmentAdapter: ItemAdapter = (item) => {
   const tier = getLevelRealmStage(equipment.equipmentLevel).realm;
   return {
     summary: {
-      icon: icons[equipment.slot],
+      icon: equipmentSlotIcons[equipment.slot],
       color: tierColorMap[tier],
       type: `${equipmentType} · 御使境界`,
       tier,

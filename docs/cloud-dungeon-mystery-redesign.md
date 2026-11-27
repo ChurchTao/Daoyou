@@ -21,7 +21,7 @@
 | 每轮 | 固定 `maxRounds: 5`；每轮一次 LLM 调用，生成 350–650 字正文和 3 个选项（顺序固定为低/高/中风险）；代价分资源、材料、气血法力、战斗四类，LLM 只给 `rank`，数值由 `calculateDungeon*Cost` 计算 | `DungeonRoundGenerator.ts`、`prompts/dungeon-round.md`、`game-rules/dungeon/costPolicy.ts` |
 | 选择 | 扣除代价 → 有战斗则进入 V6 战斗 → 搜刮（继续/离开）→ 再调用 LLM 生成下一轮 | `DungeonFlowService.handleAction`、`combatV6.ts` |
 | 收益 | 探索、战斗、通关的物品和经验由种子与配置确定（`v6Rewards`）；通关基础资源由 `RewardFactory` 按 **LLM 给出的 S–D 评级**计算 | `rewards.ts`、`reward/RewardFactory.ts`、`DungeonSettlementGenerator.ts` |
-| 持久化 | `wanjiedaoyou_dungeon_runs` 是权威运行态，Redis 只缓存；代价与收益用账本防重；历史写入 `dungeon_histories` | `DungeonRunStore.ts`、`schema.ts` |
+| 持久化 | `wanjiedaoyou_dungeon_runs` 保存和恢复运行态，代价与收益用账本防重，历史写入 `dungeon_histories`。Redis 缓存战斗结算请求的重试响应 | `DungeonRunStore.ts`、`DungeonApplicationService.ts` |
 | 前端 | 场景状态包括 `map_selection / exploring / battle_preparation / in_battle / looting / settlement` | `apps/web/src/routes/game/dungeon/**` |
 
 ### 2.2 问题与根因
@@ -232,7 +232,7 @@ interface MysteryRunState {
 }
 ```
 
-案卷与运行态一起存入 `dungeon_runs.run_state`（沿用权威表）；案卷体积较大时拆到 `case_snapshot` 列。Redis 仍然只做缓存。
+案卷与运行态一起存入 `dungeon_runs.run_state`（沿用权威表）。案卷体积较大时可考虑拆到 `case_snapshot` 列。
 
 ### 7.2 行动力
 
@@ -1287,7 +1287,7 @@ POST /api/dungeon/recover | quit                             （沿用）
 配套规则：
 
 - **异动时钟**：事件原本按 `turn` 推进。改为按已耗的行动力（`mysteryClock`）计，免费动作不催发异动；`turn` 只留作并发校验与日志分段。`turnsLeft` 的含义相应改为“再耗几点行动力”。预算不变，事件 `at` 不变，因此不需要升级生成版本。
-- **提示次数存运行态**（`hintsUsed`），不放单独的 Redis 键：每一步本来就写库并写缓存，限制逻辑留在纯规则层，可以单测。
+- **提示次数存运行态**（`hintsUsed`），随行动写入数据库。限制逻辑由纯规则层处理。
 - **经过**：回访描写和局面补写只留最新一条，免得免费走动挤掉线索与对话；日志上限 80 → 120。
 - **行动力耗尽后**：仍可回访和“再看一遍”，但不会再有新线索或物品；交谈、提示等不再可用。
 

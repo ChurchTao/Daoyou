@@ -18,14 +18,12 @@ import {
   allocateBeast,
   BEAST_BAG_CAPACITY,
   BEAST_WAREHOUSE_CAPACITY,
-  beastRestCost,
   carriedBeastIds,
   receivedBeastPlacement,
   warehouseBeastCount,
   type BeastAllocationSchema,
 } from '@daoyou/game-rules/beasts/growth';
 import { canDeployBeast } from '@daoyou/game-rules/beasts/projection';
-import { updateSpiritStones } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
 import { readCultivatorPublicIdentity } from '@server/cultivator/facts.js';
 import {
   db,
@@ -282,55 +280,6 @@ export async function updateBeastLineup(
         target: cultivatorBeastLineups.cultivatorId,
         set: { lineup: next },
       });
-    return readBeastRoster(cultivatorId, tx);
-  });
-}
-
-export async function restBeast(
-  cultivatorId: string,
-  id: string,
-  revision: number,
-) {
-  return mutate(cultivatorId, async (tx) => {
-    const roster = await readBeastRoster(cultivatorId, tx);
-    const beast = roster.beasts.find((b) => b.id === id);
-    if (!beast || beast.revision !== revision)
-      throw new BeastError('灵兽已有变化，请重新查看');
-    if (beast.currentLifespan < beast.maxLifespan) {
-      const cost = beastRestCost(beast);
-      if (roster.spiritStones < cost)
-        throw new BeastError(`灵石不足，需要 ${cost}`);
-      const owner = await readBeastOwner(cultivatorId, tx);
-      const spiritStones = await updateSpiritStones(
-        owner.userId,
-        cultivatorId,
-        -cost,
-        tx,
-      );
-      await tx
-        .update(cultivatorBeasts)
-        .set({
-          individual: beastIndividualData({
-            ...beast,
-            currentLifespan: beast.maxLifespan,
-            revision: beast.revision + 1,
-          }),
-        })
-        .where(eq(cultivatorBeasts.id, id));
-      await new ResourceEventCommitter().commit(tx, {
-        actor: { userId: owner.userId, cultivatorId },
-        source: 'combat-v6-beast-rest',
-        scopeDefaults: { cultivatorId },
-        changes: [
-          {
-            resourceTopic: 'player.currency',
-            operation: 'merge',
-            eventType: 'currency.spirit_stones.changed',
-            payload: { spiritStones },
-          },
-        ],
-      });
-    }
     return readBeastRoster(cultivatorId, tx);
   });
 }

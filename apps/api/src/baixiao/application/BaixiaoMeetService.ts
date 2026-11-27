@@ -1,3 +1,6 @@
+import { CombatV6BuildError } from '@server/combat/application/CombatV6BuildService.js';
+import { hasActiveCombat } from '@server/combat/application/CombatOccupancy.js';
+import { dungeonPlayer } from '@server/dungeon/combat-player.js';
 import type { RealmType } from '@daoyou/constants/realms';
 import type { BaixiaoResolveCommand } from '@daoyou/contracts/baixiao/meet';
 import {
@@ -24,10 +27,6 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
-import {
-  assembleCombatV6WildPlayer,
-  CombatV6BuildError,
-} from '@server/combat/application/CombatV6BuildService.js';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import type { DbClient, DbTransaction } from '@server/lib/drizzle/db.js';
@@ -348,7 +347,7 @@ export class BaixiaoMeetService {
         let adjudicated;
         let answeredQuestion: BaixiaoQuestionData | undefined;
         if (settlingChallenge) {
-          const result = await this.duels.result(actor, settlingChallenge);
+          const result = await this.duels.result(actor, settlingChallenge, tx);
           if (
             result.state === 'active' ||
             (result.state === 'finished' && result.completedAt >= endsAt) ||
@@ -364,16 +363,15 @@ export class BaixiaoMeetService {
           if (!hand[command.card])
             throw new ConflictException('这张对策卡已用完。');
           if (command.card === 'challenge') {
-            const { player } = await assembleCombatV6WildPlayer(
-              actor.cultivatorId,
-              tx,
-            ).catch((cause: unknown) => {
+            if (await hasActiveCombat(actor.cultivatorId, { executor: tx }))
+              throw new ConflictException('请先结束当前战斗与结算。');
+            const { player } = await dungeonPlayer(actor.cultivatorId, tx).catch((cause: unknown) => {
               if (cause instanceof CombatV6BuildError)
-                throw new ConflictException(
-                  '当前角色无法出战，可继续作答或使用其他对策卡。',
-                );
+                throw new ConflictException('当前角色无法出战，可继续作答或使用其他对策卡。');
               throw cause;
             });
+            await tx.update(cultivators).set({ condition: player.cultivator.condition })
+              .where(eq(cultivators.id, actor.cultivatorId));
             const id = await this.duels.create(player, endsAt, {
               actor,
               week: command.week,
@@ -437,6 +435,9 @@ export class BaixiaoMeetService {
                 completion,
               )
             : { earned: entry.earned, resourceChanges: [] };
+        if (settlingChallenge) resourceChanges.push({
+          resourceTopic: 'player.condition', operation: 'invalidate', eventType: 'baixiao.battle.settled',
+        });
         let mail = null;
         if (completion) {
           mail = await MailService.sendNewRewardMail(

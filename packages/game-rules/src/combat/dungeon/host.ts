@@ -17,7 +17,6 @@ import { projectBeastRoster } from '../../beasts/projection.js';
 
 import { UnitKind } from '@daoyou/combat-core/enums';
 
-import { type CreateBattleInput } from '@daoyou/combat-core/types';
 
 import type { CombatV6TrainingPlayerInput } from '@daoyou/game-domain/combat';
 
@@ -41,29 +40,6 @@ export const DUNGEON_VERSIONS = {
   rulesetVersion: 'daoyou_rules_v13' as const,
   contentVersion: 'combat-v6-dungeon-v1' as const,
 };
-
-export function carryDungeonBeastResources(
-  units: CreateBattleInput['units'],
-  ownerId: string,
-  resources: Record<string, { hp: number; mp: number }> = {},
-): CreateBattleInput['units'] {
-  return units.flatMap((unit) => {
-    const previous = unit.ownerId === ownerId ? resources[unit.id!] : undefined;
-    if (!previous) return [unit];
-    // A beast lost earlier in this run must not reappear or become summonable.
-    if (previous.hp <= 0) return [];
-    return [
-      {
-        ...unit,
-        attrs: {
-          ...unit.attrs,
-          hp: Math.min(unit.attrs?.maxHp ?? previous.hp, previous.hp),
-          mp: Math.min(unit.attrs?.maxMp ?? previous.mp, previous.mp),
-        },
-      },
-    ];
-  });
-}
 
 export class DungeonHost extends CombatV6PveHostSession {
   constructor(
@@ -173,7 +149,7 @@ export function createDungeonHost(
           projected.unit.id!,
           0,
           0,
-          projected.unit.level,
+          projected.unit.level, 'persistent'
         ),
         ...enemies,
       ],

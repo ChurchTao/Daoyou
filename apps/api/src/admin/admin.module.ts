@@ -2,6 +2,7 @@ import { LlmModule } from '@server/llm/llm.module.js';
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '@server/database/database.module.js';
 import { AiUsageModule } from '@server/llm/ai-usage.module.js';
+import { PresenceModule } from '@server/presence/presence.module.js';
 import { AccountsController } from './accounts.controller.js';
 import { AccountsService } from './accounts.service.js';
 import { AdminController } from './admin.controller.js';
@@ -30,7 +31,7 @@ import { AdminWorldChatController } from './world-chat.controller.js';
 import { AdminWorldChatService } from './world-chat.service.js';
 
 @Module({
-  imports: [LlmModule,DatabaseModule, AiUsageModule],
+  imports: [LlmModule, DatabaseModule, AiUsageModule, PresenceModule],
   controllers: [
     AdminSystemMailsController,
     AdminItemLibraryController,

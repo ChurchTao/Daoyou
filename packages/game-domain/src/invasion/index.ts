@@ -27,7 +27,6 @@ export type InvasionResources = {
   maxHp: number;
   mp: number;
   maxMp: number;
-  benched?: boolean;
 };
 export type InvasionReward = {
   cultivationExp: number;

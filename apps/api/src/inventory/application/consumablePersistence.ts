@@ -1,5 +1,5 @@
 import * as schema from '@server/lib/drizzle/schema.js';
-import { assertConsumableSpec, stableSerializeConsumableSpec } from '@daoyou/game-domain/consumables';
+import { assertConsumableSpec } from '@daoyou/game-domain/consumables';
 import type { Consumable } from '@daoyou/game-domain/character';
 import type { ConsumableType } from '@daoyou/game-domain/inventory';
 import type { Quality } from '@daoyou/constants/qualities';
@@ -18,18 +18,4 @@ export function mapConsumableRow(row: ConsumableRow): Consumable {
     score: row.score || 0,
     spec: assertConsumableSpec(row.spec),
   };
-}
-
-export function mapConsumableCraftResult(
-  row: ConsumableRow,
-  craftedQuantity: number,
-): Consumable {
-  return {
-    ...mapConsumableRow(row),
-    quantity: craftedQuantity,
-  };
-}
-
-export function serializeConsumableSpec(spec: Consumable['spec']): string {
-  return stableSerializeConsumableSpec(spec);
 }

@@ -261,7 +261,7 @@ export class AlchemyContestPreparation {
       ];
       const question = authorContestQuestion(draft, materials);
       if (!question) continue;
-      const { pillName } = await this.generate(
+      const nameDraft = await this.generate(
         'alchemy-contest-naming',
         {
           title: question.title,
@@ -269,8 +269,10 @@ export class AlchemyContestPreparation {
           primary: question.primary,
           secondary: question.secondary,
         },
-        NamedPaperSchema,
+        z.object({ pillName: z.string() }),
       );
+      // Keep the Unicode pattern local for provider compatibility.
+      const { pillName } = NamedPaperSchema.parse(nameDraft);
       return ContestPaperSchema.parse({
         rulesVersion: 1,
         question: { ...question, pillName },

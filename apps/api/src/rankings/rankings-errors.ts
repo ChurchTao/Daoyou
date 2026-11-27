@@ -24,16 +24,6 @@ export const WealthRankingErrors = apiErrorFilter((error) => {
     { status: 500 },
   );
 });
-export const RankingProbeErrors = apiErrorFilter((error, config) => {
-  console.error('神识查探错误:', error);
-  const message =
-    config.get('NODE_ENV') === 'development'
-      ? error instanceof Error
-        ? error.message
-        : '神识查探失败'
-      : '神识查探失败，请稍后重试';
-  return Response.json({ error: message }, { status: 500 });
-});
 export const RankingChallengeErrors = apiErrorFilter((error) => {
   const lock = redisLockErrorResponse(error);
   if (lock) return lock;

@@ -3,7 +3,7 @@ import { createBattle } from '@daoyou/combat-core/session';
 import { projectCharacterToCombatV6 } from '../combat/projection/project-character.js';
 import { daoyouRulesetV6 } from '../combat/daoyou/index.js';
 import { towerReferenceBuild } from '../tower/reference-fixtures.js';
-import { huntParticipantSucceeded, settleHuntResources } from './settlement.js';
+import { huntParticipantSucceeded } from './settlement.js';
 
 function fixture() {
   const battle = createBattle({
@@ -31,7 +31,6 @@ function fixture() {
   return {
     state,
     unit: state.units[0],
-    entry: { hp: 350, maxHp: 1000, mp: 75, maxMp: 500 },
   };
 }
 describe('讨伐个人成败与持久资源', () => {
@@ -76,49 +75,5 @@ describe('讨伐个人成败与持久资源', () => {
         winner === undefined ? undefined : { winner, reason: 'wipe' };
       expect(huntParticipantSucceeded(state, 'p')).toBe(false);
     }
-  });
-  it('正常终局保留消耗与战内恢复，以上场最大值限制临时增益', () => {
-    const { entry, unit } = fixture();
-    unit.attrs.hp = 210;
-    unit.attrs.mp = 12;
-    expect(settleHuntResources(entry, unit, false)).toEqual({
-      ...entry,
-      hp: 210,
-      mp: 12,
-    });
-    unit.attrs.hp = 900;
-    unit.attrs.mp = 120;
-    expect(settleHuntResources(entry, unit, false)).toEqual({
-      ...entry,
-      hp: 900,
-      mp: 120,
-    });
-    unit.attrs.hp = 2000;
-    unit.attrs.mp = 1000;
-    expect(settleHuntResources(entry, unit, false)).toEqual({
-      ...entry,
-      hp: 1000,
-      mp: 500,
-    });
-  });
-  it('死亡沿用战后濒死一气血规则，但不会因此被认作个人胜利', () => {
-    const { state, entry, unit } = fixture();
-    unit.attrs.hp = 0;
-    unit.attrs.mp = 10;
-    unit.flags.downed = true;
-    expect(settleHuntResources(entry, unit, false)).toEqual({
-      ...entry,
-      hp: 1,
-      mp: 10,
-    });
-    expect(huntParticipantSucceeded(state, 'p')).toBe(false);
-  });
-  it('技术中止恢复入场资源，缺少快照必须拒绝结算', () => {
-    const { entry, unit } = fixture();
-    unit.attrs.hp = 0;
-    unit.attrs.mp = 0;
-    expect(settleHuntResources(entry, unit, true)).toEqual(entry);
-    expect(() => settleHuntResources(undefined, unit, false)).toThrow();
-    expect(() => settleHuntResources(entry, undefined, false)).toThrow();
   });
 });

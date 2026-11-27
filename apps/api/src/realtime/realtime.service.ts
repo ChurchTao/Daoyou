@@ -10,15 +10,15 @@ import type { DbClient } from '@server/lib/drizzle/db.js';
 import { cultivators, sectMemberships } from '@server/lib/drizzle/schema.js';
 import { isAllowedRealtimeOrigin } from '@server/lib/http/realtimeOrigin.js';
 import { getRequestIp } from '@server/lib/http/requestIp.js';
+import { scheduleSystemMailObservation } from '@server/mail/application/SystemMailService.js';
+import { PresenceService } from '@server/presence/presence.service.js';
 import { subscribeArenaRoomChanges } from '@server/realtime/infrastructure/arenaRoomBroadcaster.js';
 import { subscribeHuntTeamChat } from '@server/realtime/infrastructure/huntTeamChatBroadcaster.js';
-import { subscribePartyChanges } from '@server/realtime/infrastructure/partyBroadcaster.js';
-import { subscribeHuntTeamStart } from '@server/realtime/infrastructure/huntTeamStartBroadcaster.js';
 import {
-  recordRealtimeConnectionClose,
-  recordRealtimeConnectionHeartbeat,
-  recordRealtimeConnectionOpen,
-} from '@server/realtime/infrastructure/onlinePresenceService.js';
+  subscribePartyChanges,
+  waitForPartyChangesReady,
+} from '@server/realtime/infrastructure/partyBroadcaster.js';
+import { subscribeHuntTeamStart } from '@server/realtime/infrastructure/huntTeamStartBroadcaster.js';
 import { subscribeResourceEvents } from '@server/realtime/infrastructure/playerStateBroadcaster.js';
 import { subscribeSectChatMessages } from '@server/realtime/infrastructure/sectChatBroadcaster.js';
 import { subscribeWorldChatMessages } from '@server/realtime/infrastructure/worldChatBroadcaster.js';
@@ -51,6 +51,7 @@ export class RealtimeService {
   constructor(
     @Inject(DRIZZLE_DATABASE) private readonly database: DbClient,
     @Inject(SessionService) private readonly sessions: SessionService,
+    @Inject(PresenceService) private readonly presence: PresenceService,
   ) {}
 
   async verify(request: IncomingMessage): Promise<Verification> {
@@ -160,10 +161,12 @@ export class RealtimeService {
     let lastActivityAt = Date.now();
     let closed = false;
     let heartbeat: ReturnType<typeof setInterval> | undefined;
+    const setup = new AbortController();
     const unsubscribers: (() => void)[] = [];
     const cleanup = () => {
       if (closed) return;
       closed = true;
+      setup.abort();
       if (heartbeat) clearInterval(heartbeat);
       for (const unsubscribe of unsubscribers) {
         try {
@@ -176,7 +179,7 @@ export class RealtimeService {
         }
       }
       reservation.release();
-      if (cultivatorId) recordRealtimeConnectionClose(cultivatorId);
+      if (cultivatorId) this.presence.recordConnectionClose(cultivatorId);
     };
     const close = (code: number, reason: string) => {
       socket.close(code, reason);
@@ -252,7 +255,10 @@ export class RealtimeService {
       }
       lastActivityAt = Date.now();
     });
-    if (cultivatorId) recordRealtimeConnectionOpen(cultivatorId);
+    if (cultivatorId) {
+      this.presence.recordConnectionOpen(cultivatorId);
+      scheduleSystemMailObservation(cultivatorId, 'connection');
+    }
     try {
       unsubscribers.push(
         subscribeHuntTeamStart(reservation.userId, (payload) =>
@@ -261,9 +267,7 @@ export class RealtimeService {
         subscribeHuntTeamChat(reservation.userId, (message) =>
           send({ type: 'hunt-team.chat', payload: message }),
         ),
-        subscribePartyChanges(reservation.userId, () =>
-          send({ type: 'party.changed', payload: null }),
-        ),
+        subscribePartyChanges(reservation.userId, cultivatorId, send),
       );
       if (channels.includes('player-state')) {
         unsubscribers.push(
@@ -322,7 +326,10 @@ export class RealtimeService {
           close(4000, 'heartbeat timeout');
           return;
         }
-        if (cultivatorId) recordRealtimeConnectionHeartbeat(cultivatorId);
+        if (cultivatorId) {
+          this.presence.recordConnectionHeartbeat(cultivatorId);
+          scheduleSystemMailObservation(cultivatorId, 'heartbeat');
+        }
         if (channels.includes('social')) {
           void verifySocialIdentity().catch(() =>
             close(1011, 'social identity check failed'),
@@ -333,10 +340,18 @@ export class RealtimeService {
           payload: { serverTime: new Date().toISOString() },
         });
       }, 25_000);
-      send({
-        type: 'ready',
-        payload: { cultivatorId, channels, resourceScopes },
-      });
+      void waitForPartyChangesReady(reservation.userId, setup.signal)
+        .then(() =>
+          send({
+            type: 'ready',
+            payload: { cultivatorId, channels, resourceScopes },
+          }),
+        )
+        .catch((error: unknown) => {
+          if (closed) return;
+          console.error('[realtime] party subscription setup failed', error);
+          close(1011, 'Connection setup failed');
+        });
     } catch (error) {
       console.error('[realtime] connection setup failed', error);
       close(1011, 'Connection setup failed');

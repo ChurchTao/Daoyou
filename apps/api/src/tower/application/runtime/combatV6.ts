@@ -1,3 +1,5 @@
+import { settlePersistentBattle } from '@server/combat/application/CombatV6PersistentCondition.js';
+import { dungeonPlayer } from '@server/dungeon/combat-player.js';
 import { automaticCommands } from '@daoyou/game-rules/combat/auto';
 import {
   combatV6Display,
@@ -243,8 +245,8 @@ async function admitBattle(actor: Actor, run: Run, lease: RedisLeaseContext) {
     const condition = ConditionService.applyCombatV6Resources(
       row.condition as CultivatorCondition,
       {
-        hp: attrs.maxHp!,
-        mp: attrs.maxMp!,
+        hp: attrs.hp,
+        mp: attrs.mp ?? 0,
         maxHp: attrs.maxHp!,
         maxMp: attrs.maxMp!,
       },
@@ -261,7 +263,7 @@ async function admitBattle(actor: Actor, run: Run, lease: RedisLeaseContext) {
         {
           resourceTopic: 'player.condition',
           operation: 'invalidate',
-          eventType: 'tower.condition.restored',
+          eventType: 'tower.condition.entered',
         },
       ],
     });
@@ -290,6 +292,8 @@ export async function startTower(owner: string) {
       return next;
     });
     const rewards = towerRewards(receipt, season.seasonKey);
+    const { condition: _condition, ...cultivator } = player.cultivator;
+    void _condition;
     const run: Run = {
       runId: randomUUID(),
       revision: 0,
@@ -303,7 +307,7 @@ export async function startTower(owner: string) {
       season,
 
       hasBeasts: hasBeasts(player),
-      loadout: player,
+      loadout: { ...player, cultivator, beasts: undefined },
     };
     run.choices = buildTowerBlessingChoices({
       runId: run.runId,
@@ -352,7 +356,7 @@ export async function advanceTower(
       await assertInventoryIdle(owner);
       const { player } = await db.transaction(async (tx) => {
         await lockCultivatorForStateMutation(tx, owner);
-        return assembleCombatV6TrainingPlayer(owner, tx);
+        return dungeonPlayer(owner, tx);
       });
       if (player.cultivator.realm !== run.realm) {
         run.status = 'FINISHED';
@@ -361,8 +365,9 @@ export async function advanceTower(
         await save(owner, run, lease);
         return publicView(owner, run);
       }
-      const fighter = run.loadout ?? player;
-      run.loadout = fighter;
+      const fighter = run.loadout
+        ? { ...run.loadout, cultivator: { ...run.loadout.cultivator, condition: player.cultivator.condition }, beasts: player.beasts }
+        : player;
       run.hasBeasts = hasBeasts(fighter);
       const published = await readTowerPublishedWeek(run.season.seasonKey);
       if (!published) throw new TowerV6Error('幻境发布配置缺失');
@@ -558,21 +563,9 @@ export async function changeTowerBattle(
         // The archive commits with rewards. A failed Redis acknowledgement must
         // rebuild the run from this terminal snapshot without granting again.
         if (await combatV6ReplayExists(id, tx)) return { changes };
-        const unit = host.state.units.find((u) => u.id === host.playerId)!;
         {
-          const [row] = await tx
-            .select({ condition: cultivators.condition })
-            .from(cultivators)
-            .where(eq(cultivators.id, owner));
-          if (!row?.condition) throw new TowerV6Error('角色状态尚未初始化');
-          const condition = ConditionService.applyCombatV6Resources(
-            row.condition as CultivatorCondition,
-            unit.attrs,
-          );
-          await tx
-            .update(cultivators)
-            .set({ condition })
-            .where(eq(cultivators.id, owner));
+          await settlePersistentBattle(tx, owner, host.state, battle.snapshot.events, host.playerId,
+            battle.snapshot.input.units.find((unit) => unit.id === host.playerId)?.attrs);
           const committed = await new ResourceEventCommitter().commit(tx, {
             actor,
             source: 'tower-v6-condition',
@@ -665,7 +658,7 @@ export async function changeTowerBattle(
         const rumorMessageId =
           outcome === 'victory' && run.floor === TOWER_MAX_FLOOR
             ? await queueAchievementRumor(tx, {
-                text: `「${unit.name}」闯过${run.realm}境蜃楼幻境第 ${TOWER_MAX_FLOOR} 层，登临楼顶。`,
+                text: `「${host.state.units.find(({ id }) => id === host.playerId)!.name}」闯过${run.realm}境蜃楼幻境第 ${TOWER_MAX_FLOOR} 层，登临楼顶。`,
               })
             : undefined;
         lease.assertHeld();

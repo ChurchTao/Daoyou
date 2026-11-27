@@ -1,3 +1,4 @@
+import { useCultivatorDisplayProjection } from '@app/components/feature/cultivator/useCultivatorDisplayProjection';
 import { ConsumableUseActions } from '@app/components/feature/items/ConsumableUseActions';
 import { consumeInventoryItem } from '@app/components/feature/items/consumeInventoryItem';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
@@ -7,21 +8,18 @@ import {
   useCultivatorCondition,
   useCultivatorIdentity,
 } from '@app/lib/resources/player';
-import type { ExorcismRunState } from '@daoyou/game-domain/dungeon/exorcism';
 import { ConsumableFactsSchema } from '@daoyou/game-domain/inventory';
 import { isDungeonRecoveryPill } from '@daoyou/game-rules/dungeon';
 import { useRef, useState } from 'react';
 
 /**
- * 两场之间服用回复丹药，作用到局内状态。用标准物品格和物品预览，
+ * 两场之间服用回复丹药，恢复人物常驻气血和法力。用标准物品格和物品预览，
  * 看详情、选数量、服用都和背包一致。这枚丹能补的都已补满时只能查看，不能服用。
  */
 export function ExorcismPillBar({
-  run,
   processing,
   onUsed,
 }: {
-  run: ExorcismRunState;
   processing: boolean;
   onUsed: () => Promise<void>;
 }) {
@@ -31,9 +29,9 @@ export function ExorcismPillBar({
   const { pushToast } = useInkUI();
   const [pending, setPending] = useState(false);
   const busy = useRef(false);
-  const player = run.resources?.player;
+  const player = useCultivatorDisplayProjection().data?.display.resources;
   if (!player) return null;
-  const full = { hp: player.hp >= player.maxHp, mp: player.mp >= player.maxMp };
+  const full = { hp: player.hp.current >= player.hp.max, mp: player.mp.current >= player.mp.max };
 
   const pills = (bag.data?.items ?? []).flatMap((item) => {
     if (item.definitionId !== 'consumable.v1') return [];
@@ -86,7 +84,7 @@ export function ExorcismPillBar({
       <div>
         <h3 className="text-sm font-medium">回复丹药</h3>
         <p className="text-ink-secondary text-xs leading-5">
-          局内状态独立于现实，时间不会恢复，只有调息和回复丹药能回。战斗中不能服药。
+          战斗中不能服药。
         </p>
       </div>
       {!bag.data ? null : pills.length ? (
@@ -104,7 +102,7 @@ export function ExorcismPillBar({
               ? (close) =>
                   wasted.has(item.id) ? (
                     <p className="text-ink-secondary text-sm">
-                      局内已满，现在不用服。
+                      对应的气血或法力已满。
                     </p>
                   ) : (
                     <div className="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">

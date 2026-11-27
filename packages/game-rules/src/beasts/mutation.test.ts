@@ -1,9 +1,10 @@
-import { BEAST_REFINEMENT, BEAST_SPECIES } from '@daoyou/game-content/beasts';
+import { settleBeastVitals } from './progression.js';
+import { BEAST_PROGRESSION, BEAST_REFINEMENT, BEAST_SPECIES } from '@daoyou/game-content/beasts';
 import { BOOKS } from '@daoyou/game-content/items/beasts';
 import { expect, it } from 'vitest';
 import { learnBeastSkill } from '../inventory/index.js';
 import { generateCapturedBeast, generateStarterBeast } from './generator.js';
-import { beastAttributes, beastPanel } from './projection.js';
+import { beastAttributes, beastPanel, beastVitals, projectBeastRoster } from './projection.js';
 import { refineBeast } from './refinement.js';
 import { BeastSchema } from './schema.js';
 import { beastMutationBonus, rollBeastTraits } from './trait-generator.js';
@@ -108,4 +109,19 @@ it('历史变异数值保留，洗炼使用新加成且不累乘；传承不改�
     growth: first.growth,
     skillSlotCapacity: 1,
   });
+});
+
+it('常驻战斗保留灵兽的零法力，阵亡回满并扣寿，满状态战斗独立装配', () => {
+  const pet = generateStarterBeast(id, id, BEAST_SPECIES[0].id, 42);
+  const injured = settleBeastVitals(pet, { hp: 12, mp: 0, died: false });
+  const roster = { beasts: [injured], lineup: { carriedBeastIds: [id], leadBeastId: id, revision: 0 } };
+  const caps = beastVitals(pet);
+  expect(projectBeastRoster(roster, id, 0, 0, 180, 'persistent')[0].attrs)
+    .toMatchObject({ hp: 12, mp: 0 });
+  expect(projectBeastRoster(roster, id, 0, 0, 180, 'full')[0].attrs)
+    .toMatchObject({ hp: caps.maxHp, mp: caps.maxMp });
+  const dead = settleBeastVitals(injured, { hp: 0, mp: 0, died: true });
+  expect(dead.vitals).toEqual({ hp: caps.maxHp, mp: caps.maxMp });
+  expect(dead.currentLifespan).toBe(pet.currentLifespan - BEAST_PROGRESSION.lifespan.deathLoss);
+  expect(injured.currentLifespan).toBe(pet.currentLifespan);
 });

@@ -1,10 +1,10 @@
+import { persistBattleVitals } from './CombatV6PersistentCondition.js';
 import { runJournalSettlement, describeJournal } from '@server/player/application/JournalSettlement.js';
 import { db } from '@server/lib/drizzle/db.js';
-import { cultivators, messageConsumptions } from '@server/lib/drizzle/schema.js';
+import { messageConsumptions } from '@server/lib/drizzle/schema.js';
 import { createDomainEvent } from '@server/lib/mq/domainEventWriter.js';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock.js';
 import {
-  settleBeastDeaths,
   settleBeastProgress,
 } from '@server/lib/repositories/combatV6BeastRepository.js';
 import {
@@ -13,11 +13,8 @@ import {
 } from '@server/lib/repositories/messageConsumptionRepository.js';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
 import { beastTradePreview } from '@daoyou/game-domain/beasts';
-import { settleWildResources } from '@daoyou/game-rules/combat/wild';
 import { storyMarkForSignal } from '@daoyou/game-rules/story';
-import type { CultivatorCondition } from '@daoyou/game-domain/condition';
 import { and, eq } from 'drizzle-orm';
-import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 import { grantInventory } from '@server/inventory/operations.js';
 import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
 import { StoryService } from '@server/story/application/StoryService.js';
@@ -95,11 +92,6 @@ export async function projectCombatV6Condition(
           ? await StoryService.noteFact(s.cultivatorId, met, tx)
           : null;
         if (record.reason === 'battle-ended' || record.reason === 'fled') {
-          await settleBeastDeaths(
-            s.cultivatorId,
-            record.deadBeastIds ?? [],
-            tx,
-          );
           await settleBeastProgress(s, tx);
           const mutants = (s.capturedBeasts ?? []).filter(
             (beast) => beast.isMutant,
@@ -129,25 +121,9 @@ export async function projectCombatV6Condition(
           if (record.reason === 'battle-ended')
             await grantInventory(s.cultivatorId, s.itemRewards ?? [], tx);
         }
-        const [row] = await tx
-          .select({ condition: cultivators.condition })
-          .from(cultivators)
-          .where(eq(cultivators.id, s.cultivatorId));
-        if (!row?.condition) throw new Error('COMBAT_V6_CONDITION_MISSING');
-        const resources = settleWildResources(
-          s.final,
-          s.entry,
-          record.reason === 'technical-abort',
-        );
-        const condition = ConditionService.applyCombatV6Resources(
-          row.condition as CultivatorCondition,
-          resources,
-          now,
-        );
-        await tx
-          .update(cultivators)
-          .set({ condition })
-          .where(eq(cultivators.id, s.cultivatorId));
+        if (record.reason !== 'technical-abort' && record.reason !== 'expired') {
+          await persistBattleVitals(tx, s.cultivatorId, s.final, s.beasts ?? [], now);
+        }
         const state = await new ResourceEventCommitter().commit(tx, {
           actor: { userId: s.userId, cultivatorId: s.cultivatorId },
           source: 'combat-v6-condition',

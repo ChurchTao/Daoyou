@@ -1,7 +1,8 @@
+import { recoverPersistentBattleCondition } from './CombatV6PersistentCondition.js';
 import { createHash } from 'node:crypto';
 import { EXORCISM_SKILLS, EXORCISM_STATUS_DEFS } from '@daoyou/game-content/dungeon/exorcism';
 import { INVASION_SKILLS, INVASION_STATUSES } from '@daoyou/game-content/invasion';
-import type { InvasionBattle, InvasionCard, InvasionResources } from '@daoyou/game-domain/invasion';
+import type { InvasionBattle, InvasionCard } from '@daoyou/game-domain/invasion';
 import { invasionEnemies, invasionNpcCommand } from '@daoyou/game-rules/invasion';
 import { recordInvasionTerminal } from '@server/invasion/invasion-terminal.js';
 import type { SkillDef, StatusDef } from '@daoyou/combat-core/types';
@@ -23,7 +24,6 @@ import { ARENA_PUBLIC_VIEW } from '@daoyou/game-domain/combat/arena';
 import { AUTO_POLICY_VERSION } from '@daoyou/game-domain/combat/auto';
 import type { HuntTeam } from '@daoyou/game-domain/hunts';
 import { projectBeastRoster } from '@daoyou/game-rules/beasts/projection';
-import { evaluateFateContext } from '@daoyou/game-rules/character/fates';
 import { playerAppearances } from '@daoyou/game-rules/combat/appearance';
 import {
   arenaBattle,
@@ -60,8 +60,6 @@ import {
 } from '@server/combat/application/CombatV6ArenaStore.js';
 import { assembleCombatV6TrainingPlayer } from '@server/combat/application/CombatV6BuildService.js';
 import { resolveArena } from '@server/combat/arena-view.js';
-import { ConditionService } from '@server/cultivator/application/ConditionService.js';
-import { getCultivatorPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
 import { prepareHuntReward } from '@server/hunts/application/HuntRewardService.js';
 import { db } from '@server/lib/drizzle/db.js';
 import { cultivators } from '@server/lib/drizzle/schema.js';
@@ -106,11 +104,7 @@ type InvasionLaunch = InvasionBattle & {
   realm: RealmType;
   formation: number;
   week: string;
-  resources: Record<string, InvasionResources>;
   cards: Record<string, InvasionCard | undefined>;
-  build?: Pick<ArenaRuntime, 'units' | 'skills' | 'statusDefs' | 'autoStrategies'> & {
-    unitAppearances: ArenaRuntime['timeline']['unitAppearances'];
-  };
 };
 
 export async function createArenaV6(
@@ -168,12 +162,6 @@ export async function createArenaV6(
             ),
           });
           if (!identity) throw new ArenaV6Error('参战角色归属已变化');
-          if (invasion?.build) {
-            const unit = invasion.build.units.find((entry) => entry.kind === 'player' && entry.id === seat.cultivatorId);
-            if (!unit?.id) throw new ArenaV6Error('古魔入侵阵容缺少角色');
-            participants.push({ userId: seat.userId, cultivatorId: seat.cultivatorId, unitId: unit.id, side: 0, slot: seat.slot });
-            continue;
-          }
           if (invasion)
             highestInvasionRealm = Math.max(
               highestInvasionRealm,
@@ -199,21 +187,13 @@ export async function createArenaV6(
             resourcePolicy: 'full',
           });
           if (!projection.ok) throw new ArenaV6Error('参战构筑无法编译');
-          if (huntEvent) {
+          if (huntEvent || invasion) {
             if (!player.cultivator.condition)
               throw new ArenaV6Error('角色状态尚未就绪');
-            player.cultivator.condition =
-              ConditionService.recoverCombatV6Resources(
-                player.cultivator.condition,
-                {
-                  maxHp: projection.unit.attrs.maxHp!,
-                  maxMp: projection.unit.attrs.maxMp!,
-                },
-                new Date(),
-                evaluateFateContext(
-                  await getCultivatorPreHeavenFates(seat.cultivatorId, tx),
-                ),
-              );
+            player.cultivator.condition = await recoverPersistentBattleCondition(
+              seat.cultivatorId, player.cultivator.condition,
+              { maxHp: projection.unit.attrs.maxHp!, maxMp: projection.unit.attrs.maxMp! }, tx,
+            );
             projection = projectCharacterToCombatV6({
               ...player,
               side,
@@ -241,6 +221,7 @@ export async function createArenaV6(
               projection.unit.side,
               projection.unit.slot ?? 0,
               projection.unit.level,
+              huntEvent || invasion ? 'persistent' : 'full',
             ),
           );
           mergeDefinitions(skills, BEAST_SKILLS);
@@ -265,40 +246,17 @@ export async function createArenaV6(
             };
         }
         if (invasion) {
-          if (!invasion.build && highestInvasionRealm !== REALM_VALUES.indexOf(invasion.realm))
+          if (highestInvasionRealm !== REALM_VALUES.indexOf(invasion.realm))
             throw new ArenaV6Error('队伍的最高境界已变化，请重新开阵');
-          if (invasion.build) {
-            mergeDefinitions(skills, invasion.build.skills);
-            mergeDefinitions(statuses, invasion.build.statusDefs);
-            Object.assign(autoStrategies, invasion.build.autoStrategies);
-            Object.assign(unitAppearances, invasion.build.unitAppearances);
-            units.push(...structuredClone(invasion.build.units));
-          }
           for (const unit of units) {
-            const carry = invasion.resources[unit.id!];
-            if (carry) {
-              unit.attrs.hp = Math.min(unit.attrs.maxHp ?? unit.attrs.hp, carry.hp);
-              unit.attrs.mp = Math.min(unit.attrs.maxMp ?? unit.attrs.mp ?? 0, carry.mp);
-              if (unit.kind === 'pet') unit.benched = carry.benched;
-            }
-            if (unit.kind === 'player') {
-              const card = invasion.cards[unit.id!];
-              if (card) unit.passives = [...(unit.passives ?? []), `invasion.card.${card}`];
-            }
-          }
-          if (!units.some((unit) => !unit.benched && unit.attrs.hp > 0))
-            throw new ArenaV6Error('队伍已无可出战的成员');
-          for (let index = units.length - 1; index >= 0; index--) {
-            const unit = units[index];
-            if (unit.kind === 'pet' && unit.attrs.hp === 0) units.splice(index, 1);
+            if (unit.kind !== 'player') continue;
+            const card = invasion.cards[unit.id!];
+            if (card) unit.passives = [...(unit.passives ?? []), `invasion.card.${card}`];
           }
           const enemies = invasionEnemies(invasion.realm, seats.length, invasion.wave, invasion.formation);
           units.push(...enemies);
-          // The first wave already froze these definitions for future waves.
-          if (!invasion.build) {
-            mergeDefinitions(skills, [...HUNT_SKILLS, ...EXORCISM_SKILLS, ...INVASION_SKILLS]);
-            mergeDefinitions(statuses, [...HUNT_STATUSES, ...EXORCISM_STATUS_DEFS, ...INVASION_STATUSES]);
-          }
+          mergeDefinitions(skills, [...HUNT_SKILLS, ...EXORCISM_SKILLS, ...INVASION_SKILLS]);
+          mergeDefinitions(statuses, [...HUNT_STATUSES, ...EXORCISM_STATUS_DEFS, ...INVASION_STATUSES]);
           for (const unit of enemies)
             unitAppearances[unit.id!] = { icon: unit.slot === 0 ? 'icon:portrait-manifest-demonic' : 'icon:portrait-yaoguai' };
         }
@@ -316,12 +274,6 @@ export async function createArenaV6(
         };
         const battle = arenaBattle(input);
         const state = battle.snapshot();
-        if (invasion) {
-          for (const unit of state.units) {
-            if (unit.side === 0 && unit.kind === 'player' && unit.attrs.hp === 0)
-              unit.flags.downed = true;
-          }
-        }
         const runtime: ArenaRuntime = {
           ...input,
           hunt: huntEvent,

@@ -13,7 +13,4 @@ export {
   huntStartError,
   selectHuntTeam,
 } from '../hunts/rules.js';
-export {
-  huntParticipantSucceeded,
-  settleHuntResources,
-} from '../hunts/settlement.js';
+export { huntParticipantSucceeded } from '../hunts/settlement.js';

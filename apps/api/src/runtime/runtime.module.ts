@@ -1,5 +1,6 @@
 import { InvasionModule } from '@server/invasion/invasion.module.js';
 import { LlmModule } from '@server/llm/llm.module.js';
+import { PresenceModule } from '@server/presence/presence.module.js';
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { BaixiaoModule } from '../baixiao/baixiao.module.js';
@@ -21,6 +22,7 @@ import { RuntimeService } from './runtime.service.js';
     AlchemyContestModule,
     BaixiaoModule,
     InvasionModule,
+    PresenceModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [InternalCronController],

@@ -6,20 +6,24 @@ import {
   type PartyApplication,
   type PartyApplicationStatus,
   type PartyRecruitmentSource,
+  type PartyVitalsView,
 } from '@daoyou/contracts/party';
+import { SECT_ORGANIZATION_DEFINITIONS } from '@daoyou/game-content/sect-organization/definitions';
 import {
   ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { loadCultivatorInspectionData } from '@server/cultivator/application/readers/CultivatorCombatProjectionReader.js';
+import { readPersistentCharacterVitals } from '@server/combat/application/CombatV6PersistentCondition.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { db, type DbExecutor } from '@server/lib/drizzle/db.js';
 import {
   cultivators,
   parties,
   partyMembers,
+  sectMemberships,
 } from '@server/lib/drizzle/schema.js';
+import type { PresenceService } from '@server/presence/presence.service.js';
 import { publishPartyChanges } from '@server/realtime/infrastructure/partyBroadcaster.js';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
@@ -393,7 +397,7 @@ export async function reviewPartyApplication(
   return result.status;
 }
 
-export async function inspectPartyApplicant(actor: Identity, id: string) {
+export async function resolvePartyApplicantCardTarget(actor: Identity, id: string) {
   const row = await getPartyApplication(id);
   if (!row || !isPendingApplication(row))
     throw new NotFoundException('这条申请已失效');
@@ -402,18 +406,60 @@ export async function inspectPartyApplicant(actor: Identity, id: string) {
     throw new ForbiddenException('由队长查看入队申请');
   if (await partyForUser(row.userId))
     throw new NotFoundException('这条申请已失效');
-  const profile = await loadCultivatorInspectionData(row.cultivatorId);
-  if (!profile) throw new NotFoundException('申请角色已不可用');
-  return profile;
+  return row.cultivatorId;
 }
 
-export async function inspectPartyMember(actor: Identity, id: string) {
+export async function resolvePartyMemberCardTarget(actor: Identity, id: string) {
   const party = await partyForUser(actor.userId);
   if (!party || !partyOwns(party, actor))
     throw new ForbiddenException('仅队内道友可互相查探');
   if (!party.members.some((member) => member.cultivatorId === id))
     throw new NotFoundException('这位道友已不在队中');
-  const profile = await loadCultivatorInspectionData(id);
-  if (!profile) throw new NotFoundException('队员角色已不可用');
-  return profile;
+  return id;
+}
+
+export async function readPartyVitals(
+  actor: Identity,
+  partyId: string,
+  presence: Pick<PresenceService, 'getOnlineCultivatorIds'>,
+): Promise<PartyVitalsView> {
+  const party = await partyForUser(actor.userId);
+  if (!party || party.id !== partyId || !partyOwns(party, actor))
+    throw new ForbiddenException('仅当前队员可查看队伍状态');
+
+  const ids = party.members.map(({ cultivatorId }) => cultivatorId);
+  const [online, vitals, memberships] = await Promise.all([
+    presence.getOnlineCultivatorIds(ids),
+    Promise.allSettled(ids.map((id) => readPersistentCharacterVitals(id, db))),
+    db
+      .select({
+        cultivatorId: sectMemberships.cultivatorId,
+        sectId: sectMemberships.sectId,
+      })
+      .from(sectMemberships)
+      .where(
+        and(
+          inArray(sectMemberships.cultivatorId, ids),
+          eq(sectMemberships.status, 'active'),
+        ),
+      ),
+  ]);
+  const sectNames = new Map(
+    memberships.map(({ cultivatorId, sectId }) => [
+      cultivatorId,
+      Object.hasOwn(SECT_ORGANIZATION_DEFINITIONS, sectId)
+        ? SECT_ORGANIZATION_DEFINITIONS[sectId].name
+        : '未知宗门',
+    ] as const),
+  );
+  return Object.fromEntries(
+    ids.map((id, index) => {
+      const result = vitals[index];
+      return [id, {
+        online: online.has(id),
+        sectName: sectNames.get(id) ?? null,
+        vitals: result.status === 'fulfilled' ? result.value : null,
+      }];
+    }),
+  );
 }

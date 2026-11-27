@@ -1,3 +1,4 @@
+import { BeastRestButton, BeastRestDialog } from '@app/components/feature/beasts/BeastRestButton';
 import { BeastRosterEntry } from '@app/components/feature/beasts/BeastRosterEntry';
 import {
   combatV6Request,
@@ -6,11 +7,10 @@ import {
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
-import { useCultivatorIdentity } from '@app/lib/resources/player';
+import { useCultivatorIdentity, useCultivatorCondition } from '@app/lib/resources/player';
 import { useStory } from '@app/lib/story/useStory';
 import { storySceneOpen } from '@daoyou/game-domain/story/gates';
 import type { BeastManagementView } from '@daoyou/contracts/beasts';
-import {} from '@daoyou/game-content/beasts';
 import {
   BEAST_BAG_CAPACITY,
   BEAST_WAREHOUSE_CAPACITY,
@@ -30,6 +30,7 @@ const base = '/api/combat-v6/beasts';
 export default function BeastsPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { data: condition } = useCultivatorCondition();
   const ownerId = useCultivatorIdentity().data?.cultivator?.id;
   const [view, setView] = useState<BeastManagementView>();
   const story = useStory();
@@ -74,6 +75,7 @@ export default function BeastsPage() {
     return () => window.removeEventListener('focus', reload);
   }, []);
   useEffect(() => {
+    if (!ownerId || busy.current) return;
     const read = new AbortController();
     controller.current = read;
     void combatV6Request<BeastManagementView>(base, { signal: read.signal })
@@ -89,8 +91,8 @@ export default function BeastsPage() {
           });
         }
       });
-    return () => controller.current?.abort();
-  }, [pushToast, refresh]);
+    return () => read.abort();
+  }, [ownerId, condition, pushToast, refresh]);
   async function mutate(
     path: string,
     body: unknown,
@@ -216,16 +218,11 @@ export default function BeastsPage() {
                 {bagBeasts.length} / {BEAST_BAG_CAPACITY}
               </span>
             </span>
-            {/* 新手期先只认袋里这一只，图鉴、融合、仓库等主线走完再摆出来。 */}
-            <span
-              className={
-                storySceneOpen(story.story?.unlocked, 'beast-codex')
-                  ? 'flex flex-wrap items-center justify-end gap-1'
-                  : 'hidden'
-              }
-            >
+            <div className="ml-auto flex shrink-0 items-center justify-end gap-1">
+              {view && bagBeasts.length > 0 && <BeastRestButton disabled={pending} view={view} onRest={setView} />}
+              <span className={storySceneOpen(story.story?.unlocked, 'beast-codex') ? 'flex items-center gap-1' : 'hidden'}>
               <InkButton disabled={pending} href="/game/beasts/codex">
-                灵兽图鉴
+                图鉴
               </InkButton>
               <InkButton
                 disabled={pending || !ownerId}
@@ -236,7 +233,8 @@ export default function BeastsPage() {
               <InkButton disabled={pending} href="/game/beasts/warehouse">
                 仓库
               </InkButton>
-            </span>
+              </span>
+            </div>
           </div>
           <div className="grid min-w-0 gap-5 md:grid-cols-[180px_minmax(0,1fr)] lg:grid-cols-[200px_minmax(0,1fr)]">
             <aside
@@ -457,12 +455,13 @@ export default function BeastsPage() {
           }
         />
       ) : null}
-      {actionBeast && action ? (
+      {actionBeast && action?.type === 'rest' ? (
+        <BeastRestDialog beasts={[actionBeast]} spiritStones={view!.spiritStones} scope="single"
+          onClose={() => setAction(undefined)} onRest={setView} />
+      ) : actionBeast && action ? (
         <BeastActionDrawer
           key={`${action.type}:${actionBeast.id}:${actionBeast.revision}`}
           beast={actionBeast}
-          action={action.type}
-          spiritStones={view!.spiritStones}
           pending={pending}
           close={() => {
             if (!busy.current) setAction(undefined);

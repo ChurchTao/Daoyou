@@ -1,3 +1,4 @@
+import { battleBeastVitals, recoverPersistentBattleCondition } from './CombatV6PersistentCondition.js';
 import { db } from '@server/lib/drizzle/db.js';
 import { cultivators } from '@server/lib/drizzle/schema.js';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock.js';
@@ -37,7 +38,6 @@ import {
   BEAST_BAG_CAPACITY,
   beastDeathIds,
 } from '@daoyou/game-rules/beasts/growth';
-import { evaluateFateContext } from '@daoyou/game-rules/character/fates';
 import { publicUnitAppearances } from '@daoyou/game-rules/combat/appearance';
 import { automaticCommands } from '@daoyou/game-rules/combat/auto';
 import { liveReplayDelta } from '@daoyou/game-rules/combat/playback';
@@ -66,7 +66,6 @@ import {
 } from '@daoyou/game-rules/rewards/wild';
 
 import { REALM_ORDER } from '@daoyou/constants/realms';
-import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 import { RESOURCE_DATA_SCHEMAS } from '@server/lib/resources/schemas.js';
 import { qiCurrencyChange } from '@server/cultivator/application/QiResourceChanges.js';
 import { QiService } from '@server/cultivator/application/QiService.js';
@@ -78,7 +77,6 @@ import { hasActiveCombat } from '@server/combat/application/CombatOccupancy.js';
 import { assembleCombatV6WildPlayer } from '@server/combat/application/CombatV6BuildService.js';
 import { CombatV6RuntimeStore } from '@server/combat/application/CombatV6RuntimeStore.js';
 import { CombatV6WildStore } from '@server/combat/application/CombatV6WildStore.js';
-import { getCultivatorPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
 import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
 
 type Actor = { userId: string; cultivatorId: string };
@@ -155,6 +153,7 @@ function summaryOf(
       return [structuredClone(target.beast)];
     }),
     deadBeastIds: beastDeathIds(r.host.events),
+    beasts: battleBeastVitals(r.host.state, r.host.events, r.host.playerId),
     schemaVersion: 1,
     battleId: r.battleId,
     userId: r.userId,
@@ -397,14 +396,9 @@ export class CombatV6WildSessionService {
             );
           const now = Date.now();
           const attrs = projected.unit.attrs!;
-          const fateContext = evaluateFateContext(
-            await getCultivatorPreHeavenFates(actor.cultivatorId, tx),
-          );
-          const recovered = ConditionService.recoverCombatV6Resources(
-            condition,
-            { maxHp: attrs.maxHp!, maxMp: attrs.maxMp! },
-            new Date(now),
-            fateContext,
+          const recovered = await recoverPersistentBattleCondition(
+            actor.cultivatorId, condition,
+            { maxHp: attrs.maxHp!, maxMp: attrs.maxMp! }, tx, new Date(now),
           );
           const player = {
             ...assembled.player,

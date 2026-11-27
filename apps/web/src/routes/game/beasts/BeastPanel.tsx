@@ -22,14 +22,14 @@ import {
 import {
   beastAttributes,
   beastPanel,
+  beastVitals,
 } from '@daoyou/game-rules/beasts/projection';
 import { useState } from 'react';
+import { beastRestCost } from '@daoyou/game-rules/beasts/growth';
 import type { BeastAction } from './BeastActionDrawer';
 
 const species = new Map(BEAST_SPECIES.map((s) => [s.id as string, s]));
 const panelStats = [
-  ['maxHp', '气血'],
-  ['maxMp', '法力'],
   ['physicalAtk', '物攻'],
   ['physicalDef', '物防'],
   ['magicAtk', '法攻'],
@@ -162,6 +162,8 @@ export function BeastPanel({
   }
   const total = Object.values(draft).reduce((sum, value) => sum + value, 0);
   const before = beastPanel(beast);
+  const vitals = beastVitals(beast);
+  const needsRest = beastRestCost(beast) > 0;
   const attributes = beastAttributes(beast);
   const canAllocate = beast.level <= ownerLevel;
   const panel =
@@ -177,7 +179,7 @@ export function BeastPanel({
       : beast.level > ownerLevel
         ? '灵兽等级超过人物等级上限'
         : beast.currentLifespan < BEAST_PROGRESSION.lifespan.deployMinimum
-          ? '寿命不足，请先休养'
+          ? '寿命不足，无法出战'
           : undefined;
   return (
     <div className="@container min-w-0 space-y-5">
@@ -230,24 +232,54 @@ export function BeastPanel({
             </div>
           </div>
           <div className="col-start-2 min-w-0 @min-[30rem]:mt-2">
-            <div
-              className="bg-ink/10 mt-2 h-1 overflow-hidden"
-              role="progressbar"
-              aria-label="升级修为"
-              aria-valuemin={0}
-              aria-valuemax={exp}
-              aria-valuenow={Math.min(beast.exp, exp)}
-            >
-              <div
-                className="bg-teal h-full"
-                style={{ width: `${Math.min(100, (beast.exp / exp) * 100)}%` }}
-              />
-            </div>
-            <div className="text-ink-secondary mt-1 flex flex-wrap justify-between gap-x-2 text-xs">
-              <span>{capped ? '已达当前培养上限' : '修为'}</span>
-              <span className="font-mono">
-                {beast.exp.toLocaleString()} / {exp.toLocaleString()}
-              </span>
+            <div className="grid gap-1">
+              {[
+                {
+                  label: '气血',
+                  current: vitals.hp,
+                  max: vitals.maxHp,
+                  color: 'bg-resource-hp',
+                },
+                {
+                  label: '法力',
+                  current: vitals.mp,
+                  max: vitals.maxMp,
+                  color: 'bg-resource-mp',
+                },
+                {
+                  label: capped ? '已达当前培养上限' : '修为',
+                  ariaLabel: '升级修为',
+                  current: beast.exp,
+                  max: exp,
+                  color: 'bg-teal',
+                },
+              ].map(({ label, ariaLabel, current, max, color }) => {
+                const progress = Math.min(current, max);
+                const percent = max > 0 ? (progress / max) * 100 : 0;
+                return (
+                  <div key={ariaLabel ?? label}>
+                    <div className="flex justify-between gap-2 text-xs">
+                      <span>{label}</span>
+                      <span className="font-mono">
+                        {current.toLocaleString()} / {max.toLocaleString()}
+                      </span>
+                    </div>
+                    <div
+                      className="bg-ink/10 h-1 overflow-hidden"
+                      role="progressbar"
+                      aria-label={ariaLabel ?? label}
+                      aria-valuemin={0}
+                      aria-valuemax={max}
+                      aria-valuenow={progress}
+                    >
+                      <div
+                        className={`h-full ${color}`}
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
           <div className="col-span-2 flex flex-wrap items-center gap-x-3 gap-y-1 @min-[30rem]:mt-2">
@@ -336,10 +368,10 @@ export function BeastPanel({
                   triggerClassName="text-ink hover:text-ink-secondary focus-visible:outline-ink inline-flex h-6 shrink-0 cursor-help items-center whitespace-nowrap underline decoration-dotted underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2"
                   triggerContent={`${beast.currentLifespan}/${beast.maxLifespan}`}
                 >
-                  每场满气血、法力入场。野外死亡每场扣除一次
+                  常驻战斗中阵亡会回满气血、法力，并扣除一次
                   {BEAST_PROGRESSION.lifespan.deathLoss}寿命；不足
                   {BEAST_PROGRESSION.lifespan.deployMinimum}
-                  不能出战，切磋与练功不消耗寿命。
+                  不能出战。寿命暂时无法恢复。
                 </InkTooltip>
               </dd>
             </div>
@@ -383,11 +415,9 @@ export function BeastPanel({
               icon="🌿"
               label="休养"
               description={
-                beast.currentLifespan >= beast.maxLifespan
-                  ? '消耗灵石恢复寿命，当前寿命已满'
-                  : '消耗灵石恢复寿命，让灵兽继续随行出战'
+                needsRest ? '消耗灵石回满气血和法力' : '气血和法力已满'
               }
-              disabled={pending || beast.currentLifespan >= beast.maxLifespan}
+              disabled={pending || !needsRest}
               onClick={() => choose(() => act('rest'))}
             />
             <BeastOption

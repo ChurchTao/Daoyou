@@ -1,3 +1,4 @@
+import { recoverOwnedBeasts } from './beast-recovery.js';
 import type {
   BeastAllocateRequest,
   BeastFusionRequest,
@@ -7,6 +8,7 @@ import type {
   BeastPlaceSchema,
   BeastRenameSchema,
   BeastRestSchema,
+  BeastRecoveryRequest,
 } from '@daoyou/contracts/beasts';
 import { Inject, Injectable } from '@nestjs/common';
 import {
@@ -17,7 +19,6 @@ import {
   readBeastFusion,
   releaseBeast,
   renameBeast,
-  restBeast,
   setBeastLocked,
   updateBeastLineup,
 } from '@server/combat/application/CombatV6BeastService.js';
@@ -54,10 +55,10 @@ export class BeastsService {
   async lineup(owner: string, input: z.infer<typeof BeastLineupRequestSchema>) {
     return { success: true, data: await updateBeastLineup(owner, input) };
   }
-  async rest(owner: string, input: z.infer<typeof BeastRestSchema>) {
+  async rest(actor: { userId: string; cultivatorId: string }, input: BeastRecoveryRequest) {
     return {
       success: true,
-      data: await restBeast(owner, input.beastId, input.expectedRevision),
+      data: await recoverOwnedBeasts(actor, input),
     };
   }
   async allocate(owner: string, input: BeastAllocateRequest) {
