@@ -19,6 +19,10 @@ export type PromptSectionKey = 'system' | 'user';
 
 const promptSources = [
   'daily-divination.md',
+  'alchemy-contest-library.md',
+  'alchemy-contest-materials.md',
+  'alchemy-contest-naming.md',
+  'alchemy-contest-question.md',
   'alchemy-formula-analysis.md',
   'alchemy-improvised-copy.md',
   'alchemy-recipe-plan.md',
