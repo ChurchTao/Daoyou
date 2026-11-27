@@ -35,6 +35,27 @@ export function DungeonSettlement({
     window.location.href = '/game';
   };
 
+  const confirmButton = (
+    <InkButton
+      onClick={handleConfirm}
+      variant="primary"
+      className="mt-4 block w-full text-center"
+    >
+      返回洞府
+    </InkButton>
+  );
+
+  if (!settlement && !mysteryResult && realGains.length === 0) {
+    return (
+      <InkCard variant={exorcism ? 'plain' : undefined} className="space-y-5 p-4">
+        <p className="text-ink/80 leading-relaxed">
+          {exorcism ? '除祟已结束。' : '探索已结束。'}
+        </p>
+        {confirmButton}
+      </InkCard>
+    );
+  }
+
   const tier = settlement?.settlement?.reward_tier ?? 'C';
   const tierTheme: Record<string, { title: string }> = {
     S: { title: '天命垂青' },
@@ -138,13 +159,7 @@ export function DungeonSettlement({
         )}
       </div>
 
-      <InkButton
-        onClick={handleConfirm}
-        variant="primary"
-        className="mt-4 block w-full text-center"
-      >
-        返回洞府
-      </InkButton>
+      {confirmButton}
     </InkCard>
   );
 }

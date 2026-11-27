@@ -40,6 +40,7 @@ export class ReplaysService {
     const arena = await this.arena.get(battleId);
     if (
       arena?.stage === 'finished' &&
+      !arena.invasion &&
       arena.participants.some(
         (p) =>
           p.userId === actor.userId && p.cultivatorId === actor.cultivatorId,

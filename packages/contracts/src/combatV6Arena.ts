@@ -23,6 +23,8 @@ export type ArenaRuntime = ArenaState<ArenaSessionView> & {
 export type ArenaSessionView = ArenaSnapshot & {
   apiVersion: typeof COMBAT_V6_TRAINING_API_VERSION;
   protocol: typeof ARENA_V6_PROTOCOL;
+  /** First available event in a compact terminal snapshot, using the live cursor. */
+  eventWindowStartSeq?: number;
 };
 export type ArenaSocketMessage =
   | { type: 'ready' | 'ping'; serverNow: number }

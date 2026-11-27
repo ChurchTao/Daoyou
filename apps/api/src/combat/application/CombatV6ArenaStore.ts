@@ -2,12 +2,15 @@ import { redis } from '@server/lib/redis/index.js';
 import {
   ARENA_V6_PROTOCOL,
   type ArenaRuntime,
+  type ArenaSessionView,
 } from '@daoyou/contracts/combat/arena';
 
 const root = 'combat:v6:arena';
 export const arenaRuntimeKey = (id: string) => `${root}:runtime:${id}`;
+const arenaResultKey = (id: string) => `${root}:result:${id}`;
 export const arenaOccupancyKey = (id: string) => `${root}:occupancy:${id}`;
 export const arenaDueKey = `${root}:due`;
+const INVASION_RESULT_GRACE_MS = 120_000;
 const sourceKey = (roomId: string, requestId: string) =>
   `${root}:source:${roomId}:${requestId}`;
 const CREATE = `
@@ -43,6 +46,21 @@ redis.call('SET', KEYS[1], ARGV[2])
 redis.call('ZADD', KEYS[2], ARGV[3], ARGV[4])
 return 1
 `;
+
+const FINISH_INVASION = `
+local raw = redis.call('GET', KEYS[1])
+if not raw then return 0 end
+local current = cjson.decode(raw)
+if current.revision ~= tonumber(ARGV[1]) or current.stage ~= 'finished' then return 0 end
+redis.call('SET', KEYS[2], ARGV[2], 'PXAT', ARGV[3])
+redis.call('DEL', KEYS[1])
+redis.call('ZREM', KEYS[3], ARGV[4])
+return 1
+`;
+
+type InvasionResult = Pick<ArenaRuntime, 'battleId' | 'revision' | 'participants' | 'lastResults'>;
+export type ArenaViewSource = ArenaRuntime | InvasionResult;
+
 export class CombatV6ArenaStore {
   async get(id: string): Promise<ArenaRuntime | null> {
     const raw = await redis.get(arenaRuntimeKey(id));
@@ -50,6 +68,15 @@ export class CombatV6ArenaStore {
     const value = JSON.parse(raw) as ArenaRuntime;
     if (value.protocol !== ARENA_V6_PROTOCOL || value.battleId !== id)
       throw new Error('ARENA_RUNTIME_INVALID');
+    return value;
+  }
+  async getForViewing(id: string): Promise<ArenaViewSource | null> {
+    const runtime = await this.get(id);
+    if (runtime) return runtime;
+    const raw = await redis.get(arenaResultKey(id));
+    if (!raw) return null;
+    const value = JSON.parse(raw) as InvasionResult;
+    if (value.battleId !== id) throw new Error('ARENA_RESULT_INVALID');
     return value;
   }
   async source(roomId: string, requestId: string) {
@@ -127,5 +154,24 @@ export class CombatV6ArenaStore {
       .zrem(arenaDueKey, runtime.battleId)
       .expire(arenaRuntimeKey(runtime.battleId), 86400)
       .exec();
+  }
+  async finishInvasion(runtime: ArenaRuntime, lastResults: Record<string, ArenaSessionView>) {
+    const result: InvasionResult = {
+      battleId: runtime.battleId,
+      revision: runtime.revision,
+      participants: runtime.participants,
+      lastResults,
+    };
+    await redis.eval(
+      FINISH_INVASION,
+      3,
+      arenaRuntimeKey(runtime.battleId),
+      arenaResultKey(runtime.battleId),
+      arenaDueKey,
+      runtime.revision,
+      JSON.stringify(result),
+      Math.max(Date.now(), runtime.playbackEndsAt) + INVASION_RESULT_GRACE_MS,
+      runtime.battleId,
+    );
   }
 }

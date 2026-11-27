@@ -8,7 +8,7 @@ import {
 } from '@server/combat/application/CombatV6ArenaBroadcast.js';
 import {
   ArenaV6Error,
-  ownedArenaV6,
+  ownedArenaViewV6,
   watchedArenaV6,
 } from '@server/combat/application/CombatV6ArenaService.js';
 import { CombatV6ArenaStore } from '@server/combat/application/CombatV6ArenaStore.js';
@@ -90,7 +90,7 @@ export class ArenaRealtimeService implements OnModuleDestroy {
       if (!route)
         return { status: 404, message: '接口不存在', headers: responseHeaders };
       const battleId = z.uuid().parse(route.battleId);
-      await (route.spectator ? watchedArenaV6 : ownedArenaV6)(battleId, actor);
+      await (route.spectator ? watchedArenaV6 : ownedArenaViewV6)(battleId, actor);
       if (this.stopping || request.socket.destroyed)
         return { status: 503, message: 'Connection closed' };
       const connection = {
@@ -136,7 +136,7 @@ export class ArenaRealtimeService implements OnModuleDestroy {
     }
     this.counts.set(actor.userId, (this.counts.get(actor.userId) ?? 0) + 1);
     const connection = crypto.randomUUID();
-    const authorize = spectator ? watchedArenaV6 : ownedArenaV6;
+    const authorize = spectator ? watchedArenaV6 : ownedArenaViewV6;
     let viewerId: string | undefined;
     let dispose: (() => void) | undefined;
     let heartbeat: ReturnType<typeof setInterval> | undefined;
