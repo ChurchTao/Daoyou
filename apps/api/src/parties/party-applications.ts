@@ -15,7 +15,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { readPersistentCharacterVitals } from '@server/combat/application/CombatV6PersistentCondition.js';
-import { loadCultivatorInspectionData } from '@server/cultivator/application/readers/CultivatorCombatProjectionReader.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { db, type DbExecutor } from '@server/lib/drizzle/db.js';
 import {
@@ -398,7 +397,7 @@ export async function reviewPartyApplication(
   return result.status;
 }
 
-export async function inspectPartyApplicant(actor: Identity, id: string) {
+export async function resolvePartyApplicantCardTarget(actor: Identity, id: string) {
   const row = await getPartyApplication(id);
   if (!row || !isPendingApplication(row))
     throw new NotFoundException('这条申请已失效');
@@ -407,20 +406,16 @@ export async function inspectPartyApplicant(actor: Identity, id: string) {
     throw new ForbiddenException('由队长查看入队申请');
   if (await partyForUser(row.userId))
     throw new NotFoundException('这条申请已失效');
-  const profile = await loadCultivatorInspectionData(row.cultivatorId);
-  if (!profile) throw new NotFoundException('申请角色已不可用');
-  return profile;
+  return row.cultivatorId;
 }
 
-export async function inspectPartyMember(actor: Identity, id: string) {
+export async function resolvePartyMemberCardTarget(actor: Identity, id: string) {
   const party = await partyForUser(actor.userId);
   if (!party || !partyOwns(party, actor))
     throw new ForbiddenException('仅队内道友可互相查探');
   if (!party.members.some((member) => member.cultivatorId === id))
     throw new NotFoundException('这位道友已不在队中');
-  const profile = await loadCultivatorInspectionData(id);
-  if (!profile) throw new NotFoundException('队员角色已不可用');
-  return profile;
+  return id;
 }
 
 export async function readPartyVitals(

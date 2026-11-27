@@ -1,4 +1,6 @@
 import { BeastRestButton } from '@app/components/feature/beasts/BeastRestButton';
+import { CharacterCardContent } from '@app/components/feature/character-card/CharacterCardContent';
+import { CharacterCardDialog } from '@app/components/feature/character-card/CharacterCardDialog';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { RewardItemGrid } from '@app/components/feature/items/RewardItemGrid';
 import { PartyMemberCard } from '@app/components/feature/party/PartyMemberCard';
@@ -319,6 +321,7 @@ export function InvasionRest({
   const enabled = remaining > 0 && now < closesAt && !busy;
   const self = playerId ? team.resources[playerId] : undefined;
   const boss = invasionBossWave(team.wave);
+  const [cardId, setCardId] = useState<string | null>(null);
 
   return (
     <section className="invasion-operations" aria-label="波间休憩">
@@ -364,10 +367,16 @@ export function InvasionRest({
                   online={memberStates?.data?.[member.cultivatorId]?.online}
                   sectName={memberStates?.data?.[member.cultivatorId]?.sectName}
                   vitals={team.resources[member.cultivatorId] ?? null}
+                  onInspect={() => setCardId(member.cultivatorId)}
                 />
               </li>
             ))}
           </ul>
+          {cardId ? (
+            <CharacterCardDialog onClose={() => setCardId(null)}>
+              <CharacterCardContent key={cardId} id={cardId} />
+            </CharacterCardDialog>
+          ) : null}
         </section>
         <div className="invasion-preparation-actions">
           <RecoverySlots

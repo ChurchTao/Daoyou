@@ -1,8 +1,6 @@
 import { InkBadge } from '@app/components/ui';
 import { cn } from '@app/lib/cn';
-import type { Cultivator } from '@daoyou/game-domain/character';
 import {
-  getBodyCultivationSummary,
   type BodyCultivationSummary,
   type BodyCultivationTrackSummary,
 } from '@daoyou/game-rules/body-cultivation/progress';
@@ -238,27 +236,5 @@ export function MarrowWashSummaryContent({
         </div>
       </div>
     </div>
-  );
-}
-
-export function BodyCultivationInspectionSection({
-  cultivator,
-}: {
-  cultivator: Pick<Cultivator, 'condition' | 'realm'>;
-}) {
-  const summary = getBodyCultivationSummary(cultivator.condition, {
-    cultivatorRealm: cultivator.realm,
-  });
-
-  return (
-    <section className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h5 className="text-ink text-sm font-semibold">肉身炼体</h5>
-        <InkBadge tone="default">
-          {`${summary.realm.label} · 总 Lv.${summary.totalLevel}`}
-        </InkBadge>
-      </div>
-      <BodyCultivationSummaryContent summary={summary} dense />
-    </section>
   );
 }

@@ -32,6 +32,6 @@ import { YieldService } from './yield.service.js';
     RetreatService,
     YieldService,
   ],
-  exports: [CultivatorQueriesService],
+  exports: [CharacterCardService, CultivatorQueriesService],
 })
 export class CultivatorModule {}

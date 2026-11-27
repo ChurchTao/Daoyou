@@ -10,9 +10,7 @@ import {
   Inject,
   Post,
   UseFilters,
-  UseGuards,
 } from '@nestjs/common';
-import { minutes, Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { FirstQuery } from '../http/first-query.js';
@@ -22,7 +20,6 @@ import { StoryGate } from '../story/story-gate.guard.js';
 import {
   RankingChallengeErrors,
   RankingListErrors,
-  RankingProbeErrors,
   WealthRankingErrors,
 } from './rankings-errors.js';
 import { RankingsService } from './rankings.service.js';
@@ -60,15 +57,6 @@ export class RankingsController {
     @FirstQuery('realm') realm: string | string[] | undefined,
   ) {
     return this.rankings.myRank(actor, first(realm));
-  }
-
-  @Post('probe')
-  @HttpCode(200)
-  @UseFilters(RankingProbeErrors)
-  @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 30, ttl: minutes(1) } })
-  probe(@JsonBody() input: { targetId?: unknown }) {
-    return this.rankings.probe(input);
   }
 
   @Get('challenge/current')

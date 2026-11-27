@@ -70,7 +70,8 @@ export function PartyMemberCard({
       {onInspect ? (
         <button
           type="button"
-          aria-label={`查看${member.name}的资料${presenceLabel ? `，${presenceLabel}` : ''}`}
+          aria-label={`查看${member.name}的名片${presenceLabel ? `，${presenceLabel}` : ''}`}
+          aria-haspopup="dialog"
           className="hover:text-crimson focus-visible:outline-crimson flex min-h-11 w-full items-center gap-2 rounded-sm text-left"
           onClick={onInspect}
         >

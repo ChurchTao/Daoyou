@@ -34,6 +34,7 @@ type SlotItem = {
 };
 
 type SlotProps = {
+  customTrigger?: { label: string; render: (item: SlotItem) => ReactNode };
   selected?: boolean;
   disabled?: boolean;
   badge?: string;
@@ -95,6 +96,7 @@ export function PreviewSlot({
   onQuickAction,
   quickOnTouch,
   renderPreview,
+  customTrigger,
   guideAnchor,
 }: SlotProps & {
   item?: SlotItem;
@@ -188,9 +190,10 @@ export function PreviewSlot({
         data-guide={guideAnchor}
         type="button"
         aria-label={
-          item
+          customTrigger?.label ??
+          (item
             ? `${item.name}${mark ? `，${mark}` : ''}，${item.quantity}件`
-            : emptyLabel || '空格'
+            : emptyLabel || '空格')
         }
         aria-expanded={item ? open : undefined}
         aria-disabled={disabled || (!item && !onQuickAction)}
@@ -253,7 +256,10 @@ export function PreviewSlot({
           pointer.current = '';
           longPressed.current = false;
           touchMoved.current = false;
-          if (event.key === 'Escape' && open) {
+          if (
+            event.key === 'Escape' &&
+            panel.current?.matches(':popover-open')
+          ) {
             event.preventDefault();
             event.stopPropagation();
             close();
@@ -275,77 +281,87 @@ export function PreviewSlot({
           } else show();
         }}
       >
-        <span
-          aria-hidden="true"
-          className={cn(
-            'pointer-events-none absolute grid place-items-center leading-none',
-            item || (emptyLabel && emptyIcon !== '·')
-              ? 'inset-x-1 top-[18%] h-[44%] text-[clamp(1.25rem,44cqw,2.5rem)]'
-              : 'text-ink/25 inset-0 text-xl',
-            !item &&
-              emptyLabel &&
-              emptyIcon !== '·' &&
-              (onQuickAction ? 'text-ink-secondary' : 'text-ink/25'),
-          )}
-        >
-          {item ? <GameIcon value={item.icon} purpose="artwork" /> : emptyIcon}
-        </span>
-        {slotName ? (
-          <span
-            className={cn(
-              'pointer-events-none absolute inset-x-1 top-[60%] flex h-[34%] items-center justify-center text-center wrap-anywhere',
-              slotName.length > 5
-                ? 'text-[clamp(0.5rem,16cqw,0.625rem)] leading-[1.05]'
-                : slotName.length === 5
-                  ? 'text-[clamp(0.625rem,16cqw,0.75rem)] leading-[1.1] @max-[4rem]:text-[8px] @max-[4rem]:leading-[1.05]'
-                  : 'text-[clamp(0.625rem,16cqw,0.75rem)] leading-[1.1]',
-              item?.color,
-            )}
-          >
-            <span className="line-clamp-2 w-full">{slotName}</span>
-          </span>
-        ) : null}
-        {mark ? (
-          <span
-            className="text-ink absolute top-1 left-1 font-mono text-[clamp(0.75rem,20cqw,1rem)] leading-none font-semibold tracking-tight whitespace-nowrap [text-shadow:0_1px_2px_var(--color-paper)]"
-            style={
-              item && item.quantity > 1
-                ? {
-                    fontSize: `min(1rem, 20cqw, calc((100cqw - 1.25rem) / ${mark.length + quantityText.length + 1}))`,
-                  }
-                : undefined
-            }
-          >
-            {mark}
-            {item && item.quantity > 1 ? (
-              <span className="ml-0.5">
+        {customTrigger && item ? (
+          customTrigger.render(item)
+        ) : (
+          <>
+            <span
+              aria-hidden="true"
+              className={cn(
+                'pointer-events-none absolute grid place-items-center leading-none',
+                item || (emptyLabel && emptyIcon !== '·')
+                  ? 'inset-x-1 top-[18%] h-[44%] text-[clamp(1.25rem,44cqw,2.5rem)]'
+                  : 'text-ink/25 inset-0 text-xl',
+                !item &&
+                  emptyLabel &&
+                  emptyIcon !== '·' &&
+                  (onQuickAction ? 'text-ink-secondary' : 'text-ink/25'),
+              )}
+            >
+              {item ? (
+                <GameIcon value={item.icon} purpose="artwork" />
+              ) : (
+                emptyIcon
+              )}
+            </span>
+            {slotName ? (
+              <span
+                className={cn(
+                  'pointer-events-none absolute inset-x-1 top-[60%] flex h-[34%] items-center justify-center text-center wrap-anywhere',
+                  slotName.length > 5
+                    ? 'text-[clamp(0.5rem,16cqw,0.625rem)] leading-[1.05]'
+                    : slotName.length === 5
+                      ? 'text-[clamp(0.625rem,16cqw,0.75rem)] leading-[1.1] @max-[4rem]:text-[8px] @max-[4rem]:leading-[1.05]'
+                      : 'text-[clamp(0.625rem,16cqw,0.75rem)] leading-[1.1]',
+                  item?.color,
+                )}
+              >
+                <span className="line-clamp-2 w-full">{slotName}</span>
+              </span>
+            ) : null}
+            {mark ? (
+              <span
+                className="text-ink absolute top-1 left-1 font-mono text-[clamp(0.75rem,20cqw,1rem)] leading-none font-semibold tracking-tight whitespace-nowrap [text-shadow:0_1px_2px_var(--color-paper)]"
+                style={
+                  item && item.quantity > 1
+                    ? {
+                        fontSize: `min(1rem, 20cqw, calc((100cqw - 1.25rem) / ${mark.length + quantityText.length + 1}))`,
+                      }
+                    : undefined
+                }
+              >
+                {mark}
+                {item && item.quantity > 1 ? (
+                  <span className="ml-0.5">
+                    <span className="text-[0.75em]">×</span>
+                    {quantityText}
+                  </span>
+                ) : null}
+              </span>
+            ) : null}
+            {item && item.quantity > 1 && !mark ? (
+              <span
+                className="text-ink absolute top-1 left-1 font-mono text-[clamp(0.75rem,20cqw,1rem)] leading-none font-semibold tracking-tight whitespace-nowrap [text-shadow:0_1px_2px_var(--color-paper)]"
+                style={
+                  item.quantity > 9999
+                    ? {
+                        // Leave room for the multiplier and 万 in narrow slots.
+                        fontSize: `min(1rem, 20cqw, calc((100cqw - 0.5rem) / ${quantityText.length * 0.65 + 1}))`,
+                      }
+                    : undefined
+                }
+              >
                 <span className="text-[0.75em]">×</span>
                 {quantityText}
               </span>
             ) : null}
-          </span>
-        ) : null}
-        {item && item.quantity > 1 && !mark ? (
-          <span
-            className="text-ink absolute top-1 left-1 font-mono text-[clamp(0.75rem,20cqw,1rem)] leading-none font-semibold tracking-tight whitespace-nowrap [text-shadow:0_1px_2px_var(--color-paper)]"
-            style={
-              item.quantity > 9999
-                ? {
-                    // Leave room for the multiplier and 万 in narrow slots.
-                    fontSize: `min(1rem, 20cqw, calc((100cqw - 0.5rem) / ${quantityText.length * 0.65 + 1}))`,
-                  }
-                : undefined
-            }
-          >
-            <span className="text-[0.75em]">×</span>
-            {quantityText}
-          </span>
-        ) : null}
-        {badge || item?.equipped ? (
-          <span className="text-crimson bg-paper absolute top-0 right-1 text-[10px]">
-            {badge ?? '已装备'}
-          </span>
-        ) : null}
+            {badge || item?.equipped ? (
+              <span className="text-crimson bg-paper absolute top-0 right-1 text-[10px]">
+                {badge ?? '已装备'}
+              </span>
+            ) : null}
+          </>
+        )}
       </button>
       <div
         ref={panel}

@@ -107,7 +107,7 @@ Nest `ThrottlerGuard` 只在显式挂载它的路由上检查频率。蓝绿实�
 | `POST /api/cultivator/redeem-code/claim` | 已验证账号 | 8 次 / 10 分钟 |
 | `POST /api/sponsorship/checkout-intents` | 已验证账号 | 5 次 / 10 分钟 |
 | `POST /api/sponsorship/claims` | 已验证账号 | 8 次 / 10 分钟 |
-| `POST /api/rankings/probe` | 已验证账号 | 30 次 / 分钟 |
+| `GET /api/cultivator/:id/card` | 活跃角色 | 30 次 / 分钟 |
 
 `/api/auth/*` 走 Better Auth 自己的限流，实时连接配额在 WebSocket 握手服务中检查。
 

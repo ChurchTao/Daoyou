@@ -20,6 +20,8 @@ import {
   UseFilters,
 } from '@nestjs/common';
 import { Access, CurrentCultivator } from '@server/auth/access.js';
+import { CharacterCardService } from '@server/cultivator/character-card.service.js';
+import { CultivatorModule } from '@server/cultivator/cultivator.module.js';
 import { apiErrorFilter } from '@server/http/error-filter.js';
 import { FirstQuery } from '@server/http/first-query.js';
 import { JsonBody } from '@server/http/json-body.js';
@@ -35,10 +37,10 @@ import {
   applyToParty,
   currentParty,
   expireApplicationsAfterPartyCreation,
-  inspectPartyApplicant,
-  inspectPartyMember,
   previewPartyApplication,
   readPartyVitals,
+  resolvePartyApplicantCardTarget,
+  resolvePartyMemberCardTarget,
   reviewPartyApplication,
 } from './party-applications.js';
 import { listPartyChat, sendPartyChat } from './party-chat.js';
@@ -64,6 +66,7 @@ import { changeParty, createParty, partyForUser } from './party.service.js';
 )
 class PartiesController {
   constructor(
+    @Inject(CharacterCardService) private readonly cards: CharacterCardService,
     @Inject(PresenceService) private readonly presence: PresenceService,
   ) {}
 
@@ -141,20 +144,20 @@ class PartiesController {
 
   @Get('applications/:id/cultivator')
   @Header('Cache-Control', 'private, no-store')
-  inspect(
+  async inspect(
     @CurrentCultivator() actor: ActiveCultivatorRef,
     @Param('id', new ZodPipe(z.uuid())) id: string,
   ) {
-    return inspectPartyApplicant(actor, id);
+    return this.cards.card(await resolvePartyApplicantCardTarget(actor, id));
   }
 
   @Get('members/:id/cultivator')
   @Header('Cache-Control', 'private, no-store')
-  inspectMember(
+  async inspectMember(
     @CurrentCultivator() actor: ActiveCultivatorRef,
     @Param('id', new ZodPipe(z.uuid())) id: string,
   ) {
-    return inspectPartyMember(actor, id);
+    return this.cards.card(await resolvePartyMemberCardTarget(actor, id));
   }
 
   @Post()
@@ -203,7 +206,7 @@ class PartiesController {
 }
 
 @Module({
-  imports: [PresenceModule],
+  imports: [CultivatorModule, PresenceModule],
   controllers: [PartiesController],
 })
 export class PartiesModule {}

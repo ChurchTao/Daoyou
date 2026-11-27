@@ -1,0 +1,226 @@
+.character-card-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  padding: 0;
+  width: min(27rem, calc(100vw - 1.5rem));
+  max-height: calc(100dvh - 2rem);
+  overflow: hidden;
+  color: var(--color-ink);
+  background: var(--color-bgpaper);
+  border: 1px solid var(--color-ink-border);
+  box-shadow: 0 1rem 4rem #17120c38;
+}
+.character-card-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.character-card-dialog::backdrop {
+  background: rgb(24 20 16 / 48%);
+}
+.character-card-pages {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 3.25rem;
+  grid-template-rows: minmax(0, 1fr);
+  height: clamp(14rem, 37dvh, 17rem);
+}
+.character-card-rail {
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  grid-template-rows: repeat(5, 1fr);
+  border-left: 1px solid var(--color-ink-border);
+}
+.character-card-rail button {
+  min-width: 0;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  color: var(--color-ink-secondary);
+}
+.character-card-rail button[aria-selected='true'] {
+  color: var(--color-crimson);
+  border-left-color: currentColor;
+  background: color-mix(in srgb, var(--color-crimson) 6%, transparent);
+  font-weight: 600;
+}
+.character-card-panel {
+  grid-column: 1;
+  grid-row: 1;
+}
+.character-card-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.65rem;
+}
+.character-card-section-title h4 {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.character-card-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-ink-border);
+}
+.character-card-section-title > span {
+  order: 1;
+}
+.character-card-honors {
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--color-wood) 9%, transparent),
+    transparent
+  );
+  border-left: 2px solid color-mix(in srgb, var(--color-wood) 68%, transparent);
+}
+.character-card-honors li {
+  display: grid;
+  grid-template-columns: 2.35rem 1fr;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.45rem 0.65rem;
+}
+.character-card-honors li + li {
+  border-top: 1px solid var(--color-ink-border);
+}
+.character-card-medal,
+.character-card-sigil,
+.character-card-book {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.character-card-medal {
+  width: 2.25rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--color-wood) 42%, transparent);
+  background: var(--color-paper);
+  font-size: 1.25rem;
+}
+.character-card-collection,
+.character-card-rack {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 5.5rem));
+  justify-content: start;
+  gap: 0.55rem;
+}
+.character-card-socket-label {
+  padding: 0.12rem 0.25rem;
+  color: var(--color-ink-secondary);
+  background: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+.character-card-asset {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  text-align: center;
+}
+.character-card-vacant {
+  border: 1px dashed var(--color-ink-border);
+}
+.character-card-manuals {
+  border-block: 1px solid var(--color-ink-border);
+}
+.character-card-manual {
+  display: grid;
+  width: 100%;
+  min-height: 3.8rem;
+  aspect-ratio: auto;
+  grid-template-columns: 2.2rem minmax(0, 1fr) auto 0.5rem;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem;
+  border: 0;
+  border-bottom: 1px solid var(--color-ink-border);
+  background: transparent;
+}
+.character-card-manual:last-of-type {
+  border-bottom: 0;
+}
+.character-card-manual:is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--color-teal) 6%, transparent);
+}
+.character-card-book {
+  height: 2.65rem;
+  border-left: 2px solid color-mix(in srgb, var(--color-teal) 48%, transparent);
+  background: color-mix(in srgb, var(--color-teal) 9%, transparent);
+  font-size: 1.3rem;
+}
+.character-card-tracks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem 0.65rem;
+}
+.character-card-track {
+  position: relative;
+  min-height: 3.8rem;
+  display: grid;
+  align-content: center;
+  padding: 0.4rem 0.25rem 0.4rem 2.75rem;
+  background: color-mix(in srgb, var(--color-ink) 3%, transparent);
+  border-bottom: 1px solid var(--color-ink-border);
+}
+.character-card-track dt,
+.character-card-roots dt {
+  font-weight: 600;
+}
+.character-card-sigil {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 50%;
+  font-size: 1.15rem;
+  background: var(--color-paper);
+}
+.character-card-track .character-card-sigil {
+  position: absolute;
+  left: 0.45rem;
+  top: calc(50% - 0.925rem);
+}
+.character-card-track dd {
+  color: var(--color-ink-secondary);
+  font-size: 0.75rem;
+}
+.character-card-track strong {
+  color: var(--color-ink);
+  font-size: 1rem;
+}
+.character-card-roots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(10.5rem, 100%), 1fr));
+  gap: 0.4rem 0.75rem;
+}
+.character-card-roots > div,
+.character-card-roots dt {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.character-card-roots > div {
+  min-height: 2.75rem;
+  justify-content: space-between;
+  padding-inline: 0.5rem;
+  border-bottom: 1px solid var(--color-ink-border);
+  background: color-mix(in srgb, var(--color-teal) 4%, transparent);
+}
+.character-card-roots dd {
+  font-size: 0.75rem;
+  color: var(--color-teal);
+}
+.character-card-story {
+  border-left: 2px solid
+    color-mix(in srgb, var(--color-crimson) 42%, transparent);
+  padding-left: 0.75rem;
+}

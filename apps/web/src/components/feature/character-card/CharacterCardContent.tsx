@@ -7,13 +7,13 @@ import { CharacterCardView } from './CharacterCardView';
 
 export function CharacterCardContent({
   id,
+  path,
   fallback,
-  onDetailChange,
   actions,
 }: {
   id: string;
+  path?: string;
   fallback?: ReactNode;
-  onDetailChange?: (open: boolean) => void;
   actions?: ReactNode;
 }) {
   const [card, setCard] = useState<CharacterCard | null>(null);
@@ -22,10 +22,15 @@ export function CharacterCardContent({
 
   useEffect(() => {
     let cancelled = false;
-    fetchJsonCached<ApiSuccess<CharacterCard>>(`/api/cultivator/${id}/card`, {
-      key: `character-card:${id}`,
-      ttlMs: 5000,
-    })
+    const request = path ? new AbortController() : undefined;
+    fetchJsonCached<ApiSuccess<CharacterCard>>(
+      path ?? `/api/cultivator/${id}/card`,
+      {
+        key: path ?? `character-card:${id}`,
+        ttlMs: path ? 0 : 5000,
+        signal: request?.signal,
+      },
+    )
       .then((response) => {
         if (!cancelled) setCard(response.data);
       })
@@ -35,13 +40,14 @@ export function CharacterCardContent({
       });
     return () => {
       cancelled = true;
+      request?.abort();
     };
-  }, [id, attempt]);
+  }, [id, path, attempt]);
 
   if (card) {
     return (
       <>
-        <CharacterCardView card={card} onDetailChange={onDetailChange} />
+        <CharacterCardView card={card} />
         {actions}
       </>
     );

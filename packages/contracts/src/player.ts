@@ -11,28 +11,6 @@ import type {
   ResourceScope,
 } from './resources/index.js';
 
-export type CultivatorInspectionData = Pick<
-  Cultivator,
-  | 'id'
-  | 'name'
-  | 'title'
-  | 'gender'
-  | 'background'
-  | 'description'
-  | 'realm'
-  | 'realm_stage'
-  | 'attributes'
-  | 'spiritual_roots'
-  | 'pre_heaven_fates'
-  | 'condition'
-> & {
-  combatPanel:
-    import('@daoyou/game-domain/combat').CharacterPanelV1 | null;
-  build:
-    | import('@daoyou/game-domain/combat').PublicCombatV6Build
-    | null;
-};
-
 export type PlayerIdentityCultivator = Omit<
   Cultivator,
   | 'inventory'

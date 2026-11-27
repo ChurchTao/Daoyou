@@ -1,6 +1,6 @@
 import { CharacterCardContent } from '@app/components/feature/character-card/CharacterCardContent';
+import { CharacterCardDialog } from '@app/components/feature/character-card/CharacterCardDialog';
 import { socialRequest } from '@app/components/feature/friends/socialApi';
-import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import type { DirectConversationDTO } from '@daoyou/contracts/direct-messages';
@@ -19,7 +19,6 @@ export function FriendDetailsModal({
   onClose: () => void;
   onGift: (cultivatorId: string, chatId: string) => void;
 }) {
-  const [detailOpen, setDetailOpen] = useState(false);
   const [confirm, setConfirm] = useState<'remove' | 'block' | null>(null);
   const [busy, setBusy] = useState(false);
   const { pushToast } = useInkUI();
@@ -89,29 +88,19 @@ export function FriendDetailsModal({
   }
 
   return (
-    <InkModal
-      isOpen
+    <CharacterCardDialog
       title={
-        confirm ? (confirm === 'block' ? '屏蔽道友' : '移出好友') : '道友资料'
+        confirm ? (confirm === 'block' ? '屏蔽道友' : '移出好友') : '道友名片'
       }
-      manageFocus
+      closeLabel={confirm ? '取消' : conversation ? '返回聊天' : '关闭名片'}
       onClose={() => {
-        if (!busy) onClose();
+        if (busy) return;
+        if (confirm) setConfirm(null);
+        else onClose();
       }}
       footer={
-        <div className="flex justify-end gap-2">
-          <InkButton
-            variant="secondary"
-            className="min-h-11"
-            disabled={busy}
-            onClick={() => {
-              if (confirm) setConfirm(null);
-              else onClose();
-            }}
-          >
-            {confirm ? '取消' : conversation ? '返回聊天' : '关闭'}
-          </InkButton>
-          {confirm ? (
+        confirm ? (
+          <div className="flex justify-end">
             <InkButton
               variant="primary"
               className="min-h-11"
@@ -121,22 +110,17 @@ export function FriendDetailsModal({
             >
               确认{actionLabel}
             </InkButton>
-          ) : null}
-        </div>
+          </div>
+        ) : undefined
       }
     >
       <div hidden={!!confirm}>
         {cardId ? (
-          <CharacterCardContent
-            key={cardId}
-            id={cardId}
-            fallback={fallback}
-            onDetailChange={setDetailOpen}
-          />
+          <CharacterCardContent key={cardId} id={cardId} fallback={fallback} />
         ) : (
           fallback
         )}
-        {!detailOpen && (unavailableReason || canViewMentorship || friend) ? (
+        {unavailableReason || canViewMentorship || friend ? (
           <section
             aria-label="道友往来"
             className="border-ink/15 mt-4 border-t pt-2"
@@ -220,6 +204,6 @@ export function FriendDetailsModal({
           </p>
         </div>
       ) : null}
-    </InkModal>
+    </CharacterCardDialog>
   );
 }

@@ -8,8 +8,13 @@ import {
   type CharacterCardSettings,
   type CharacterCardSettingsView,
 } from '@daoyou/contracts/player/card';
+import { CHARACTER_MANUALS_V1 } from '@daoyou/game-content/manuals';
 import { getSectOrganizationDefinition } from '@daoyou/game-content/sect-organization/definitions';
 import { beastTradePreview } from '@daoyou/game-domain/beasts';
+import type { CultivatorCondition } from '@daoyou/game-domain/condition';
+import { DAO_EQUIPMENT_SLOTS } from '@daoyou/game-domain/equipment';
+import { getBodyCultivationSummary } from '@daoyou/game-rules/body-cultivation/progress';
+import { normalizeMarrowWashState } from '@daoyou/game-rules/body-cultivation/training';
 import { InventoryEquipmentSchema } from '@daoyou/game-rules/inventory/equipment';
 import { HttpException, Inject, Injectable } from '@nestjs/common';
 import {
@@ -24,8 +29,13 @@ import {
   cultivators,
   inventoryItems,
   sectMemberships,
+  spiritualRoots,
   sponsorshipMeritProfiles,
 } from '@server/lib/drizzle/schema.js';
+import {
+  readCharacterEquipment,
+  readCharacterManuals,
+} from '@server/lib/repositories/characterLoadoutRepository.js';
 import { beastFromRow } from '@server/lib/repositories/combatV6BeastRepository.js';
 import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
 import { toPlayerStateMutationResponse } from '@server/player/application/state/ResourceMutationResponse.js';
@@ -61,6 +71,7 @@ export class CharacterCardService {
         realm: cultivators.realm,
         realmStage: cultivators.realm_stage,
         background: cultivators.background,
+        condition: cultivators.condition,
         gameSettings: cultivators.gameSettings,
       })
       .from(cultivators)
@@ -99,10 +110,10 @@ export class CharacterCardService {
         ),
       )
       .orderBy(inventoryItems.createdAt, inventoryItems.id);
-    return rows.map((row) => ({
-      ...row,
-      name: InventoryEquipmentSchema.parse(row.instanceData).name,
-    }));
+    return rows.map((row) => {
+      const instanceData = InventoryEquipmentSchema.parse(row.instanceData);
+      return { ...row, name: instanceData.name, instanceData };
+    });
   }
 
   private async beasts(cultivatorId: string, q: DbExecutor, ids: string[]) {
@@ -153,6 +164,15 @@ export class CharacterCardService {
         ),
       )
       .limit(1);
+    const roots = await q
+      .select({ element: spiritualRoots.element, grade: spiritualRoots.grade })
+      .from(spiritualRoots)
+      .where(eq(spiritualRoots.cultivatorId, row.id))
+      .orderBy(spiritualRoots.createdAt, spiritualRoots.id);
+    const condition = row.condition as CultivatorCondition;
+    const { tracks } = getBodyCultivationSummary(condition);
+    const manuals = await readCharacterManuals(row.id, q);
+    const equipped = await readCharacterEquipment(row.id, q);
     return {
       id: row.id,
       name: row.name,
@@ -176,12 +196,52 @@ export class CharacterCardService {
           .filter(
             (achievement) => achievement.id === id && achievement.unlocked,
           )
-          .map(({ id: achievementId, name, description }) => ({
-            id: achievementId,
-            name,
-            description,
-          })),
+          .map(
+            ({ id: achievementId, name, description, category, seriesId }) => ({
+              id: achievementId,
+              category,
+              seriesId,
+              name,
+              description,
+            }),
+          ),
       ),
+      spiritualRoots: roots,
+      training: [
+        ...tracks.map(({ key, name, level }) => ({ key, name, level })),
+        {
+          key: 'marrow_wash',
+          name: '洗髓',
+          level: normalizeMarrowWashState(condition).level,
+        },
+      ],
+      equippedManuals: manuals.build.slots
+        .toSorted((a, b) => a.slot - b.slot)
+        .flatMap(({ slot, manualId }) => {
+          const definition = CHARACTER_MANUALS_V1.find(
+            ({ id }) => id === manualId,
+          );
+          const learned = manuals.learned.find(
+            (entry) => entry.manualId === manualId,
+          );
+          return definition && learned
+            ? [{ manualId, slot, name: definition.name, level: learned.level }]
+            : [];
+        }),
+      equippedEquipment: DAO_EQUIPMENT_SLOTS.flatMap((slot) => {
+        const item = equipped[slot];
+        if (!item) return [];
+        const instanceData = InventoryEquipmentSchema.parse(item);
+        return [
+          {
+            id: instanceData.id,
+            definitionId: 'equipment.v6',
+            name: instanceData.name,
+            quantity: 1,
+            instanceData,
+          },
+        ];
+      }),
     };
   }
 

@@ -11,7 +11,9 @@ import {
   Param,
   Put,
   UseFilters,
+  UseGuards,
 } from '@nestjs/common';
+import { minutes, Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { z } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
@@ -65,7 +67,9 @@ export class CharacterCardController {
   }
 
   @Get(':id/card')
-  @Header('Cache-Control', 'no-store')
+  @Header('Cache-Control', 'private, no-store')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 30, ttl: minutes(1) } })
   card(@Param('id', new ZodPipe(z.uuid())) id: string) {
     return this.cards.card(id);
   }

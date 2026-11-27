@@ -40,7 +40,7 @@ export function PartyRoster({
   party: PartyView;
   current: CurrentParty;
   focus?: PartyRecruitmentFocus;
-  onInspect: (path: string, name: string) => void;
+  onInspect: (id: string, path: string) => void;
 }) {
   const { actorId, busy, send } = useParty();
   const [view, setView] = useState<RosterView>('members');
@@ -190,8 +190,8 @@ export function PartyRoster({
                       ? undefined
                       : () =>
                           onInspect(
-                            `/members/${member.cultivatorId}/cultivator`,
-                            member.name,
+                            member.cultivatorId,
+                            `/api/parties/members/${member.cultivatorId}/cultivator`,
                           )
                   }
                 />
@@ -229,11 +229,11 @@ export function PartyRoster({
                     <button
                       type="button"
                       className="focus-visible:outline-crimson hover:text-crimson flex min-w-0 flex-1 items-center gap-2 text-left"
-                      aria-label={`查看${entry.applicant.name}的资料`}
+                      aria-label={`查看${entry.applicant.name}的名片`}
                       onClick={() =>
                         onInspect(
-                          `/applications/${entry.id}/cultivator`,
-                          entry.applicant.name,
+                          entry.applicant.cultivatorId,
+                          `/api/parties/applications/${entry.id}/cultivator`,
                         )
                       }
                     >

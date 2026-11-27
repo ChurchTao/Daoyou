@@ -1,5 +1,6 @@
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import type { BeastTradePreview } from '@daoyou/game-domain/beasts';
+import type { BodyCultivationTrackKey } from '@daoyou/game-domain/condition';
 import type { SponsorshipTierId } from '@daoyou/game-domain/sponsorship';
 import { z } from 'zod';
 import type { AchievementDisplay, AchievementView } from './achievements.js';
@@ -45,7 +46,21 @@ export type CharacterCard = {
   sponsorshipTier: SponsorshipTierId | null;
   equipment: CharacterCardEquipment[];
   beasts: CharacterCardBeast[];
-  achievements: AchievementDisplay[];
+  achievements: (AchievementDisplay &
+    Pick<AchievementView, 'seriesId' | 'category'>)[];
+  spiritualRoots: { element: string; grade: string | null }[];
+  training: {
+    key: BodyCultivationTrackKey | 'marrow_wash';
+    name: string;
+    level: number;
+  }[];
+  equippedManuals: {
+    manualId: string;
+    slot: number;
+    name: string;
+    level: number;
+  }[];
+  equippedEquipment: CharacterCardEquipment[];
 };
 
 export type CharacterCardSettingsView = {

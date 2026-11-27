@@ -1,7 +1,7 @@
-import { InkModal } from '@app/components/layout';
 import { InkButton } from '@app/components/ui/InkButton';
 import { useState, type ReactNode } from 'react';
 import { CharacterCardContent } from './CharacterCardContent';
+import { CharacterCardDialog } from './CharacterCardDialog';
 
 export function CharacterCardTrigger({
   id,
@@ -15,11 +15,7 @@ export function CharacterCardTrigger({
   onSelectFriend?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const close = () => {
-    setOpen(false);
-    setDetailOpen(false);
-  };
+  const close = () => setOpen(false);
 
   return (
     <>
@@ -33,29 +29,15 @@ export function CharacterCardTrigger({
       >
         {children}
       </button>
-      <InkModal
-        isOpen={open}
-        onClose={close}
-        title="道友名片"
-        className="max-w-sm"
-        manageFocus
-        footer={
-          <div className="flex justify-end">
-            <InkButton variant="secondary" className="min-h-11" onClick={close}>
-              关闭名片
-            </InkButton>
-          </div>
-        }
-      >
-        <CharacterCardContent
-          key={id}
-          id={id}
-          onDetailChange={setDetailOpen}
-          actions={
-            onSelectFriend && !detailOpen ? (
-              <div className="border-ink/15 mt-3 border-t pt-2">
+      {open ? (
+        <CharacterCardDialog onClose={close}>
+          <CharacterCardContent
+            key={id}
+            id={id}
+            actions={
+              onSelectFriend ? (
                 <InkButton
-                  className="min-h-11"
+                  className="mt-2 min-h-11"
                   onClick={() => {
                     close();
                     onSelectFriend(id);
@@ -63,11 +45,11 @@ export function CharacterCardTrigger({
                 >
                   收录道友
                 </InkButton>
-              </div>
-            ) : null
-          }
-        />
-      </InkModal>
+              ) : null
+            }
+          />
+        </CharacterCardDialog>
+      ) : null}
     </>
   );
 }
