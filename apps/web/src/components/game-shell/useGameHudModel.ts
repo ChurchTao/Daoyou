@@ -15,10 +15,6 @@ import {
   COMPREHENSION_INSIGHT_CAP,
 } from '@daoyou/game-content/cultivation';
 import {
-  getBodyCultivationSummary,
-  type BodyCultivationSummary,
-} from '@daoyou/game-rules/body-cultivation/progress';
-import {
   getPillToxicityStage,
   isConditionStatusActive,
   getConditionStatusTemplate,
@@ -28,10 +24,6 @@ import {
   getResourceLabel,
   getResourceText,
 } from '@daoyou/game-content/presentation/concepts';
-import {
-  getMarrowWashSummary,
-  type MarrowWashSummary,
-} from '@daoyou/game-rules/body-cultivation/training';
 import type { ConditionStatusKey } from '@daoyou/game-domain/condition';
 import { RealmType } from '@daoyou/constants/realms';
 
@@ -90,8 +82,6 @@ export interface GameHudSnapshot {
   metrics: GameHudMetric[];
   activeStatuses: GameHudStatusTag[];
   pillToxicity: GameHudPillToxicityDetail;
-  bodyCultivation: BodyCultivationSummary;
-  marrowWash: MarrowWashSummary;
 }
 
 type HudCultivatorView = CultivatorDisplayInput &
@@ -228,13 +218,6 @@ export function buildGameHudSnapshot(input: {
   if (pillToxicityStage.key !== 'none') {
     statusLabels.push(pillToxicityStage.label);
   }
-  const bodyCultivation = getBodyCultivationSummary(cultivator.condition, {
-    cultivatorRealm: cultivator.realm,
-  });
-  const marrowWash = getMarrowWashSummary(cultivator.condition, {
-    cultivatorRealm: cultivator.realm,
-  });
-
   return {
     cultivatorId: cultivator.id ?? '',
     name: cultivator.name,
@@ -258,8 +241,6 @@ export function buildGameHudSnapshot(input: {
         cultivator.pre_heaven_fates ?? [],
       ),
     },
-    bodyCultivation,
-    marrowWash,
     cultivationProgress: {
       current: cultivationExp,
       cap: cultivationCap,

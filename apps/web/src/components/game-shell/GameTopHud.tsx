@@ -60,7 +60,6 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
       : '--';
   const {
     openRealmInfo,
-    openBodyCultivationInfo,
     openCultivationInfo,
     openInsightInfo,
     openQiInfo,
@@ -113,11 +112,6 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
       label: '状态',
       value: snapshot.statusText,
       onClick: openStatusInfo,
-    },
-    {
-      key: 'body-cultivation',
-      value: snapshot.bodyCultivation.realm.label,
-      onClick: openBodyCultivationInfo,
     },
   ];
 

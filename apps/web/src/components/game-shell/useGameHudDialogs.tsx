@@ -1,10 +1,5 @@
-import {
-  BodyCultivationSummaryContent,
-  MarrowWashSummaryContent,
-} from '@app/components/feature/cultivator/BodyCultivationPanels';
 import { useQiState } from '@app/components/feature/cultivator/useQiState';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
-import { InkButton } from '@app/components/ui';
 import {
   BOTTLENECK_THRESHOLD,
   BREAKTHROUGH_MIN_PROGRESS,
@@ -21,7 +16,6 @@ import {
   QI_OVERFLOW_MAX,
 } from '@daoyou/game-content/qi/config';
 import { getGameConceptInfo } from '@daoyou/game-content/presentation/concepts';
-import { useNavigate } from 'react-router';
 import { InfoTable, StatusDetailBlock } from './GameHudDialogContent';
 import type { GameHudSnapshot } from './useGameHudModel';
 
@@ -87,8 +81,7 @@ export function useGameHudDialogs(
   qiState: ReturnType<typeof useQiState>['state'],
   qiError: ReturnType<typeof useQiState>['error'],
 ) {
-  const { closeDialog, openDialog } = useInkUI();
-  const navigate = useNavigate();
+  const { openDialog } = useInkUI();
   if (!snapshot) return null;
 
   const insightMetric = snapshot.metrics.find(
@@ -148,48 +141,6 @@ export function useGameHudDialogs(
       ),
       confirmLabel: null,
       cancelLabel: '知道了',
-    });
-  };
-
-  const openBodyCultivationInfo = () => {
-    const openMarrowWashDetail = () => {
-      closeDialog();
-      void navigate('/game/cultivator?tab=body');
-    };
-
-    openDialog({
-      title: '肉身炼体',
-      content: (
-        <div className="space-y-3 text-sm leading-7">
-          <BodyCultivationSummaryContent
-            summary={snapshot.bodyCultivation}
-            dense
-          />
-          <div className="border-ink/10 bg-paper-2 border border-dashed px-3 py-2 text-xs leading-5">
-            <p className="text-ink">
-              提升：服用炼体丹，丹力会进入对应的肉身轨道。
-            </p>
-            <p className="text-ink-secondary mt-1">
-              肉身称号随五轨总等级自动变化，单轨与洗髓上限仅由角色境界决定。
-            </p>
-          </div>
-          <MarrowWashSummaryContent
-            summary={snapshot.marrowWash}
-            action={
-              <InkButton
-                onClick={openMarrowWashDetail}
-                variant="secondary"
-                className="text-xs"
-              >
-                查看详情
-              </InkButton>
-            }
-          />
-        </div>
-      ),
-      confirmLabel: '查看详情',
-      cancelLabel: '知道了',
-      onConfirm: () => navigate('/game/cultivator?tab=body'),
     });
   };
 
@@ -472,7 +423,6 @@ export function useGameHudDialogs(
 
   return {
     openRealmInfo,
-    openBodyCultivationInfo,
     openCultivationInfo,
     openInsightInfo,
     openQiInfo,
