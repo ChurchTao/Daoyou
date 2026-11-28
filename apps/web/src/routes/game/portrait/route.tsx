@@ -59,7 +59,7 @@ export default function PortraitStudioRoute() {
 
   return (
     <div className="portrait-studio">
-      <AppViewportColor color="#eee5d2" />
+      <AppViewportColor color="var(--portrait-studio-surface)" />
       <GameImage
         src="/assets/scenes/portrait-studio.webp"
         alt=""
@@ -296,7 +296,7 @@ function PortraitStudio({
               <div className="portrait-studio-actions">
                 <InkButton
                   variant="primary"
-                  className="min-h-11"
+                  className="portrait-studio-primary min-h-11"
                   disabled={cultivator.avatarId === result.id}
                   pending={equipping}
                   pendingLabel="启用中……"
@@ -445,7 +445,7 @@ function PortraitStudio({
                 <div className="portrait-studio-actions">
                   <InkButton
                     type="submit"
-                    className="min-h-11"
+                    className="portrait-studio-primary min-h-11"
                     variant="primary"
                     pending={submitting}
                     disabled={unavailable || draft.trim().length < 2}
