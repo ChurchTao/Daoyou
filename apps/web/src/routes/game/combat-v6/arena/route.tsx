@@ -31,13 +31,16 @@ function ArenaBattle({
 }) {
   const navigate = useNavigate();
   const invasionRoute = useMatch('/game/combat-v6/invasion/:battleId');
+  const huntRoute = useMatch('/game/combat-v6/hunt/:battleId');
   const controller = useArenaV6Session(battleId, spectator);
   const { state, connected, error, pending } = controller;
   const session = state.session;
   const invasion = session?.invasion;
+  const huntBoss = session?.hunt ? HUNT_BOSSES[session.hunt.bossId] : undefined;
   const isInvasion = !!(invasion || invasionRoute);
-  const back = isInvasion ? INVASION_PATH : session?.hunt ? HUNT_TEAM_HREF : '/game/arena';
-  const backLabel = isInvasion ? '返回镇魔营地' : session?.hunt ? '返回讨伐' : '返回擂台';
+  const isHunt = !!(session?.hunt || huntRoute);
+  const back = isInvasion ? INVASION_PATH : isHunt ? HUNT_TEAM_HREF : '/game/arena';
+  const backLabel = isInvasion ? '返回镇魔营地' : isHunt ? '返回讨伐' : '返回擂台';
   const [leaving, setLeaving] = useState(false);
   const [leaveError, setLeaveError] = useState<string>();
   const leave = async () => {
@@ -73,8 +76,8 @@ function ArenaBattle({
     ? `古魔入侵 · 第 ${invasion.wave} 波`
     : invasionRoute
       ? '古魔入侵'
-      : session?.hunt
-        ? `结伴讨伐 · ${HUNT_BOSSES[session.hunt.bossId].name}`
+      : isHunt
+        ? huntBoss ? `结伴讨伐 · ${huntBoss.name}` : '结伴讨伐'
         : spectator
           ? '擂台观战'
           : '擂台切磋';

@@ -22,4 +22,5 @@ export type SectTaskSessionView = Omit<
 > & {
   taskId: string;
   settlement?: 'pending' | 'settled';
+  eventWindowStartSeq?: number;
 };

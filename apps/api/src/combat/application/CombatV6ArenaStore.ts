@@ -4,13 +4,14 @@ import {
   type ArenaRuntime,
   type ArenaSessionView,
 } from '@daoyou/contracts/combat/arena';
+import type { HuntBattleReward } from '@daoyou/contracts/hunts';
 
 const root = 'combat:v6:arena';
 export const arenaRuntimeKey = (id: string) => `${root}:runtime:${id}`;
 const arenaResultKey = (id: string) => `${root}:result:${id}`;
 export const arenaOccupancyKey = (id: string) => `${root}:occupancy:${id}`;
 export const arenaDueKey = `${root}:due`;
-const INVASION_RESULT_GRACE_MS = 120_000;
+const ARENA_RESULT_GRACE_MS = 120_000;
 const sourceKey = (roomId: string, requestId: string) =>
   `${root}:source:${roomId}:${requestId}`;
 const CREATE = `
@@ -47,7 +48,7 @@ redis.call('ZADD', KEYS[2], ARGV[3], ARGV[4])
 return 1
 `;
 
-const FINISH_INVASION = `
+const FINISH_PVE = `
 local raw = redis.call('GET', KEYS[1])
 if not raw then return 0 end
 local current = cjson.decode(raw)
@@ -58,8 +59,10 @@ redis.call('ZREM', KEYS[3], ARGV[4])
 return 1
 `;
 
-type InvasionResult = Pick<ArenaRuntime, 'battleId' | 'revision' | 'participants' | 'lastResults'>;
-export type ArenaViewSource = ArenaRuntime | InvasionResult;
+type ArenaResult = Pick<ArenaRuntime, 'battleId' | 'revision' | 'participants' | 'lastResults'> & {
+  participantRewards?: Record<string, HuntBattleReward>;
+};
+export type ArenaViewSource = ArenaRuntime | ArenaResult;
 
 export class CombatV6ArenaStore {
   async get(id: string): Promise<ArenaRuntime | null> {
@@ -75,7 +78,7 @@ export class CombatV6ArenaStore {
     if (runtime) return runtime;
     const raw = await redis.get(arenaResultKey(id));
     if (!raw) return null;
-    const value = JSON.parse(raw) as InvasionResult;
+    const value = JSON.parse(raw) as ArenaResult;
     if (value.battleId !== id) throw new Error('ARENA_RESULT_INVALID');
     return value;
   }
@@ -155,22 +158,27 @@ export class CombatV6ArenaStore {
       .expire(arenaRuntimeKey(runtime.battleId), 86400)
       .exec();
   }
-  async finishInvasion(runtime: ArenaRuntime, lastResults: Record<string, ArenaSessionView>) {
-    const result: InvasionResult = {
+  async finishPve(
+    runtime: ArenaRuntime,
+    lastResults: Record<string, ArenaSessionView>,
+    participantRewards?: ArenaResult['participantRewards'],
+  ) {
+    const result: ArenaResult = {
       battleId: runtime.battleId,
       revision: runtime.revision,
       participants: runtime.participants,
       lastResults,
+      participantRewards,
     };
     await redis.eval(
-      FINISH_INVASION,
+      FINISH_PVE,
       3,
       arenaRuntimeKey(runtime.battleId),
       arenaResultKey(runtime.battleId),
       arenaDueKey,
       runtime.revision,
       JSON.stringify(result),
-      Math.max(Date.now(), runtime.playbackEndsAt) + INVASION_RESULT_GRACE_MS,
+      Math.max(Date.now(), runtime.playbackEndsAt) + ARENA_RESULT_GRACE_MS,
       runtime.battleId,
     );
   }

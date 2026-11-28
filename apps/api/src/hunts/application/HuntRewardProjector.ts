@@ -13,6 +13,7 @@ import {
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
 import { getOrInitCultivationProgress } from '@daoyou/game-rules/cultivation';
 import type { HuntBattleReward } from '@daoyou/contracts/hunts';
+import type { ArenaRuntime } from '@daoyou/contracts/combat/arena';
 import type { JournalChange } from '@daoyou/game-domain/journal/changes';
 import { HUNT_BOSSES } from '@daoyou/game-content/hunts';
 import {
@@ -24,8 +25,9 @@ import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import type { CultivationProgress } from '@daoyou/game-domain/character';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { ArenaV6Error, ownedArenaV6 } from '@server/combat/application/CombatV6ArenaService.js';
+import { ArenaV6Error, ownedArenaViewV6 } from '@server/combat/application/CombatV6ArenaService.js';
 import { CombatV6ArenaStore } from '@server/combat/application/CombatV6ArenaStore.js';
+import { arenaResultViews } from '@server/combat/arena-view.js';
 import {
   updateCultivationExp,
   updateSpiritStones,
@@ -236,16 +238,27 @@ export async function projectHuntReward(battleId: string) {
     },
   );
   // A committed claim remains authoritative if any Redis cleanup step must retry.
+  const rewards = Object.fromEntries(
+    await Promise.all(participants.map(async (participant) => [
+      participant.unitId,
+      await readCommittedHuntReward(runtime, participant),
+    ] as const)),
+  );
   await finishHuntTeam(runtime.roomId, battleId, runtime.startRequestId);
   await store.release(runtime);
-  await store.acknowledge(runtime);
+  await store.finishPve(runtime, arenaResultViews(runtime, Date.now()), rewards);
 }
 
 export async function huntBattleReward(
   battleId: string,
   actor: HuntActor,
 ): Promise<HuntBattleReward> {
-  const { runtime, participant } = await ownedArenaV6(battleId, actor);
+  const { runtime, participant } = await ownedArenaViewV6(battleId, actor);
+  if (!('state' in runtime)) {
+    const reward = runtime.participantRewards?.[participant.unitId];
+    if (!reward) throw new ArenaV6Error('不是讨伐战斗', 400);
+    return reward;
+  }
   if (!runtime.hunt) throw new ArenaV6Error('不是讨伐战斗', 400);
   const [receipt] = await db
     .select({ id: messageConsumptions.messageId })
@@ -258,21 +271,28 @@ export async function huntBattleReward(
     )
     .limit(1);
   if (!receipt) return { status: 'pending' };
+  return readCommittedHuntReward(runtime, participant);
+}
+
+async function readCommittedHuntReward(
+  runtime: ArenaRuntime,
+  participant: ArenaRuntime['participants'][number],
+): Promise<HuntBattleReward> {
   if (
     runtime.terminalReason !== 'battle-ended' ||
     runtime.state.result?.winner !== 0
   )
     return { status: 'no-reward' };
   const claim = await findJournalOperation(
-    actor.cultivatorId,
-    journalOperationKey('hunt_reward', runtime.hunt.id),
+    participant.cultivatorId,
+    journalOperationKey('hunt_reward', runtime.hunt!.id),
     null,
   );
   const result = claim
     ? HuntJournalResultSchema.parse(claim.event.result)
     : undefined;
   // Already committed historical rewards stay authoritative across rule changes.
-  if (result?.battleId === battleId)
+  if (result?.battleId === runtime.battleId)
     return { status: 'rewarded', reward: result.reward, mailId: result.mailId };
   if (!huntParticipantSucceeded(runtime.state, participant.unitId)) {
     const unit = runtime.state.units.find((u) => u.id === participant.unitId);

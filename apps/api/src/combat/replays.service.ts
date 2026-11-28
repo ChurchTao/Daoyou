@@ -41,6 +41,7 @@ export class ReplaysService {
     if (
       arena?.stage === 'finished' &&
       !arena.invasion &&
+      !arena.hunt &&
       arena.participants.some(
         (p) =>
           p.userId === actor.userId && p.cultivatorId === actor.cultivatorId,

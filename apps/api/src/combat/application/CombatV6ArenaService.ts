@@ -60,7 +60,7 @@ import {
   CombatV6ArenaStore,
 } from '@server/combat/application/CombatV6ArenaStore.js';
 import { assembleCombatV6TrainingPlayer } from '@server/combat/application/CombatV6BuildService.js';
-import { invasionResultViews, resolveArena } from '@server/combat/arena-view.js';
+import { arenaResultViews, resolveArena } from '@server/combat/arena-view.js';
 import { prepareHuntReward } from '@server/hunts/application/HuntRewardService.js';
 import { db } from '@server/lib/drizzle/db.js';
 import { cultivators } from '@server/lib/drizzle/schema.js';
@@ -549,7 +549,7 @@ async function finalizeArenaV6(runtime: ArenaRuntime) {
   if (runtime.invasion) {
     await recordInvasionTerminal(runtime);
     await store.release(runtime);
-    await store.finishInvasion(runtime, invasionResultViews(runtime, Date.now()));
+    await store.finishPve(runtime, arenaResultViews(runtime, Date.now()));
     return;
   }
   if (runtime.hunt) {
@@ -680,32 +680,6 @@ function fillPveCommands(runtime: ArenaRuntime) {
   }
 }
 async function publishHuntTerminal(runtime: ArenaRuntime) {
-  await archiveCombatV6Replay(
-    createCombatV6Replay({
-      battleId: runtime.battleId,
-      participants: runtime.participants,
-      metadata: {
-        schemaVersion: 1,
-        sourceType: 'hunt',
-        battleType: 'pve',
-        idempotencyKey: runtime.startRequestId,
-        payload: { eventId: runtime.hunt!.id, roomId: runtime.roomId },
-      },
-      startedAt: new Date(runtime.createdAt).toISOString(),
-      finishedAt: new Date(runtime.deadlineAt).toISOString(),
-      reason: runtime.terminalReason!,
-      trace: {
-        seed: runtime.seed,
-        initialUnits: runtime.units,
-        skills: runtime.skills,
-        statusDefs: runtime.statusDefs,
-        rounds: runtime.rounds,
-        events: runtime.events,
-        finalState: runtime.state,
-        timeline: runtime.timeline,
-      },
-    }),
-  );
   const definition = DOMAIN_EVENT_DEFINITIONS['combat.v6.battle.finished'];
   const event = parseDomainEventEnvelope({
     id: runtime.battleId,

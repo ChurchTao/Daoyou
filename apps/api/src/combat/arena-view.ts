@@ -33,7 +33,7 @@ export function arenaDeliveryView(
   return { ...result, serverNow: now, playback: undefined };
 }
 
-export function invasionResultViews(runtime: ArenaRuntime, now: number) {
+export function arenaResultViews(runtime: ArenaRuntime, now: number) {
   return Object.fromEntries(
     runtime.participants.map(({ unitId }) => {
       const cached = runtime.lastResults[unitId];
