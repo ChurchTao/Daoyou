@@ -239,7 +239,7 @@ AI 相关功能统一通过原生 `@nestjs/ai` 的 `AiService` 调用，全部�
 
 写影符是 `consumable.v1` 的符箓，场景为 `cultivator_avatar`。管理端的奖励物品生成器可选择「写影符·绘制头像」，再通过现有邮件或兑换码发放。玩家从储物袋或头像收藏进入写影阁，提交最多 60 字的人物外观。提交时暂占一枚，三档图像全部写入并校验后结算。任务失败自动还到储物袋，满袋时进储藏室。
 
-头像收藏归账号，角色只保存当前启用的头像 ID。生成成功即进入收藏，角色更换和切回默认图可以继续使用既有收藏。Lighthouse COS 桶保持私有读写。API 按账号归属或当前公开名片授权读取对象，从 `avatars/{avatarId}/` 下返回 `96.webp`、`384.webp`、`1024.webp`。收藏缩略图用 96，名片点开用 384，写影阁成图和收藏大图用 1024。
+头像收藏归账号，角色只保存当前启用的头像 ID。生成成功即进入收藏，角色更换和切回默认图可以继续使用既有收藏。Lighthouse COS 桶保持私有读写。头像 API 按账号归属或当前启用状态检查可见性，授权后以 `302` 跳转到 COS 默认域名上有效期为 60 秒的签名链接。浏览器直接读取 `avatars/{avatarId}/` 下的 `96.webp`、`384.webp`、`1024.webp`，跳转和图片响应均不缓存。收藏缩略图用 96，名片点开用 384，写影阁成图和收藏大图用 1024。
 
 先应用业务迁移。在 API 的环境文件中设置 `ARK_AVATAR_API_KEY`、`AVATAR_COS_BUCKET`（含 APPID）、`AVATAR_COS_REGION`、`AVATAR_COS_SECRET_ID`、`AVATAR_COS_SECRET_KEY`，并保留现有 `ALIBABA_API_KEY`。COS 身份需要头像桶对应前缀的 `PutObject`、`HeadObject`、`GetObject`、`DeleteObject` 操作。Key 只保存在服务端。缺少配置时绘制入口显示未开放。下载或上传重试复用已返回的方舟 URL，失败任务的残留对象由后台清理。
 

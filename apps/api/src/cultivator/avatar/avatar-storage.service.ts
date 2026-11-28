@@ -65,11 +65,14 @@ export class AvatarStorageService {
     }
   }
 
-  async read(id: string, size: AvatarSize) {
-    const { Body } = await this.requireClient().getObject(
-      this.object(id, size),
-    );
-    return Body;
+  signedImageUrl(id: string, size: AvatarSize) {
+    return this.requireClient().getObjectUrl({
+      ...this.object(id, size),
+      Sign: true,
+      Protocol: 'https:',
+      Expires: 60,
+      Query: { 'response-cache-control': 'private, no-store' },
+    });
   }
 
   async remove(id: string, size: AvatarSize) {

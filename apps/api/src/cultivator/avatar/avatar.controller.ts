@@ -9,15 +9,13 @@ import {
   Controller,
   Get,
   Header,
-  Headers,
   HttpCode,
   HttpException,
   Inject,
   Param,
   Post,
   Put,
-  Res,
-  StreamableFile,
+  Redirect,
   UseFilters,
   UseGuards,
 } from '@nestjs/common';
@@ -26,7 +24,6 @@ import { InventoryError } from '@server/inventory/operations.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { PlayerCommandIdempotencyError } from '@server/player/application/state/CommandExecutors.js';
 import { toPlayerStateMutationResponse } from '@server/player/application/state/ResourceMutationResponse.js';
-import type { Response as ExpressResponse } from 'express';
 import { z, ZodError } from 'zod';
 import { Access, CurrentCultivator } from '../../auth/access.js';
 import { apiErrorFilter } from '../../http/error-filter.js';
@@ -105,28 +102,17 @@ export class AvatarController {
   }
 
   @Get(':id/image/:size')
-  @Header('Cache-Control', 'private, no-cache')
+  @Header('Cache-Control', 'private, no-store')
+  @Redirect(undefined, 302)
   async image(
     @CurrentCultivator() actor: ActiveCultivatorRef,
     @Param('id', new ZodPipe(z.uuid())) id: string,
     @Param('size', new ZodPipe(AvatarSizeSchema)) size: AvatarSize,
-    @Headers('if-none-match') tag: string | undefined,
-    @Res({ passthrough: true }) response: ExpressResponse,
   ) {
     if (!(await this.avatars.canRead(actor, id)))
       throw new HttpException('头像不可见', 404);
-    const etag = `"${id}-${size}"`;
-    response.setHeader('ETag', etag);
-    response.vary('Cookie');
-    if (tag === etag) {
-      response.status(304);
-      return;
-    }
     try {
-      return new StreamableFile(await this.storage.read(id, size), {
-        type: 'image/webp',
-        disposition: 'inline',
-      });
+      return { url: this.storage.signedImageUrl(id, size) };
     } catch {
       throw new HttpException('头像图片暂时无法读取', 503);
     }
