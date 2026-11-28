@@ -1,11 +1,5 @@
 import { CharacterAttributesPanel } from '@app/components/feature/cultivator/CharacterAttributesPanel';
-import {
-  lazy,
-  Suspense,
-  useLayoutEffect,
-  useRef,
-  useSyncExternalStore,
-} from 'react';
+import { lazy, Suspense, useRef, useSyncExternalStore } from 'react';
 import { useSearchParams } from 'react-router';
 import { GameSceneLoading } from './GameSceneFrame';
 
@@ -59,43 +53,19 @@ export function CultivatorOverviewPanel() {
     () => false,
   );
   const [params, setParams] = useSearchParams();
-  const tabList = useRef<HTMLDivElement>(null);
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   const selected = tabs.findIndex((tab) => tab.value === params.get('tab'));
   const activeIndex = selected < 0 ? 0 : selected;
   const active = tabs[activeIndex];
-  useLayoutEffect(() => {
-    const container = tabList.current;
-    const button = buttons.current[activeIndex];
-    if (!container || !button) return;
-    const revealActiveTab = () => {
-      if (isDesktop) {
-        container.scrollLeft = 0;
-        return;
-      }
-      const visible = container.getBoundingClientRect();
-      const selectedTab = button.getBoundingClientRect();
-      if (selectedTab.left < visible.left)
-        container.scrollLeft -= visible.left - selectedTab.left;
-      else if (selectedTab.right > visible.right)
-        container.scrollLeft += selectedTab.right - visible.right;
-    };
-    revealActiveTab();
-    const observer = new ResizeObserver(revealActiveTab);
-    observer.observe(container);
-    observer.observe(button);
-    return () => observer.disconnect();
-  }, [activeIndex, isDesktop]);
   const select = (index: number) =>
     setParams(index === 0 ? {} : { tab: tabs[index].value });
   return (
     <div className="grid items-start gap-4 md:grid-cols-[6.5rem_minmax(0,1fr)] md:gap-5">
       <div
-        ref={tabList}
         role="tablist"
         aria-label="角色面板"
         aria-orientation={isDesktop ? 'vertical' : 'horizontal'}
-        className="flex gap-1 overflow-x-auto md:sticky md:top-3 md:flex-col md:gap-2"
+        className="grid min-w-0 grid-cols-3 gap-1 sm:grid-cols-6 md:sticky md:top-3 md:grid-cols-1 md:gap-2"
       >
         {tabs.map((tab, index) => (
           <button
@@ -126,7 +96,7 @@ export function CultivatorOverviewPanel() {
               select(next);
               buttons.current[next]?.focus();
             }}
-            className={`min-h-11 shrink-0 rounded-sm px-2 py-2 text-sm whitespace-nowrap md:min-h-12 ${index === activeIndex ? 'bg-ink/5 text-crimson font-semibold' : 'text-ink-secondary hover:bg-ink/5 hover:text-ink'}`}
+            className={`focus-visible:outline-crimson min-h-11 min-w-0 rounded-sm px-2 py-2 text-sm md:min-h-12 ${index === activeIndex ? 'bg-ink/5 text-crimson font-semibold' : 'text-ink-secondary hover:bg-ink/5 hover:text-ink'}`}
           >
             {tab.label}
           </button>
