@@ -348,9 +348,11 @@ describe('arena public host', () => {
       'ARENA_FORBIDDEN',
     );
   });
-  it('古魔两回合仍可播放和恢复，累计日志只保留在运行态', () => {
+  it.each(['古魔', '讨伐'])('%s两回合仍可播放和恢复，累计日志只保留在运行态', (mode) => {
     const runtime = fixture(4);
-    runtime.invasion = { teamId: 'team', wave: 5, endsAt: 7200000 };
+    if (mode === '古魔')
+      runtime.invasion = { teamId: 'team', wave: 5, endsAt: 7200000 };
+    else runtime.hunt = huntEventsAt(100000)[0];
     const first = resolveArena(runtime, 0);
     const firstView = first.lastResults.u0;
     first.stage = 'collecting';

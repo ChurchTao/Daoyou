@@ -2,11 +2,14 @@ import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { InkModal } from '@app/components/layout/InkModal';
 import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { SYSTEM_MAIL_HREF } from '@app/lib/social/mailNavigation';
+import { usePolledJson } from '@app/lib/hooks/usePolledJson';
 import type { HuntBattleReward } from '@daoyou/contracts/hunts';
 import { dungeonRewardItemName } from '@daoyou/game-rules/rewards/dungeon';
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { useHunts } from './useHunts';
+
+const isRewardSettled = (response: { data: HuntBattleReward }) =>
+  response.data.status !== 'pending';
 
 export function HuntResult({
   battleId,
@@ -15,9 +18,12 @@ export function HuntResult({
   battleId: string;
   onClose: () => void;
 }) {
-  const { data, error, refresh } = useHunts<HuntBattleReward>(
+  const { data: response, error, refresh } = usePolledJson<{ data: HuntBattleReward }>(
     `/api/hunts/battles/${battleId}/reward`,
+    5000,
+    isRewardSettled,
   );
+  const data = response?.data;
   const [showRewards, setShowRewards] = useState(false);
   return (
     <div className="min-w-0 space-y-2 text-sm">

@@ -40,20 +40,34 @@ import { activeSectTaskBattle } from '@server/combat/application/CombatV6SectTas
 
 type Actor = { userId: string; cultivatorId: string };
 const key = (id: string) => `combat:v6:sect-task:${id}`;
+const RESULT_TTL_SECONDS = 120;
+type SectTaskResult = Pick<
+  SectTaskBattleRuntime,
+  'battleId' | 'cultivatorId' | 'recordId' | 'revision'
+> & {
+  version: 'sect-task-result-v1';
+  view: SectTaskSessionView;
+};
 const saveScript = `
 local raw = redis.call('GET', KEYS[1])
 if not raw then return 0 end
-if cjson.decode(raw).revision ~= tonumber(ARGV[1]) then return 0 end
-redis.call('SET', KEYS[1], ARGV[2])
+local current = cjson.decode(raw)
+if current.version ~= 'sect-task-session-v1' or current.revision ~= tonumber(ARGV[1]) then return 0 end
+if ARGV[3] then
+  redis.call('SET', KEYS[1], ARGV[2], 'EX', ARGV[3])
+else
+  redis.call('SET', KEYS[1], ARGV[2])
+end
 return 1
 `;
 
 async function ownedRuntime(owner: string, id: string) {
   const raw = await redis.get(key(id));
-  if (!raw) invalidSectTask('战局数据缺失，请联系维护处理');
-  const runtime = JSON.parse(raw) as SectTaskBattleRuntime;
+  if (!raw) invalidSectTask('战局已结束或过期，请返回任务地点');
+  const runtime = JSON.parse(raw) as SectTaskBattleRuntime | SectTaskResult;
   if (
-    runtime.version !== 'sect-task-session-v1' ||
+    (runtime.version !== 'sect-task-session-v1' && runtime.version !== 'sect-task-result-v1') ||
+    runtime.battleId !== id ||
     runtime.cultivatorId !== owner
   )
     invalidSectTask('无权操作此战局');
@@ -73,7 +87,10 @@ async function ownedRuntime(owner: string, id: string) {
   const payload = row && SectTaskRecordPayloadSchema.parse(row.payload);
   if (payload?.executorData.activeBattleId !== id)
     invalidSectTask('战斗已结束或已开启新的挑战');
-  return { runtime, settled: payload.executorData.battleSettled === true };
+  const settled = payload.executorData.battleSettled === true;
+  if (runtime.version === 'sect-task-result-v1' && !settled)
+    invalidSectTask('任务结算事实缺失');
+  return { runtime, settled };
 }
 function view(
   runtime: SectTaskBattleRuntime,
@@ -119,6 +136,55 @@ function view(
     playback: liveReplayDelta(snapshot.timeline, after),
   };
 }
+
+function resultView(view: SectTaskSessionView, after = -1): SectTaskSessionView {
+  const { playback } = view;
+  if (after === -1 || after < (view.eventWindowStartSeq ?? 0) - 1)
+    return { ...view, playback: undefined };
+  const frames = playback?.frames.filter((frame) => frame.afterEventSeq > after);
+  return {
+    ...view,
+    events: view.events.filter(({ seq }) => seq > after),
+    playback: frames?.length
+      ? { format: 'delta-v1', fromEventSeq: after, frames }
+      : undefined,
+  };
+}
+
+async function compactSettledBattle(runtime: SectTaskBattleRuntime) {
+  const lastRound = runtime.snapshot.events.findLastIndex(
+    (event) => event.type === 'roundStart',
+  );
+  const start = Math.max(0, lastRound);
+  const settledView = view(runtime, true, start - 1);
+  const result: SectTaskResult = {
+    version: 'sect-task-result-v1',
+    battleId: runtime.battleId,
+    cultivatorId: runtime.cultivatorId,
+    recordId: runtime.recordId,
+    revision: runtime.revision,
+    view: {
+      ...settledView,
+      display: settledView.display && {
+        ...settledView.display,
+        skillDetails: undefined,
+      },
+      pendingCommand: undefined,
+      eventWindowStartSeq: start,
+      expiresAt: new Date(Date.now() + RESULT_TTL_SECONDS * 1000).toISOString(),
+    },
+  };
+  await redis.eval(
+    saveScript,
+    1,
+    key(runtime.battleId),
+    runtime.revision,
+    JSON.stringify(result),
+    RESULT_TTL_SECONDS,
+  );
+  return result.view;
+}
+
 export async function getSectTaskBattle(
   owner: string,
   id?: string,
@@ -131,6 +197,8 @@ export async function getSectTaskBattle(
       .activeBattleId as string;
   }
   const found = await ownedRuntime(owner, id);
+  if (found.runtime.version === 'sect-task-result-v1')
+    return resultView(found.runtime.view, after);
   return view(found.runtime, found.settled, after);
 }
 
@@ -151,7 +219,8 @@ export async function changeSectTaskBattle(
     async (lease) => {
       const found = await ownedRuntime(actor.cultivatorId, id);
       const runtime = found.runtime;
-      if (found.settled) return view(runtime, true);
+      if (runtime.version === 'sect-task-result-v1') return resultView(runtime.view);
+      if (found.settled) return resultView(await compactSettledBattle(runtime));
       if (revision !== runtime.revision)
         invalidSectTask('战斗状态已变化，请刷新');
       const host = new SectBattleHost(runtime.snapshot, runtime.snapshot);
@@ -319,9 +388,12 @@ export async function changeSectTaskBattle(
             },
           );
         });
-        await redis.expire(key(id), 86400);
+        const result = await compactSettledBattle(runtime);
+        if (after >= (result.eventWindowStartSeq ?? 0) - 1)
+          return resultView(result, after);
+        return { ...view(runtime, true, after), expiresAt: result.expiresAt };
       }
-      return view(runtime, host.finished, after);
+      return view(runtime, false, after);
     },
   );
 }

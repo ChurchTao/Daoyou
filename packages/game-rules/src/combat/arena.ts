@@ -328,7 +328,8 @@ export function resolveArena<
   ) => TView,
 ): TRuntime {
   const next = structuredClone(runtime);
-  const recording = next.invasion
+  const cooperative = !!(next.invasion || next.hunt);
+  const recording = cooperative
     ? undefined
     : replayRound(
         next.timeline,
@@ -386,7 +387,7 @@ export function resolveArena<
     [...next.participants.map((p) => p.unitId), ARENA_PUBLIC_VIEW].map((id) => [
       id,
       {
-        ...makeView(next, id, now, next.invasion ? fromSeq : undefined),
+        ...makeView(next, id, now, cooperative ? fromSeq : undefined),
         playback: {
           format: 'delta-v1' as const,
           fromEventSeq: fromSeq,

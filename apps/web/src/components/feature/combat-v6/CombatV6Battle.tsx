@@ -388,7 +388,7 @@ export function CombatV6Battle({
           {ended ? '本场观战已结束' : '观战中'}
         </p>
       )}
-      {ended && online && !online.spectator && !online.invasion ? (
+      {ended && online && !online.spectator && !online.invasion && !online.hunt ? (
         <Link
           className="cv6-replay-link"
           to={`/game/battle/${session.sessionId}`}

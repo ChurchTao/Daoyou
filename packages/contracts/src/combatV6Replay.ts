@@ -4,7 +4,7 @@ import type { CombatV6DisplayCatalog } from '@daoyou/game-domain/combat';
 
 export type CombatV6ReplayDisplay = CombatV6DisplayCatalog;
 
-/** Competitive battles and cooperative hunts have durable player-facing replays. */
+/** Historical hunt archives remain readable alongside competitive replays. */
 export const COMBAT_V6_REPLAY_SOURCES = [
   'ranking',
   'arena-sparring',

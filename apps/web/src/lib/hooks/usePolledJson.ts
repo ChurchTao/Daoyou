@@ -2,7 +2,11 @@ import { fetchJsonCached } from '@app/lib/client/requestCache';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
 import { useCallback, useEffect, useState } from 'react';
 
-export function usePolledJson<T>(url: string, interval: number) {
+export function usePolledJson<T>(
+  url: string,
+  interval: number,
+  isComplete?: (data: T) => boolean,
+) {
   const actorId = useCultivatorIdentity().data?.cultivator?.id ?? '';
   const [result, setResult] = useState<{
     data?: T;
@@ -19,11 +23,13 @@ export function usePolledJson<T>(url: string, interval: number) {
     let timer: ReturnType<typeof setTimeout>;
 
     async function run() {
+      let complete = false;
       try {
         const data = await fetchJsonCached<T>(url, {
           key: `feed:${actorId}:${url}`,
           signal: abort.signal,
         });
+        complete = isComplete?.(data) ?? false;
         if (!abort.signal.aborted) setResult({ data, actorId, url });
       } catch (cause) {
         if (!abort.signal.aborted)
@@ -37,7 +43,7 @@ export function usePolledJson<T>(url: string, interval: number) {
             error: cause instanceof Error ? cause.message : '载入失败',
           }));
       } finally {
-        if (!abort.signal.aborted)
+        if (!abort.signal.aborted && !complete)
           timer = setTimeout(() => {
             if (document.visibilityState === 'visible') void run();
             else timer = setTimeout(run, interval);
@@ -50,7 +56,7 @@ export function usePolledJson<T>(url: string, interval: number) {
       abort.abort();
       clearTimeout(timer);
     };
-  }, [url, interval, actorId, revision]);
+  }, [url, interval, actorId, revision, isComplete]);
 
   const current =
     result?.actorId === actorId && result.url === url ? result : undefined;
