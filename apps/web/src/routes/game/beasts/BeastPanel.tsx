@@ -179,7 +179,7 @@ export function BeastPanel({
       : beast.level > ownerLevel
         ? '灵兽等级超过人物等级上限'
         : beast.currentLifespan < BEAST_PROGRESSION.lifespan.deployMinimum
-          ? '寿命不足，无法出战'
+          ? '寿元不足，可喂养延寿丹药或灵果'
           : undefined;
   return (
     <div className="@container min-w-0 space-y-5">
@@ -361,17 +361,17 @@ export function BeastPanel({
               </dd>
             </div>
             <div className="border-ink/8 col-span-2 flex flex-wrap items-center justify-between gap-x-3 border-b py-1.5 lg:col-span-1">
-              <dt className="text-ink-secondary text-xs">寿命</dt>
+              <dt className="text-ink-secondary text-xs">寿元</dt>
               <dd className="ml-auto font-mono text-sm">
                 <InkTooltip
-                  label={`寿命 ${beast.currentLifespan}/${beast.maxLifespan}，查看寿命与入场规则`}
+                  label={`寿元 ${beast.currentLifespan.toLocaleString()}，查看寿元与出战规则`}
                   triggerClassName="text-ink hover:text-ink-secondary focus-visible:outline-ink inline-flex h-6 shrink-0 cursor-help items-center whitespace-nowrap underline decoration-dotted underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2"
-                  triggerContent={`${beast.currentLifespan}/${beast.maxLifespan}`}
+                  triggerContent={beast.currentLifespan.toLocaleString()}
                 >
                   常驻战斗中阵亡会回满气血、法力，并扣除一次
-                  {BEAST_PROGRESSION.lifespan.deathLoss}寿命；不足
+                  {BEAST_PROGRESSION.lifespan.deathLoss}点寿元。不足
                   {BEAST_PROGRESSION.lifespan.deployMinimum}
-                  不能出战。寿命暂时无法恢复。
+                  点无法出战，可喂养延寿丹药或灵果补充。
                 </InkTooltip>
               </dd>
             </div>
@@ -403,12 +403,8 @@ export function BeastPanel({
             <BeastOption
               icon="🍑"
               label="喂养"
-              description={
-                capped
-                  ? '使用丹药或灵果提升等级，已达当前培养上限'
-                  : '使用丹药或灵果，为灵兽增加修为、提升等级'
-              }
-              disabled={pending || capped}
+              description="使用丹药或灵果增加寿元、恢复气血法力或提升修为"
+              disabled={pending}
               onClick={() => choose(feed)}
             />
             <BeastOption

@@ -750,6 +750,9 @@ export async function mutateInventory(
         let result: {
           gained?: number;
           wasted?: number;
+          lifespanGained?: number;
+          hpRestored?: number;
+          mpRestored?: number;
           level?: number;
           oldSkill?: string;
           newSkill?: string;
@@ -911,14 +914,18 @@ export async function mutateInventory(
                   eq(cultivatorBeasts.cultivatorId, owner),
                 ),
               );
-            await recordGrowthObserved(tx, {
-              cultivatorId: owner,
-              discipline: 'beasts',
-              value: fed.beast.level,
-            });
+            if (fed.gained > 0)
+              await recordGrowthObserved(tx, {
+                cultivatorId: owner,
+                discipline: 'beasts',
+                value: fed.beast.level,
+              });
             result = {
               gained: fed.gained,
               wasted: fed.wasted,
+              lifespanGained: fed.lifespanGained,
+              hpRestored: fed.hpRestored,
+              mpRestored: fed.mpRestored,
               level: fed.beast.level,
             };
             item.quantity -= input.quantity;

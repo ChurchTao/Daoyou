@@ -4,7 +4,7 @@ export function createBeastSchema(content: {
   skills: readonly { id: string }[];
   species: readonly { id: string }[];
 }) {
-  return z
+  const schema = z
     .object({
       id: z.uuid(),
       ownerCultivatorId: z.uuid(),
@@ -38,9 +38,10 @@ export function createBeastSchema(content: {
       unallocatedPoints: points,
       skillSlotCapacity: z.number().int().min(0).max(content.skills.length),
       skills: z.array(z.string()).max(content.skills.length),
-      vitals: z.strictObject({ hp: z.int().nonnegative(), mp: z.int().nonnegative() }).optional(),
-      currentLifespan: points,
-      maxLifespan: points,
+      vitals: z
+        .strictObject({ hp: z.int().nonnegative(), mp: z.int().nonnegative() })
+        .optional(),
+      currentLifespan: z.int().nonnegative(),
       generationVersion: z.enum([BEAST_VERSION, 'summoned_beast_fusion_v1']),
       generationContentRevision: z.number().int().positive().optional(),
       generationSeed: z.number().int(),
@@ -53,12 +54,27 @@ export function createBeastSchema(content: {
         beast.skills.length !== beast.skillSlotCapacity ||
         new Set(beast.skills).size !== beast.skills.length ||
         beast.skills.some((id) => !content.skills.some((s) => s.id === id)) ||
-        beast.currentLifespan > beast.maxLifespan ||
         (beast.originKind === 'wild' && beast.initialLevel < 1) ||
         (!!beast.isMutant && beast.originKind !== 'baby')
       )
         ctx.addIssue({ code: 'custom', message: '召唤兽个体事实不完整' });
     });
+  return readLegacyBeastLifespan(schema);
+}
+
+/** Older individual and preview snapshots contain a retired cap. */
+export function readLegacyBeastLifespan<T extends z.ZodType>(schema: T) {
+  return z.preprocess((input) => {
+    if (
+      !input ||
+      typeof input !== 'object' ||
+      !Object.hasOwn(input, 'maxLifespan')
+    )
+      return input;
+    const { maxLifespan: _legacy, ...beast } = input as Record<string, unknown>;
+    void _legacy;
+    return beast;
+  }, schema);
 }
 
 export const BEAST_VERSION = 'summoned_beast_v3';

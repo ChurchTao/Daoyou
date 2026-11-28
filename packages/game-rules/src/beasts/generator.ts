@@ -45,7 +45,6 @@ function createIndividual(
     }),
     skillSlotCapacity: traits.skills.length,
     currentLifespan: BEAST_GENERATION.lifespan,
-    maxLifespan: BEAST_GENERATION.lifespan,
     generationVersion: BEAST_VERSION,
     generationContentRevision: BEAST_SPECIES_REVISION,
     generationSeed: seed,

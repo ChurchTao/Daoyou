@@ -1,12 +1,12 @@
-import { resolveAlchemyEffects } from '../alchemy/alchemyEffectResolver.js';
+import { BEAST_REFINEMENT, BEAST_SPECIES } from '@daoyou/game-content/beasts';
 import type { PillSpec } from '@daoyou/game-domain/consumables';
 import { describe, expect, it } from 'vitest';
+import { resolveAlchemyEffects } from '../alchemy/alchemyEffectResolver.js';
 import { buildSpiritFruitSpec } from '../spirit-field/spiritFruit.js';
-import { BEAST_SPECIES, BEAST_REFINEMENT } from '@daoyou/game-content/beasts';
 import { beastFoodCultivation, previewBeastFeeding } from './feeding.js';
 import { generateCapturedBeast } from './generator.js';
 import { gainBeastExp, nextBeastExp } from './progression.js';
-import { beastPanel } from './projection.js';
+import { beastPanel, beastVitals } from './projection.js';
 import { refineBeast } from './refinement.js';
 
 const id = '00000000-0000-4000-8000-000000000001';
@@ -116,6 +116,73 @@ describe('灵兽修为养成与喂养', () => {
       expect(() =>
         previewBeastFeeding(born(), pill('middle'), quantity, 180),
       ).toThrow('数量');
+  });
+  it('满级和零寿元可喂延寿灵果，寿元可以超过初始值', () => {
+    const beast = gainBeastExp(born(), 100, 1);
+    const fruit = buildSpiritFruitSpec({
+      family: 'longevity',
+      quality: '仙品',
+    });
+    const exhausted = { ...beast, currentLifespan: 0 };
+    expect(previewBeastFeeding(exhausted, fruit, 2, 1)).toMatchObject({
+      beast: { level: 1, currentLifespan: 1920, revision: beast.revision + 1 },
+      lifespanGained: 1920,
+      gained: 0,
+    });
+  });
+  it('复合丹按灵兽上限和缺口恢复血蓝，延寿以外的人物效果跳过', () => {
+    const beast = { ...born(), vitals: { hp: 1, mp: 0 } };
+    const { maxHp, maxMp } = beastVitals(beast);
+    const restorative: PillSpec = {
+      ...pill('middle'),
+      family: 'hybrid',
+      operations: [
+        {
+          type: 'restore_resource',
+          resource: 'hp',
+          mode: 'percent',
+          value: 0.5,
+        },
+        {
+          type: 'restore_resource',
+          resource: 'mp',
+          mode: 'flat',
+          value: maxMp,
+        },
+        { type: 'change_gauge', gauge: 'pillToxicity', delta: 40 },
+        { type: 'advance_track', track: 'marrow_wash', value: 100 },
+      ],
+    };
+    const fed = previewBeastFeeding(beast, restorative, 1, 0);
+    expect(fed).toMatchObject({
+      beast: {
+        vitals: { hp: 1 + Math.floor(maxHp * 0.5), mp: maxMp },
+        revision: beast.revision + 1,
+      },
+      hpRestored: Math.floor(maxHp * 0.5),
+      mpRestored: maxMp,
+      maxQuantity: 2,
+    });
+    expect(() => previewBeastFeeding(beast, restorative, 3, 0)).toThrow(
+      '最多需要2颗',
+    );
+    const restored = previewBeastFeeding(beast, restorative, 2, 0).beast;
+    expect(() => previewBeastFeeding(restored, restorative, 1, 0)).toThrow(
+      '当前无法恢复',
+    );
+    expect(() =>
+      previewBeastFeeding(
+        born(),
+        {
+          ...restorative,
+          operations: [
+            { type: 'advance_track', track: 'marrow_wash', value: 100 },
+          ],
+        },
+        1,
+        0,
+      ),
+    ).toThrow('不能用于喂养');
   });
   it('归元为0级，清除加点，五项基础属性均从10点投影', () => {
     const grown = gainBeastExp(born(), 10000, 180);

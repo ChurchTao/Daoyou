@@ -33,6 +33,29 @@ import { beastRefinementReason } from '@daoyou/game-rules/beasts/refinement';
 import { itemDefinition } from '@daoyou/game-rules/inventory';
 import { useEffect, useRef, useState } from 'react';
 
+function formatFeedingGains({
+  gained = 0,
+  lifespanGained = 0,
+  hpRestored = 0,
+  mpRestored = 0,
+}: {
+  gained?: number;
+  lifespanGained?: number;
+  hpRestored?: number;
+  mpRestored?: number;
+}) {
+  return (
+    [
+      ['修为', gained],
+      ['寿元', lifespanGained],
+      ['气血', hpRestored],
+      ['法力', mpRestored],
+    ] as const
+  )
+    .filter(([, amount]) => amount > 0)
+    .map(([label, amount]) => `${label} +${amount.toLocaleString()}`);
+}
+
 export function BeastBookDrawer({
   beastId,
   mode = 'learn',
@@ -117,8 +140,7 @@ export function BeastBookDrawer({
   function bookReason(item: InventoryView['items'][number]) {
     const definition = itemDefinition(item.definitionId);
     if (feeding) {
-      if (definition.kind !== 'consumable')
-        return '此物品不能用于增加灵兽修为。';
+      if (definition.kind !== 'consumable') return '此物品不能用于喂养灵兽。';
       if (!beast || ownerLevel === undefined) return '正在核对灵兽状态。';
       try {
         previewBeastFeeding(
@@ -190,15 +212,19 @@ export function BeastBookDrawer({
       ?.consumeQuantity ?? 1;
   let feedingPreview: ReturnType<typeof previewBeastFeeding> | undefined;
   let feedingError = '';
+  let skipsEffects = false;
   if (feeding && selected && beast && ownerLevel !== undefined) {
     try {
       if (quantity > selected.quantity) throw new Error('物品数量不足');
-      feedingPreview = previewBeastFeeding(
-        beast,
-        ConsumableFactsSchema.parse(selected.instanceData).spec,
-        quantity,
-        ownerLevel,
-      );
+      const { spec } = ConsumableFactsSchema.parse(selected.instanceData);
+      feedingPreview = previewBeastFeeding(beast, spec, quantity, ownerLevel);
+      skipsEffects =
+        spec.kind !== 'talisman' &&
+        !feedingPreview.gained &&
+        spec.operations.some(
+          ({ type }) =>
+            type !== 'increase_lifespan' && type !== 'restore_resource',
+        );
     } catch (e) {
       feedingError = e instanceof Error ? e.message : '不可喂养';
     }
@@ -222,6 +248,9 @@ export function BeastBookDrawer({
     try {
       const result = await consumeResourceMutation<{
         gained?: number;
+        lifespanGained?: number;
+        hpRestored?: number;
+        mpRestored?: number;
         level?: number;
         oldSkill?: string;
         newSkill?: string;
@@ -257,7 +286,7 @@ export function BeastBookDrawer({
         if (!refining) setSelectedItem(undefined);
         pushToast({
           message: feeding
-            ? `灵兽修为 +${result.gained}，当前${result.level}级。`
+            ? `喂养完成，${formatFeedingGains(result).join('，')}${result.gained ? `，当前${result.level}级` : ''}。`
             : refining
               ? `已重归初生，技能 ${result.oldSkillCount} → ${result.newSkillCount} 项。`
               : rejuvenating
@@ -335,12 +364,27 @@ export function BeastBookDrawer({
                   />
                 </div>
               ) : null}
-              {feedingPreview ? (
+              {feedingPreview && beast ? (
                 <p className="font-mono">
-                  修为 +{feedingPreview.gained.toLocaleString()} ·{' '}
-                  {beast?.level}级 → {feedingPreview.beast.level}级
+                  {formatFeedingGains(feedingPreview).join(' · ')}
+                  {feedingPreview.gained > 0 && (
+                    <>
+                      {' '}
+                      · {beast.level}级 → {feedingPreview.beast.level}级
+                    </>
+                  )}
+                  {feedingPreview.lifespanGained > 0 && (
+                    <>
+                      {' '}
+                      · {beast.currentLifespan.toLocaleString()} →{' '}
+                      {feedingPreview.beast.currentLifespan.toLocaleString()}
+                    </>
+                  )}
                 </p>
               ) : null}
+              {skipsEffects && (
+                <p className="text-ink-secondary">喂养时跳过附带的人物功效。</p>
+              )}
               {feedingPreview?.wasted ? (
                 <p className="text-crimson">
                   达到当前等级上限，将损失
@@ -540,7 +584,7 @@ export function BeastBookDrawer({
             <>
               为{beast?.name}使用{BEAST_REJUVENATION.name}将消耗1颗。
               等级与修为不变，已分配属性点全部退回待分配。捕获时已有等级的野生，原有点数亏损保留。
-              资质、成长、技能、身份、寿命和编组不变。确定洗点吗？
+              资质、成长、技能、身份、寿元和编组不变。确定洗点吗？
             </>
           ) : (
             <>

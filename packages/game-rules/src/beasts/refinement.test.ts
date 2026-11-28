@@ -66,7 +66,7 @@ it('两档药露不改变随机结果，且可以重复洗炼0级灵兽', () => 
     revision: next.revision + 1,
   });
 });
-it('归零、重抽，保留身份、寿命与寿命上限，旧技能不返还', () => {
+it('归零、重抽，保留身份与当前寿元，旧技能不返还', () => {
   const base = generateCapturedBeast(id, id, BEAST_SPECIES[0].id, 90, 9);
   const old = BeastSchema.parse({
     ...base,
@@ -82,7 +82,6 @@ it('归零、重抽，保留身份、寿命与寿命上限，旧技能不返还'
     },
     skills: ['beast.advanced-combo'],
     skillSlotCapacity: 1,
-    maxLifespan: 1200,
     currentLifespan: 0,
   });
   const before = structuredClone(old);
@@ -106,7 +105,6 @@ it('归零、重抽，保留身份、寿命与寿命上限，旧技能不返还'
       endurance: 0,
       agility: 0,
     },
-    maxLifespan: 1200,
     currentLifespan: 0,
     revision: old.revision + 1,
   });
