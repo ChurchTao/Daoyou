@@ -1,7 +1,14 @@
 import { BUILTIN_SKILL_ID } from '@daoyou/combat-core/constants';
 import { DamageKind, DamageOrigin, EffectType, FormulaFamily, HookAim, HookName, SkillTag, StatusCategory, StatusFlag, TargetMode, TargetSide } from '@daoyou/combat-core/enums';
-import { type SkillDef, type SkillEffect } from '@daoyou/combat-core/types';
+import type { CombatModifier, EffectWhen, SkillDef, SkillEffect } from '@daoyou/combat-core/types';
 import type { BeastSkillContent } from '@daoyou/game-domain/beasts/authoring';
+
+function physicalDamagePenalty(factor: number, when?: EffectWhen): CombatModifier {
+  return {
+    damagePenaltyFactor: factor,
+    when: { ...when, requireKind: DamageKind.Physical, sourceStanding: true },
+  };
+}
 
 export function compileBeastSkill(entry: BeastSkillContent): SkillDef {
   const { effect: e } = entry;
@@ -357,16 +364,7 @@ export function compileBeastSkill(entry: BeastSkillContent): SkillDef {
       return {
         ...passive,
         innate: { immuneStatusCategories: [StatusCategory.Control] },
-        hooks: [
-          {
-            on: HookName.OnHitCalc,
-            sourceIsSelf: true,
-            requireKind: DamageKind.Physical,
-            effects: [
-              { type: EffectType.ModifyStrike, factor: e.physicalFactor },
-            ],
-          },
-        ],
+        modifiers: [physicalDamagePenalty(e.physicalFactor)],
       };
     case 'eternity':
       return {
@@ -383,16 +381,10 @@ export function compileBeastSkill(entry: BeastSkillContent): SkillDef {
             maxDuration: e.maxDuration,
           },
         },
-        hooks: [
-          {
-            on: HookName.OnHitCalc,
-            sourceIsSelf: true,
-            requireKind: DamageKind.Physical,
-            when: { requireStatusIds: [`${entry.id}.status`] },
-            effects: [
-              { type: EffectType.ModifyStrike, factor: e.physicalFactor },
-            ],
-          },
+        modifiers: [
+          physicalDamagePenalty(e.physicalFactor, {
+            requireStatusIds: [`${entry.id}.status`],
+          }),
         ],
       };
     case 'perception':
@@ -440,18 +432,10 @@ export function compileBeastSkill(entry: BeastSkillContent): SkillDef {
       return {
         ...passive,
         innate: { ignoreParry: true },
-        hooks: [
-          {
-            on: HookName.OnHitCalc,
-            sourceIsSelf: true,
-            requireKind: DamageKind.Physical,
-            when: {
-              targetSkillIds: ['beast.defense', 'beast.advanced-defense'],
-            },
-            effects: [
-              { type: EffectType.ModifyStrike, factor: e.versusDefenseFactor },
-            ],
-          },
+        modifiers: [
+          physicalDamagePenalty(e.versusDefenseFactor, {
+            targetSkillIds: ['beast.defense', 'beast.advanced-defense'],
+          }),
         ],
       };
     case 'wisdom':
@@ -472,20 +456,13 @@ export function compileBeastSkill(entry: BeastSkillContent): SkillDef {
     case 'spellResistance':
       return {
         ...passive,
+        modifiers: [physicalDamagePenalty(e.physicalFactor)],
         hooks: [
           {
             on: HookName.OnHitCalc,
             targetIsSelf: true,
             requireKind: DamageKind.Spell,
             effects: [{ type: EffectType.ModifyStrike, factor: e.takenFactor }],
-          },
-          {
-            on: HookName.OnHitCalc,
-            sourceIsSelf: true,
-            requireKind: DamageKind.Physical,
-            effects: [
-              { type: EffectType.ModifyStrike, factor: e.physicalFactor },
-            ],
           },
         ],
       };
@@ -662,15 +639,8 @@ export function compileBeastSkill(entry: BeastSkillContent): SkillDef {
         tags: [SkillTag.Passive],
         targeting: { side: TargetSide.Enemy },
         effects: [],
+        modifiers: [physicalDamagePenalty(e.physicalFactor)],
         hooks: [
-          {
-            on: HookName.OnHitCalc,
-            sourceIsSelf: true,
-            requireKind: DamageKind.Physical,
-            effects: [
-              { type: EffectType.ModifyStrike, factor: e.physicalFactor },
-            ],
-          },
           {
             on: HookName.AfterHit,
             sourceIsSelf: true,

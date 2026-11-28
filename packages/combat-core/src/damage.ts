@@ -130,6 +130,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   }
   raw = applyDefend(ctx, target, input.kind, raw, input.defendFactor)
   raw = floorAtLeast(MIN_DAMAGE, raw * damageTakenFactor(target, input.kind))
+  raw *= modifiers.reduce((factor, modifier) => Math.min(factor, modifier.damagePenaltyFactor ?? 1), 1)
 
   const hooked = ctx.hooks.emit(HookName.OnHitCalc, {
     percentageDamage: input.percentageDamage,
