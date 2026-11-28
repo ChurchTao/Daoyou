@@ -28,12 +28,7 @@ export function PartyMemberCard({
   const identity = (
     <>
       <span className="relative flex size-11 shrink-0">
-        <span className="border-ink-border bg-paper-2 absolute inset-0 overflow-hidden rounded-full border">
-          <PartyPortrait
-            member={member}
-            className="size-full origin-[50%_36%] scale-125"
-          />
-        </span>
+        <PartyPortrait member={member} className="size-full" />
         {presenceLabel && (
           <span
             role="img"

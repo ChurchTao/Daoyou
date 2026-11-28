@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { CultivatorPortraitRef } from './cultivatorAvatar.js';
 
 export const OpenDirectConversationSchema = z
   .object({ cultivatorId: z.string().uuid() })
@@ -52,8 +53,13 @@ export interface DirectConversationsPage {
 
 export interface DirectConversationDTO {
   id: string;
-  peer: { cultivatorId: string | null; name: string };
+  peer: {
+    cultivatorId: string | null;
+    name: string;
+    portrait?: CultivatorPortraitRef;
+  };
   myCultivatorId: string | null;
+  myPortrait?: CultivatorPortraitRef;
   archived: boolean;
   canSend: boolean;
   unavailableReason: string | null;

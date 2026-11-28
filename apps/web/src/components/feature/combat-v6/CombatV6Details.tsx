@@ -1,7 +1,6 @@
-import { BeastPortrait } from '@app/components/feature/beasts/BeastPortrait';
 import { StatusMention } from '@app/components/feature/skills/SkillDescription';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
-import { combatPortraitValue } from './presentation';
+import { CombatV6Portrait } from './CombatV6Portrait';
 import type { CombatV6Session, CombatV6Unit } from './session';
 const attributeLabels: Record<string, string> = {
   physicalAtk: '物攻',
@@ -27,10 +26,7 @@ export function CombatV6Details({
     <InkDetailDrawer isOpen title={label} size="sm" onClose={onClose}>
       <div className="cv6-detail-identity">
         <span className="cv6-portrait">
-          <BeastPortrait
-            isMutant={appearance?.isMutant}
-            value={combatPortraitValue(detailUnit, appearance)}
-          />
+          <CombatV6Portrait unit={detailUnit} appearance={appearance} />
         </span>
         {appearance?.speciesName &&
         appearance.speciesName !== detailUnit.name ? (

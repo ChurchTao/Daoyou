@@ -197,6 +197,7 @@ export const profileCultivatorSchema = z
     createdAt: z.string().optional(),
     name: z.string(),
     title: z.string().nullable().optional(),
+    avatarId: z.uuid().nullable().optional(),
     gender: z.enum(GENDER_VALUES),
     playerRace: z.literal('human').optional(),
     raceNarrative: z.string().optional(),

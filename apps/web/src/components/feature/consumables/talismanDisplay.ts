@@ -1,4 +1,5 @@
 import {
+  AVATAR_TALISMAN_SCENARIO,
   ATTRIBUTE_RESET_TALISMAN_NAME,
   ATTRIBUTE_RESET_TALISMAN_SCENARIO,
   isAttributeResetTalismanScenario,
@@ -19,6 +20,7 @@ import { isTalismanConsumable } from '@daoyou/game-domain/consumables';
 import type { Consumable } from '@daoyou/game-domain/character';
 
 const TALISMAN_SCENARIO_LABELS: Record<string, string> = {
+  [AVATAR_TALISMAN_SCENARIO]: '绘制头像',
   [ATTRIBUTE_RESET_TALISMAN_SCENARIO]: '根基属性重洗',
   [CHEAT_HEAVEN_TALISMAN_SCENARIO]: '欺天符·无损转宗',
   [SECT_MERIDIAN_RESET_TALISMAN_SCENARIO]: '洗脉符·流派节点重置',
@@ -31,6 +33,7 @@ const TALISMAN_SCENARIO_LABELS: Record<string, string> = {
 };
 
 const TALISMAN_SCENARIO_HREFS: Record<string, string> = {
+  [AVATAR_TALISMAN_SCENARIO]: '/game/portrait?from=bag',
   [CHEAT_HEAVEN_TALISMAN_SCENARIO]: '/game/sect/transfer',
   fate_reshape: '/game/fate-reshape',
   [IDENTITY_RESHAPE_SCENARIO]: '/game/identity-reshape',
@@ -39,6 +42,7 @@ const TALISMAN_SCENARIO_HREFS: Record<string, string> = {
 };
 
 const TALISMAN_SCENARIO_ACTION_LABELS: Record<string, string> = {
+  [AVATAR_TALISMAN_SCENARIO]: '绘制头像',
   [ATTRIBUTE_RESET_TALISMAN_SCENARIO]: '使用',
   [SECT_MERIDIAN_RESET_TALISMAN_SCENARIO]: '使用',
   [CHEAT_HEAVEN_TALISMAN_SCENARIO]: '前往欺天台转宗',
@@ -151,6 +155,12 @@ export function talismanDetailRows(
 ): TalismanDetailRow[] {
   if (!isTalismanConsumable(consumable)) return [];
   const scenario = consumable.spec.scenario;
+  if (scenario === AVATAR_TALISMAN_SCENARIO) {
+    return [
+      { value: '生成的头像永久收入账号收藏' },
+      { label: '消耗', value: '头像可预览时消耗 1 枚，绘制失败自动归还' },
+    ];
+  }
   if (['draw_gongfa', 'draw_skill'].includes(scenario)) {
     return [
       {

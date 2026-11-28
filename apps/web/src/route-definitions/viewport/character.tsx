@@ -40,6 +40,14 @@ export const characterRoutes = [
     )}
   />,
   <Route
+    path="portrait"
+    lazy={lazyRoute(() => import('@app/routes/game/portrait/route'))}
+    handle={scene(
+      { id: 'portrait', chrome: 'immersive', dock: 'hidden' },
+      '写影阁',
+    )}
+  />,
+  <Route
     path="cultivator/attributes"
     lazy={lazyRoute(
       () => import('@app/routes/game/cultivator/attributes/route'),

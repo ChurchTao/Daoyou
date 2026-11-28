@@ -1,3 +1,4 @@
+import { CultivatorAvatar } from '@app/components/feature/cultivator/CultivatorAvatar';
 import { GameLoadingState } from '@app/components/game-shell';
 import { InkButton, InkNotice, InkSelect } from '@app/components/ui';
 import { GameIcon } from '@app/components/ui/GameIcon';
@@ -164,14 +165,10 @@ export function WeeklyLeaderboard({
             <b className="font-mono">{entry.rank}</b>
             {placeLabel && <small>{placeLabel}</small>}
           </span>
-          <GameIcon
-            value={
-              entry.gender === '女'
-                ? 'icon:cultivator-female-avatar'
-                : 'icon:cultivator-male-avatar'
-            }
+          <CultivatorAvatar
+            name={entry.name}
+            gender={entry.gender}
             className="weekly-rank-avatar"
-            purpose="artwork"
           />
           <span className="weekly-rank-identity">
             <span className="weekly-rank-name">

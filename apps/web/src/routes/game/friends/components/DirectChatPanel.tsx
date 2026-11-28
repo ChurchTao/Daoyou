@@ -1,6 +1,7 @@
 import { CharacterCardTrigger } from '@app/components/feature/character-card/CharacterCardTrigger';
 import { ChatMessageFrame } from '@app/components/feature/chat/ChatMessageFrame';
 import { ChatTextComposer } from '@app/components/feature/chat/ChatTextComposer';
+import { CultivatorAvatar } from '@app/components/feature/cultivator/CultivatorAvatar';
 import { socialRequest } from '@app/components/feature/friends/socialApi';
 import { GameLoadingState } from '@app/components/game-shell';
 import { InkButton, InkNotice } from '@app/components/ui';
@@ -489,6 +490,16 @@ export function DirectChatPanel({
           >
             道友列表
           </InkButton>
+          {conversation?.peer.portrait ? (
+            <span aria-hidden="true" className="mr-1 flex size-8 shrink-0">
+              <CultivatorAvatar
+                {...conversation.peer.portrait}
+                name={conversation.peer.name}
+                size="96"
+                className="size-full"
+              />
+            </span>
+          ) : null}
           <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-2">
               <p className="truncate font-semibold">
@@ -626,6 +637,11 @@ export function DirectChatPanel({
                 sequence={message.sequence}
                 mine={message.mine}
                 senderName={message.senderName}
+                senderPortrait={
+                  message.mine
+                    ? conversation?.myPortrait
+                    : conversation?.peer.portrait
+                }
                 createdAt={message.createdAt}
                 own={message.mine}
                 grouped={grouped}

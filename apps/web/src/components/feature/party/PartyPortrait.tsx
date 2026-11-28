@@ -1,22 +1,12 @@
-import { GameIcon } from '@app/components/ui/GameIcon';
 import type { PartyPublicMember } from '@daoyou/contracts/party';
+import { CultivatorAvatar } from '../cultivator/CultivatorAvatar';
 
 export function PartyPortrait({
   member,
   className,
 }: {
-  member: Pick<PartyPublicMember, 'gender'>;
+  member: Pick<PartyPublicMember, 'gender' | 'name'>;
   className: string;
 }) {
-  return (
-    <GameIcon
-      purpose="artwork"
-      value={
-        member.gender === '女'
-          ? 'icon:cultivator-female-avatar'
-          : 'icon:cultivator-male-avatar'
-      }
-      className={className}
-    />
-  );
+  return <CultivatorAvatar {...member} className={className} />;
 }

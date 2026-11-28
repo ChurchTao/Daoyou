@@ -1,4 +1,3 @@
-import { GameIcon } from '@app/components/ui/GameIcon';
 import { updateGameSettings, useGameSettings } from '@app/lib/game-setting';
 import type { ArenaSessionView } from '@daoyou/contracts/combat/arena';
 import type { CombatV6TrainingCommandV1 } from '@daoyou/game-domain/combat';
@@ -19,7 +18,7 @@ import { CombatV6Fatigue } from './CombatV6Fatigue';
 import { CombatV6Log } from './CombatV6Log';
 import { CombatV6Roster } from './CombatV6Roster';
 import { CombatV6Status } from './CombatV6Status';
-import { combatPortraitValue } from './presentation';
+import { CombatV6Portrait } from './CombatV6Portrait';
 import type { CombatV6Session, SessionState } from './session';
 
 type Props = {
@@ -359,15 +358,16 @@ export function CombatV6Battle({
                       cancel();
                     }}
                   >
-                    <GameIcon
-                      purpose="artwork"
-                      value={combatPortraitValue(
+                    <CombatV6Portrait
+                      unit={
                         byId.get(option.unitId) ??
-                          (index
-                            ? { name: '灵兽', kind: 'pet' }
-                            : { name: '人物', kind: 'player' }),
-                        session.display?.unitAppearances?.[option.unitId],
-                      )}
+                        (index
+                          ? { name: '灵兽', kind: 'pet' }
+                          : { name: '人物', kind: 'player' })
+                      }
+                      appearance={
+                        session.display?.unitAppearances?.[option.unitId]
+                      }
                     />
                     <span>
                       {index ? '灵兽' : '人物'}

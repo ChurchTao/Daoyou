@@ -1,8 +1,13 @@
-import { GameIcon } from '@app/components/ui/GameIcon';
+import {
+  AvatarArtwork,
+  AvatarFrame,
+  CultivatorAvatar,
+} from '@app/components/feature/cultivator/CultivatorAvatar';
 import { tierColorMap } from '@app/components/ui/inkBadgeTiers';
 import type { CharacterCard } from '@daoyou/contracts/player/card';
 import { useId, useState, type KeyboardEvent } from 'react';
 import { MeritStamp } from '../merit/MeritStamp';
+import { CharacterCardDialog } from './CharacterCardDialog';
 import { CardPageContent } from './CharacterCardPages';
 
 const pages = ['基本', '装备', '功法', '炼体', '根基'] as const;
@@ -10,6 +15,7 @@ export type CardPage = (typeof pages)[number];
 
 export function CharacterCardView({ card }: { card: CharacterCard }) {
   const [page, setPage] = useState<CardPage>('基本');
+  const [portraitOpen, setPortraitOpen] = useState(false);
   const id = useId();
   function moveTab(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     const next = {
@@ -27,15 +33,17 @@ export function CharacterCardView({ card }: { card: CharacterCard }) {
   return (
     <article className="text-ink text-sm">
       <header className="border-ink/20 from-ink/6 relative isolate mb-3 flex min-h-24 items-center gap-3 overflow-hidden border-b bg-linear-to-r to-transparent px-2">
-        <GameIcon
-          value={
-            card.gender === '女'
-              ? 'icon:cultivator-female-avatar'
-              : 'icon:cultivator-male-avatar'
-          }
-          purpose="artwork"
-          label={`${card.name}的墨像`}
-          className="h-24 w-20"
+        <CultivatorAvatar
+          avatarId={card.avatarId}
+          gender={card.gender}
+          name={card.name}
+          size="96"
+          action={{
+            label: `查看${card.name}的头像大图`,
+            variant: 'zoom',
+            onClick: () => setPortraitOpen(true),
+          }}
+          className="my-2 size-24"
         />
         <div className="min-w-0 py-2">
           {card.title && (
@@ -97,6 +105,29 @@ export function CharacterCardView({ card }: { card: CharacterCard }) {
           <CardPageContent card={card} page={page} />
         </div>
       </div>
+      {portraitOpen ? (
+        <CharacterCardDialog
+          title={`${card.name}的头像`}
+          closeLabel="返回名片"
+          onClose={() => setPortraitOpen(false)}
+        >
+          {card.avatarId ? (
+            <AvatarFrame className="mx-auto flex aspect-square w-full max-w-96">
+              <AvatarArtwork
+                id={card.avatarId}
+                size="384"
+                alt={`${card.name}的墨像`}
+                className="size-full"
+              />
+            </AvatarFrame>
+          ) : (
+            <CultivatorAvatar
+              {...card}
+              className="mx-auto flex aspect-square w-full max-w-96"
+            />
+          )}
+        </CharacterCardDialog>
+      ) : null}
     </article>
   );
 }

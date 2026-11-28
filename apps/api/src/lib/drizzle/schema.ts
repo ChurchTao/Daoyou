@@ -6,6 +6,7 @@ import type {
 import type { BaixiaoQuestionStatus } from '@daoyou/contracts/baixiao/meet';
 import type { ContestAttempt, ContestCompletionReward, ContestPaper, ContestStandingDetail } from '@daoyou/game-domain/alchemy/contest';
 import type { PlayerJournalEvent } from '@daoyou/contracts/player/journal';
+import type { AvatarFailure, AvatarJobStatus } from '@daoyou/contracts/player/avatar';
 import type { AiUsageCredentialSource, AiUsagePricingSnapshot } from '@daoyou/contracts/admin/ai-usage';
 import type { CultivatorManualStateV1 } from '@daoyou/game-domain/manuals';
 import type { StoryStatus, StoryTrack } from '@daoyou/game-domain/story';
@@ -108,12 +109,41 @@ export const aiUsageEvents = pgTable(
   ],
 );
 
+export const cultivatorAvatars = pgTable(
+  'wanjiedaoyou_cultivator_avatars',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull(),
+    cultivatorId: uuid('cultivator_id').notNull(),
+    requestId: uuid('request_id').notNull(),
+    description: varchar('description', { length: 120 }).notNull(),
+    reservedItem: jsonb('reserved_item').$type<ItemGrant>(),
+    status: varchar('status', { length: 12 }).$type<AvatarJobStatus>().notNull().default('queued'),
+    failure: varchar('failure', { length: 12 }).$type<AvatarFailure>(),
+    refundLocation: varchar('refund_location', { length: 8 }).$type<'bag' | 'storage'>(),
+    sourceUrl: text('source_url'),
+    processingAttempts: integer('processing_attempts').notNull().default(0),
+    cleanupPending: boolean('cleanup_pending').notNull().default(false),
+    leaseUntil: timestamp('lease_until', { withTimezone: true }),
+    deadlineAt: timestamp('deadline_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('cultivator_avatars_request_idx').on(table.userId, table.requestId),
+    uniqueIndex('cultivator_avatars_pending_user_idx').on(table.userId)
+      .where(sql`${table.status} in ('queued', 'generating', 'processing')`),
+    index('cultivator_avatars_user_created_idx').on(table.userId, table.createdAt, table.id),
+    index('cultivator_avatars_work_idx').on(table.status, table.leaseUntil, table.createdAt),
+  ],
+);
+
 // 角色主表
 export const cultivators = pgTable(
   'wanjiedaoyou_cultivators',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     userId: uuid('user_id').notNull(),
+    avatarId: uuid('avatar_id').references(() => cultivatorAvatars.id, { onDelete: 'set null' }),
     name: varchar('name', { length: 100 }).notNull(),
     title: varchar('title', { length: 50 }),
     gender: varchar('gender', { length: 10 }), // 男 | 女 | 无

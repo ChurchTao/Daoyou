@@ -4,6 +4,7 @@ import type {
   FriendTargetResponse,
 } from '@daoyou/contracts/friends';
 import { MAX_FRIENDS_PER_CULTIVATOR } from '@daoyou/game-content/social/config';
+import { publicCultivatorPortrait } from '@server/cultivator/facts.js';
 import {
   getExecutor,
   type DbExecutor,
@@ -26,10 +27,21 @@ export class FriendServiceError extends Error {
   }
 }
 
+const friendFields = {
+  id: schema.cultivators.id,
+  name: schema.cultivators.name,
+  title: schema.cultivators.title,
+  realm: schema.cultivators.realm,
+  realm_stage: schema.cultivators.realm_stage,
+  status: schema.cultivators.status,
+  gender: schema.cultivators.gender,
+  avatarId: schema.cultivators.avatarId,
+};
+
 function toSummary(
   row: Pick<
     typeof schema.cultivators.$inferSelect,
-    'id' | 'name' | 'title' | 'realm' | 'realm_stage' | 'status'
+    'id' | 'name' | 'title' | 'realm' | 'realm_stage' | 'status' | 'gender' | 'avatarId'
   >,
 ): FriendCultivatorSummary {
   return {
@@ -39,6 +51,7 @@ function toSummary(
     realm: row.realm,
     realmStage: row.realm_stage,
     status: row.status,
+    portrait: publicCultivatorPortrait(row),
   };
 }
 
@@ -47,14 +60,7 @@ async function getActiveCultivatorSummary(
   q: DbExecutor | DbTransaction,
 ): Promise<FriendCultivatorSummary | null> {
   const [row] = await q
-    .select({
-      id: schema.cultivators.id,
-      name: schema.cultivators.name,
-      title: schema.cultivators.title,
-      realm: schema.cultivators.realm,
-      realm_stage: schema.cultivators.realm_stage,
-      status: schema.cultivators.status,
-    })
+    .select(friendFields)
     .from(schema.cultivators)
     .where(
       and(
@@ -92,14 +98,7 @@ export async function listFriends(
 ): Promise<FriendCultivatorSummary[]> {
   const q = executor ?? getExecutor();
   const rows = await q
-    .select({
-      id: schema.cultivators.id,
-      name: schema.cultivators.name,
-      title: schema.cultivators.title,
-      realm: schema.cultivators.realm,
-      realm_stage: schema.cultivators.realm_stage,
-      status: schema.cultivators.status,
-    })
+    .select(friendFields)
     .from(schema.cultivatorFriends)
     .innerJoin(
       schema.cultivators,
@@ -119,14 +118,7 @@ export async function searchActiveCultivatorsByExactName(
 ): Promise<FriendSearchResult[]> {
   const q = executor ?? getExecutor();
   const candidates = await q
-    .select({
-      id: schema.cultivators.id,
-      name: schema.cultivators.name,
-      title: schema.cultivators.title,
-      realm: schema.cultivators.realm,
-      realm_stage: schema.cultivators.realm_stage,
-      status: schema.cultivators.status,
-    })
+    .select(friendFields)
     .from(schema.cultivators)
     .where(
       and(

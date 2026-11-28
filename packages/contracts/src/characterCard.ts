@@ -36,6 +36,7 @@ export type CharacterCardBeast = BeastTradePreview & { id: string };
 
 export type CharacterCard = {
   id: string;
+  avatarId?: string | null;
   name: string;
   title: string | null;
   gender: string | null;

@@ -1,5 +1,5 @@
-import { storySceneOpen } from '@daoyou/game-domain/story/gates';
 import type { GameSceneGroup } from '@app/lib/router/routeTitle';
+import { storySceneOpen } from '@daoyou/game-domain/story/gates';
 
 export interface GameSceneNavItem {
   id: string;
@@ -81,6 +81,10 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'cultivator-attributes',
         sceneLabel: '根基属性',
+      },
+      {
+        id: 'portrait',
+        sceneLabel: '写影阁',
       },
       {
         id: 'body-cultivation',

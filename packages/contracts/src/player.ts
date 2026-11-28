@@ -27,6 +27,7 @@ export type PlayerIdentityCultivator = Omit<
   | 'last_yield_at'
 > & {
   last_yield_at?: string;
+  avatarId?: string | null;
 };
 
 export const PLAYER_RESOURCE_KEYS = [

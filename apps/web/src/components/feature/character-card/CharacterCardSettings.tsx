@@ -1,3 +1,5 @@
+import { AvatarGallery } from '@app/components/feature/avatar/AvatarGallery';
+import { CultivatorAvatar } from '@app/components/feature/cultivator/CultivatorAvatar';
 import { useSocialQuery } from '@app/components/feature/friends/socialApi';
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
@@ -27,8 +29,8 @@ import {
   beastTradePreview,
   type SummonedBeast,
 } from '@daoyou/game-domain/beasts';
-import { useEffect, useState } from 'react';
-import { useBeforeUnload, useBlocker } from 'react-router';
+import { useEffect, useState, type ReactNode } from 'react';
+import { useBeforeUnload, useBlocker, useSearchParams } from 'react-router';
 import { achievementIcon } from '../achievements/achievementIcons';
 import { BeastIcon } from '../beasts/BeastIcon';
 import { BeastRosterEntry } from '../beasts/BeastRosterEntry';
@@ -71,6 +73,40 @@ function SelectedBeastSlot({ beast }: { beast: CharacterCardBeast }) {
   );
 }
 
+function CardDisplaySection({
+  label,
+  count,
+  disabled,
+  onChoose,
+  children,
+}: {
+  label: string;
+  count: number;
+  disabled: boolean;
+  onChoose: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      className="border-ink/10 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 border-b py-1"
+      aria-label={`展示${label}`}
+    >
+      <h4 className="min-w-0 font-semibold">
+        {label}
+        <span className="text-ink-secondary ml-3 font-mono text-sm font-normal">
+          {count}/3
+        </span>
+      </h4>
+      <InkButton className="min-h-11" disabled={disabled} onClick={onChoose}>
+        选择{label}
+      </InkButton>
+      {children ? (
+        <div className="col-span-2 min-w-0 pb-2">{children}</div>
+      ) : null}
+    </section>
+  );
+}
+
 export function CharacterCardSettings() {
   const id = usePlayerSession().data?.activeCultivator?.id;
   if (!id)
@@ -98,6 +134,9 @@ function CharacterCardSettingsEditor({
   const [loading, setLoading] = useState(true);
   const [conflict, setConflict] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [params, setParams] = useSearchParams();
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const avatarRequested = params.get('avatar') === '1';
   const [drawer, setDrawer] = useState<
     'equipment' | 'beasts' | 'achievements' | 'preview' | null
   >(null);
@@ -418,52 +457,80 @@ function CharacterCardSettingsEditor({
     };
   };
   return (
-    <div className="grid min-w-0 items-start gap-5">
-      <div className="space-y-5">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-ink-secondary text-xs">编辑对外展示的内容</p>
+    <div className="grid min-w-0 gap-6">
+      <section
+        aria-label="对外形象"
+        className="border-wood/25 bg-paper-2/60 grid grid-cols-[5rem_minmax(0,1fr)] gap-x-4 gap-y-3 border-y px-3 py-4 sm:grid-cols-[6.75rem_minmax(0,1fr)] sm:gap-x-6 sm:px-5 sm:py-5"
+      >
+        <CultivatorAvatar
+          {...view.card}
+          action={{ label: '换头像', onClick: () => setAvatarOpen(true) }}
+          className="h-28 w-full self-center sm:h-36"
+        />
+        <div className="min-w-0 space-y-2">
+          <h3 className="font-heading text-2xl leading-tight wrap-anywhere sm:text-3xl">
+            {view.card.name}
+          </h3>
+          <InkInput
+            label="名号"
+            value={settings.title ?? ''}
+            maxLength={8}
+            hint="2–8 字，留空可清除。"
+            error={titleError}
+            disabled={busy}
+            onChange={(title) =>
+              setView({ ...view, settings: { ...settings, title } })
+            }
+          />
+        </div>
+      </section>
+      {blocker.state !== 'blocked' && (avatarOpen || avatarRequested) ? (
+        <AvatarGallery
+          cultivator={view.card}
+          studioHref="/game/portrait?from=card"
+          onClose={() => {
+            setAvatarOpen(false);
+            if (avatarRequested) {
+              const next = new URLSearchParams(params);
+              next.delete('avatar');
+              setParams(next, { replace: true });
+            }
+          }}
+          onEquipped={(avatarId) => {
+            setView((current) =>
+              current
+                ? { ...current, card: { ...current.card, avatarId } }
+                : current,
+            );
+            setSavedView((current) =>
+              current
+                ? { ...current, card: { ...current.card, avatarId } }
+                : current,
+            );
+          }}
+        />
+      ) : null}
+      <section aria-label="名片展示" className="min-w-0">
+        <header className="border-ink/15 flex items-center justify-between gap-3 border-b pb-1">
+          <h3 className="font-heading text-2xl">名片展示</h3>
           <InkButton className="min-h-11" onClick={() => setDrawer('preview')}>
             预览名片
           </InkButton>
-        </div>
-        <InkInput
-          label="名号"
-          value={settings.title ?? ''}
-          maxLength={8}
-          hint="2–8 字，留空可清除名号。"
-          error={titleError}
+        </header>
+        <CardDisplaySection
+          label="成就"
+          count={selectedAchievementIds.length}
           disabled={busy}
-          onChange={(title) =>
-            setView({ ...view, settings: { ...settings, title } })
-          }
-        />
-        <section
-          className="border-ink/10 space-y-2 border-t pt-3"
-          aria-label="成就展示设置"
+          onChoose={() => setDrawer('achievements')}
         >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-base font-semibold">
-              展示成就{' '}
-              <span className="text-ink-secondary font-mono">
-                {selectedAchievementIds.length}/3
-              </span>
-            </h3>
-            <InkButton
-              className="min-h-11"
-              disabled={busy}
-              onClick={() => setDrawer('achievements')}
-            >
-              选择成就
-            </InkButton>
-          </div>
           {selectedAchievementIds.length ? (
-            <div className="space-y-1">
+            <ul className="divide-ink/10 divide-y">
               {selectedAchievementIds.map((id) => {
                 const achievement = achievementCatalog.find(
                   (entry) => entry.id === id,
                 );
                 return (
-                  <div
+                  <li
                     key={id}
                     className="flex min-w-0 items-center justify-between gap-2"
                   >
@@ -489,33 +556,18 @@ function CharacterCardSettingsEditor({
                         成就{achievement?.name ?? id}
                       </span>
                     </InkButton>
-                  </div>
+                  </li>
                 );
               })}
-            </div>
-          ) : (
-            <p className="text-ink-secondary text-xs">未设置，不展示成就。</p>
-          )}
-        </section>
-        <section
-          className="border-ink/10 space-y-2 border-t pt-3"
-          aria-label="道装展示设置"
+            </ul>
+          ) : null}
+        </CardDisplaySection>
+        <CardDisplaySection
+          label="道装"
+          count={settings.equipmentIds.length}
+          disabled={busy}
+          onChoose={() => setDrawer('equipment')}
         >
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-base font-semibold">
-              展示道装{' '}
-              <span className="text-ink-secondary font-mono">
-                {settings.equipmentIds.length}/3
-              </span>
-            </h3>
-            <InkButton
-              className="min-h-11"
-              disabled={busy}
-              onClick={() => setDrawer('equipment')}
-            >
-              选择道装
-            </InkButton>
-          </div>
           {view.card.equipment.length ? (
             <div className="grid grid-cols-[repeat(3,minmax(0,4rem))] gap-2">
               {view.card.equipment.map((item) => (
@@ -532,29 +584,14 @@ function CharacterCardSettingsEditor({
                 </div>
               ))}
             </div>
-          ) : (
-            <p className="text-ink-secondary text-xs">未设置，不展示道装。</p>
-          )}
-        </section>
-        <section
-          className="border-ink/10 space-y-2 border-t pt-3"
-          aria-label="灵兽展示设置"
+          ) : null}
+        </CardDisplaySection>
+        <CardDisplaySection
+          label="灵兽"
+          count={settings.beastIds.length}
+          disabled={busy}
+          onChoose={() => setDrawer('beasts')}
         >
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-base font-semibold">
-              展示灵兽{' '}
-              <span className="text-ink-secondary font-mono">
-                {settings.beastIds.length}/3
-              </span>
-            </h3>
-            <InkButton
-              className="min-h-11"
-              disabled={busy}
-              onClick={() => setDrawer('beasts')}
-            >
-              选择灵兽
-            </InkButton>
-          </div>
           {view.card.beasts.length ? (
             <div className="grid grid-cols-[repeat(3,minmax(0,4rem))] gap-2">
               {view.card.beasts.map((beast) => (
@@ -574,11 +611,9 @@ function CharacterCardSettingsEditor({
                 </div>
               ))}
             </div>
-          ) : (
-            <p className="text-ink-secondary text-xs">未设置，不展示灵兽。</p>
-          )}
-        </section>
-      </div>
+          ) : null}
+        </CardDisplaySection>
+      </section>
       <footer className="bg-paper border-ink/20 sticky bottom-(--game-bottom-offset) z-20 space-y-2 border-t py-3">
         {error ? (
           <p role="alert" className="text-crimson text-sm leading-6">

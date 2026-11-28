@@ -43,6 +43,10 @@ export const TALISMAN_SCENARIO_OPTIONS = [
     value: 'qi_restore_fill_to_max',
     label: '天地引气符·补满灵气',
   },
+  {
+    value: 'cultivator_avatar',
+    label: '写影符·绘制头像',
+  },
 ] as const;
 
 export type TalismanScenario =

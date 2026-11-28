@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { CultivatorPortraitRef } from './cultivatorAvatar.js';
 
 export type FriendRelationship =
   'friend' | 'none' | 'incoming' | 'outgoing' | 'unavailable';
@@ -12,6 +13,7 @@ export interface FriendCultivatorSummary {
   realm: string;
   realmStage: string;
   status: string;
+  portrait?: CultivatorPortraitRef;
 }
 
 export interface FriendListEntry extends FriendCultivatorSummary {

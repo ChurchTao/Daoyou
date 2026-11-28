@@ -1,11 +1,12 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import { getSectIdentityLabels } from '@app/components/feature/sect/sectIdentityDisplay';
 import { useActiveSectContextQuery } from '@app/components/feature/sect/sectResources';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui';
-import { GameIcon } from '@app/components/ui/GameIcon';
+import { apiFetch } from '@app/lib/api/fetch';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import { useState } from 'react';
+import { AvatarGallery } from '../avatar/AvatarGallery';
+import { CultivatorAvatar } from './CultivatorAvatar';
 import { TitleEditorModal } from './TitleEditorModal';
 import type { CultivatorDisplayProjection } from './useCultivatorDisplayProjection';
 
@@ -16,6 +17,8 @@ export function CultivatorIdentity({
   const identity = sect.data ? getSectIdentityLabels(sect.data) : null;
   const { pushToast } = useInkUI();
   const { mutate } = useResourceMutation();
+  const cultivatorId = cultivator.id;
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const [isTitleModalOpen, setIsTitleModalOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
   const [isSavingTitle, setIsSavingTitle] = useState(false);
@@ -56,14 +59,15 @@ export function CultivatorIdentity({
         aria-label="人物身份"
         className="grid grid-cols-[5.25rem_minmax(0,1fr)] items-center gap-4 md:grid-cols-[7.5rem_minmax(0,1fr)] md:gap-5"
       >
-        <GameIcon
-          purpose="artwork"
-          value={
-            cultivator.gender === '女'
-              ? 'icon:cultivator-female-avatar'
-              : 'icon:cultivator-male-avatar'
+        <CultivatorAvatar
+          avatarId={cultivator.avatarId}
+          gender={cultivator.gender}
+          name={cultivator.name}
+          action={
+            cultivatorId
+              ? { label: '换头像', onClick: () => setGalleryOpen(true) }
+              : undefined
           }
-          label={`${cultivator.name}的墨像`}
           className="h-[6.75rem] w-[5.25rem] md:h-[8.75rem] md:w-[7.5rem]"
         />
         <div className="min-w-0">
@@ -115,6 +119,13 @@ export function CultivatorIdentity({
           </dl>
         </div>
       </section>
+      {galleryOpen && cultivatorId ? (
+        <AvatarGallery
+          cultivator={{ ...cultivator, id: cultivatorId }}
+          studioHref="/game/portrait"
+          onClose={() => setGalleryOpen(false)}
+        />
+      ) : null}
       <TitleEditorModal
         isOpen={isTitleModalOpen}
         onClose={() => setIsTitleModalOpen(false)}

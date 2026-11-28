@@ -239,7 +239,7 @@ export function PartyRoster({
                     >
                       <PartyPortrait
                         member={entry.applicant}
-                        className="border-ink-border bg-paper-2 size-12 rounded-sm border"
+                        className="size-12"
                       />
                       <span className="min-w-0 wrap-anywhere">
                         <strong className="block text-sm">
