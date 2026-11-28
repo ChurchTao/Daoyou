@@ -1,9 +1,18 @@
+:root {
+  --portrait-studio-surface: #eee5d2;
+}
+
+:root[data-theme='dark'] {
+  --portrait-studio-surface: var(--color-sheet);
+}
+
 .portrait-studio {
+  --portrait-studio-rule: #88674544;
   position: relative;
   isolation: isolate;
   min-height: 100%;
   color: var(--color-ink);
-  background: #eee5d2;
+  background: var(--portrait-studio-surface);
 }
 
 .portrait-studio-backdrop {
@@ -123,7 +132,19 @@
   line-height: 1.8;
 }
 
-.portrait-studio-writing textarea:focus-visible {
+.portrait-studio-writing textarea::placeholder {
+  color: var(--color-ink-secondary);
+  opacity: 1;
+}
+
+.portrait-studio-writing textarea:focus-visible,
+:is(
+    .portrait-studio-nav,
+    .portrait-studio-categories,
+    .portrait-studio-words,
+    .portrait-studio-actions
+  )
+  :is(a, button):focus-visible {
   outline: 2px solid var(--color-crimson);
   outline-offset: 2px;
 }
@@ -151,7 +172,7 @@
 
 .portrait-studio-categories button {
   color: var(--color-ink-secondary);
-  border-bottom: 1px solid #88674544;
+  border-bottom: 1px solid var(--portrait-studio-rule);
   font-size: 0.9rem;
 }
 
@@ -178,7 +199,7 @@
 
 .portrait-studio-cost {
   padding-top: 0.8rem;
-  border-top: 1px solid #88674544;
+  border-top: 1px solid var(--portrait-studio-rule);
 }
 
 .portrait-studio-stage {
@@ -226,6 +247,83 @@
 .portrait-studio-working[data-processing='true'] span {
   filter: blur(8px);
   opacity: 0.9;
+}
+
+:root[data-theme='dark'] .portrait-studio {
+  --portrait-studio-rule: var(--color-ink-border);
+  color-scheme: dark;
+}
+
+:root[data-theme='dark'] .portrait-studio-backdrop {
+  filter: brightness(0.52) saturate(0.58);
+}
+
+:root[data-theme='dark'] .portrait-studio::before {
+  background:
+    linear-gradient(180deg, #121d1fe0, #18262824 52%, #111a1b9c),
+    linear-gradient(90deg, #16222380, transparent 80%);
+}
+
+:root[data-theme='dark'] .portrait-studio-heading h1 {
+  text-shadow: 0 2px 18px #111a1b;
+}
+
+:root[data-theme='dark'] .portrait-studio-workbench {
+  border-color: var(--portrait-studio-rule);
+  background: linear-gradient(145deg, var(--color-paper), var(--color-paper-2));
+  box-shadow: 0 14px 45px #0e161840;
+}
+
+:root[data-theme='dark'] .portrait-studio-writing textarea {
+  border-color: color-mix(in srgb, var(--color-ink-secondary) 58%, transparent);
+  background: var(--color-sheet);
+}
+
+:root[data-theme='dark'] .portrait-studio-words button {
+  box-shadow: inset 0 0 0 1px var(--portrait-studio-rule);
+  background: var(--color-muted);
+}
+
+:root[data-theme='dark'] .portrait-studio-words button[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--color-crimson) 52%, transparent);
+  background: color-mix(in srgb, var(--color-crimson) 12%, transparent);
+}
+
+:root[data-theme='dark'] .portrait-studio-cost .portrait-studio-actions {
+  margin-top: 0.6rem;
+}
+
+:root[data-theme='dark'] .portrait-studio-primary {
+  padding-inline: 0.75rem;
+  color: var(--color-on-crimson);
+  background: var(--color-crimson);
+  border: 1px solid transparent;
+}
+
+:root[data-theme='dark'] .portrait-studio-primary:enabled:hover {
+  background: color-mix(in srgb, var(--color-crimson) 82%, var(--color-ink));
+}
+
+:root[data-theme='dark'] .portrait-studio-primary:disabled {
+  border-color: var(--portrait-studio-rule);
+  background: var(--color-muted);
+  color: var(--color-ink-secondary);
+  opacity: 1;
+}
+
+:root[data-theme='dark'] .portrait-studio-working {
+  border-color: var(--portrait-studio-rule);
+  background: radial-gradient(ellipse, var(--color-paper), var(--color-sheet));
+}
+
+:root[data-theme='dark'] .portrait-studio-working span {
+  background: radial-gradient(
+    ellipse at 43% 46%,
+    #b0c4ac8f,
+    #678d7e54 42%,
+    transparent 68%
+  );
 }
 
 @media (prefers-reduced-motion: no-preference) {
