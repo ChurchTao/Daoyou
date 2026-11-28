@@ -8,5 +8,5 @@ export function PartyPortrait({
   member: Pick<PartyPublicMember, 'gender' | 'name'>;
   className: string;
 }) {
-  return <CultivatorAvatar {...member} className={className} />;
+  return <CultivatorAvatar {...member} className={className} decorative />;
 }

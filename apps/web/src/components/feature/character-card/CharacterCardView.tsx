@@ -1,7 +1,7 @@
 import {
   AvatarArtwork,
-  AvatarFrame,
   CultivatorAvatar,
+  FramedCultivatorAvatar,
 } from '@app/components/feature/cultivator/CultivatorAvatar';
 import { tierColorMap } from '@app/components/ui/inkBadgeTiers';
 import type { CharacterCard } from '@daoyou/contracts/player/card';
@@ -33,7 +33,7 @@ export function CharacterCardView({ card }: { card: CharacterCard }) {
   return (
     <article className="text-ink text-sm">
       <header className="border-ink/20 from-ink/6 relative isolate mb-3 flex min-h-24 items-center gap-3 overflow-hidden border-b bg-linear-to-r to-transparent px-2">
-        <CultivatorAvatar
+        <FramedCultivatorAvatar
           avatarId={card.avatarId}
           gender={card.gender}
           name={card.name}
@@ -112,14 +112,12 @@ export function CharacterCardView({ card }: { card: CharacterCard }) {
           onClose={() => setPortraitOpen(false)}
         >
           {card.avatarId ? (
-            <AvatarFrame className="mx-auto flex aspect-square w-full max-w-96">
-              <AvatarArtwork
-                id={card.avatarId}
-                size="384"
-                alt={`${card.name}的墨像`}
-                className="size-full"
-              />
-            </AvatarFrame>
+            <AvatarArtwork
+              id={card.avatarId}
+              size="384"
+              alt={`${card.name}的墨像`}
+              className="mx-auto aspect-square w-full max-w-96"
+            />
           ) : (
             <CultivatorAvatar
               {...card}

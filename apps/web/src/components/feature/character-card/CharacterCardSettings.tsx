@@ -1,5 +1,5 @@
 import { AvatarGallery } from '@app/components/feature/avatar/AvatarGallery';
-import { CultivatorAvatar } from '@app/components/feature/cultivator/CultivatorAvatar';
+import { FramedCultivatorAvatar } from '@app/components/feature/cultivator/CultivatorAvatar';
 import { useSocialQuery } from '@app/components/feature/friends/socialApi';
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
@@ -462,7 +462,7 @@ function CharacterCardSettingsEditor({
         aria-label="对外形象"
         className="border-wood/25 bg-paper-2/60 grid grid-cols-[5rem_minmax(0,1fr)] gap-x-4 gap-y-3 border-y px-3 py-4 sm:grid-cols-[6.75rem_minmax(0,1fr)] sm:gap-x-6 sm:px-5 sm:py-5"
       >
-        <CultivatorAvatar
+        <FramedCultivatorAvatar
           {...view.card}
           action={{ label: '换头像', onClick: () => setAvatarOpen(true) }}
           className="h-28 w-full self-center sm:h-36"

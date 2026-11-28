@@ -6,7 +6,7 @@ import { apiFetch } from '@app/lib/api/fetch';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import { useState } from 'react';
 import { AvatarGallery } from '../avatar/AvatarGallery';
-import { CultivatorAvatar } from './CultivatorAvatar';
+import { FramedCultivatorAvatar } from './CultivatorAvatar';
 import { TitleEditorModal } from './TitleEditorModal';
 import type { CultivatorDisplayProjection } from './useCultivatorDisplayProjection';
 
@@ -59,7 +59,7 @@ export function CultivatorIdentity({
         aria-label="人物身份"
         className="grid grid-cols-[5.25rem_minmax(0,1fr)] items-center gap-4 md:grid-cols-[7.5rem_minmax(0,1fr)] md:gap-5"
       >
-        <CultivatorAvatar
+        <FramedCultivatorAvatar
           avatarId={cultivator.avatarId}
           gender={cultivator.gender}
           name={cultivator.name}

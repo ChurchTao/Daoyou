@@ -1,7 +1,7 @@
 import { cn } from '@app/lib/cn';
 import type { CultivatorPortraitRef } from '@daoyou/contracts/player/avatar';
 import type { HTMLAttributes, MouseEventHandler, ReactNode } from 'react';
-import { CultivatorAvatar } from '../cultivator/CultivatorAvatar';
+import { ChatAvatar } from './ChatAvatar';
 
 const timeFormatter = new Intl.DateTimeFormat('zh-CN', {
   hour: '2-digit',
@@ -72,23 +72,8 @@ export function ChatMessageFrame({
           <div className="relative w-7 shrink-0" aria-hidden="true">
             <span className="border-ink/20 absolute -top-2 left-3.5 h-5 w-2 border-b border-l" />
           </div>
-        ) : system ? null : senderPortrait ? (
-          <span aria-hidden="true" className="flex size-7 shrink-0">
-            <CultivatorAvatar
-              {...senderPortrait}
-              name={senderName}
-              size="96"
-              lazy
-              className="size-full"
-            />
-          </span>
-        ) : (
-          <div
-            className="bg-ink/5 text-ink-secondary flex size-7 shrink-0 items-center justify-center rounded-full text-sm"
-            aria-hidden="true"
-          >
-            {Array.from(senderName)[0]}
-          </div>
+        ) : system ? null : (
+          <ChatAvatar name={senderName} portrait={senderPortrait} />
         )}
         <div className="min-w-0 flex-1">
           {!grouped ? (

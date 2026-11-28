@@ -91,12 +91,11 @@ function Face({ value }: { value?: PerformanceFace }) {
   if (!value) return <span className="block w-[4.5rem] shrink-0" />;
   if (typeof value !== 'string') {
     return (
-      <span aria-hidden="true" className="flex size-[4.5rem] shrink-0">
-        <CultivatorAvatar
-          {...value}
-          className="size-full motion-safe:animate-[fade-in_0.8s_ease-out]"
-        />
-      </span>
+      <CultivatorAvatar
+        {...value}
+        decorative
+        className="size-[4.5rem] shrink-0 motion-safe:animate-[fade-in_0.8s_ease-out]"
+      />
     );
   }
   return value.startsWith('icon:') ? (

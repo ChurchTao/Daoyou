@@ -102,22 +102,24 @@ export type CultivatorPortrait = CultivatorPortraitRef & {
   name: string;
 };
 
+type CultivatorAvatarProps = CultivatorPortrait & {
+  className?: string;
+  size?: AvatarSize;
+  lazy?: boolean;
+  decorative?: boolean;
+};
+
 export function CultivatorAvatar({
   avatarId,
   gender,
   name,
   className,
   size = '384',
-  action,
   lazy,
-}: CultivatorPortrait & {
-  className?: string;
-  size?: AvatarSize;
-  action?: AvatarAction;
-  lazy?: boolean;
-}) {
-  const alt = action ? '' : `${name}的墨像`;
-  const imageClass = 'block size-full object-contain';
+  decorative,
+}: CultivatorAvatarProps) {
+  const alt = decorative ? '' : `${name}的墨像`;
+  const imageClass = cn('size-full', className);
   const fallback = (
     <GameIcon
       purpose="artwork"
@@ -130,20 +132,31 @@ export function CultivatorAvatar({
       className={imageClass}
     />
   );
+  return avatarId ? (
+    <AvatarArtwork
+      id={avatarId}
+      size={size}
+      alt={alt}
+      className={imageClass}
+      fallback={fallback}
+      lazy={lazy}
+    />
+  ) : (
+    fallback
+  );
+}
+
+export function FramedCultivatorAvatar({
+  action,
+  className,
+  ...portrait
+}: CultivatorAvatarProps & { action?: AvatarAction }) {
   return (
     <AvatarFrame className={className} action={action}>
-      {avatarId ? (
-        <AvatarArtwork
-          id={avatarId}
-          size={size}
-          alt={alt}
-          className={imageClass}
-          fallback={fallback}
-          lazy={lazy}
-        />
-      ) : (
-        fallback
-      )}
+      <CultivatorAvatar
+        {...portrait}
+        decorative={!!action || portrait.decorative}
+      />
     </AvatarFrame>
   );
 }

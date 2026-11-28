@@ -1,8 +1,5 @@
 import { BeastPortrait } from '@app/components/feature/beasts/BeastPortrait';
-import {
-  AvatarArtwork,
-  AvatarFrame,
-} from '@app/components/feature/cultivator/CultivatorAvatar';
+import { AvatarArtwork } from '@app/components/feature/cultivator/CultivatorAvatar';
 import type { CombatV6UnitAppearance } from '@daoyou/game-domain/combat';
 import { combatPortraitValue } from './presentation';
 import type { CombatV6Unit } from './session';
@@ -24,15 +21,13 @@ export function CombatV6Portrait({
 
   return (
     <span aria-hidden="true" className="inline-flex size-[1em] shrink-0">
-      <AvatarFrame className="size-full">
-        <AvatarArtwork
-          id={appearance.avatarId}
-          size="96"
-          alt=""
-          className="size-full"
-          fallback={fallback}
-        />
-      </AvatarFrame>
+      <AvatarArtwork
+        id={appearance.avatarId}
+        size="96"
+        alt=""
+        className="size-full"
+        fallback={fallback}
+      />
     </span>
   );
 }

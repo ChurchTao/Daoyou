@@ -72,7 +72,7 @@ export function AvatarGallery({
             {...cultivator}
             avatarId={candidate}
             size="384"
-            className="aspect-square w-full"
+            className="bg-paper-2/60 aspect-square w-full"
           />
           <div className="min-w-0 space-y-1">
             <h3 className="font-heading text-xl sm:text-2xl">
@@ -149,7 +149,8 @@ export function AvatarGallery({
                     name={avatar.id ? cultivator.name : '默认头像'}
                     size="96"
                     lazy
-                    className="aspect-square w-full"
+                    decorative
+                    className="bg-paper-2/60 aspect-square w-full"
                   />
                   <span className="text-ink-secondary block truncate px-1 pt-1 text-xs">
                     {avatar.id ? avatar.description : '默认墨像'}

@@ -1,5 +1,5 @@
 import { useChatViewport } from '@app/components/feature/chat/useChatViewport';
-import { CultivatorAvatar } from '@app/components/feature/cultivator/CultivatorAvatar';
+import { ChatAvatar } from '@app/components/feature/chat/ChatAvatar';
 import { FriendTargetModal } from '@app/components/feature/friends';
 import {
   socialRequest,
@@ -322,25 +322,12 @@ function FriendsWorkspace({ identity }: { identity: string }) {
           active ? 'bg-ink/5 text-crimson' : 'hover:bg-ink/4 text-ink',
         )}
       >
-        <span
-          aria-hidden="true"
-          className={cn(
-            'relative flex size-9 shrink-0 items-center justify-center rounded-full text-base',
-            !portrait &&
-              (active ? 'bg-crimson/8' : 'bg-ink/5 text-ink-secondary'),
-          )}
-        >
-          {portrait ? (
-            <CultivatorAvatar
-              {...portrait}
-              name={contact.name}
-              size="96"
-              lazy
-              className="size-full"
-            />
-          ) : (
-            Array.from(contact.name)[0]
-          )}
+        <span aria-hidden="true" className="relative flex size-9 shrink-0">
+          <ChatAvatar
+            name={contact.name}
+            portrait={portrait}
+            className={cn('size-full text-base', active && 'bg-crimson/8')}
+          />
           {online ? (
             <FriendOnlineDot className="border-paper absolute top-0 right-0 size-3 border-2" />
           ) : null}

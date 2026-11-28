@@ -1,7 +1,7 @@
 import { CharacterCardTrigger } from '@app/components/feature/character-card/CharacterCardTrigger';
 import { ChatMessageFrame } from '@app/components/feature/chat/ChatMessageFrame';
 import { ChatTextComposer } from '@app/components/feature/chat/ChatTextComposer';
-import { CultivatorAvatar } from '@app/components/feature/cultivator/CultivatorAvatar';
+import { ChatAvatar } from '@app/components/feature/chat/ChatAvatar';
 import { socialRequest } from '@app/components/feature/friends/socialApi';
 import { GameLoadingState } from '@app/components/game-shell';
 import { InkButton, InkNotice } from '@app/components/ui';
@@ -490,15 +490,12 @@ export function DirectChatPanel({
           >
             道友列表
           </InkButton>
-          {conversation?.peer.portrait ? (
-            <span aria-hidden="true" className="mr-1 flex size-8 shrink-0">
-              <CultivatorAvatar
-                {...conversation.peer.portrait}
-                name={conversation.peer.name}
-                size="96"
-                className="size-full"
-              />
-            </span>
+          {conversation ? (
+            <ChatAvatar
+              name={conversation.peer.name}
+              portrait={conversation.peer.portrait}
+              className="mr-1 size-8"
+            />
           ) : null}
           <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-2">
