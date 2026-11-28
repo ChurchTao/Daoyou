@@ -24,6 +24,7 @@ export function playerAppearances(
   return {
     [player.cultivator.id]: {
       icon: player.portrait ?? 'icon:cultivator-male-avatar',
+      ...(player.avatarId ? { avatarId: player.avatarId } : {}),
     },
     ...Object.fromEntries(
       (player.beasts?.beasts ?? []).map((beast) => [

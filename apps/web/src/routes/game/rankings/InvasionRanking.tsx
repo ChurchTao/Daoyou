@@ -1,3 +1,4 @@
+import { CultivatorAvatar } from '@app/components/feature/cultivator/CultivatorAvatar';
 import {
   activityDate,
   weeklyBoardStatus,
@@ -10,7 +11,6 @@ import {
   WeeklyBoardPeriod,
 } from '@app/components/feature/weekly-activity/WeeklyLeaderboard';
 import { InkDetailDrawer, InkSelect } from '@app/components/ui';
-import { GameIcon } from '@app/components/ui/GameIcon';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
 import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
 import type { InvasionRanking as Ranking } from '@daoyou/contracts/invasion';
@@ -26,13 +26,9 @@ function TeamPortrait({
   member: TeamScore['participants'][number];
 }) {
   return (
-    <GameIcon
-      value={
-        member.gender === '女'
-          ? 'icon:cultivator-female-avatar'
-          : 'icon:cultivator-male-avatar'
-      }
-      purpose="artwork"
+    <CultivatorAvatar
+      name={member.name}
+      gender={member.gender}
       className="invasion-score-portrait"
     />
   );

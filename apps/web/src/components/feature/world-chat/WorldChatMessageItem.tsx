@@ -131,6 +131,7 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
       <ChatMessageFrame
         messageId={message.id}
         senderName={message.senderName}
+        senderPortrait={isOwn ? cultivator : message.senderPortrait}
         createdAt={message.createdAt}
         own={isOwn}
         grouped={grouped}

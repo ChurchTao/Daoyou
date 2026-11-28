@@ -18,6 +18,8 @@ export interface RenderedPrompt {
 export type PromptSectionKey = 'system' | 'user';
 
 const promptSources = [
+  'cultivator-avatar.md',
+  'cultivator-avatar-appearance.md',
   'daily-divination.md',
   'alchemy-contest-library.md',
   'alchemy-contest-materials.md',

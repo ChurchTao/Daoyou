@@ -4,6 +4,7 @@ import type {
   FriendRequestResult,
   FriendRequestStatus,
 } from '@daoyou/contracts/friends';
+import { publicCultivatorPortrait } from '@server/cultivator/facts.js';
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db.js';
 import { db } from '@server/lib/drizzle/db.js';
 import { friendRequests } from '@server/lib/drizzle/schema.js';
@@ -35,6 +36,7 @@ async function summary(
         realm: row.realm,
         realmStage: row.realmStage,
         status: row.status,
+        portrait: publicCultivatorPortrait(row),
       }
     : {
         id,

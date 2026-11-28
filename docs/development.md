@@ -235,6 +235,18 @@ AI 相关功能统一通过原生 `@nestjs/ai` 的 `AiService` 调用，全部�
 
 退还第二笔临时预留后灵气为 312，页面保留原推演，使用完全相同的开炉 `requestId` 重试成功，补扣尾款 2 点至 310、扣 29440 灵石至 218562；材料各消耗 4 份、版本各递增 1，产出地品丹药 11 枚，熟练度升为 Lv.2。成功请求再次重放返回 `state.replayed=true`，后续 `currency` 资源读取与数据库余额一致。两笔准备性预留均已 `refunded`，没有遗留预留；正常玩法产物、消耗、进度和历史记录保留。本轮额外的成功模型完成步骤仅 1 条（`alchemy-formula-analysis`），没有后台模型生成。临时启动的 API/Web 已停止，日志分别保留于 `/tmp/daoyou-alchemy-refund-api.log`、`/tmp/daoyou-alchemy-payment-api.log` 和 `/tmp/daoyou-alchemy-web.log`。本轮执行真实本地浏览器/API 流程、只读数据库核验和 `git diff --check`；因无代码变更，未重复运行 lint、typecheck、build 或单测。旧全款凭据的运行时兼容仍未补测。
 
+### 玩家头像
+
+写影符是 `consumable.v1` 的符箓，场景为 `cultivator_avatar`。管理端的奖励物品生成器可选择「写影符·绘制头像」，再通过现有邮件或兑换码发放。玩家从储物袋或头像收藏进入写影阁，提交最多 60 字的人物外观。提交时暂占一枚，三档图像全部写入并校验后结算。任务失败自动还到储物袋，满袋时进储藏室。
+
+头像收藏归账号，角色只保存当前启用的头像 ID。生成成功即进入收藏，角色更换和切回默认图可以继续使用既有收藏。Lighthouse COS 桶设为私有读写，EdgeOne 使用 S3 Signature V4 鉴权回源。所有客户端从 `${VITE_AVATAR_IMAGE_ORIGIN}/avatars/{avatarId}/{size}.webp` 直接加载图片，持有链接即可读取。图片域名只接受三档头像路径上的无查询参数 GET 和 HEAD，图片浏览器缓存 1 天，节点缓存 30 天。收藏缩略图用 96，名片点开用 384，写影阁成图和收藏大图用 1024。切换头像会更新角色引用的 ID，旧图片仍可通过原地址访问。
+
+本地开发和本机预发联调分别从 `env/local.env` 和 `env/staging.env` 加载 `VITE_AVATAR_IMAGE_ORIGIN`。部署时，在 `play.idaoyou.cn` 和 `client.daoyou.org` 各自的前端构建环境中设置 `VITE_AVATAR_IMAGE_ORIGIN=https://img.idaoyou.cn` 并重新构建。变量值为完整的图片源站地址，如 `https://img.idaoyou.cn`。未配置时，头像组件使用默认头像或显示「头像暂不可用」。
+
+先应用业务迁移。在 API 的环境文件中设置 `ARK_AVATAR_API_KEY`、`AVATAR_COS_BUCKET`（含 APPID）、`AVATAR_COS_REGION`、`AVATAR_COS_SECRET_ID`、`AVATAR_COS_SECRET_KEY`，并保留现有 `ALIBABA_API_KEY`。COS 身份需要头像桶对应前缀的 `PutObject`、`HeadObject`、`GetObject`、`DeleteObject` 操作。Key 只保存在服务端。缺少配置时绘制入口显示未开放。下载或上传重试复用已返回的方舟 URL，失败任务的残留对象由后台清理。
+
+头像使用方舟 Seedream 5.5 的纯文本单张生成。描述整理走现有 `AiService`，图像请求走独立的方舟 Images API。无需开启后台 LLM 批量生成。三档 WebP 写入生成来源和文件 ID 的 XMP 元数据。实桶验收包括写入、HEAD、源站匿名拒绝、CDN 和浏览器命中、失败清理以及发还后的资源读数。若需撤下已分发的头像，删除对象后清理三档 CDN URL，浏览器里的副本按浏览器缓存时间到期。
+
 ## 数据库初始化
 
 首次启动通常要做两件事：

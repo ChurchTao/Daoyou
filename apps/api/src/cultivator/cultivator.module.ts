@@ -1,6 +1,12 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '@server/database/database.module.js';
 import { LlmModule } from '@server/llm/llm.module.js';
+import { PlayerStateModule } from '@server/player/player-state.module.js';
+import { AvatarController } from './avatar/avatar.controller.js';
+import { AvatarRendererService } from './avatar/avatar-renderer.service.js';
+import { AvatarStorageService } from './avatar/avatar-storage.service.js';
+import { AvatarWorkerService } from './avatar/avatar-worker.service.js';
+import { AvatarService } from './avatar/avatar.service.js';
 import { CharacterCardController } from './character-card.controller.js';
 import { CharacterCardService } from './character-card.service.js';
 import { ConditionController } from './condition.controller.js';
@@ -15,8 +21,9 @@ import { RetreatService } from './retreat.service.js';
 import { YieldService } from './yield.service.js';
 
 @Module({
-  imports: [DatabaseModule, LlmModule],
+  imports: [DatabaseModule, LlmModule, PlayerStateModule],
   controllers: [
+    AvatarController,
     CharacterCardController,
     ProfileController,
     ConditionController,
@@ -24,6 +31,10 @@ import { YieldService } from './yield.service.js';
     CultivationController,
   ],
   providers: [
+    AvatarService,
+    AvatarStorageService,
+    AvatarRendererService,
+    AvatarWorkerService,
     CharacterCardService,
     CultivatorQueriesService,
     ProfileService,

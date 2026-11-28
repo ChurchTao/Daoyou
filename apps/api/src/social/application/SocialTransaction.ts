@@ -1,6 +1,7 @@
 import type { FriendCultivatorSummary } from '@daoyou/contracts/friends';
 import { MAX_FRIENDS_PER_CULTIVATOR } from '@daoyou/game-content/social/config';
 import { HttpException } from '@nestjs/common';
+import { publicCultivatorPortrait } from '@server/cultivator/facts.js';
 import { authUsers } from '@server/lib/auth/schema.js';
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db.js';
 import {
@@ -98,6 +99,8 @@ export async function readSocialActor(tx: DbExecutor, cultivatorId: string) {
       id: cultivators.id,
       userId: cultivators.userId,
       name: cultivators.name,
+      gender: cultivators.gender,
+      avatarId: cultivators.avatarId,
       title: cultivators.title,
       realm: cultivators.realm,
       realmStage: cultivators.realm_stage,
@@ -189,5 +192,6 @@ export async function ensureFriendPairInTransaction(
     realm: peer.realm,
     realmStage: peer.realm_stage,
     status: peer.status,
+    portrait: publicCultivatorPortrait(peer),
   };
 }

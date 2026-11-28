@@ -81,8 +81,9 @@ describe('historical presentation replay', () => {
   });
   it('preserves frozen appearance through archive parsing and filters unseen identities', () => {
     const { replay } = record('1v3');
+    const portrait = { icon: 'icon:cultivator-female-avatar', avatarId: id };
     replay.timeline.unitAppearances = {
-      'unit-0': { icon: 'icon:cultivator-female-avatar' },
+      'unit-0': portrait,
       'never-appeared': { icon: '🐺', speciesName: '疾风狼' },
     };
     const parsed = parseCombatV6Replay(replay);
@@ -91,7 +92,7 @@ describe('historical presentation replay', () => {
     );
     const view = combatV6ReplayView(parsed, id, 'user');
     expect(view.display.unitAppearances).toEqual({
-      'unit-0': { icon: 'icon:cultivator-female-avatar' },
+      'unit-0': portrait,
     });
     expect(view.timeline.unitAppearances).toEqual(view.display.unitAppearances);
     delete replay.timeline.unitAppearances;

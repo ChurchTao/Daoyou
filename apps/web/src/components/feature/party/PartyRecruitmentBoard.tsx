@@ -206,7 +206,7 @@ export function PartyRecruitmentBoard({
                   >
                     <PartyPortrait
                       member={entry.leader}
-                      className="border-ink-border bg-paper-2 size-12 rounded-sm border"
+                      className="border-ink-border bg-paper-2 size-12 overflow-hidden rounded-full border"
                     />
                     <div className="min-w-0 wrap-anywhere">
                       <p className="text-sm font-semibold">

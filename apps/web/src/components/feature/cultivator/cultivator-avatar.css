@@ -1,0 +1,93 @@
+.cultivator-avatar-frame {
+  --avatar-rule: color-mix(in srgb, var(--color-wood) 45%, transparent);
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid var(--avatar-rule);
+  background: radial-gradient(
+    ellipse at 50% 70%,
+    var(--color-paper-2),
+    var(--color-paper) 85%
+  );
+}
+
+.cultivator-avatar-frame::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: 3px;
+  z-index: 1;
+  border: 1px solid color-mix(in srgb, var(--color-wood) 18%, transparent);
+}
+
+button.cultivator-avatar-frame {
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+button.cultivator-avatar-frame[data-action='label'] {
+  padding-bottom: 1.45rem;
+}
+
+button.cultivator-avatar-frame[data-action='zoom'] {
+  cursor: zoom-in;
+}
+
+button.cultivator-avatar-frame:hover,
+button.cultivator-avatar-frame:active,
+button.cultivator-avatar-frame:focus-visible {
+  border-color: var(--color-crimson);
+}
+
+button.cultivator-avatar-frame:focus-visible {
+  outline: 2px solid var(--color-crimson);
+  outline-offset: 2px;
+}
+
+.cultivator-avatar-action {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 2;
+  background: var(--color-paper);
+  border-top: 1px solid var(--avatar-rule);
+  color: var(--color-crimson);
+  font-size: 0.75rem;
+  line-height: 1.45rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.cultivator-avatar-zoom {
+  position: absolute;
+  inset: auto 0.3125rem 0.3125rem auto;
+  z-index: 2;
+  width: 1.375rem;
+  height: 1.375rem;
+  padding: 0.125rem;
+  border: 1px solid var(--avatar-rule);
+  border-radius: 0.1875rem;
+  background: var(--color-paper);
+  pointer-events: none;
+}
+
+@keyframes avatar-artwork-reveal {
+  from {
+    filter: blur(18px);
+    opacity: 0.16;
+  }
+  to {
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .avatar-artwork-reveal[data-revealing='true'] {
+    animation: avatar-artwork-reveal 1s ease-out both;
+  }
+}

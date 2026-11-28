@@ -68,6 +68,7 @@ export type CombatV6TrainingPlayerInput = Omit<
 > & {
   beasts?: import('../beasts/schema.js').BeastRoster;
   portrait?: 'icon:cultivator-male-avatar' | 'icon:cultivator-female-avatar';
+  avatarId?: string;
   autoStrategy?: AutoStrategy;
 };
 

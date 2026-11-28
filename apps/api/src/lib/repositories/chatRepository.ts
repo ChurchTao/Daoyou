@@ -14,10 +14,11 @@ import {
   chatMessages,
   chatRedPackets,
   chatSequence,
+  cultivators,
 } from '@server/lib/drizzle/schema.js';
 import { encodeNatsSubjectToken } from '@server/realtime/infrastructure/natsCorePubSub.js';
 import { ChatError } from '@server/social/application/chatError.js';
-import { readCultivatorTitles } from '@server/cultivator/facts.js';
+import { publicCultivatorPortrait } from '@server/cultivator/facts.js';
 import { and, asc, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { createTransactionalMessage } from './transactionalMessageRepository.js';
@@ -29,6 +30,10 @@ export type ChatScope = {
   sectId?: string | null;
 };
 type MessageRow = typeof chatMessages.$inferSelect;
+type ChatSender = Pick<
+  typeof cultivators.$inferSelect,
+  'title' | 'gender' | 'avatarId' | 'status'
+>;
 
 export function chatScopePredicate(scope: ChatScope) {
   return scope.channel === 'all'
@@ -45,9 +50,26 @@ function cutoff() {
   return new Date(Date.now() - CHAT_RETENTION_DAYS * 86_400_000);
 }
 
-export function messageFromRow(
+async function readChatSenders(ids: (string | null)[], q: DbExecutor) {
+  const senderIds = [...new Set(ids.filter((id) => id !== null))];
+  const senders = senderIds.length
+    ? await q
+        .select({
+          id: cultivators.id,
+          title: cultivators.title,
+          gender: cultivators.gender,
+          avatarId: cultivators.avatarId,
+          status: cultivators.status,
+        })
+        .from(cultivators)
+        .where(inArray(cultivators.id, senderIds))
+    : [];
+  return new Map(senders.map((sender) => [sender.id, sender]));
+}
+
+function messageFromRow(
   row: MessageRow,
-  senderTitle: string | null = null,
+  sender?: ChatSender,
 ): WorldChatMessageDTO {
   return {
     id: row.id,
@@ -57,7 +79,8 @@ export function messageFromRow(
     senderUserId: row.senderUserId,
     senderCultivatorId: row.senderCultivatorId,
     senderName: row.senderName,
-    senderTitle,
+    senderTitle: sender?.title ?? null,
+    senderPortrait: publicCultivatorPortrait(sender),
     senderRealm: row.senderRealm,
     senderRealmStage: row.senderRealmStage,
     messageType: row.messageType,
@@ -68,6 +91,11 @@ export function messageFromRow(
     status: row.status,
     createdAt: row.createdAt.toISOString(),
   };
+}
+
+async function toChatMessage(row: MessageRow, q: DbExecutor) {
+  const senders = await readChatSenders([row.senderCultivatorId], q);
+  return messageFromRow(row, senders.get(row.senderCultivatorId ?? ''));
 }
 
 export async function findChatMessage(id: string, q: DbExecutor = db) {
@@ -98,7 +126,7 @@ export async function findChatMessageRequest(
     .limit(1);
   if (row && row.requestFingerprint !== fingerprint)
     throw new ChatError('同一发送标识不能用于不同消息', 409);
-  return row ? messageFromRow(row) : undefined;
+  return row ? toChatMessage(row, q) : undefined;
 }
 
 function replySummary(message: MessageRow): string {
@@ -206,7 +234,7 @@ export async function insertChatMessage(
   if (input.id) {
     const duplicate = await findChatMessage(input.id, tx);
     if (duplicate)
-      return { message: messageFromRow(duplicate), outboxId: undefined };
+      return { message: await toChatMessage(duplicate, tx), outboxId: undefined };
   }
   const reply = await createReply(
     input.replyToMessageId,
@@ -235,12 +263,7 @@ export async function insertChatMessage(
       createdAt: input.createdAt ? new Date(input.createdAt) : new Date(),
     })
     .returning();
-  const titles = await readCultivatorTitles(
-    input.senderCultivatorId ? [input.senderCultivatorId] : [], tx,
-  );
-  const message = messageFromRow(
-    row!, titles.get(input.senderCultivatorId ?? '') ?? null,
-  );
+  const message = await toChatMessage(row!, tx);
   if (!notify) return { message, outboxId: undefined };
   const outbox = await queueChatNotification(tx, {
     destination: chatSubject(input.channel, input.sectId),
@@ -251,10 +274,10 @@ export async function insertChatMessage(
 }
 
 async function hydrateMessages(rows: MessageRow[], q: DbExecutor) {
-  const senderIds = [...new Set(rows.flatMap((row) =>
-    row.senderCultivatorId ? [row.senderCultivatorId] : [],
-  ))];
-  const senderTitles = await readCultivatorTitles(senderIds, q);
+  const senders = await readChatSenders(
+    rows.map((row) => row.senderCultivatorId),
+    q,
+  );
   const replyIds = rows.flatMap((row) =>
     row.reply ? [row.reply.messageId] : [],
   );
@@ -283,7 +306,7 @@ async function hydrateMessages(rows: MessageRow[], q: DbExecutor) {
   const packetById = new Map(packets.map((packet) => [packet.id, packet]));
   return rows.map((row) => {
     const message = messageFromRow(
-      row, senderTitles.get(row.senderCultivatorId ?? '') ?? null,
+      row, senders.get(row.senderCultivatorId ?? ''),
     );
     if (message.reply) {
       const target = targetById.get(message.reply.messageId);

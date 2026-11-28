@@ -16,4 +16,7 @@ function getOptionalEnv(...names: string[]): string | undefined {
 
 export const clientEnv = {
   apiBaseUrl: getOptionalEnv('VITE_API_BASE_URL')?.replace(/\/+$/, ''),
+  avatarImageOrigin: getOptionalEnv('VITE_AVATAR_IMAGE_ORIGIN')
+    ?.trim()
+    .replace(/\/+$/, ''),
 };

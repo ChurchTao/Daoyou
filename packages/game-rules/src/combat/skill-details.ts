@@ -12,6 +12,8 @@ import { DAO_EQUIPMENT_ARTS_V1 } from '@daoyou/game-content/equipment/special';
 import { formatRatioPercent } from '../presentation/numbers.js';
 
 const arts = new Map(DAO_EQUIPMENT_ARTS_V1.map((art) => [art.skill.id, art]));
+const beastPhysicalPenaltyRule = '多项灵兽技能的自身物伤代价同时生效时，只取最大降幅。';
+
 function beastPassiveDescription(skill: SkillDef): string | undefined {
   const effect = BEAST_SKILL_CONTENT.find(
     (entry) => entry.id === skill.id,
@@ -76,11 +78,11 @@ function beastPassiveDescription(skill: SkillDef): string | undefined {
     case 'miracle':
       return `${effect.immune ? '免疫' : '回合末解除'}可驱散的控制、减益和持续伤害状态，不包含禁复活。`;
     case 'concentration':
-      return `免疫可驱散的控制状态（不含禁复活），自身造成的物理伤害降低 ${percent(1 - effect.physicalFactor)}%。${effect.dodgeBonus ? `躲避增加 ${effect.dodgeBonus} 点。` : ''}`;
+      return `免疫可驱散的控制状态（不含禁复活），自身造成的物理伤害降低 ${percent(1 - effect.physicalFactor)}%。${effect.dodgeBonus ? `躲避增加 ${effect.dodgeBonus} 点。` : ''}${beastPhysicalPenaltyRule}`;
     case 'eternity':
       return `获得可延长增益时持续时间增加 ${percent(effect.factor - 1)}%，向下取整，最多额外 ${effect.maxExtra} 回合；不延长隐身、控制与特殊入场效果。`;
     case 'stealth':
-      return `每场首次出战时隐身 ${effect.minDuration}～${effect.maxDuration} 回合（含入场回合），使没有灵觉或看破效果的敌人无法攻击自身。期间不能施法，自身造成的物理伤害降低 ${percent(1 - effect.physicalFactor)}%；召回后不重新触发。`;
+      return `每场首次出战时隐身 ${effect.minDuration}～${effect.maxDuration} 回合（含入场回合），使没有灵觉或看破效果的敌人无法攻击自身。期间不能施法，自身造成的物理伤害降低 ${percent(1 - effect.physicalFactor)}%；召回后不重新触发。${beastPhysicalPenaltyRule}`;
     case 'perception':
       return `能看破隐身，攻击隐身目标。${effect.dodgeBonus ? `躲避增加 ${effect.dodgeBonus} 点。` : ''}`;
     case 'spellRepeat':
@@ -96,13 +98,13 @@ function beastPassiveDescription(skill: SkillDef): string | undefined {
     case 'defenseTraining':
       return `物理防御提高自身等级 × ${effect.perLevel}，向下取整；自身法术伤害降低 ${percent(1 - effect.spellFactor)}%。`;
     case 'strengthTraining':
-      return `物理攻击提高自身等级 × ${effect.perLevel}，向下取整；忽略招架减伤，攻击拥有铁骨或高级铁骨的目标时物理伤害降低 ${percent(1 - effect.versusDefenseFactor)}%。`;
+      return `物理攻击提高自身等级 × ${effect.perLevel}，向下取整；忽略招架减伤，攻击拥有铁骨或高级铁骨的目标时物理伤害降低 ${percent(1 - effect.versusDefenseFactor)}%。${beastPhysicalPenaltyRule}`;
     case 'wisdom':
       return `法术技能的法力消耗降低 ${percent(1 - effect.factor)}%，与其他减耗倍率相乘后向下取整；不影响物理技能和捕捉。`;
     case 'sneakAttack':
       return `物理伤害提高 ${percent(effect.factor - 1)}%，物理攻击不触发目标的反击与反震。`;
     case 'spellResistance':
-      return `受到的法术伤害降低 ${percent(1 - effect.takenFactor)}%，自身造成的物理伤害降低 ${percent(1 - effect.physicalFactor)}%；不减免固定伤害。`;
+      return `受到的法术伤害降低 ${percent(1 - effect.takenFactor)}%，自身造成的物理伤害降低 ${percent(1 - effect.physicalFactor)}%；不减免固定伤害。${beastPhysicalPenaltyRule}`;
     case 'lifesteal':
       return `物理攻击使目标实际损失气血后，自身恢复本次损失气血的 ${percent(effect.ratio)}%，向下取整且不超过可恢复上限。连击追加攻击与反击不触发噬血，也无法从灵魂体目标噬血。`;
     case 'reflection':
@@ -129,7 +131,7 @@ function beastComboDescription(skill: SkillDef): string | undefined {
     (entry) => entry.id === skill.id,
   )?.effect;
   if (effect?.type !== 'combo') return;
-  return `普通攻击命中后，有 ${Math.round(hook.chance * 100)}% 概率向原目标追加一次普攻；自身所有物理伤害降低 ${Math.round((1 - effect.physicalFactor) * 100)}%。目标拥有反震或高级反震时不触发，偷袭不解除此限制。`;
+  return `普通攻击命中后，有 ${Math.round(hook.chance * 100)}% 概率向原目标追加一次普攻；自身所有物理伤害降低 ${Math.round((1 - effect.physicalFactor) * 100)}%。目标拥有反震或高级反震时不触发，偷袭不解除此限制。${beastPhysicalPenaltyRule}`;
 }
 const effectLabels: Record<SkillEffect['type'], string> = {
   invokeSkill: '依规则施展指定神通',

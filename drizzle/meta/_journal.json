@@ -610,6 +610,13 @@
       "when": 1795787853862,
       "tag": "0087_remove_ancient_demon_invasion_replays",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1795848232752,
+      "tag": "0088_cultivator_avatars",
+      "breakpoints": true
     }
   ]
 }

@@ -773,6 +773,8 @@ export type CombatModifier = {
   sealResistanceAdd?: Expr;
   damageBonus?: Expr;
   damageAdd?: Expr;
+  /** Only the lowest applicable factor multiplies base damage before damage hooks. */
+  damagePenaltyFactor?: number;
   /** Multiplies the complete strike result, including flat result additions. */
   damageResultFactor?: Expr;
   physicalAttackAdd?: Expr;

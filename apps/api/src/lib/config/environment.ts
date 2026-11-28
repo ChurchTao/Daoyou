@@ -42,6 +42,11 @@ const environmentSchema = z
     CRON_SECRET: z.string().optional(),
     /** 后台模型任务（剧本库、材料库生成）：缺省时只在 production 运行，其他环境须显式设为 on。 */
     BACKGROUND_LLM_JOBS: z.enum(['on', 'off']).optional(),
+    ARK_AVATAR_API_KEY: z.string().trim().optional(),
+    AVATAR_COS_BUCKET: z.string().trim().optional(),
+    AVATAR_COS_REGION: z.string().trim().optional(),
+    AVATAR_COS_SECRET_ID: z.string().trim().optional(),
+    AVATAR_COS_SECRET_KEY: z.string().trim().optional(),
     TRANSFER_SERVER_ID: z.string().trim().regex(/^[A-Za-z0-9._-]{1,160}$/).optional(),
     TRANSFER_SIGNING_PRIVATE_KEY_B64: z.string().optional(),
     TRANSFER_ENCRYPTION_PRIVATE_KEY_B64: z.string().optional(),

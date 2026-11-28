@@ -67,6 +67,7 @@ export class CharacterCardService {
         id: cultivators.id,
         name: cultivators.name,
         title: cultivators.title,
+        avatarId: cultivators.avatarId,
         gender: cultivators.gender,
         realm: cultivators.realm,
         realmStage: cultivators.realm_stage,
@@ -178,6 +179,7 @@ export class CharacterCardService {
       name: row.name,
       title: row.title,
       gender: row.gender,
+      avatarId: row.avatarId,
       realm: row.realm as RealmType,
       realmStage: row.realmStage as RealmStage,
       sectName: membership

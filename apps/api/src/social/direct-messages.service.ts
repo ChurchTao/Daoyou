@@ -8,6 +8,7 @@ import type {
   SendDirectMessageRequest,
 } from '@daoyou/contracts/direct-messages';
 import { HttpException, Injectable } from '@nestjs/common';
+import { publicCultivatorPortrait } from '@server/cultivator/facts.js';
 import { authUsers } from '@server/lib/auth/schema.js';
 import { db, type DbExecutor } from '@server/lib/drizzle/db.js';
 import {
@@ -208,8 +209,10 @@ async function conversationDTO(
     peer: {
       cultivatorId: peer.originalCultivatorId,
       name: other?.name ?? peer.name,
+      portrait: publicCultivatorPortrait(other),
     },
     myCultivatorId: mine.originalCultivatorId,
+    myPortrait: publicCultivatorPortrait(own),
     archived:
       !own || !other || own.status !== 'active' || other.status !== 'active',
     canSend: unavailableReason === null,
@@ -300,6 +303,8 @@ export class DirectMessagesService {
             id: cultivators.id,
             userId: cultivators.userId,
             name: cultivators.name,
+            gender: cultivators.gender,
+            avatarId: cultivators.avatarId,
             status: cultivators.status,
           })
           .from(cultivators)
@@ -406,8 +411,10 @@ export class DirectMessagesService {
           peer: {
             cultivatorId: peer.originalCultivatorId,
             name: other?.name ?? peer.name,
+            portrait: publicCultivatorPortrait(other),
           },
           myCultivatorId: mine.originalCultivatorId,
+          myPortrait: publicCultivatorPortrait(current),
           archived,
           canSend: unavailableReason === null,
           unavailableReason,

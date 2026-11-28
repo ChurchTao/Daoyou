@@ -3,6 +3,7 @@ import type { BattleEvent } from '@daoyou/combat-core/types';
 
 export interface CombatV6UnitAppearance {
   icon: string;
+  avatarId?: string;
   speciesName?: string;
   isMutant?: boolean;
 }

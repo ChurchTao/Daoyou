@@ -1,8 +1,13 @@
+import {
+  CultivatorAvatar,
+  type CultivatorPortrait,
+} from '@app/components/feature/cultivator/CultivatorAvatar';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { GameImage } from '@app/components/ui/GameImage';
 import { PaperSurface } from '@app/components/ui/PaperSurface';
 import { cn } from '@app/lib/cn';
 import { useTypewriter } from '@app/lib/hooks/useTypewriter';
+import { useCultivatorIdentity } from '@app/lib/resources/player';
 import {
   isPerformanceTextCue,
   performanceCueText,
@@ -80,8 +85,19 @@ function ScenePicture({
   );
 }
 
-function Face({ value }: { value?: string }) {
+type PerformanceFace = string | CultivatorPortrait;
+
+function Face({ value }: { value?: PerformanceFace }) {
   if (!value) return <span className="block w-[4.5rem] shrink-0" />;
+  if (typeof value !== 'string') {
+    return (
+      <CultivatorAvatar
+        {...value}
+        decorative
+        className="size-[4.5rem] shrink-0 motion-safe:animate-[fade-in_0.8s_ease-out]"
+      />
+    );
+  }
   return value.startsWith('icon:') ? (
     <GameIcon
       purpose="artwork"
@@ -112,7 +128,7 @@ function Passage({
 }: {
   entry: PageEntry;
   /** 这段话的人有没有小像。没有就不留页边。 */
-  face?: string;
+  face?: PerformanceFace;
   /** 同一个人接着说，不再出一次小像。 */
   showFace: boolean;
   past?: boolean;
@@ -262,6 +278,7 @@ export function PerformancePlayer({
   playerPortrait?: string;
 }) {
   const reducedMotion = usePrefersReducedMotion();
+  const cultivator = useCultivatorIdentity().data?.cultivator;
   const [opening] = useState(() => [...flags]);
   const [state, setState] = useState<PerformanceState>(() =>
     createPerformanceState(script, context, opening),
@@ -405,14 +422,17 @@ export function PerformancePlayer({
   const picture = state.backdrop.src;
   const backdropPanel = picture && backdropStyle === 'panel';
   const place = backdropPanel ? '' : state.backdrop.alt;
+  const playerFace = cultivator ?? playerPortrait;
   const faceOf = (actor?: string) =>
     actor === PLAYER_ACTOR
-      ? (script.cast[actor]?.portrait ?? playerPortrait)
+      ? (cultivator?.avatarId
+        ? cultivator
+        : script.cast[actor]?.portrait ?? playerFace)
       : actor
         ? script.cast[actor]?.portrait
         : undefined;
   const entryFace = (entry: PageEntry) =>
-    entry.kind === 'said' ? playerPortrait : faceOf(entry.actor);
+    entry.kind === 'said' ? playerFace : faceOf(entry.actor);
   const voiceOf = (entry?: PageEntry) =>
     entry?.kind === 'said'
       ? PLAYER_ACTOR

@@ -253,6 +253,7 @@ export async function assembleCombatV6TrainingPlayer(
     autoStrategy: (await readCustomAutoStrategy(cultivatorId, build.sect.activePathId, q))
       ?? defaultAutoStrategy(build.sect.activePathId),
     portrait: cultivator.gender === '女' ? 'icon:cultivator-female-avatar' : 'icon:cultivator-male-avatar',
+    avatarId: cultivator.avatarId ?? undefined,
     cultivator: {
       id: cultivator.id,
       name: cultivator.name,
@@ -317,6 +318,7 @@ async function assemblePersonalWildPlayer(
       cultivator.gender === '女'
         ? 'icon:cultivator-female-avatar'
         : 'icon:cultivator-male-avatar',
+    avatarId: cultivator.avatarId ?? undefined,
     cultivator: {
       id: cultivator.id,
       name: cultivator.name,

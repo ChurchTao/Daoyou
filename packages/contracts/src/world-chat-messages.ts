@@ -1,5 +1,6 @@
 import type { BeastTradePreview } from '@daoyou/game-domain/beasts';
 import type { InventoryShowcasePayload } from '@daoyou/game-domain/items/catalog';
+import type { CultivatorPortraitRef } from './cultivatorAvatar.js';
 
 export type WorldChatMessageChannel = 'system' | 'world' | 'sect';
 
@@ -139,6 +140,7 @@ export interface WorldChatMessageDTO {
   senderRealm: string;
   senderRealmStage: string;
   senderTitle?: string | null;
+  senderPortrait?: CultivatorPortraitRef;
   messageType: WorldChatMessageType;
   textContent: string | null;
   payload: WorldChatPayload;

@@ -1,3 +1,4 @@
+import { HookName } from '@daoyou/combat-core/enums';
 import { createBattle, restoreBattle } from '@daoyou/combat-core/session';
 import type { Command, LineupUnit, SkillDef } from '@daoyou/combat-core/types';
 import { effectiveAttrs } from '@daoyou/combat-core/units';
@@ -29,6 +30,11 @@ const ruleset = createDaoyouRuleset({
 });
 const definition = (id: string) =>
   structuredClone(BEAST_SKILLS.find((skill) => skill.id === id)!);
+function guaranteedCombo() {
+  const combo = definition('beast.combo');
+  combo.hooks!.find((hook) => hook.on === HookName.AfterHit)!.chance = 1;
+  return combo;
+}
 const cast = (skillId: string, target = 'target'): Command => ({
   type: 'skill',
   skillId,
@@ -139,8 +145,7 @@ it.each([
 });
 
 it('幸运适用于派生连击，善报治疗不受目标幸运减免', () => {
-  const combo = definition('beast.combo');
-  combo.hooks![1].chance = 1;
+  const combo = guaranteedCombo();
   const session = createBattle(
     input(
       {
@@ -263,8 +268,7 @@ it('横扫主次倍率缩放号令结果加成，目标不重复且次目标按�
 });
 
 it('横扫受连击全局代价但不触发普攻连击或毒，反震致死中断剩余目标', () => {
-  const combo = definition('beast.combo');
-  combo.hooks![1].chance = 1;
+  const combo = guaranteedCombo();
   const poison = definition('beast.poison');
   poison.hooks![0].chance = 1;
   const session = createBattle(
@@ -450,8 +454,7 @@ it('招财成功跳过必杀且不受幸运减免，失败正常必杀；原始�
 it('招财可作用于普攻连击，各命中独立判定，不生成额外攻击', () => {
   const golden = definition('beast.golden-strike');
   golden.innate!.physicalBurst!.chance = 1;
-  const combo = definition('beast.combo');
-  combo.hooks![1].chance = 1;
+  const combo = guaranteedCombo();
   const session = createBattle(
     input({ passives: [golden.id, combo.id] }, {}, [], [golden, combo]),
   );

@@ -1,10 +1,14 @@
-import { expect, it } from 'vitest';
 import { CommandType, EventType, HookName } from '@daoyou/combat-core/enums';
 import { createBattle } from '@daoyou/combat-core/session';
 import { type SkillDef } from '@daoyou/combat-core/types';
-import { createDaoyouRuleset } from '../combat/daoyou/index.js';
+import {
+  BEAST_SKILLS,
+  BEAST_SKILL_CONTENT,
+  BEAST_STATUS_DEFS,
+} from '@daoyou/game-content/beasts';
 import { COMBAT_V6_SEAL_CURVE_TRAINING_VERSIONS } from '@daoyou/game-domain/combat';
-import { BEAST_SKILLS, BEAST_SKILL_CONTENT } from '@daoyou/game-content/beasts';
+import { expect, it } from 'vitest';
+import { createDaoyouRuleset } from '../combat/daoyou/index.js';
 const physical: SkillDef = {
   id: 'test.physical',
   name: '主动物攻',
@@ -13,15 +17,16 @@ const physical: SkillDef = {
   effects: [{ type: 'physicalHit' }],
 };
 function run(
-  id: string,
+  attacker: string | string[],
   enemy: string[] = [],
   basic = true,
   sneak = false,
   forced = true,
   seed = 1,
 ) {
+  const passives = typeof attacker === 'string' ? [attacker] : attacker;
   const skills = [...BEAST_SKILLS, physical].map((s) =>
-    s.id === id && forced
+    s.id === passives[0] && forced
       ? {
           ...s,
           hooks: s.hooks?.map((h) =>
@@ -34,6 +39,7 @@ function run(
     seed,
     versions: COMBAT_V6_SEAL_CURVE_TRAINING_VERSIONS,
     skills,
+    statusDefs: BEAST_STATUS_DEFS,
     ruleset: createDaoyouRuleset({
       formulas: {
         physicalHitChance: () => 1,
@@ -49,7 +55,7 @@ function run(
         name: 'a',
         side: 0,
         kind: 'player',
-        passives: [id, ...(sneak ? ['beast.sneak-attack'] : [])],
+        passives: [...passives, ...(sneak ? ['beast.sneak-attack'] : [])],
         skills: [physical.id],
         attrs: { hp: 1000, speed: 100 },
       },
@@ -97,6 +103,64 @@ it.each([
     );
   }
   expect([...counts].sort()).toEqual([1, 2]);
+});
+it.each([
+  ['beast.combo', 'beast.stealth', 75],
+  ['beast.advanced-combo', 'beast.advanced-stealth', 80],
+] as const)(
+  '%s 和 %s 同时生效时，两段普攻与主动物理只取最大降幅',
+  (combo, stealth, damage) => {
+    const passives = [
+      combo,
+      stealth,
+      'beast.concentration',
+      'beast.spell-resistance',
+    ];
+    const battle = run(passives);
+    expect(battle.unit('a').statuses.map((status) => status.id)).toContain(
+      `${stealth}.status`,
+    );
+    expect(
+      battle
+        .log()
+        .filter(
+          (event) => event.type === EventType.Damage && event.sourceId === 'a',
+        )
+        .map((event) => event.amount),
+    ).toEqual([damage, damage]);
+    expect(run(passives, [], false).unit('b').attrs.hp).toBe(1000 - damage);
+    expect(run([combo, stealth], [], false).unit('b').attrs.hp).toBe(
+      1000 - damage,
+    );
+  },
+);
+it('隐身结束后按仍生效的御法降幅结算', () => {
+  const battle = run(['beast.stealth', 'beast.spell-resistance']);
+  expect(battle.unit('b').attrs.hp).toBe(920);
+  const remaining = battle.unit('a').statuses[0].remainingRounds;
+  for (let round = 0; round < remaining; round++) {
+    battle.submit('a', { type: CommandType.Defend });
+    battle.submit('b', { type: CommandType.Defend });
+    battle.lockAndResolve();
+  }
+  expect(battle.unit('a').statuses).toHaveLength(0);
+  battle.submit('a', { type: CommandType.Attack, target: 'b' });
+  battle.submit('b', { type: CommandType.Defend });
+  battle.lockAndResolve();
+  expect(battle.unit('b').attrs.hp).toBe(830);
+});
+it('蛮力对铁骨的物伤代价取最大降幅，目标招架独立减伤', () => {
+  expect(
+    run('beast.strength', ['beast.defense'], false).unit('b').attrs.hp,
+  ).toBe(920);
+  expect(
+    run(['beast.combo', 'beast.strength'], ['beast.defense'], false).unit('b')
+      .attrs.hp,
+  ).toBe(925);
+  expect(
+    run(['beast.combo', 'beast.stealth'], ['beast.parry'], false).unit('b')
+      .attrs.hp,
+  ).toBe(933);
 });
 it.each(['beast.reflection', 'beast.advanced-reflection'])(
   '%s 无论反伤是否触发、是否偷袭，都阻止连击',

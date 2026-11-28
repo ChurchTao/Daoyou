@@ -1,4 +1,5 @@
 /** Public consumables capabilities. Keep implementation files private. */
+export { AVATAR_TALISMAN_NAME, AVATAR_TALISMAN_SCENARIO } from '../consumables/avatarTalisman.js';
 export {
   CULTIVATION_PILL_MAX_QUALITY_BY_REALM,
   CULTIVATION_PILL_MIN_QUALITY_BY_REALM,

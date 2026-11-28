@@ -153,6 +153,7 @@
 .weekly-rank-seat .weekly-rank-avatar {
   width: 2.65rem;
   height: 2.65rem;
+  overflow: hidden;
   border-radius: 50%;
   background: var(--color-paper-2);
   box-shadow: 0 0 0 1px var(--color-ink-border);

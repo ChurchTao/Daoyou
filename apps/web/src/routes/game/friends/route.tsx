@@ -1,4 +1,5 @@
 import { useChatViewport } from '@app/components/feature/chat/useChatViewport';
+import { ChatAvatar } from '@app/components/feature/chat/ChatAvatar';
 import { FriendTargetModal } from '@app/components/feature/friends';
 import {
   socialRequest,
@@ -307,6 +308,7 @@ function FriendsWorkspace({ identity }: { identity: string }) {
           : contact.friend
             ? `${contact.friend.realm} ${contact.friend.realmStage}`
             : conversation?.unavailableReason || '暂无消息';
+    const portrait = contact.friend?.portrait ?? conversation?.peer.portrait;
     return (
       <button
         type="button"
@@ -320,14 +322,12 @@ function FriendsWorkspace({ identity }: { identity: string }) {
           active ? 'bg-ink/5 text-crimson' : 'hover:bg-ink/4 text-ink',
         )}
       >
-        <span
-          aria-hidden="true"
-          className={cn(
-            'relative flex size-9 shrink-0 items-center justify-center rounded-full text-base',
-            active ? 'bg-crimson/8' : 'bg-ink/5 text-ink-secondary',
-          )}
-        >
-          {Array.from(contact.name)[0]}
+        <span aria-hidden="true" className="relative flex size-9 shrink-0">
+          <ChatAvatar
+            name={contact.name}
+            portrait={portrait}
+            className={cn('size-full text-base', active && 'bg-crimson/8')}
+          />
           {online ? (
             <FriendOnlineDot className="border-paper absolute top-0 right-0 size-3 border-2" />
           ) : null}

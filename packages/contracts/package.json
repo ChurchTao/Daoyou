@@ -72,6 +72,7 @@
     "./market": "./dist/market.js",
     "./player": "./dist/player.js",
     "./player/card": "./dist/characterCard.js",
+    "./player/avatar": "./dist/cultivatorAvatar.js",
     "./player/home-rumors": "./dist/playerHomeRumors.js",
     "./player/journal": "./dist/playerJournal.js",
     "./qi": "./dist/qi.js",
