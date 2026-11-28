@@ -1,7 +1,7 @@
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { GameImage } from '@app/components/ui/GameImage';
-import { resolveApiUrl } from '@app/lib/api/url';
 import { cn } from '@app/lib/cn';
+import { clientEnv } from '@app/lib/env';
 import type {
   AvatarSize,
   CultivatorPortraitRef,
@@ -26,20 +26,27 @@ export function AvatarArtwork({
   lazy?: boolean;
   reveal?: boolean;
 }) {
-  const src = resolveApiUrl(`/api/cultivator/avatars/${id}/image/${size}`);
+  const { avatarImageOrigin } = clientEnv;
+  const src = avatarImageOrigin
+    ? `${avatarImageOrigin}/avatars/${encodeURIComponent(id)}/${size}.webp`
+    : undefined;
   const [failed, setFailed] = useState<string>();
   const [loaded, setLoaded] = useState<string>();
-  if (failed === src)
+  if (!src || failed === src)
     return (
       fallback ?? (
         <span className="text-ink-secondary grid size-full place-content-center px-1 text-center text-sm">
-          <button
-            type="button"
-            className="min-h-11 underline underline-offset-4"
-            onClick={() => setFailed(undefined)}
-          >
-            重试加载头像
-          </button>
+          {src ? (
+            <button
+              type="button"
+              className="min-h-11 underline underline-offset-4"
+              onClick={() => setFailed(undefined)}
+            >
+              重试加载头像
+            </button>
+          ) : (
+            '头像暂不可用'
+          )}
         </span>
       )
     );

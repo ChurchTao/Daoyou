@@ -22,7 +22,6 @@ import { AvatarRendererService } from './avatar-renderer.service.js';
 
 const PAGE_SIZE = 24;
 const JOB_DEADLINE_MS = 15 * 60_000;
-type AvatarRow = typeof cultivatorAvatars.$inferSelect;
 
 @Injectable()
 export class AvatarService {
@@ -250,27 +249,5 @@ export class AvatarService {
         };
       },
     });
-  }
-
-  async canRead(actor: ActiveCultivatorRef, id: AvatarRow['id']) {
-    const [allowed] = await this.database
-      .select({ id: cultivatorAvatars.id })
-      .from(cultivatorAvatars)
-      .where(
-        and(
-          eq(cultivatorAvatars.id, id),
-          eq(cultivatorAvatars.status, 'ready'),
-          or(
-            eq(cultivatorAvatars.userId, actor.userId),
-            sql`exists (
-          select 1 from ${cultivators}
-          where ${cultivators.avatarId} = ${cultivatorAvatars.id}
-            and ${cultivators.userId} = ${cultivatorAvatars.userId}
-            and ${cultivators.status} = 'active'
-        )`,
-          ),
-        ),
-      );
-    return Boolean(allowed);
   }
 }
