@@ -97,7 +97,7 @@ export function AuctionListingActions({
       )}
       {isBeast && !isOwner && !canDeployBeast(listing.beast, ownerLevel) && (
         <p className="text-crimson text-sm">
-          当前境界或灵兽寿命不满足出战条件，领取后暂不能出战。
+          当前境界或灵兽寿元不满足出战条件，领取后暂不能出战。
         </p>
       )}
       <p className="text-ink-secondary text-xs">

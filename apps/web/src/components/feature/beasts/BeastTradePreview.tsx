@@ -53,14 +53,14 @@ export function BeastTradeDetails({
         </p>
       )}
       <p>
-        成长 <span className="font-mono">{beast.growth.toFixed(3)}</span> · 寿命{' '}
+        成长 <span className="font-mono">{beast.growth.toFixed(3)}</span> · 寿元{' '}
         <span className="font-mono">
-          {beast.currentLifespan}/{beast.maxLifespan}
+          {beast.currentLifespan.toLocaleString()}
         </span>
       </p>
       {beast.currentLifespan < BEAST_PROGRESSION.lifespan.deployMinimum && (
         <p className="text-crimson">
-          寿命不足，无法出战。{tradeNotice ? '交易不恢复寿命。' : ''}
+          寿元不足，无法出战。{tradeNotice ? '交易后可喂养补充寿元。' : ''}
         </p>
       )}
       <dl className="grid grid-cols-2 gap-x-5 gap-y-2">

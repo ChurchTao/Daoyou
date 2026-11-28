@@ -5,6 +5,7 @@ import { AuctionSnapshotSchema } from '../auction/items.js';
 import { MailAttachmentSchema } from '../mail/attachments.js';
 import { generateCapturedBeast, generateStarterBeast } from './generator.js';
 import {
+  BeastTradePreviewSchema,
   BeastTransferSchema,
   beastAuctionBlockReason,
   planBeastMailClaims,
@@ -92,7 +93,7 @@ describe('灵兽交易资产规则', () => {
     ).toContain('首发');
     expect(
       beastAuctionBlockReason(
-        { ...starter, currentLifespan: starter.maxLifespan + 1 },
+        { ...starter, currentLifespan: -1 },
         owner,
         0,
         lineup,
@@ -112,6 +113,23 @@ describe('灵兽交易资产规则', () => {
       'generationContentRevision',
     ])
       expect(preview).not.toHaveProperty(key);
+  });
+  it('旧附件与公开预览读取时丢弃寿元上限，保留实际寿元', () => {
+    const { id: beastId, ownerCultivatorId: _owner, ...individual } = starter;
+    void _owner;
+    const currentLifespan = 105_000;
+    const transfer = {
+      id: beastId,
+      createdAt: '2026-09-19T00:00:00.000Z',
+      individual: { ...individual, currentLifespan, maxLifespan: 1000 },
+    };
+    const received = receiveTradedBeast(transfer, buyer);
+    expect(received.currentLifespan).toBe(currentLifespan);
+    expect(received).not.toHaveProperty('maxLifespan');
+    const preview = beastTradePreview(received);
+    expect(
+      BeastTradePreviewSchema.parse({ ...preview, maxLifespan: 1000 }),
+    ).toEqual(preview);
   });
   it('快照拒绝重复归属、损坏技能及不可领取版本，附件只能一只', () => {
     const { id: beastId, ownerCultivatorId: _owner, ...individual } = starter;

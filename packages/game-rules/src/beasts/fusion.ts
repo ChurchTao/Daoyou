@@ -145,7 +145,6 @@ export function fuseBeasts(
     skills,
     skillSlotCapacity: skills.length,
     currentLifespan: BEAST_GENERATION.lifespan,
-    maxLifespan: BEAST_GENERATION.lifespan,
     generationVersion: BEAST_FUSION_VERSION,
     generationContentRevision: BEAST_FUSION.contentRevision,
     generationSeed: seed,

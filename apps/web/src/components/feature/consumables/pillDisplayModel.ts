@@ -92,10 +92,10 @@ function getRestoreEffectText(
   operation: Extract<ConditionOperation, { type: 'restore_resource' }>,
 ): string {
   if (operation.mode === 'percent') {
-    return `恢复最大${getResourceLabel(operation.resource)} ${formatRatioPercent(operation.value, 1)}`;
+    return `恢复人物或灵兽最大${getResourceLabel(operation.resource)}的 ${formatRatioPercent(operation.value, 1)}`;
   }
 
-  return `恢复${getResourceLabel(operation.resource)} ${operation.value}`;
+  return `恢复人物或灵兽${getResourceLabel(operation.resource)} ${operation.value}`;
 }
 
 function getRestoreTargetText(
@@ -131,7 +131,7 @@ function getProgressTargetLabel(
 }
 
 function getLifespanGainText(value: number): string {
-  return `寿元 +${Math.max(0, Math.floor(value))} 年`;
+  return `增加人物或灵兽寿元 ${value > 0 ? Math.max(1, Math.floor(value)) : 0}`;
 }
 
 function getBreakthroughPurposeLabel(spec: PillSpec): string | null {
@@ -689,10 +689,10 @@ function getSpiritFruitRealmRuleLines(
   const maxQuality = CULTIVATION_PILL_MAX_QUALITY_BY_REALM[realm];
   const order = QUALITY_ORDER[quality];
   if (order > QUALITY_ORDER[maxQuality]) {
-    return [`当前境界最多可承受${maxQuality}灵果，此果药力过盛`];
+    return [`人物当前境界最多可承受${maxQuality}灵果，此果药力过盛`];
   }
   if (order < QUALITY_ORDER[minQuality]) {
-    return [`当前境界至少需要${minQuality}灵果，此果药力过于稀薄`];
+    return [`人物当前境界至少需要${minQuality}灵果，此果药力过于稀薄`];
   }
   return [];
 }

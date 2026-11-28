@@ -18,7 +18,7 @@
 | `birthSkills.core` | 0至2项出生／洗炼必带技能，可被传承灵印覆盖 |
 | `birthSkills.candidates` | 候选池，按逐物种已确认设计包含普通或高级技能；与必带合计3至6项；每个候选独立以1/2获得 |
 | `generation.minBirthSkills` / `maxBirthSkills` | 全包出生技能数量边界，当前0至6；各物种上限为自己的天生全集 |
-| `generation.starterLevel` / `lifespan` | 初始伙伴等级10、初始及最大寿命1000 |
+| `generation.starterLevel` / `lifespan` | 初始伙伴等级配置、初始寿元1000，可通过喂养延寿 |
 
 物种目录不依赖野外怪物目录。野外编排通过稳定ID引用物种并调用同一个抽取函数；三十四种均已加入捕捉池，咪咪与合体及以上十二种为稀有异兽，区域概率独立配置，野外个体与捕获后的灵兽共用个体事实。狰沿用原犀牛ID，三足金蟾使用独立新ID并进入黑水潭。咪咪进入青溪坡稀有池，初始伙伴为烛尾狐、钢背猪、精灵狼，幽冥虎进入化神栖地不见天。后续十六种见[扩展基准](../../../../../.agents/skills/daoyou-beast-design/references/later-realms.md)。首批名称、资质、出生技能和ID映射见[设计确认基准](../../../../../.agents/skills/daoyou-beast-design/references/first-release.md)。
 

@@ -16,7 +16,6 @@ export type BeastTradePreview = Pick<
   | 'skillSlotCapacity'
   | 'skills'
   | 'currentLifespan'
-  | 'maxLifespan'
 >;
 
 
@@ -36,6 +35,5 @@ export function beastTradePreview(beast: BeastTradePreview): BeastTradePreview {
     skillSlotCapacity: beast.skillSlotCapacity,
     skills: beast.skills,
     currentLifespan: beast.currentLifespan,
-    maxLifespan: beast.maxLifespan,
   };
 }

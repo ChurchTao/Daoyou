@@ -271,7 +271,7 @@ export async function updateBeastLineup(
           b.id === lineup.leadBeastId && canDeployBeast(b, roster.ownerLevel),
       )
     )
-      throw new BeastError('等级或寿命不满足出战条件，不能设为首发');
+      throw new BeastError('等级或寿元不满足出战条件，不能设为首发');
     const next = { ...lineup, revision: lineup.revision + 1 };
     await tx
       .insert(cultivatorBeastLineups)
